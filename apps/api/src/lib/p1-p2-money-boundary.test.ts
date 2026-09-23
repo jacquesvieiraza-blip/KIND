@@ -186,10 +186,16 @@ describe('🛑 R3.1 · P1 AUTHORISES SOURCING AND PREPARATION — AND NOTHING EL
     for (const forbidden of ['approved_at', 'approved_by', 'went_live_at', 'run_at', 'last_run_at']) {
       expect(patch, `P1 wrote ${forbidden}`).not.toHaveProperty(forbidden)
     }
+    // ⛓️ 23 Sep (R136 ④) — `wallet_applied_cents` JOINED THE PATCH, and it belongs to the money
+    // half rather than the authority half: it records how much of the first payment was met
+    // with shortfall credit instead of cash, which is what keeps contribution — and therefore a
+    // partner's commission — off money that never arrived. It is ZERO on this fixture, which
+    // takes no credit, and the exhaustive list is what makes that visible rather than assumed.
     expect(Object.keys(patch).sort()).toEqual([
       'first_paid_at', 'first_payment_intent_id', 'first_payment_ref',
-      'sourcing_ceiling', 'status', 'updated_at',
+      'sourcing_ceiling', 'status', 'updated_at', 'wallet_applied_cents',
     ])
+    expect(patch, 'a payment with no credit recorded one').toMatchObject({ wallet_applied_cents: 0 })
   })
 
   it('P1 is distinct from recommendation acceptance — it neither requires nor writes it here', async () => {

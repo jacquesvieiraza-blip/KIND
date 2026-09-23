@@ -295,8 +295,33 @@ describe('NO WALLET, NO PACK, NO PER-LEAD PRICE ON THE PROGRAMME SURFACE', () =>
   })
 
   it('the customer payload carries none either', () => {
-    for (const legacy of ['wallet_balance', 'sourcing_allowance', 'credits']) {
+    for (const legacy of ['sourcing_allowance', 'credits']) {
       expect(ROUTE_CODE, `legacy money field in the customer payload: ${legacy}`).not.toContain(legacy)
+    }
+
+    // ── 🛑 ⚑ 23 Sep (R136 ④) — `wallet_balance` IS NOW READ HERE, AND STILL NEVER SENT ────
+    //
+    // ⛓️ WAS a flat `.not.toContain('wallet_balance')` over the whole file. R136 ④ lets a
+    // client spend shortfall credit against their first payment, so the route READS the balance
+    // server-side to compute the discount — and the flat ban could not tell a read from a leak.
+    //
+    // 🛑 SO THE GUARD GOT SHARPER RATHER THAN LOOSER. It now asserts the thing it always meant:
+    // the balance is read in exactly ONE place, that place is the credit computation, and it
+    // never appears in anything sent to a client. A second read, or one cent of it reaching a
+    // payload, fails here — neither of which the old substring check could distinguish.
+    // ⚠️ COUNT THE QUERY, NOT THE LINES. One read is a `.select(...)` plus the line that takes
+    // the value off its result, and an earlier version of this guard counted both and reported
+    // "two reads" for one. What must stay at one is the number of times the route ASKS.
+    const queries = ROUTE_CODE.match(/\.select\('wallet_balance_usd'\)/g) ?? []
+    expect(queries.length, `the route reads the wallet balance ${queries.length} times; exactly one is authorised`)
+      .toBe(1)
+    // Every other mention must be consuming that one result — never a second source.
+    for (const l of ROUTE_CODE.split('\n').filter(l => l.includes('wallet_balance'))) {
+      expect(l, 'the wallet balance is reached from somewhere other than the one authorised read')
+        .toMatch(/\.select\('wallet_balance_usd'\)|wallet_balance_usd\?: number \| null|\?\.wallet_balance_usd/)
+    }
+    for (const m of ROUTE_CODE.matchAll(/res\.json\(([\s\S]{0,400})/g)) {
+      expect(m[1], 'the wallet balance reached a client payload').not.toContain('wallet_balance')
     }
   })
 

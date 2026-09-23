@@ -957,6 +957,13 @@ create table if not exists public.programmes (
   -- ⚠️ THE CREDIT IS ALSO ADDED TO `make_whole_cents`, because `computeContribution` subtracts
   -- that column from revenue. Recording it only here would leave a partner earning 25% of money
   -- the client no longer owes.
+  -- ── ⚑ 23 Sep · WALLET CREDIT SPENT ON P1 (20260923_programme_wallet_applied · R136 ④) ─
+  -- 🛑 REVENUE IS `first_payment_cents - wallet_applied_cents`. The payment columns record what
+  -- was OWED; this is the first thing that makes owed and RECEIVED different numbers, and the
+  -- credit inside it was already counted as revenue on the programme that gave it back.
+  -- Reading the column alone counts those cents twice and pays a partner 25% of the difference.
+  -- Founder-ruled 23 Sep: commission follows CASH RECEIVED, not price.
+  wallet_applied_cents      int  not null default 0,
   shortfall_credited_at     timestamptz,
   shortfall_credit_cents    int  not null default 0,
   delivered_meetings        int,                  -- persisted, never re-derived: a settled figure may not move

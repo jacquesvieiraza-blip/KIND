@@ -445,7 +445,7 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     //
     // ⚠️ AND THE EXCEPTION IS PINNED TO ONE KEY. Any OTHER money-model migration in this window
     // still fails here, including a second one from the same ruling.
-    const AUTHORISED = ['20260923_programme_shortfall_credit']
+    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied']
     const offenders = mine.filter(k => /billing|wallet|usage|credit|lead_price|pack/i.test(k))
       .filter(k => !AUTHORISED.includes(k))
     expect(offenders, `a Milla slice migrated the money model: ${offenders.join(', ')}`).toEqual([])

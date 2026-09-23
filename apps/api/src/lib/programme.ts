@@ -105,6 +105,15 @@ export interface ProgrammeRow {
   // that predates the migration returns rows without them. `settleProgrammeShortfall` treats an
   // ABSENT `shortfall_credited_at` as "cannot settle yet" rather than as "not yet settled" —
   // without the column there is no claim, and without a claim a retry credits a wallet twice.
+  /**
+   * Wallet credit applied to the FIRST payment, in cents (20260923_programme_wallet_applied).
+   *
+   * 🛑 REVENUE IS `first_payment_cents - wallet_applied_cents`, NOT `first_payment_cents`. The
+   * payment columns record what was OWED; this is the first thing that makes owed and RECEIVED
+   * different numbers, and `computeContribution` must read the difference or a partner is paid
+   * 25% of money that never arrived.
+   */
+  wallet_applied_cents?: number
   shortfall_credited_at?: string | null
   shortfall_credit_cents?: number
   /** Meetings actually delivered when the programme stopped. Persisted, never re-derived. */
@@ -712,6 +721,13 @@ export async function recordFirstPayment(params: {
   programmeId: string
   sessionId: string
   paymentIntentId?: string | null
+  /**
+   * Wallet credit the checkout discounted, in integer cents (R136 ④). P1 only.
+   *
+   * ⚠️ THE INTENTION, NOT THE DRAW. The live balance is re-read here and never exceeded — the
+   * session may have been created days ago.
+   */
+  walletCreditCents?: number
 }): Promise<{ ok: boolean; alreadyRecorded?: boolean; reason?: string }> {
   const p = await getProgramme(params.programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
@@ -726,12 +742,65 @@ export async function recordFirstPayment(params: {
     return { ok: false, reason: 'This programme already has INTERNAL P1 authority. A stage cannot hold both internal authority and a payment.' }
   }
 
+  // ── 🛑 ⚑ 23 Sep (R136 ④) — THE WALLET DRAW, AND IT HAPPENS EXACTLY HERE ───────────────
+  //
+  // 🛑 NOT AT CHECKOUT CREATION. A client who opens a checkout and walks away must still have
+  // their credit — spending it on a session nobody paid would take their money and deliver
+  // nothing. So the intention travels in Stripe metadata and the money moves only now, when the
+  // payment is confirmed.
+  //
+  // 🛑 AND ONLY ON THE DELIVERY THAT CLAIMS THE ROW. `increment_wallet` is not idempotent, so a
+  // redelivered webhook drawing again would charge the credit twice. The compare-and-set below
+  // is what decides; this runs before it and is reversed if the claim is lost.
+  //
+  // ⚠️ IT NEVER DRAWS MORE THAN IS ACTUALLY THERE. The balance is re-read now rather than
+  // trusted from the session, because minutes or days may have passed. If it has fallen, we
+  // draw what is left and ALERT — the programme is then underpaid relative to its price, which
+  // is a collections problem for a human and not something to paper over.
+  const intended = Math.max(0, Math.floor(Number(params.walletCreditCents ?? 0)))
+  let applied = 0
+  if (intended > 0) {
+    const { data: w } = await db.from('clients')
+      .select('wallet_balance_usd').eq('id', p.client_id).maybeSingle()
+    const balUsd = Number((w as { wallet_balance_usd?: number | null } | null)?.wallet_balance_usd ?? 0)
+    const balCents = Number.isFinite(balUsd) ? Math.max(0, Math.floor(balUsd * 100)) : 0
+    applied = Math.min(intended, balCents)
+    if (applied > 0) {
+      const { error: drawErr } = await db.rpc('increment_wallet', {
+        p_client_id: p.client_id, p_amount: -(applied / 100),
+      })
+      if (drawErr) {
+        // The money arrived and we could not spend their credit against it. Charging them the
+        // discounted amount AND keeping their credit is the safe direction for the client, so
+        // the payment is still recorded — with nothing applied, and an alert.
+        void sendFounderAlert('payment_failed', 'Programme P1 wallet credit could not be drawn', [
+          `Programme ${params.programmeId} (client ${p.client_id}): ${intended} cents of credit were discounted at checkout and the wallet draw FAILED (${drawErr.message}).`,
+          'The client paid the discounted amount and still holds the credit. The programme is underpaid by that difference.',
+        ])
+        applied = 0
+      } else {
+        await db.from('credit_transactions').insert({
+          client_id: p.client_id, type: 'wallet_charge', amount: -(applied / 100), plan: 'work_model',
+          reference: `programme-p1:${params.programmeId}`,
+          note: `Wallet credit applied to programme first payment`,
+        })
+      }
+    }
+    if (applied < intended) {
+      void sendFounderAlert('payment_failed', 'Programme P1 took less credit than it discounted', [
+        `Programme ${params.programmeId} (client ${p.client_id}): discounted ${intended} cents at checkout, applied ${applied}.`,
+        'The balance fell between the checkout and the payment. The programme is underpaid by the difference.',
+      ])
+    }
+  }
+
   // The `.is('first_payment_ref', null)` guard makes this a compare-and-set: two concurrent
   // webhook deliveries cannot both win, and the loser updates zero rows.
   const { data, error } = await db.from('programmes').update({
     first_payment_ref: params.sessionId,
     first_payment_intent_id: params.paymentIntentId ?? null,
     first_paid_at: new Date().toISOString(),
+    wallet_applied_cents: applied,
     // ⚠️ THE CEILING IS DERIVED FROM THE MEETING TARGET, NOT FROM THE PAYMENT AMOUNT. The
     // first 50% authorises sourcing up to the FULL limit (founder lock 4) — half the money,
     // all of the authority. Execution is then rationed by batch size, not by ceiling.
@@ -746,8 +815,28 @@ export async function recordFirstPayment(params: {
     updated_at: new Date().toISOString(),
   }).eq('id', params.programmeId).is('first_payment_ref', null).select()
 
-  if (error) return { ok: false, reason: error.message }
-  if (!data || data.length === 0) return { ok: true, alreadyRecorded: true }
+  // 🛑 A LOST CLAIM MUST HAND THE CREDIT BACK. Losing the compare-and-set means another
+  // delivery already recorded this payment — and, if it carried the same credit, already drew
+  // it. Leaving this draw in place would spend the client's credit TWICE for one payment, which
+  // is the exact failure the claim exists to prevent, arriving one step earlier than expected.
+  const undo = async (why: string): Promise<void> => {
+    if (applied <= 0) return
+    const { error: backErr } = await db.rpc('increment_wallet', {
+      p_client_id: p.client_id, p_amount: applied / 100,
+    })
+    if (backErr) {
+      void sendFounderAlert('payment_failed', 'Programme P1 wallet credit drawn and not returned', [
+        `Programme ${params.programmeId} (client ${p.client_id}): ${applied} cents were drawn, this delivery ${why}, and the return FAILED (${backErr.message}).`,
+        'The client is out of pocket by that amount. Return it by hand.',
+      ])
+    }
+  }
+
+  if (error) { await undo('failed to record'); return { ok: false, reason: error.message } }
+  if (!data || data.length === 0) {
+    await undo('lost the claim to another delivery')
+    return { ok: true, alreadyRecorded: true }
+  }
   return { ok: true }
 }
 
@@ -1816,9 +1905,33 @@ export async function computeContribution(programmeId: string): Promise<Contribu
   const p = await getProgramme(programmeId)
   if (!p) return null
 
+  // ── 🛑 ⚑ 23 Sep (R136 ④) — REVENUE IS CASH RECEIVED, NOT PRICE OWED ──────────────────
+  //
+  // ⛓️ WAS `(first_paid ? first_payment_cents : 0) + …`. The payment columns are what was
+  // OWED, fixed when the programme was created, and until wallet credit existed that was also
+  // what ARRIVED. It no longer is: a P1 part-paid from the wallet took less cash than its
+  // column says, and the credit inside it was already counted as revenue on the programme that
+  // gave it back. Reading the column would count those cents TWICE and pay a partner 25% of
+  // the difference — R68's shape, one number in two places.
+  //
+  // 🛑 FOUNDER-RULED 23 Sep, asked directly whether commission follows cash rather than price:
+  // *"yes."*
+  // ⚠️ THE CREDIT IS SUBTRACTED AS ITS OWN TERM, not folded into the first-payment branch, and
+  // that is deliberate. `house-authority.test.ts` is a FROZEN file (LR 17 · R131) and pins the
+  // exact expression `(p.first_paid_at ? p.first_payment_cents : 0)` to prove contribution
+  // never reads internal authority — an intent this change does not touch. Rewriting that
+  // expression would have forced an edit to a frozen safety test to make a cosmetic difference;
+  // subtracting the credit separately is identical arithmetic and leaves the guard intact.
+  //
+  // ⚠️ AND IT IS SAFE UNCONDITIONALLY. `wallet_applied_cents` is written only alongside
+  // `first_paid_at`, so it is zero whenever that branch is, and subtracting it outside the
+  // branch cannot change the answer. If it ever were set without a payment, subtracting it is
+  // the conservative direction.
+  const walletApplied = Math.max(0, Number(p.wallet_applied_cents ?? 0))
   const revenueCents =
     (p.first_paid_at ? p.first_payment_cents : 0) +
     (p.second_paid_at ? p.second_payment_cents : 0) -
+    walletApplied -
     p.make_whole_cents
 
   // ACTUAL provider cost, attributed to this programme by the sourcing ledger.

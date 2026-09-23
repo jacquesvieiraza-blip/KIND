@@ -152,6 +152,41 @@ describe('R136 ④ · a programme can record what it credited, and cannot lie ab
     })
   })
 
+  // ── ⚑ 23 Sep · THE SPEND HALF (20260923_programme_wallet_applied · R136 ④) ────────────
+  it('🛑 WALLET CREDIT MAY NEVER COVER THE WHOLE FIRST PAYMENT — the database says so too', async () => {
+    // Founder-ruled 23 Sep, asked directly: *"No."* `walletCreditForPayment` caps it, and this
+    // is the constraint saying the same thing — so a future caller that forgets the cap cannot
+    // write the state anyway. A fully covered payment would mean no Stripe session at all.
+    const id = await newProgramme()
+    const full = await c.query(
+      `update public.programmes set wallet_applied_cents = first_payment_cents where id = $1`, [id],
+    ).then(() => ({ ok: true }), (e: unknown) => ({ ok: false, error: String(e) }))
+    expect(full.ok, 'a credit covered the entire first payment').toBe(false)
+    expect(String((full as { error?: string }).error)).toMatch(/wallet_applied_leaves_cash/)
+  })
+
+  it('a partial credit that leaves cash behind is accepted', async () => {
+    const id = await newProgramme()
+    await expect(c.query(
+      `update public.programmes set wallet_applied_cents = first_payment_cents - 100 where id = $1`,
+      [id])).resolves.toBeDefined()
+  })
+
+  it('🛑 A NEGATIVE CREDIT APPLIED IS REFUSED — it would ADD to revenue', async () => {
+    const id = await newProgramme()
+    const r = await c.query(
+      `update public.programmes set wallet_applied_cents = -1 where id = $1`, [id],
+    ).then(() => ({ ok: true }), (e: unknown) => ({ ok: false, error: String(e) }))
+    expect(r.ok, 'a negative applied credit was accepted').toBe(false)
+    expect(String((r as { error?: string }).error)).toMatch(/wallet_applied_non_negative/)
+  })
+
+  it('a fresh programme has applied nothing — not NULL, which would make revenue NaN', () => {
+    return newProgramme().then(id =>
+      c.query(`select wallet_applied_cents from public.programmes where id = $1`, [id])
+        .then(r => expect(Number(r.rows[0].wallet_applied_cents)).toBe(0)))
+  })
+
   it('the migration is idempotent — re-running it changes nothing and throws nothing', async () => {
     // Every statement is `IF NOT EXISTS` or wrapped in a duplicate_object handler, and the
     // runner may legitimately replay it. A second application that threw would strand the

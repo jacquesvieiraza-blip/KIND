@@ -641,7 +641,12 @@ alter table public.clients
   -- 20260903_client_commercial_model.sql. NOT the same question as `plan` above, which selects
   -- a WALLET POOL (lead_gen | figsy) and is read by normalizePlan, canEnroll and
   -- deliveryCapBalance.
-  add column if not exists commercial_model                 text,
+  -- ⛓️ 23 Sep (R137) — ~~NULLABLE with NO DEFAULT~~: 20260923_all_clients_programme.sql wrote
+  -- 'programme' on every row, made it the DEFAULT and NOT NULL, and added
+  -- `clients_commercial_model_programme_only`. The retired $299 pack + $4 per lead is gone.
+  add column if not exists commercial_model                 text NOT NULL DEFAULT 'programme',
+  -- What the row held BEFORE R137 ('legacy' or 'unclassified'). Record only; nothing decides on it.
+  add column if not exists commercial_model_before_r137     text,
   add column if not exists referral_bonus_paid_at           timestamptz,
   -- BUILD-004A-2D (31 Aug) — mirrors 20260831_notification_prefs_and_referral_handoff.
   -- NULLABLE WITH NO DEFAULT, unlike daily_brief_enabled above: null means "never chose",
@@ -971,6 +976,13 @@ create table if not exists public.programmes (
   -- freeze, the approval state and the money all stay where they were.
   approval_concern          text,
   approval_concern_at       timestamptz,
+  -- ── ⚑ 23 Sep · THE CAPACITY A CLIENT CHOSE AGAINST (20260923_programme_capacity_pin) ────
+  -- The cap was enforced only by the browser slider; `chooseProgramme` now refuses a target the
+  -- pool cannot carry and pins what the pool DID carry at that moment, so "was this sellable when
+  -- it was sold" has an answer that later movement in the pool cannot rewrite. NULL capacity with
+  -- a timestamp = the provider was unreachable and nothing was capped, recorded rather than hidden.
+  committed_capacity        int,
+  capacity_pinned_at        timestamptz,
   shortfall_credited_at     timestamptz,
   shortfall_credit_cents    int  not null default 0,
   delivered_meetings        int,                  -- persisted, never re-derived: a settled figure may not move

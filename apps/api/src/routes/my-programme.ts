@@ -630,9 +630,15 @@ myProgrammeRouter.post('/choose', async (req: AuthRequest, res) => {
     if (!r.ok) {
       // 400 for an input the client can fix, 409 for a state that says no, 503 for a write we
       // could not make. Never a bare 500 on a button the client just pressed.
+      // ⚑ 23 Sep — `over_capacity` is a 409: a state of their targeting, answerable by widening
+      // it, not a malformed request and not our fault. It carries `committed` so the screen can
+      // put the slider back where the pool actually stops.
       const status = r.reason === 'invalid_target' ? 400
-        : r.reason === 'proof_incomplete' || r.reason === 'locked' ? 409 : 503
-      res.status(status).json({ success: false, code: r.reason, error: r.detail })
+        : r.reason === 'proof_incomplete' || r.reason === 'locked' || r.reason === 'over_capacity' ? 409 : 503
+      res.status(status).json({
+        success: false, code: r.reason, error: r.detail,
+        ...(r.reason === 'over_capacity' ? { committed: r.committed ?? 0 } : {}),
+      })
       return
     }
     res.json({

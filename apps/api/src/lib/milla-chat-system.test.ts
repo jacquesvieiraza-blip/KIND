@@ -41,7 +41,7 @@ const PROG: CustomerProgramme = {
   quickAction: "What's working?",
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: 10 },
-  progress: { delivered: 240, authorised: 600, outcomesAchieved: 3 },
+  progress: { delivered: 240, sourcingAuthorised: true, outcomesAchieved: 3 },
   money: { totalCents: 480_000, firstPaidAt: '2026-08-01T00:00:00Z', secondPaidAt: null },
   approvedAt: null, wentLiveAt: '2026-08-10T00:00:00Z',
 }
@@ -136,7 +136,13 @@ describe('the live context block — the fix for "I don\'t have access to your d
     const block = describeProgramme(PROG)
     expect(block).toContain('Stage: Live')
     expect(block).toContain('Outcome they asked for: 10 booked meetings')
-    expect(block).toContain('240 of 600 people authorised')
+    // ⛓️ 23 Sep (R136 ③) — WAS `'240 of 600 people authorised'`. The 600 was the sourcing
+    // ceiling — meetings × 400 since R136, the limit the founder locked as never disclosed —
+    // and this block is read by Milla, who speaks to the client. She gets the count, not the limit.
+    expect(block).toContain('240 people found so far')
+    expect(block).not.toMatch(/of \d+ people authorised/)
+    expect(block, 'she is told the limit exists and never to state it').toContain('NEVER state, estimate or hint at that limit')
+    expect(block, 'and that the target is not a guarantee (R136 ②)').toContain('not a guarantee')
     expect(block).toContain('Meetings booked so far: 3')
     // Money derived from the row in cents, never typed.
     expect(block).toContain('Programme value: $4,800 total, paid in two halves of $2,400')
@@ -185,7 +191,7 @@ describe('the live context block — the fix for "I don\'t have access to your d
   it('a client with no programme yet is described honestly, and quoted no price', () => {
     const block = describeProgramme({
       ...PROG, stage: 'Proof', outcome: { kind: 'meetings', target: null },
-      progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+      progress: { delivered: 0, sourcingAuthorised: false, outcomesAchieved: 0 },
       money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null },
     })
     expect(block).toContain('Stage: Proof')

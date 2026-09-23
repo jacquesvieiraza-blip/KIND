@@ -25,7 +25,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { SUPPORTED_COUNTRIES, MILLA_FAILURE_COPY } from '@kind/shared'
+import { SUPPORTED_COUNTRIES, MILLA_FAILURE_COPY, PROGRAMME_BEST_EFFORTS } from '@kind/shared'
 import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users, Truck } from 'lucide-react'
 import { ValueCard, ProgressBar, PreLiveState } from '@/components/milla/ProgrammeStat'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -219,10 +219,8 @@ function LeadDeliverySection({ p, failed }: { p: CustomerProgramme | null; faile
       {!failed && p && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <ValueCard
-              value={p.progress.delivered}
-              label={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
-            />
+            {/* ⛓️ 23 Sep (R136 ③) — WAS measured against `progress.authorised`, the sourcing ceiling (meetings × 400): the internal limit, never disclosed. The server now sends only whether sourcing is authorised. */}
+            <ValueCard value={p.progress.delivered} label="People sourced" />
             <ValueCard
               value={p.progress.outcomesAchieved}
               label={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
@@ -233,13 +231,17 @@ function LeadDeliverySection({ p, failed }: { p: CustomerProgramme | null; faile
           {/* The bar draws a ratio of two real numbers and nothing else — no benchmark input,
               so there is nowhere for a made-up comparison to enter. Only drawn when sourcing
               has actually been authorised: a 0/0 bar is a picture of nothing. */}
-          {p.progress.authorised > 0 && (
+          {/* ⛓️ 23 Sep (R136 ③) — REMOVED: a "Sourcing" bar whose max was the sourcing ceiling
+              (meetings × 400). In its place, meetings against the target they chose — the one
+              number here they bought — and the locked best-efforts sentence (R136 ②). */}
+          {p.outcome.target && p.progress.outcomesAchieved !== null && (
             <div className="mt-5">
               <ProgressBar
-                label="Sourcing"
-                value={p.progress.delivered}
-                max={p.progress.authorised}
+                label="Meetings booked against your target"
+                value={p.progress.outcomesAchieved}
+                max={p.outcome.target}
               />
+              <p className="text-[12px] text-[#9b8ec4] mt-2">{PROGRAMME_BEST_EFFORTS}</p>
             </div>
           )}
 
@@ -251,7 +253,7 @@ function LeadDeliverySection({ p, failed }: { p: CustomerProgramme | null; faile
             </div>
           )}
 
-          {p.progress.authorised === 0 && !p.paused && (
+          {!p.progress.sourcingAuthorised && !p.paused && (
             <div className="mt-5">
               <PreLiveState
                 what="Sourcing has not been authorised on your programme yet. When it is, this is where delivery against it appears."

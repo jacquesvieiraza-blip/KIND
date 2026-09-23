@@ -25,6 +25,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// ⚑ 23 Sep (R137) — 🧪 LEGACY-ERA FIXTURE. Production no longer resolves any client to the retired
+// per-lead model (founder: *"the 299/4 is retired/ this must go."*), so the code this file tests
+// is unreachable from production and is removed, with these tests, by its own follow-up PR.
+// Until then it runs against the resolver exactly as it stood before R137 — the only state in
+// which it was reachable — rather than being deleted or skipped (R131). See
+// `apps/api/test-support/legacy-era-commercial-model.ts`; production's behaviour is proven in
+// `commercial-model.test.ts`, which does not use it.
+vi.mock('./commercial-model', async (importOriginal) =>
+  (await import('../../test-support/legacy-era-commercial-model'))
+    .legacyEraCommercialModel(await importOriginal()))
+
 // ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
 // exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
 // counter nothing could release, so a run that crashed at the PDL boundary consumed the

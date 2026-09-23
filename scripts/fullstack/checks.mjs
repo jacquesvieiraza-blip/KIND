@@ -132,7 +132,11 @@ async function makeClient({ ceiling = 100, proofMode = false } = {}) {
   const [{ id: clientId }] = await sql(
     `insert into public.clients(user_id, company_name, country, commercial_model)
      values ($1, $2, 'United Kingdom', $3) returning id`,
-    [userId, `Fullstack Co ${userId.slice(0, 8)}`, proofMode ? null : 'programme'],
+    // ⛓️ 23 Sep (R137) — WAS `proofMode ? null : 'programme'`. NULL is no longer a state the
+    // database admits (`20260923_all_clients_programme`: NOT NULL + a programme-only CHECK), and
+    // a Proof prospect is a programme client too. Proof mode is decided by the proof path, never
+    // by this column, so nothing the proof checks prove depended on the NULL.
+    [userId, `Fullstack Co ${userId.slice(0, 8)}`, 'programme'],
   )
   // The money gate on POST /operator/source: a client who has never paid sources nothing.
   //

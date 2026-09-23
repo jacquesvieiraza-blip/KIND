@@ -365,20 +365,30 @@ describe('④ declared programme · no programme · no attributed proof work', (
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ⑤ LEGACY AND UNCLASSIFIED ARE UNTOUCHED
+// ⑤ LEGACY AND UNCLASSIFIED ARE PROGRAMME CLIENTS NOW (R137)
+//
+// ⛓️ INVERTED 23 Sep (R137). WAS: `⑤ LEGACY AND UNCLASSIFIED ARE UNTOUCHED` /
+// `describe('⑤ the retired book keeps everything it has')`, asserting every historical card,
+// reply and campaign still showed. Founder, verbatim: *"the 299/4 is retired/ this must go.
+// everything must be updated to new programme pricing model."* ⚠️ STATED PLAINLY: this is the
+// visible consequence of R137 for a formerly legacy / unclassified client with no open
+// programme — their Milla no longer shows the retired book as current work. NOTHING IS DELETED
+// (asserted): the rows stay, and Vida still reads them.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('⑤ the retired book keeps everything it has', () => {
+describe('⑤ a formerly legacy / unclassified client sees no retired book as current work (R137)', () => {
   for (const model of [null, 'legacy'] as const) {
-    it(`🛑 commercial_model ${String(model)} → every card, reply and campaign still shows`, async () => {
+    it(`🛑 commercial_model ${String(model)} → no historical card, reply or campaign presented`, async () => {
+      // ⛓️ WAS: `…→ every card, reply and campaign still shows` (h1–h3, 1 reply, the campaign).
       state.clients.push({ id: C, user_id: USER, commercial_model: model, proof_passes_done: 0, wallet_balance_usd: 0 })
       historicalLegacyLead('h1'); historicalLegacyLead('h2'); historicalLegacyLead('h3')
       historicalOutreach()
       const cards = await forApprovalCards()
-      expect(ids(cards)).toEqual(['h1', 'h2', 'h3'])
+      expect(ids(cards)).toEqual([])
       const s = await buildMillaSummaryData(C)
-      expect(s.recent_replies).toHaveLength(1)
-      expect(s.campaign_name).toBe('Retired legacy campaign')
-      expect(s.leads_awaiting).toBe(3)
+      expect(s.recent_replies).toHaveLength(0)
+      expect(s.campaign_name ?? null).toBeNull()
+      expect(s.leads_awaiting).toBe(0)
+      expect(state.leads, 'nothing is deleted').toHaveLength(3)
     })
   }
 })

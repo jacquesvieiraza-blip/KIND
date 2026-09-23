@@ -62,7 +62,7 @@ export type CommercialModel =
   /** Declared 'legacy', with no open programme. The retired per-lead model, legitimately. */
   | { model: 'legacy'; declared: true; openProgramme: null }
   /** NULL + an open programme → today's behaviour, which is programme rules. */
-  | { model: 'compat_programme'; declared: false; openProgramme: ProgrammeRow }
+  | { model: 'compat_programme'; declared: false; openProgramme: ProgrammeRow | null }
   /** NULL + no open programme → today's behaviour, which is legacy rules. */
   | { model: 'compat_legacy'; declared: false; openProgramme: null }
   /**
@@ -72,13 +72,21 @@ export type CommercialModel =
   | { model: 'unreadable'; declared: false; openProgramme: null; reason: string }
 
 /** Does this resolution grant the LEGACY per-lead commercial model? */
-export function isLegacyModel(m: CommercialModel): boolean {
-  return m.model === 'legacy' || m.model === 'compat_legacy'
+export function isLegacyModel(_m: CommercialModel): boolean {
+  // 🛑 ⚑ 23 Sep (R137) — NOTHING GRANTS THE LEGACY MODEL ANY MORE, INCLUDING A VALUE THAT SAYS
+  // IT. Founder: *"the 299/4 is retired/ this must go."* The resolver no longer produces a
+  // legacy state; this answers `false` even for one built by hand, so no caller, fixture or
+  // future resolver can reopen the per-lead path by constructing the old shape.
+  // ⛓️ WAS: `m.model === 'legacy' || m.model === 'compat_legacy'`.
+  return false
 }
 
 /** Does this resolution place the client under PROGRAMME economics? */
 export function isProgrammeModel(m: CommercialModel): boolean {
-  return m.model === 'programme' || m.model === 'compat_programme'
+  // ⚑ 23 Sep (R137) — every resolvable client. Only "we could not tell" is not programme,
+  // because an unreadable model must still refuse rather than be assumed.
+  // ⛓️ WAS: `m.model === 'programme' || m.model === 'compat_programme'`.
+  return m.model !== 'unreadable'
 }
 
 /**
@@ -88,8 +96,11 @@ export function isProgrammeModel(m: CommercialModel): boolean {
  * authority. A display surface may render `unreadable` as "we cannot tell"; a path that spends
  * money must refuse.
  */
-export function mayUseLegacyCommercialPath(m: CommercialModel): boolean {
-  return isLegacyModel(m)
+export function mayUseLegacyCommercialPath(_m: CommercialModel): boolean {
+  // 🛑 ⚑ 23 Sep (R137) — ALWAYS NO. Every retired door asks this one question — the $4 approve,
+  // the reveal, the $299 pack checkout, wallet top-ups, legacy sourcing and sending — so this
+  // single line is what closes them all, on deploy, for every client.
+  return false
 }
 
 /**
@@ -154,24 +165,32 @@ export async function clientCommercialModel(clientId: string): Promise<Commercia
 
   if (stored === 'programme') return { model: 'programme', declared: true, openProgramme: open }
 
-  if (stored === 'legacy') {
-    // 🛑 CONFLICT. A client declared legacy who nevertheless holds an OPEN programme is two
-    // contradictory truths about one account. Choosing programme would spend against a
-    // declaration; choosing legacy would charge a client whose programme has been paid for.
-    // Neither is safe, so nothing consequential proceeds until a human resolves it.
-    if (open) {
-      return unreadable(
-        `client is declared legacy but holds an open programme (${open.id}) — the two disagree, `
-        + 'so no sourcing, sending, enrolment or charge is authorised until an operator resolves it',
-      )
-    }
-    return { model: 'legacy', declared: true, openProgramme: null }
-  }
-
-  // NULL — compatibility. Exactly the behaviour the product had before this column existed.
-  return open
-    ? { model: 'compat_programme', declared: false, openProgramme: open }
-    : { model: 'compat_legacy', declared: false, openProgramme: null }
+  // ── 🛑 ⚑ 23 Sep (R137) — THE RETIRED MODEL IS NEVER RESOLVED AGAIN ───────────────────────
+  //
+  // Founder, verbatim: *"the 299/4 is retired/ this must go. everything must be updated to new
+  // programme pricing model."* — completing R124 (16 Sep): *"299/4 is gone. out. we are on the
+  // programme. all clients."*
+  //
+  // ⛓️ WAS: stored 'legacy' → `{ model: 'legacy' }`, and NULL with no open programme →
+  // `compat_legacy`. Both granted the per-lead path — a $4 charge per approved lead — and NULL
+  // was what every company seat and every non-Milla creation path produced. R124 retired the
+  // model BY DECISION and the code never followed, so the door stayed open to every account
+  // nobody had classified. It is closed HERE, at the one resolver every legacy door asks, so it
+  // closes the moment this deploys — before `20260923_all_clients_programme` has even run.
+  //
+  // ⚠️ NULL IS STILL NOT READ AS "WE KNOW". It resolves to `compat_programme` — undeclared,
+  // programme economics — which is exactly what it will be once the migration writes the row.
+  // A missing FIELD is still `unreadable` (above), because that is not a NULL, it is no answer.
+  //
+  // ⚠️ AND A DECLARED 'legacy' ROW WITH AN OPEN PROGRAMME IS NO LONGER A CONFLICT. That refusal
+  // existed because the legacy path could CHARGE a client whose programme was paid for. With
+  // the legacy path gone there is no second truth left to disagree with, and refusing would
+  // only block a paying programme until the migration rewrites a word in the row.
+  //
+  // `'legacy'` and `'compat_legacy'` stay in the type so older stored values and older API
+  // responses still type-check, and so Vida's branches for them are explicit. Nothing produces
+  // them.
+  return { model: 'compat_programme', declared: false, openProgramme: open }
 }
 
 /**
@@ -194,9 +213,13 @@ export function storedModelFor(m: CommercialModel): StoredCommercialModel | null
 export function commercialModelLabel(m: CommercialModel): string {
   switch (m.model) {
     case 'programme':       return m.openProgramme ? 'Programme' : 'Programme client · no active programme'
-    case 'legacy':          return 'Legacy'
-    case 'compat_programme': return 'Unclassified · behaving as programme (has an open programme)'
-    case 'compat_legacy':   return 'Unclassified · behaving as legacy (no programme)'
+    case 'legacy':          return 'Programme client · was declared legacy (retired)'
+    case 'compat_programme': return m.openProgramme
+      ? 'Programme (not yet recorded on the account)'
+      : 'Programme client · no active programme (not yet recorded on the account)'
+    // ⚑ 23 Sep (R137) — retired states. Nothing produces them; if an old response carries one,
+    // the label says what is TRUE now rather than what the state used to mean.
+    case 'compat_legacy':   return 'Programme client · was unclassified (legacy retired)'
     case 'unreadable':      return 'Unresolved — needs an operator'
   }
 }
@@ -216,8 +239,10 @@ export function commercialModelLabel(m: CommercialModel): string {
 // different sentences and only one of them is about the client. A 503 also says the honest
 // thing to a retry: come back, this may resolve.
 //
-// ⚠️ AND A LEGACY CLIENT IS UNAFFECTED, WHICH IS THE POINT. R74 keeps the retired runtime live
-// until the coordinated migration ships; this fences the doors for PROGRAMME customers only.
+// ⛓️ ~~⚠️ AND A LEGACY CLIENT IS UNAFFECTED, WHICH IS THE POINT. R74 keeps the retired runtime
+// live until the coordinated migration ships; this fences the doors for PROGRAMME customers
+// only.~~ SUPERSEDED 23 Sep by R137 — `mayUseLegacyCommercialPath` answers no for everyone, so
+// every door below refuses every account.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 /** What a programme customer is told at a door built on the retired wallet. */

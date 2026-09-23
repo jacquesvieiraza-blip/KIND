@@ -132,6 +132,9 @@ describe('the retired SaaS products are marked LEGACY', () => {
     // The dangerous half. `/stripe/subscribe` and the subscription webhook still work, so a
     // live Price ID could take money for a product we do not sell — and that is a Stripe
     // dashboard action, not something this file can fix.
+    // ⛓️ 23 Sep (R137): `/stripe/subscribe` now refuses every account with a 410 before any
+    // Stripe call (`retired-topup-money-authority.test.ts` ②). The Price objects are still
+    // dormant in Stripe, so the header's DORMANT warning stays true and stays asserted.
     expect(header).toContain('DORMANT')
     expect(header).toContain('Stripe-dashboard action')
   })

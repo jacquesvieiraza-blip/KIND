@@ -70,9 +70,19 @@ export type CustomerProgramme = {
     stated: string | null
   }
   progress: {
-    /** Delivered against what the programme authorised. Both straight off the row. */
+    /** People sourced for this programme — `sourced_used`, straight off the row. */
     delivered: number
-    authorised: number
+    /**
+     * ⚑ 23 Sep (R136 ③ · MVP1 Stage 5) — WHETHER SOURCING IS AUTHORISED, NEVER HOW MUCH.
+     *
+     * 🛑 ⛓️ WAS `authorised: number` = `sourcing_ceiling`, rendered to the client as "People
+     * sourced of 4,000 authorised" on three screens and handed to Milla's prompt as "X of Y
+     * people authorised". Since R136 the ceiling IS meetings × 400 — the internal limit the
+     * founder locked as never disclosed: *"i said 400 internally. we dont disclose this."* One
+     * division by the meeting target on the same screen recovered it. The number is no longer
+     * on the client wire at all, so no screen, prompt or future component can leak it.
+     */
+    sourcingAuthorised: boolean
     /** Booked meetings — from public.meetings, the sole meeting truth. null = unreadable. */
     outcomesAchieved: number | null
   }
@@ -175,6 +185,19 @@ export type CustomerProgramme = {
    * `null` for every live programme.
    */
   terminal: 'completed' | 'cancelled' | null
+  /**
+   * ⚑ 23 Sep (MVP1 Stage 6 · R136 ④ ⑤) — HOW THE PROGRAMME WAS SETTLED, once it has been.
+   *
+   * Founder: *"they pay for what they recieve"* and *"we dont give money back. we refund credits
+   * to their wallet internally to use towards another icp run."* So a finished client is told
+   * the meetings delivered against their target, and the wallet credit for any shortfall —
+   * the figure `settleProgrammeShortfall` actually credited, never recomputed here.
+   *
+   * ⛓️ REPLACES the 16 Sep (E2) "N qualified prospects unused — stays on your account and never
+   * expires", which was derived from the sourcing ceiling (R136 ③) and described value in
+   * prospects rather than the credit R136 ④ owes. `null` = not settled yet.
+   */
+  settlement?: { deliveredMeetings: number | null; creditCents: number } | null
 }
 
 /** No programme row is a REAL answer, not a failure: this client is at Proof. */
@@ -189,7 +212,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   outcome: { kind: 'meetings', target: null, stated: null },
   // ⚑ 16 Sep (D2) — no programme, so no authority and nothing delivered. Stated, not omitted.
   sending: { runAt: null, emailsDelivered: 0 },
-  progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+  progress: { delivered: 0, sourcingAuthorised: false, outcomesAchieved: 0 },
   recommendation: { recommendedVolume: null, costPerMeetingCents: null, acceptedAt: null, assumptions: null },
   money: {
     totalCents: 0, firstPaymentCents: 0, secondPaymentCents: 0, firstPaidAt: null, secondPaidAt: null,
@@ -259,7 +282,9 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
             // ⚑ 16 Sep (MVP1 · D2) — `run_at` IS THE AUTHORITY, and it was never selected. Without it the
             // client's screen could not tell an armed programme from a started one.
             'approved_at, went_live_at, run_at, paused_at, ' +
-            'review_required_at, review_resolved_at, created_at')
+            'review_required_at, review_resolved_at, created_at, ' +
+            // ⚑ 23 Sep (MVP1 Stage 6) — the R136 ④ settlement, shown on a finished programme.
+            'shortfall_credited_at, shortfall_credit_cents, delivered_meetings')
     .eq('client_id', clientId)
     // ── 🛑 ⚑ 10 Sep (I5) — THE TERMINAL FILTER IS GONE, AND THE ORDER IS NEW ─────────────
     //
@@ -438,7 +463,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     outcome: { kind: 'meetings', target: Number(p.meeting_target ?? 0) || null, stated },
     progress: {
       delivered: Number(p.sourced_used ?? 0),
-      authorised: Number(p.sourcing_ceiling ?? 0),
+      // ⚑ 23 Sep (R136 ③) — a yes/no, never the ceiling. See the type.
+      sourcingAuthorised: Number(p.sourcing_ceiling ?? 0) > 0,
       outcomesAchieved,
     },
     recommendation: {
@@ -470,5 +496,10 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     terminal: p.status === 'COMPLETED' ? 'completed'
       : p.status === 'CANCELLED' ? 'cancelled'
         : null,
+    // ⚑ 23 Sep (MVP1 Stage 6) — see the type. The credited figure, straight off the row.
+    settlement: p.shortfall_credited_at
+      ? { deliveredMeetings: p.delivered_meetings == null ? null : Number(p.delivered_meetings),
+          creditCents: Number(p.shortfall_credit_cents ?? 0) }
+      : null,
   }
 }

@@ -125,6 +125,12 @@ export interface ProgrammeRow {
   // `select('*')` predating the migration returns rows without them.
   approval_concern?: string | null
   approval_concern_at?: string | null
+  // ── ⚑ 23 Sep · THE CAPACITY THE CLIENT CHOSE AGAINST (20260923_programme_capacity_pin) ──
+  //
+  // Written by `chooseProgramme` when the target is committed. NULL capacity beside a
+  // timestamp means the pool was UNKNOWN at that moment — chosen blind, deliberately recorded.
+  committed_capacity?: number | null
+  capacity_pinned_at?: string | null
   contribution_cents: number | null
   contribution_finalised_at: string | null
   disputed_at: string | null
@@ -1739,12 +1745,32 @@ export async function settleBatch(batchId: string, delivered: number): Promise<{
  * only when its authorised volume is consumed, OR when the value has been deliberately
  * settled by a human. **No background job may complete a programme on a clock.**
  */
+/**
+ * May this programme be completed?
+ *
+ * 🛑 ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — ONLY ONCE IT IS SETTLED.
+ *
+ * ⛓️ WAS: allowed when `sourced_used >= sourcing_ceiling`, OR when `value_settled_at` was set.
+ * The first arm let a programme close the moment it reached the sourcing LIMIT — and since R136
+ * the limit is where we STOP (*"if we hit the 400 we stop"*), not where the client got what they
+ * bought. A programme that stopped at the limit with 7 of 10 meetings completed with nothing
+ * recorded about the 3, and the wallet credit R136 ④ owes them (*"we refund credits to their
+ * wallet internally to use towards another icp run."*) was never computed. Reaching the limit
+ * settles nothing.
+ *
+ * NOW: a programme completes when it has been SETTLED — `settleProgrammeShortfall` recorded the
+ * meetings delivered and credited any shortfall (`shortfall_credited_at`), or, for a programme
+ * settled before that path existed, an operator make-whole stamped `value_settled_at`. A
+ * programme that delivered everything is still settled — it simply owes nothing.
+ */
 export function mayComplete(p: ProgrammeRow): { allowed: boolean; reason?: string } {
-  if (p.sourced_used >= p.sourcing_ceiling && p.sourcing_ceiling > 0) return { allowed: true }
+  const settledShort = (p as unknown as { shortfall_credited_at?: string | null }).shortfall_credited_at
+  if (settledShort) return { allowed: true }
   if (p.value_settled_at) return { allowed: true }
   return {
     allowed: false,
-    reason: `${p.sourcing_ceiling - p.sourced_used} of ${p.sourcing_ceiling} authorised leads are undelivered and the value has not been settled. Unused programme value never expires.`,
+    reason: 'Settle this programme first: record how many meetings it delivered. Anything short of the '
+      + 'target is credited to the client\u2019s wallet toward another run — nothing is refunded to their card.',
   }
 }
 

@@ -135,7 +135,7 @@ function installMocks() {
       stage: 'Proof', quickAction: 'Show me stronger examples',
       paused: false, pausedCopy: null, reviewOpen: false,
       outcome: { kind: 'meetings', target: null },
-      progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+      progress: { delivered: 0, sourcingAuthorised: false, outcomesAchieved: 0 },
       money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null },
       approvedAt: null, wentLiveAt: null,
     }),

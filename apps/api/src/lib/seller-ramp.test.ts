@@ -202,11 +202,17 @@ describe('the words are real, and they are where they are needed', () => {
     }
   })
 
-  it('and any money in them is interpolated from the constant, never typed', () => {
+  it('carries no typed money, and no retired pack at all (R137)', () => {
+    // ⛓️ RE-AIMED 23 Sep (R137). WAS `'and any money in them is interpolated from the constant,
+    // never typed'`, asserting `PACK_PRICE_USD` was used. The only money in the playbook was the
+    // retired $299 pack — founder: *"the 299/4 is retired/ this must go."* — so the playbook now
+    // quotes NO price, and the programme curve stays unpublished (R124/R81). The half of the
+    // rule that still applies — never a typed figure — is kept, and a pack is banned outright.
     const src = read('apps/api/src/lib/seller-playbook.ts')
     const code = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
-    expect(code).toContain('PACK_PRICE_USD')
     expect(code).not.toMatch(/\$\d{2,}/)
+    expect(code, 'the retired pack is not quoted, even interpolated').not.toContain('PACK_PRICE_USD')
+    for (const p of pb) expect(`${p.body} ${p.watchOut}`).not.toMatch(/starting pack|\$\d/i)
   })
 })
 

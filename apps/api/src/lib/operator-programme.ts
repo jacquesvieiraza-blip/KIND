@@ -124,6 +124,16 @@ export type ProgrammeTruth = {
      */
     may_complete: boolean
     complete_blocked_reason: string | null
+    /**
+     * ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — what the Settle control needs.
+     *
+     * `meetings_booked` is attributed to THIS programme by `meetingCounts` — the same source the
+     * client's own screen reads — so the figure the operator settles on starts as the one the
+     * client can see. `null` = unreadable; the operator must then type it rather than accept a 0.
+     */
+    meetings_booked: number | null
+    /** Set once `settleProgrammeShortfall` has run. Null = not settled yet. */
+    settlement: { settled_at: string; delivered_meetings: number | null; credit_cents: number } | null
   } | null
   // ── ⚑ 7 Sep (HOUSE-024 / HOUSE-026) · READ-ONLY TRUTH, NO NEW SCREEN ────────────────
   //
@@ -173,7 +183,11 @@ const PROGRAMME_COLUMNS =
   // ⚑ PR A2 — the money/authority fields Vida needs to say WHICH authority a stage holds.
   // The payment INTENT ids are deliberately absent: the XOR guards read them from the full
   // ProgrammeRow on the backend, and an operator screen has no question they answer.
-  'first_authorised_at, second_authorised_at'
+  'first_authorised_at, second_authorised_at, ' +
+  // ⚑ 23 Sep (MVP1 Stage 6) — THE SETTLEMENT. `mayComplete` below reads `value_settled_at`, and
+  // this select never asked for it — so Vida's `may_complete` could not see a settled programme
+  // at all. `shortfall_*` / `delivered_meetings` are the R136 ④ settlement itself.
+  'value_settled_at, shortfall_credited_at, shortfall_credit_cents, delivered_meetings'
 
 const BATCH_COLUMNS = 'id, programme_id, seq, status, requested, granted, delivered, created_at, settled_at'
 
@@ -283,6 +297,19 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   // ⚑ 16 Sep (E1) — the SHARED gate, asked here so no screen re-implements it. See below.
   const completeVerdict = mayComplete(p)
 
+  // ⚑ 23 Sep (MVP1 Stage 6) — meetings attributed to this programme, for the Settle control.
+  let meetingsBooked: number | null = null
+  try {
+    const { meetingCounts } = await import('./meeting-truth')
+    const counts = await meetingCounts({ clientId: p.client_id, programmeId: p.id })
+    meetingsBooked = counts === null ? null : counts.booked
+  } catch (err) {
+    degraded.push(`The meetings booked for this programme could not be counted (${err instanceof Error ? err.message : String(err)}).`)
+  }
+  const settledRow = p as unknown as {
+    shortfall_credited_at?: string | null; shortfall_credit_cents?: number | null; delivered_meetings?: number | null
+  }
+
   // ── ⚑ 7 Sep · SENDER AND PREPARATION TRUTH, both read-only and both best-effort ───────
   //
   // ⚠️ A FAILURE HERE IS RECORDED IN `degraded`, NEVER SWALLOWED AND NEVER FATAL. This console
@@ -354,6 +381,12 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       // the defect this whole panel exists to remove.
       may_complete: completeVerdict.allowed,
       complete_blocked_reason: completeVerdict.allowed ? null : (completeVerdict.reason ?? null),
+      meetings_booked: meetingsBooked,
+      settlement: settledRow.shortfall_credited_at
+        ? { settled_at: settledRow.shortfall_credited_at,
+            delivered_meetings: settledRow.delivered_meetings ?? null,
+            credit_cents: Number(settledRow.shortfall_credit_cents ?? 0) }
+        : null,
     },
     sender,
     preparation,

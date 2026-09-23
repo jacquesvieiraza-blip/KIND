@@ -116,10 +116,16 @@ export function describeProgramme(prog: CustomerProgramme | null): string {
     ? `- Outcome they asked for: ${prog.outcome.target} booked meetings`
     : '- Outcome: no target is set on their programme yet')
 
-  // ⚠️ DELIVERED AGAINST AUTHORISED, both straight off the row. Never a percentage of a
-  // target she was not given, and never a projection.
-  if (prog.progress.authorised > 0) {
-    lines.push(`- Sourcing: ${prog.progress.delivered} of ${prog.progress.authorised} people authorised for this programme`)
+  // ⛓️ 23 Sep (R136 ③) — WAS "Sourcing: X of Y people authorised", with Y the sourcing
+  // ceiling: meetings × 400, the limit the founder locked as never disclosed (*"i said 400
+  // internally. we dont disclose this."*). Milla would have read it straight to the client.
+  // She is told whether sourcing is under way and how many people, never against what limit.
+  if (prog.progress.sourcingAuthorised) {
+    lines.push(`- Sourcing: under way — ${prog.progress.delivered} people found so far. There is a limit to how far we work a programme; NEVER state, estimate or hint at that limit, a rate, or a pool size.`)
+  }
+  // ⚑ 23 Sep (R136 ②) — the meeting count is a target we aim for, not a guarantee.
+  if (prog.outcome.target) {
+    lines.push('- The meeting target is what we aim for, not a guarantee — never promise they will get every meeting.')
   }
   lines.push(prog.progress.outcomesAchieved === null
     // null is UNREADABLE, and saying "0 meetings" to a client who has three is the most

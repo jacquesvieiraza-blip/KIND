@@ -147,9 +147,13 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
     expect(!v.allowed && v.message).toBe(LEGACY_FENCED_COPY)
   })
 
-  it('🛑 a client with NO programme is ALLOWED — legacy is exactly as it was', async () => {
+  it('🛑 a client with NO programme is REFUSED — nobody keeps the per-lead path (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+    // ⛓️ WAS: `'a client with NO programme is ALLOWED — legacy is exactly as it was'`.
     const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
-    expect(v.allowed).toBe(true)
+    expect(v.allowed).toBe(false)
+    expect(!v.allowed && v.code).toBe('programme_model')
+    expect(!v.allowed && v.message).toBe(PROGRAMME_MODEL_FENCED_COPY)
   })
 
   it.each([
@@ -161,14 +165,16 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
     expect(v.allowed).toBe(false)
   })
 
-  it.each([['COMPLETED'], ['CANCELLED']])('a TERMINAL programme (%s) is not an open one — legacy re-entry is deliberately unchanged here', async (status) => {
-    // Founder-ruled 3 Sep: terminal-programme legacy re-entry is tracked post-launch and is
-    // NOT solved in this PR. `openProgrammeFor` excludes terminal states, so a completed
-    // programme leaves the client on the legacy path exactly as before this change — stated
-    // as a test so the boundary is explicit rather than incidental.
+  it.each([['COMPLETED'], ['CANCELLED']])('🛑 a TERMINAL programme (%s) no longer re-enters legacy — the re-entry hole is closed (R137)', async (status) => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'a TERMINAL programme (%s) is not an open one — legacy
+    // re-entry is deliberately unchanged here'`, asserting `allowed: true`. The 3 Sep ruling
+    // parked terminal-programme legacy re-entry for post-launch; R137 closes it by retiring the
+    // legacy path itself. A completed programme is still not an OPEN one — it is simply no
+    // longer a door to $4-per-lead. Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
     seedOpenProgramme(status)
     const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
-    expect(v.allowed).toBe(true)
+    expect(v.allowed).toBe(false)
+    expect(!v.allowed && v.code, 'not open, so the no-programme sentence').toBe('programme_model')
   })
 
   // ═════════════════════════════════════════════════════════════════════════════════════
@@ -203,21 +209,26 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
       expect(!v.allowed && v.message).toBe(LEGACY_FENCED_COPY)
     })
 
-    it('a DECLARED LEGACY client with no programme is allowed — the model works both ways', async () => {
+    it('🛑 a STORED legacy client with no programme is REFUSED — the word buys nothing now (R137)', async () => {
+      // ⛓️ INVERTED 23 Sep (R137). WAS: `'a DECLARED LEGACY client with no programme is allowed
+      // — the model works both ways'`. Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
       state.clients = []; client(LEGACY_CLIENT, 'legacy')
       const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
-      expect(v.allowed, 'declaring legacy must actually mean legacy').toBe(true)
+      expect(v.allowed, 'a stored "legacy" must not reopen the retired path').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_model')
     })
 
-    it('🛑 DECLARED LEGACY + AN OPEN PROGRAMME IS A CONFLICT, AND IT REFUSES', async () => {
-      // ⚠️ NEITHER ANSWER IS SAFE. Choosing programme spends against a declaration; choosing
-      // legacy charges $4 to a client whose programme has already been paid for. So nothing
-      // consequential proceeds and a human is asked.
+    it('🛑 STORED LEGACY + AN OPEN PROGRAMME REFUSES — as the programme, no longer as a conflict (R137)', async () => {
+      // ⛓️ 23 Sep (R137). WAS: code `programme_unresolvable` — the conflict refusal, because
+      // choosing legacy could have charged $4 to a client whose programme was paid for. The
+      // legacy path is gone, so there is no conflict left: the open programme governs, and the
+      // client is told their programme covers it. STILL NEVER A CHARGE — that half is unchanged.
       state.clients = []; client(PROG_CLIENT, 'legacy')
       seedOpenProgramme()
       const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
-      expect(v.allowed, 'a contradiction must never resolve in favour of charging').toBe(false)
-      expect(!v.allowed && v.code).toBe('programme_unresolvable')
+      expect(v.allowed, 'this must never resolve in favour of charging').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_open')
+      expect(!v.allowed && v.message).toBe(LEGACY_FENCED_COPY)
     })
 
     it('🛑 AN UNREADABLE CLIENT ROW IS REFUSED — "we could not tell" is not "legacy"', async () => {
@@ -252,10 +263,15 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
       expect(!v.allowed && v.code).toBe('programme_model')
     })
 
-    it('⚠️ NON-VACUOUS: an UNCLASSIFIED demo client is unaffected — every demo on the book today', async () => {
+    it('🛑 an UNCLASSIFIED demo client is refused too — demo buys no legacy path, and nor does NULL (R137)', async () => {
+      // ⛓️ INVERTED 23 Sep (R137). WAS: `'⚠️ NON-VACUOUS: an UNCLASSIFIED demo client is
+      // unaffected — every demo on the book today'`, asserting `allowed: true`. Its job — proving
+      // the MBF refusal above came from the MODEL and not from `is_demo` — is now carried by the
+      // source assertion below ("THE RESOLVER NEVER READS is_demo"), because NULL is programme too.
       state.clients = []; state.clients.push({ id: 'demo', commercial_model: null, is_demo: true })
       const v = await checkLegacyPerLeadAuthority('demo')
-      expect(v.allowed, 'demo accounts must keep working exactly as they do now').toBe(true)
+      expect(v.allowed, 'no account keeps the retired per-lead path').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_model')
     })
 
     it('🛑 THE RESOLVER NEVER READS is_demo — proved on the source, not inferred', () => {
@@ -374,27 +390,31 @@ describe('② a programme customer calling the legacy money path is refused befo
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ③ THE GENUINE LEGACY CLIENT IS UNCHANGED
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('③ a client with NO programme keeps their existing legitimate path', () => {
-  it('🛑 approveLead PROCEEDS PAST THE FENCE — it is not the thing that stops them', async () => {
+// ⛓️ INVERTED 23 Sep (R137). WAS: `'③ a client with NO programme keeps their existing legitimate
+// path'`. R74 kept the retired runtime live for the unclassified book; R137 retires it for every
+// account. Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+describe('③ a client with NO programme is refused before money or mutation too (R137)', () => {
+  it('🛑 approveLead REFUSES AT THE FENCE — nothing written, no rpc', async () => {
+    // ⛓️ WAS: `'🛑 approveLead PROCEEDS PAST THE FENCE — it is not the thing that stops them'`,
+    // asserting the atomic claim wrote `leads`. Now the fence IS what stops them.
     lead('L1', LEGACY_CLIENT)
+    state.written = []; state.rpcs = []
     const out = await approveLead('L1', LEGACY_CLIENT)
-    // Whatever this legacy client's outcome is, it is NOT the programme fence — the fence is
-    // transparent to them. (The outcome here is `no_campaign`, the pre-existing #625 guard,
-    // because this fixture seeds no campaign; the point is that the flow got that far.)
-    expect(out.status).not.toBe('programme_fenced')
-    // 🛑 AND THE CLAIM RAN. `revealed_at` was stamped by the atomic claim, which is the very
-    // next statement after the fence — so the fence did not intercept them.
-    expect(state.written, 'the legacy path still reaches its first write').toContain('leads')
+    expect(out.status).toBe('programme_fenced')
+    expect(out.status === 'programme_fenced' && out.code).toBe('programme_model')
+    expect(state.written, 'the refusal lands before the revealed_at claim').toEqual([])
+    expect(state.rpcs, 'and before try_charge_wallet').toEqual([])
   })
 
-  it('the fence costs a legacy client exactly TWO reads and no more', async () => {
+  it('the fence still costs exactly TWO reads and no more', async () => {
     // ⛓️ C2 — was "exactly one programme read". It is now one `clients` read (which model?)
     // followed by one `programmes` read (is one open?), and the count is asserted rather than
     // described: a resolver that quietly re-reads per call is a per-approval cost on the one
     // path a client hits repeatedly.
+    // ⛓️ 23 Sep (R137) — the verdict WAS `allowed: true`; the read cost is what this pins.
     state.written = []; state.rpcs = []; state.reads = []
     const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
-    expect(v.allowed).toBe(true)
+    expect(v.allowed).toBe(false)
     expect(state.reads, 'the model first, then the programme — and nothing else').toEqual(['clients', 'programmes'])
     expect(state.written, 'the fence itself writes nothing, ever').toEqual([])
     expect(state.rpcs).toEqual([])

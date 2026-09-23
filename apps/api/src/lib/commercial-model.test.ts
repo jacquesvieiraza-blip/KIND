@@ -97,11 +97,18 @@ beforeEach(() => {
 // ① THE FIVE STATES — every one reached, and none of them is a boolean
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('① the resolver returns five distinguishable answers', () => {
-  it('NULL + no programme → compat_legacy — TODAY\'S BEHAVIOUR FOR THE WHOLE LIVE BOOK', async () => {
+  it('🛑 NULL + no programme → compat_programme — THE LIVE BOOK IS ON THE PROGRAMME (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). Founder, verbatim: *"the 299/4 is retired/ this must go.
+    // everything must be updated to new programme pricing model."*
+    // ⛓️ WAS: `'NULL + no programme → compat_legacy — TODAY'S BEHAVIOUR FOR THE WHOLE LIVE BOOK'`,
+    // asserting `compat_legacy` and "the live book keeps the legacy path". That path — a $4
+    // charge per approved lead — is exactly what R137 retires, for every account.
     const m = await clientCommercialModel('c1')
-    expect(m.model).toBe('compat_legacy')
+    expect(m.model).toBe('compat_programme')
     expect(m.declared, 'nobody declared this — it must not claim they did').toBe(false)
-    expect(mayUseLegacyCommercialPath(m), 'the live book keeps the legacy path').toBe(true)
+    expect(m.openProgramme, 'no programme is open, and that is a normal waiting state').toBeNull()
+    expect(isProgrammeModel(m), 'an unclassified client is a programme client now').toBe(true)
+    expect(mayUseLegacyCommercialPath(m), 'the retired per-lead path is closed to the live book').toBe(false)
   })
 
   it('NULL + an open programme → compat_programme — also today\'s behaviour', async () => {
@@ -129,27 +136,36 @@ describe('① the resolver returns five distinguishable answers', () => {
     expect(m.openProgramme).toEqual(PROG)
   })
 
-  it('DECLARED legacy + no programme → legacy — declaring it must actually mean it', async () => {
+  it('🛑 a STORED legacy + no programme → programme economics — a stale word buys nothing (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). Founder, verbatim: *"the 299/4 is retired/ this must go.
+    // everything must be updated to new programme pricing model."*
+    // ⛓️ WAS: `'DECLARED legacy + no programme → legacy — declaring it must actually mean it'`,
+    // asserting `legacy` and the per-lead path open. The model it declared no longer exists;
+    // `20260923_all_clients_programme` rewrites the word, and until it runs the word opens nothing.
     state.client = { commercial_model: 'legacy' }
     const m = await clientCommercialModel('c1')
-    expect(m.model).toBe('legacy')
-    expect(m.declared).toBe(true)
-    expect(mayUseLegacyCommercialPath(m)).toBe(true)
+    expect(m.model).toBe('compat_programme')
+    expect(m.declared, 'it is not DECLARED programme — the row still says otherwise').toBe(false)
+    expect(isProgrammeModel(m)).toBe(true)
+    expect(mayUseLegacyCommercialPath(m), 'declaring the retired model no longer means anything').toBe(false)
   })
 
-  it('🛑 DECLARED legacy + AN OPEN PROGRAMME → unreadable, and the reason names both', async () => {
-    // ⚠️ NEITHER ANSWER IS SAFE, which is why there is no answer. Choosing programme spends
-    // against a declaration a human made; choosing legacy charges $4 to a client whose
-    // programme has already been paid for. A resolver that "prefers" one is a resolver that
-    // silently picks a side on somebody's money.
+  it('🛑 a STORED legacy + AN OPEN PROGRAMME → the programme, not a conflict (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). Founder, verbatim: *"the 299/4 is retired/ this must go.
+    // everything must be updated to new programme pricing model."*
+    // ⛓️ WAS: `'DECLARED legacy + AN OPEN PROGRAMME → unreadable, and the reason names both'`.
+    // That refusal existed because choosing legacy could charge $4 to a client whose programme
+    // was already paid for. With the legacy path gone there is no second truth to disagree with,
+    // and refusing would only block a paying programme until the migration rewrites the word.
+    // ⚠️ THE SAFETY PROPERTY IS KEPT — no charge, no per-lead path — it is simply no longer
+    // reached by refusing everything.
     state.client = { commercial_model: 'legacy' }
     state.programme = PROG
     const m = await clientCommercialModel('c1')
-    expect(m.model).toBe('unreadable')
-    expect(m.model === 'unreadable' && m.reason).toContain('declared legacy')
-    expect(m.model === 'unreadable' && m.reason).toContain(PROG.id)
-    expect(mayUseLegacyCommercialPath(m)).toBe(false)
-    expect(isProgrammeModel(m), 'a conflict is not programme either — it is nothing').toBe(false)
+    expect(m.model).toBe('compat_programme')
+    expect(m.openProgramme).toEqual(PROG)
+    expect(mayUseLegacyCommercialPath(m), 'still never the per-lead path').toBe(false)
+    expect(isProgrammeModel(m), 'the paid programme governs').toBe(true)
   })
 })
 
@@ -228,8 +244,9 @@ describe('② every unreadable state refuses, and none of them resolves to legac
   it('⚠️ NON-VACUOUS: an EXPLICIT null on the same fixture is still compat, unchanged', async () => {
     // Without this pair the two assertions above would pass against a resolver that refused
     // every client — which on Friday would fence the entire live book.
+    // ⛓️ 23 Sep (R137): the first expectation WAS `compat_legacy`; NULL resolves to programme now.
     state.client = { commercial_model: null }
-    expect((await clientCommercialModel('c1')).model).toBe('compat_legacy')
+    expect((await clientCommercialModel('c1')).model).toBe('compat_programme')
     state.programme = PROG
     expect((await clientCommercialModel('c1')).model).toBe('compat_programme')
   })
@@ -249,10 +266,15 @@ describe('② every unreadable state refuses, and none of them resolves to legac
     expect(m.model).toBe('unreadable')
   })
 
-  it('⚠️ NON-VACUOUS: the same fixture with a clean read is ALLOWED', async () => {
+  it('⚠️ NON-VACUOUS: the same fixture with a clean read RESOLVES — to programme', async () => {
     // Without this, every assertion above would pass against a resolver that refused always.
+    // ⛓️ 23 Sep (R137) — WAS `'…with a clean read is ALLOWED'`, asserting the per-lead path
+    // opened. What distinguishes a clean read from a refusal is now that it RESOLVES (to
+    // programme); the per-lead path stays shut either way.
     const m = await clientCommercialModel('c1')
-    expect(mayUseLegacyCommercialPath(m)).toBe(true)
+    expect(m.model).not.toBe('unreadable')
+    expect(isProgrammeModel(m)).toBe(true)
+    expect(mayUseLegacyCommercialPath(m)).toBe(false)
   })
 })
 
@@ -280,8 +302,13 @@ describe('③ isLegacy / isProgramme / mayUseLegacy / storedModelFor', () => {
 
   it('mayUseLegacyCommercialPath is exactly isLegacyModel — the two must never drift', () => {
     for (const m of ALL) expect(mayUseLegacyCommercialPath(m)).toBe(isLegacyModel(m))
-    // ⚠️ AND EXACTLY TWO OF THE SIX SAY YES, asserted as a count so a widening is visible.
-    expect(ALL.filter(mayUseLegacyCommercialPath)).toHaveLength(2)
+    // ⚠️ AND NONE OF THE SIX SAYS YES, asserted as a count so a re-opening is visible.
+    // ⛓️ 23 Sep (R137) — WAS "EXACTLY TWO" (legacy and compat_legacy). Even a hand-built
+    // legacy state opens nothing now: *"the 299/4 is retired/ this must go."*
+    expect(ALL.filter(mayUseLegacyCommercialPath)).toHaveLength(0)
+    expect(ALL.filter(isLegacyModel)).toHaveLength(0)
+    // …and every state we could READ is programme; only "we could not tell" is not.
+    expect(ALL.filter(isProgrammeModel)).toHaveLength(ALL.length - 1)
   })
 
   it('storedModelFor recovers the column value, and says "unknown" rather than "not set"', () => {
@@ -701,9 +728,13 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
       .toMatch(/window\.confirm\([\s\S]{0,200}\$\{name\}[\s\S]{0,60}\$\{target\}/)
     expect(vida, 'and the surface reloads from the server rather than patching itself')
       .toMatch(/await loadProgramme\(clientId\)/)
-    // Three targets, and `null` is one of them: returning a client to UNCLASSIFIED is a real,
-    // defined choice, not a way of clearing a field.
-    for (const t of ["'programme')", "'legacy')", 'null)']) expect(vida).toContain(`company_name || 'this client', ${t}`)
+    // ⛓️ 23 Sep (R137) — WAS: three targets ('programme', 'legacy', null), asserted present.
+    // The API accepts only 'programme' now (founder: *"the 299/4 is retired/ this must go."*),
+    // so the console offers only that — a button the route refuses is a promise it cannot keep.
+    expect(vida).toContain("company_name || 'this client', 'programme')")
+    for (const t of ["'legacy')", 'null)']) expect(vida).not.toContain(`company_name || 'this client', ${t}`)
+    expect(vida).not.toContain('Set legacy')
+    expect(vida).not.toContain('Unclassify')
   })
 
   it('🛑 THE RETIRED /dashboard BILLING PAGE IS FENCED FOR A PROGRAMME CLIENT', () => {

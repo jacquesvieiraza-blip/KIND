@@ -139,6 +139,12 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
   }, [])
 
   const cap = capOf(capacity)
+  // ⚑ 23 Sep (MVP1 Stage 3) — A KNOWN ZERO IS NOT AN UNKNOWN. `capOf` returns null for both, so a
+  // pool we positively measured as carrying nothing left the slider open at 1–50 — and the
+  // server (`chooseProgramme`, now pinned) refuses every one of those, so the client only found
+  // out on Save. Here the choice is held and they are pointed at their own targeting instead.
+  // ⚠️ `known: false` still caps nothing — a slow vendor must not block a paying client.
+  const noCapacity = capacity !== null && capacity.known && capacity.committed <= 0
 
   // 🛑 THE CONTROL CANNOT EXCEED WHAT THE POOL CARRIES. Clamping here as well as on the inputs
   // is what makes a capacity arriving AFTER the client has already typed a larger number pull
@@ -204,7 +210,7 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
         {/* 🛑 AND WHEN THEY REACH IT, THEY ARE POINTED AT THEIR OWN TARGETING — never at a
             suggestion of ours. The sentence is the server's, so this screen cannot soften it,
             and it names no pool size and no rate. */}
-        {atCeiling && calc?.widen_note && (
+        {(atCeiling || noCapacity) && calc?.widen_note && (
           <p className="text-[11.5px] text-[#9b8ec4] mt-1.5 leading-relaxed">{calc.widen_note}</p>
         )}
       </div>
@@ -285,7 +291,7 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
         </p>
       )}
 
-      <button onClick={() => void choose()} disabled={busy || chosen || !d}
+      <button onClick={() => void choose()} disabled={busy || chosen || !d || noCapacity}
         className="w-full mt-4 text-[14px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
         {busy ? 'Saving…' : chosen ? 'Saved — your recommendation is below' : `Build my programme for ${d?.meetings ?? meetings} meetings`}
       </button>

@@ -31,10 +31,11 @@
 // an active ICP and no legacy transaction — which is every programme customer who has ever had
 // targeting, because they never buy a pack.
 //
-// ⚠️ A LEGACY CLIENT IS UNAFFECTED, AND THAT IS PART OF THE PROOF. R74 keeps the retired
-// runtime live until the coordinated migration ships. `kind-owns-go.test.ts` asserts
-// `sourcing: true` through the activate route and still passes — the fence refuses a programme
-// client, not everybody.
+// ⛓️ ~~⚠️ A LEGACY CLIENT IS UNAFFECTED, AND THAT IS PART OF THE PROOF. R74 keeps the retired
+// runtime live until the coordinated migration ships.~~ SUPERSEDED 23 Sep by R137: no account
+// passes a legacy door now. `kind-owns-go.test.ts` still asserts `sourcing: true`, against the
+// test-only legacy-era resolver, because that is the only state in which the path it covers
+// was reachable.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi } from 'vitest'
@@ -211,10 +212,16 @@ describe('XC-7 · the door verdict itself', () => {
     expect((verdict as { status: number }).status).toBe(503)
   })
 
-  it('🛑 A LEGACY CLIENT IS UNAFFECTED — R74 keeps the retired runtime live', async () => {
-    expect((await verdictWith({ stored: 'legacy' })).verdict.allowed).toBe(true)
-    // And the compatibility answer: unclassified, no programme, behaves exactly as before.
-    expect((await verdictWith({ stored: null })).verdict.allowed).toBe(true)
+  it('🛑 NO CLIENT PASSES A LEGACY DOOR ANY MORE — stored legacy and NULL are refused (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 A LEGACY CLIENT IS UNAFFECTED — R74 keeps the retired
+    // runtime live'`, asserting both verdicts `allowed: true`. R137 retires that runtime for
+    // every account. Founder, verbatim: *"the 299/4 is retired/ this must go. everything must be
+    // updated to new programme pricing model."*
+    for (const stored of ['legacy', null] as const) {
+      const { verdict } = await verdictWith({ stored })
+      expect(verdict.allowed, `stored ${String(stored)} must not open a retired door`).toBe(false)
+      expect((verdict as { status: number }).status, 'a programme answer, not "we could not tell"').toBe(403)
+    }
   })
 
   it('🛑 AND A THROW IS A REFUSAL TOO — asserted in source, because nothing can reach it', () => {

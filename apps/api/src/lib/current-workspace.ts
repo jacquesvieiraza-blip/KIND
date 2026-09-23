@@ -120,8 +120,13 @@ export async function currentWorkspaceScope(clientId: string): Promise<Workspace
   // is declared or merely compatible — a client with a programme open is governed by it today.
   if (model.openProgramme) return { kind: 'programme', programmeId: model.openProgramme.id }
 
-  // Legacy and unclassified keep the client-scoped view they have always had. This is the whole
-  // live book, and nothing about their Milla changes.
+  // ⛓️ ~~Legacy and unclassified keep the client-scoped view they have always had. This is the
+  // whole live book, and nothing about their Milla changes.~~ SUPERSEDED 23 Sep by R137 —
+  // founder: *"the 299/4 is retired/ this must go."* `isLegacyModel` answers false for everyone,
+  // so a NULL or stored-'legacy' client with no open programme falls through to `proof` below,
+  // exactly like a declared programme client: their history stays in the tables (and in Vida)
+  // and is not presented as current work. The branch is kept until the retired code's own
+  // removal PR, so the `legacy` scope stays explicit rather than silently vanishing.
   if (isLegacyModel(model)) return { kind: 'legacy' }
 
   // ── DECLARED PROGRAMME, NO PROGRAMME OPEN. The one case this module exists for. ──────────

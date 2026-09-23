@@ -48,3 +48,5 @@ export * from './proof-wait'
 // disagreed: "Bad timing" was stored by the API and read back as "Other" by the calibration
 // side, so an operator saw a reason the client never gave.
 export * from './lead-reason-codes'
+// ⚑ 23 Sep — partners are frozen: one switch for the API, the portal and Vida.
+export * from './partners-frozen'

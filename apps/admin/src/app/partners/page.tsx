@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { PARTNERS_FROZEN, PARTNERS_FROZEN_COPY } from '@kind/shared'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
@@ -134,7 +135,7 @@ interface ToastState { message: string; ok: boolean }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function PartnersPage() {
+function PartnersPageLive() {
   const [activeTab, setActiveTab] = useState<Tab>('partners')
   const [partners, setPartners] = useState<Partner[]>([])
   const [deals, setDeals] = useState<Deal[]>([])
@@ -965,4 +966,20 @@ export default function PartnersPage() {
       )}
     </div>
   )
+}
+
+
+// ⚑ 23 Sep — PARTNERS ARE FROZEN (founder: "Freeze."). The page is kept whole behind this switch;
+// while `PARTNERS_FROZEN` is true it says so instead of loading, because every partner route it
+// would call answers 410. Flip the switch in @kind/shared and the page above renders as before.
+export default function PartnersPage() {
+  if (PARTNERS_FROZEN) {
+    return (
+      <div className="max-w-xl mx-auto mt-16 border border-[#eee7f7] rounded-2xl px-5 py-4 bg-white">
+        <b className="text-[14px] block mb-1">Partners are paused</b>
+        <p className="text-[13px] text-[#6b5f8c]">{PARTNERS_FROZEN_COPY}</p>
+      </div>
+    )
+  }
+  return <PartnersPageLive />
 }

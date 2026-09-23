@@ -248,6 +248,8 @@ app.use('/figsy',         figsyRouter)
 app.use('/internal',      internalRouter)
 app.use('/support',       supportRouter)
 app.use('/founder',       founderRouter)
+// ⚑ 23 Sep — PARTNERS ARE FROZEN (founder: "Freeze."). The gate is the router's FIRST layer
+// (`routes/partners.ts`), so every partner route answers 410 before any handler runs.
 app.use('/partners',      partnersRouter)
 app.use('/voice',         voiceRouter)
 app.use('/whatsapp',      whatsappRouter)

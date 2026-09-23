@@ -11,7 +11,7 @@ import type { ProviderPage } from './provider-page'
 // timeout and Node's `fetch` has no default, so Apollo's "worst case" was unbounded and the
 // Proof desk's bound was arithmetic about nothing. A second copy of the number here would
 // silently invalidate the derivation, so it is imported.
-import { APOLLO_REQUEST_TIMEOUT_MS } from '@kind/shared'
+import { APOLLO_REQUEST_TIMEOUT_MS, apolloSenioritiesFor } from '@kind/shared'
 import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 import { sourcingProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
@@ -71,14 +71,11 @@ const APOLLO_MAX_PAGE = 500
 export { APOLLO_MAX_PER_PAGE, APOLLO_MAX_PAGE }
 
 // ── Seniority mapping ─────────────────────────────────────────────────────────
-const SENIORITY_MAP: Record<string, string[]> = {
-  'C-Suite':                ['c_suite'],
-  'VP / Director':          ['vp', 'director'],
-  'Head of':                ['head'],
-  'Manager':                ['manager'],
-  'Senior':                 ['senior'],
-  'Individual Contributor': ['entry'],
-}
+// ⛓️ 23 Sep (R142) — WAS a private six-row `SENIORITY_MAP` from OUR labels to Apollo's values
+// (`'C-Suite' → ['c_suite']`, `'VP / Director' → ['vp','director']`, …). The Brief now offers
+// Apollo's own eleven, so the translation lives in `@kind/shared/apollo-seniority` — the SAME
+// function the Proof check reads, so what we search for and what we check can never disagree
+// again. The six old labels still translate exactly as they did, for every ICP already saved.
 
 // ── Company size mapping (Apollo uses "min,max" ranges) ───────────────────────
 const EMPLOYEE_RANGE_MAP: Record<string, string> = {
@@ -186,7 +183,7 @@ export function buildSearchBody(icp: {
   if (icp.job_titles.length)
     body.person_titles = icp.job_titles
 
-  const seniorities = icp.seniority_levels.flatMap(s => SENIORITY_MAP[s] ?? [])
+  const seniorities = apolloSenioritiesFor(icp.seniority_levels)
   if (seniorities.length)
     body.person_seniorities = seniorities
 

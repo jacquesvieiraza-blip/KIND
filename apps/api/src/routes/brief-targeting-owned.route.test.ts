@@ -237,7 +237,9 @@ describe('🛑 B5-A · confirmed value A beats a contradictory browser value B',
     // evidence~~. "Director" is a stated seniority whose canonical band is `VP / Director`;
     // parking a client for a word that obviously maps is the defect that stranded seven of
     // them. B's `'Manager'` still never arrives, which is what this case exists to prove.
-    expect(icpRow().seniority_levels).toEqual(['C-Suite', 'VP / Director'])
+    // ⛓️ 23 Sep (R142) — WAS `['C-Suite', 'VP / Director']`: "Director" was widened into our band,
+    // which searched VPs too. Director is Apollo's own value now, so it is kept exactly.
+    expect(icpRow().seniority_levels).toEqual(['C-Suite', 'Director'])
     expect(reviewSaid('seniority_levels')).toEqual([])
     expect(icpRow().seniority_levels, 'the browser\'s value never arrives').not.toContain('Manager')
   })
@@ -269,7 +271,8 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     // ⛓️ 19 Sep (R135) — both lists used to be review evidence over punctuation and a synonym.
     expect(row.company_sizes).toEqual(['11–50', '51–200'])
     expect(reviewSaid('company_sizes')).toEqual([])
-    expect(row.seniority_levels).toEqual(['C-Suite', 'VP / Director'])
+    // ⛓️ 23 Sep (R142) — WAS `['C-Suite', 'VP / Director']`; "Director" is kept exactly now.
+    expect(row.seniority_levels).toEqual(['C-Suite', 'Director'])
     expect(reviewSaid('seniority_levels')).toEqual([])
   })
 

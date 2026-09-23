@@ -89,10 +89,13 @@ describe('real seniority reaches a canonical value', () => {
   const cases: [string, string][] = [
     ['Managing Director', 'C-Suite'],
     ['COO', 'C-Suite'],
-    ['Founder', 'C-Suite'],
+    // ⛓️ 23 Sep (R142) — WAS `['Founder', 'C-Suite']` and `['VP', 'VP / Director']`: an exact
+    // Apollo seniority was widened into one of OUR bands. Founder and VP are Apollo's own values
+    // now, so the client's word is kept exactly — no assumption about what else they meant.
+    ['Founder', 'Founder'],
     ['Chief Operating Officer', 'C-Suite'],
     ['Operations Director', 'VP / Director'],
-    ['VP', 'VP / Director'],
+    ['VP', 'VP'],
     ['Head of Operations', 'Head of'],
     ['senior operations leaders', 'Senior'],
   ]

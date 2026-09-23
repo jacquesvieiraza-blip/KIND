@@ -43,7 +43,7 @@
 // treating it as `yes` is exactly the false confidence the founder caught.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { canonicalLaunchCountry } from '@kind/shared'
+import { canonicalLaunchCountry, seniorityMatchesApollo } from '@kind/shared'
 import { bandIndex, headcountBandIndex, headcountBandBounds } from './lead-feedback'
 
 /**
@@ -625,7 +625,13 @@ function seniorityVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
     const want = tokens(r)
     return want.length > 0 && want.every(w => titleWords.has(w))
   })
-  const levelHit = wantLevels.some(r => level === clean(r) || tokens(level).includes(clean(r)))
+  // ⛓️ 23 Sep (R142) — AND IN APOLLO'S OWN TERMS. WAS only the line below, which compared the
+  // stored LABEL with the row's value as text — so Apollo's `c_suite` on a returned Chief
+  // Executive Officer never equalled the "C-Suite" we had searched Apollo FOR, and the person
+  // Apollo matched was captioned "not the seniority you asked for" (Blackburne, 23 Sep). Both
+  // sides now go through `seniorityMatchesApollo`, the same translation `buildSearchBody` sends.
+  const levelHit = seniorityMatchesApollo(icp.seniority_levels, c.seniority) === true
+    || wantLevels.some(r => level === clean(r) || tokens(level).includes(clean(r)))
 
   if (titleHit || levelHit) return 'yes'
   // Asked for one, the row answered the other and did not match: that is a genuine `no`.

@@ -38,6 +38,7 @@ import { orderFormRouter } from './routes/order-forms'
 import { statsRouter } from './routes/stats'
 import { internalBriefsRouter } from './routes/internal-briefs'
 import demoRequestRouter from './routes/demo-request'
+import websiteEnquiryRouter from './routes/website-enquiry'
 import subscribeRouter from './routes/subscribe'
 import { statusRouter } from './routes/status'
 import { shareRouter } from './routes/share'
@@ -269,6 +270,8 @@ app.use('/stats',         statsRouter)
 app.use('/internal/briefs', internalBriefsRouter)
 app.use('/api', demoRequestRouter)
 app.use('/api', subscribeRouter)
+// The two website forms (contact.html, get-started.html) — public and rate-limited.
+app.use('/api', websiteEnquiryRouter)
 app.use('/internal/status', statusRouter)
 app.use('/share',         shareRouter)
 app.use('/team',          teamRouter)

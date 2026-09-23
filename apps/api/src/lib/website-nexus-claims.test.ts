@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { nexusTuneGate, autoTuneReady, AUTOTUNE_MIN_MEETINGS, AUTOTUNE_MIN_WORKED } from './nexus-guard'
 
@@ -88,10 +88,40 @@ describe('nexus.html promises memory, not tuning', () => {
   })
 })
 
-describe('the page is reachable again, and honestly linked', () => {
-  it('/nexus is NOT in the retired list on either front door', () => {
-    expect(readFileSync(join(WEB, 'server.js'), 'utf8')).not.toMatch(/'\/nexus':/)
-    expect(readFileSync(join(WEB, '_redirects'), 'utf8')).not.toMatch(/^\/nexus/m)
+// ⛓️ 20 Sep — REVERSED BY THE FOUNDER. NEXUS IS RETIRED AGAIN.
+//
+// This block asserted the OPPOSITE: that `/nexus` must NOT appear in either retirement map.
+// It was written on 1 Aug to hold open founder orders #603 ("where is nexus on the site. its
+// been removed... i want it back") and #604 ("you shrunk it. i want it back now."). Those
+// orders were real and this guard was right to hold them.
+//
+// What changed is not my reading of them — it is the founder, explicitly, on 20 Sep. The site
+// was rebuilt on a new fourteen-page design and nexus.html was one of twenty-one pages left
+// behind on the old chrome. It had also been ORPHANED the whole time: nothing on the old site
+// and nothing on the new site linked to it, so "back on the site" had stopped being true in
+// practice long before it stopped being true in the redirect map. Told which pages were in
+// that state, the founder ruled: "Makes no sense to have two types of websites in one," and
+// named the three to keep. Nexus was not among them.
+//
+// THE FLIP IS THE POINT OF THIS COMMENT. A guard that reverses a founder order silently is
+// worse than no guard, because the next reader cannot tell a correction from a regression.
+// #603 and #604 are not deleted here and not contradicted — they were obeyed for seven weeks
+// and have been superseded by a later ruling from the same person. Latest wins, and the chain
+// stays readable: 29 Jul retired → 1 Aug restored (#603/#604) → 20 Sep retired again.
+//
+// Everything above this block still runs. The page is still on disk (26-Jul lock: nothing
+// gets deleted), so what it CLAIMS is still held to the truth — memory, not tuning; yours
+// alone, not shared — because a retired page can be un-retired by deleting one line, and it
+// must not come back carrying a promise the product cannot keep.
+describe('the page is retired again, and honestly so', () => {
+  it('/nexus IS retired at both front doors', () => {
+    expect(readFileSync(join(WEB, 'server.js'), 'utf8')).toMatch(/'\/nexus':\s*'\/vida'/)
+    expect(readFileSync(join(WEB, '_redirects'), 'utf8')).toMatch(/^\/nexus\s+\/vida\s+301$/m)
+    expect(readFileSync(join(WEB, '_redirects'), 'utf8')).toMatch(/^\/nexus\.html\s+\/vida\s+301$/m)
+  })
+
+  it('the file is still on disk — retiring it is not deleting it', () => {
+    expect(existsSync(join(WEB, 'nexus.html')), 'nexus.html was deleted; the 26-Jul lock forbids it').toBe(true)
   })
 
   // ⛓️ 16 Sep — THIS ASSERTION HAS NOW FLIPPED TWICE AND BOTH FLIPS WERE THE SITE MOVING.

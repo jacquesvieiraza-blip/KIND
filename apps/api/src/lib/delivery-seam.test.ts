@@ -90,6 +90,7 @@ const TRANSACTIONAL: Record<string, string> = {
   'routes/team.ts': 'Team member invitations to our own product. Not a prospect.',
   'routes/subscribe.ts': 'Someone asking US to contact them — inbound, by definition.',
   'routes/demo-request.ts': 'A demo request that came to us.',
+  'routes/website-enquiry.ts': 'The two website forms. A stranger typing their own address into our contact page and pressing send is the definition of inbound — the one mail this sends goes to the founder, never to the person who filled it in, and the outreach switch has no business silencing it.',
   'routes/proposals.ts': 'A proposal to an existing client relationship.',
   'lib/smartlead-inbound.ts': 'Inbound reply ingestion. Reads; does not send.',
   'lib/reply-ingest.ts': 'Inbound reply ingestion.',

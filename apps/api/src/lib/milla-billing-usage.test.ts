@@ -177,7 +177,8 @@ describe('USAGE — PROGRAMME DELIVERY, NOT A SECOND BILLING PAGE', () => {
     expect(USAGE).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', tok)")
     expect(USAGE).toContain("api.get<{ data: Outcomes }>('/leads/milla-summary', tok)")
     expect(USAGE).toContain('p.progress.delivered')
-    expect(USAGE).toContain('p.progress.authorised')
+    // ⛓️ 23 Sep (R136 ③) — WAS `p.progress.authorised` (the ceiling); now the yes/no.
+    expect(USAGE).toContain('p.progress.sourcingAuthorised')
     expect(USAGE).toContain('o.replies_total')
     expect(USAGE).toContain('o.meetings_total')
   })
@@ -207,7 +208,10 @@ describe('USAGE — PROGRAMME DELIVERY, NOT A SECOND BILLING PAGE', () => {
   })
 
   it('"0 of 0 authorised" is not shown as information', () => {
-    expect(USAGE).toContain('p.progress.authorised > 0 &&')
+    // ⛓️ 23 Sep (R136 ③) — WAS `p.progress.authorised > 0 &&`. The server now sends only a
+    // yes/no, so the same gate is the boolean — and there is no "of N" left to show at all.
+    expect(USAGE).toContain('p.progress.sourcingAuthorised && (')
+    expect(USAGE).not.toContain('p.progress.authorised')
   })
 
   it('an unreadable count is a dash, never a zero', () => {
@@ -324,8 +328,11 @@ describe('THE APPROVED CUSTOMER LABELS AND SUBTITLES', () => {
     //
     // ⚠️ BOTH SURFACES, because one field with two labels is the drift this build keeps
     // paying for. The workspace and Usage render the same number and now say the same words.
-    expect(WORKSPACE, 'the workspace no longer labels the sourced count').toContain('People sourced of ')
-    expect(USAGE, 'Usage no longer labels the sourced count').toContain('People sourced of ')
+    // ⛓️ 23 Sep (R136 ③) — WAS `'People sourced of '`: the label carried "of {ceiling}
+    // authorised", and the ceiling is the internal limit. The LABEL this test protects is kept.
+    expect(WORKSPACE, 'the workspace no longer labels the sourced count').toContain('People sourced')
+    expect(USAGE, 'Usage no longer labels the sourced count').toContain('People sourced')
+    for (const src of [WORKSPACE, USAGE]) expect(src, 'the ceiling is back on a client screen').not.toContain('People sourced of ')
     for (const [name, src] of [['workspace', WORKSPACE], ['usage', USAGE]] as const) {
       expect(src, `the retired "People reached" label is back on the ${name}`)
         .not.toContain('People reached')

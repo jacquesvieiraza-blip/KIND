@@ -70,9 +70,19 @@ export type CustomerProgramme = {
     stated: string | null
   }
   progress: {
-    /** Delivered against what the programme authorised. Both straight off the row. */
+    /** People sourced for this programme — `sourced_used`, straight off the row. */
     delivered: number
-    authorised: number
+    /**
+     * ⚑ 23 Sep (R136 ③ · MVP1 Stage 5) — WHETHER SOURCING IS AUTHORISED, NEVER HOW MUCH.
+     *
+     * 🛑 ⛓️ WAS `authorised: number` = `sourcing_ceiling`, rendered to the client as "People
+     * sourced of 4,000 authorised" on three screens and handed to Milla's prompt as "X of Y
+     * people authorised". Since R136 the ceiling IS meetings × 400 — the internal limit the
+     * founder locked as never disclosed: *"i said 400 internally. we dont disclose this."* One
+     * division by the meeting target on the same screen recovered it. The number is no longer
+     * on the client wire at all, so no screen, prompt or future component can leak it.
+     */
+    sourcingAuthorised: boolean
     /** Booked meetings — from public.meetings, the sole meeting truth. null = unreadable. */
     outcomesAchieved: number | null
   }
@@ -189,7 +199,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   outcome: { kind: 'meetings', target: null, stated: null },
   // ⚑ 16 Sep (D2) — no programme, so no authority and nothing delivered. Stated, not omitted.
   sending: { runAt: null, emailsDelivered: 0 },
-  progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+  progress: { delivered: 0, sourcingAuthorised: false, outcomesAchieved: 0 },
   recommendation: { recommendedVolume: null, costPerMeetingCents: null, acceptedAt: null, assumptions: null },
   money: {
     totalCents: 0, firstPaymentCents: 0, secondPaymentCents: 0, firstPaidAt: null, secondPaidAt: null,
@@ -438,7 +448,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     outcome: { kind: 'meetings', target: Number(p.meeting_target ?? 0) || null, stated },
     progress: {
       delivered: Number(p.sourced_used ?? 0),
-      authorised: Number(p.sourcing_ceiling ?? 0),
+      // ⚑ 23 Sep (R136 ③) — a yes/no, never the ceiling. See the type.
+      sourcingAuthorised: Number(p.sourcing_ceiling ?? 0) > 0,
       outcomesAchieved,
     },
     recommendation: {

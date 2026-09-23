@@ -27,7 +27,7 @@
 import {
   MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
   programmeIsRunning, PROGRAMME_RUNNING_COPY, PROGRAMME_ARMED_COPY,
-  remainingProgrammeValue,
+  PROGRAMME_BEST_EFFORTS,
 } from '@kind/shared'
 
 export type CustomerProgramme = {
@@ -58,7 +58,8 @@ export type CustomerProgramme = {
      */
     stated: string | null
   }
-  progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
+  // ⛓️ 23 Sep (R136 ③) — `authorised: number` (the sourcing ceiling) is gone from the wire.
+  progress: { delivered: number; sourcingAuthorised: boolean; outcomesAchieved: number | null }
   /**
    * ⚑ 16 Sep (MVP1 · D2) — ARMED OR ACTUALLY RUNNING.
    *
@@ -180,10 +181,6 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   //
   // 🛑 A PAYING CLIENT NEVER SETS EITHER TERM. `internalBilling` is false for them, they never
   // carry an authorisation stamp, and `firstPaidAt` wins ahead of both regardless.
-  // ⚑ 16 Sep (MVP1 · E2) — the shared rule, so the number cannot be computed two ways.
-  const remaining = remainingProgrammeValue({
-    authorised: p.progress.authorised, delivered: p.progress.delivered,
-  })
   const internallyAuthorised =
     p.money.internalBilling === true || (!p.money.firstPaidAt && !!p.money.firstAuthorisedAt)
   return (
@@ -230,9 +227,14 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
                     "0 meetings booked" tells a client their programme has produced nothing —
                     the most damaging false statement available on this screen. */}
                 {p.progress.outcomesAchieved === null ? '—' : p.progress.outcomesAchieved}
+                {/* ⚑ 23 Sep (MVP1 Stage 5) — AGAINST THE TARGET THEY CHOSE, which is the one
+                    number on this screen they bought. */}
+                {p.progress.outcomesAchieved !== null && p.outcome.target
+                  ? <span className="text-[13px] font-bold text-[#9b8ec4]"> of {p.outcome.target}</span> : null}
               </div>
               <div className="text-[12px] text-[#9b8ec4]">
-                {p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
+                {p.progress.outcomesAchieved === null ? 'Meetings — not available right now'
+                  : p.outcome.target ? 'Meetings booked against your target' : 'Meetings booked'}
               </div>
             </div>
             <div>
@@ -246,33 +248,23 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
                   ⚠️ GENUINE CONTACTED METRICS ARE NOT TOUCHED. Pipeline's "Contacted" column
                   is backed by `figsy_enrollments.current_step > 0` — real outreach — and
                   keeps its name. */}
-              <div className="text-[12px] text-[#9b8ec4]">
-                People sourced of {p.progress.authorised.toLocaleString()} authorised
-              </div>
+              {/* ⛓️ 23 Sep (R136 ③) — WAS "People sourced of {authorised} authorised". The
+                  denominator was the sourcing ceiling — meetings × 400 — and dividing it by the
+                  target two lines up gave a client the limit the founder locked as internal. */}
+              <div className="text-[12px] text-[#9b8ec4]">People sourced</div>
             </div>
           </div>
-          {/* ── ⚑ 16 Sep (MVP1 · E2) — WHAT A FINISHED PROGRAMME LEFT UNWORKED ───────────
-              🛑 BOTH NUMBERS WERE ALREADY HERE and the difference was never stated. R74's
-              promise to the client — "unused programme value stays on account and never
-              expires" — was a sentence on the website with nothing in the product able to
-              give the number behind it. So a client who finished a programme without using
-              all of it had no way to see what they still had.
-
-              ⚠️ TERMINAL ONLY. Mid-programme, "remaining" is simply work not done yet and
-              stating it as retained value would be a promise about an unfinished thing.
-
-              ⚠️ NO NEW ENDPOINT, and `null` renders NOTHING rather than a reassuring zero:
-              "you have nothing left" is a claim, and an unreadable number is not it.
-              ⚠️ CANCELLED IS INCLUDED DELIBERATELY — the value is retained either way — but
-              the heading above still says "Programme cancelled", so the two stay distinct. */}
-          {p.terminal !== null && p.terminal !== undefined && remaining !== null && remaining > 0 && (
-            <div className="mt-3 pt-3 border-t border-[#f2ecfb]">
-              <div className="text-[13px] font-extrabold">{remaining.toLocaleString()} qualified prospects unused</div>
-              <div className="text-[12px] text-[#9b8ec4]">
-                This stays on your account and never expires.
-              </div>
-            </div>
+          {/* ⚑ 23 Sep (R136 ②) — THE TARGET IS AIMED FOR, NOT GUARANTEED. The same locked sentence
+              the client read before they committed, so the two screens cannot drift. */}
+          {p.outcome.target && p.terminal == null && (
+            <p className="text-[12px] text-[#9b8ec4] mt-2.5">{PROGRAMME_BEST_EFFORTS}</p>
           )}
+          {/* ⛓️ 23 Sep (R136 ③ · ④) — REMOVED: the terminal "N qualified prospects unused — This
+              stays on your account and never expires" block (16 Sep, E2). N was
+              `sourcing_ceiling − sourced_used`, so it disclosed the internal limit by
+              subtraction, and R136 ④ replaced "unused value stays on account" with a wallet
+              CREDIT for meetings not delivered — a different number, in money, settled by us.
+              What a finished programme shows now is added with the Stage 6 settlement. */}
         </div>
 
         {/* ── WHAT HAS BEEN PAID ──────────────────────────────────────────────────────

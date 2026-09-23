@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MILLA_STAGES, PROGRAMME_BEST_EFFORTS } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { outreachHasRun } from '@/lib/programme-report'
@@ -93,10 +93,12 @@ export default function MillaPerformancePage() {
                 icon={<CalendarCheck className="w-4.5 h-4.5" />}
                 tone="emerald"
               />
+              {/* ⛓️ 23 Sep (R136 ③) — the sub-line WAS `of {authorised} authorised`, the sourcing
+                  ceiling (meetings × 400): the internal limit, never disclosed. */}
               <ValueCard
                 label="People sourced"
-                value={p.progress.authorised > 0 ? p.progress.delivered : null}
-                sub={p.progress.authorised > 0 ? `of ${p.progress.authorised.toLocaleString()} authorised` : 'sourcing not authorised yet'}
+                value={p.progress.sourcingAuthorised ? p.progress.delivered : null}
+                sub={p.progress.sourcingAuthorised ? 'for this programme' : 'sourcing not authorised yet'}
                 icon={<Users className="w-4.5 h-4.5" />}
               />
             </div>
@@ -112,7 +114,7 @@ export default function MillaPerformancePage() {
             </div>
 
             {/* ── PROGRESS BARS — ratios of two real numbers, no benchmark input. */}
-            {(p.outcome.target || p.progress.authorised > 0) && (
+            {p.outcome.target && (
               <div className="mt-4 rounded-2xl border border-purple-100/60 bg-white p-6 space-y-4">
                 <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Progress</p>
                 {p.outcome.target && p.progress.outcomesAchieved !== null && (
@@ -123,13 +125,19 @@ export default function MillaPerformancePage() {
                     color="bg-emerald-500"
                   />
                 )}
-                {p.progress.authorised > 0 && (
+                {/* ⛓️ 23 Sep (R136 ③) — REMOVED: "People sourced of authorised", a bar whose max was
+                    the sourcing ceiling. A bar discloses its maximum as surely as a number does.
+                    ⚑ R136 ② — the meeting target is aimed for, not guaranteed. */}
+                {/* ⚑ 23 Sep — in the removed bar's place, a ratio of two numbers that are the
+                    client's own: of the people who replied, how many booked. */}
+                {o?.meetings_total != null && o?.replies_total != null && o.replies_total > 0 && (
                   <ProgressBar
-                    label="People sourced of authorised"
-                    value={p.progress.delivered}
-                    max={p.progress.authorised}
+                    label="Replies that became meetings"
+                    value={o.meetings_total}
+                    max={o.replies_total}
                   />
                 )}
+                <p className="text-[12px] text-[#9B8EC4]">{PROGRAMME_BEST_EFFORTS}</p>
               </div>
             )}
 

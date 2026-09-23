@@ -336,13 +336,21 @@ describe('D3 — Lead Delivery keeps its section and loses its levers', () => {
     expect(SETTINGS).toMatch(/'\/my\/programme'/)
     const section = SETTINGS.match(/function LeadDeliverySection[\s\S]*?\n}/)?.[0] ?? ''
     expect(section).toMatch(/p\.progress\.delivered/)
-    expect(section).toMatch(/p\.progress\.authorised/)
+    // ⛓️ 23 Sep (R136 ③) — WAS `p.progress.authorised` (the sourcing ceiling, meetings × 400,
+    // locked as never disclosed). The section now asks the yes/no, and draws meetings against
+    // the target the client chose.
+    expect(section).toMatch(/p\.progress\.sourcingAuthorised/)
+    expect(section).not.toMatch(/p\.progress\.authorised/)
     expect(section).toMatch(/p\.progress\.outcomesAchieved/)
   })
 
   it('uses the founder-approved labels verbatim rather than inventing new metrics', () => {
     const section = SETTINGS.match(/function LeadDeliverySection[\s\S]*?\n}/)?.[0] ?? ''
-    expect(section).toMatch(/People sourced of \$\{p\.progress\.authorised\.toLocaleString\(\)\} authorised/)
+    // ⛓️ 23 Sep (R136 ③) — WAS the label `People sourced of ${…authorised} authorised`. The
+    // founder-approved label is "People sourced" (31 Aug, decision 2); the "of N authorised"
+    // tail carried the internal limit and is gone.
+    expect(section).toMatch(/label="People sourced"/)
+    expect(section).not.toMatch(/People sourced of/)
     expect(section).toMatch(/Meetings booked/)
     expect(section).toMatch(/Meetings — not available right now/)
   })

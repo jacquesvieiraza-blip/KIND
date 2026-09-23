@@ -82,13 +82,12 @@ export default function MillaAnalyticsPage() {
         {p && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+              {/* ⛓️ 23 Sep (R136 ③) — WAS measured against `progress.authorised`, the sourcing ceiling (meetings × 400): the internal limit, never disclosed. The server now sends only whether sourcing is authorised. */}
               <ValueCard
                 hero
                 label="People sourced"
-                value={p.progress.authorised > 0 ? p.progress.delivered : null}
-                sub={p.progress.authorised > 0
-                  ? `of ${p.progress.authorised.toLocaleString()} authorised for this programme`
-                  : 'sourcing not authorised yet'}
+                value={p.progress.sourcingAuthorised ? p.progress.delivered : null}
+                sub={p.progress.sourcingAuthorised ? 'for this programme' : 'sourcing not authorised yet'}
                 icon={<Users className="w-6 h-6" />}
               />
               <ValueCard
@@ -121,9 +120,8 @@ export default function MillaAnalyticsPage() {
                 <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">
                   From sourced to booked
                 </p>
-                {p.progress.authorised > 0 && (
-                  <ProgressBar label="People sourced" value={p.progress.delivered} max={p.progress.authorised} />
-                )}
+                {/* ⛓️ 23 Sep (R136 ③) — REMOVED: a "People sourced" bar whose max was the sourcing
+                    ceiling. A bar discloses its maximum as surely as a number does. */}
                 {/* ⛓️ 18 Sep (J24-C1) — `o.replies_total` MAY NOW BE `null` ON ITS OWN, and a
                     bar drawn from a placeholder zero reads as "no replies" rather than as "we
                     could not count them". A bar has no way to say unreadable, so it is simply
@@ -131,12 +129,25 @@ export default function MillaAnalyticsPage() {
                 {o?.replies_total != null && p.progress.delivered > 0 && (
                   <ProgressBar label="Replies" value={o.replies_total} max={p.progress.delivered} color="bg-amber-400" />
                 )}
-                {p.progress.outcomesAchieved !== null && p.progress.delivered > 0 && (
+                {/* ⛓️ 23 Sep (R136 ③) — WAS "Meetings booked" drawn against `progress.delivered`
+                    (people sourced). Meetings per person sourced IS the conversion rate the
+                    programme is sized on, and the founder locked it as internal — "never the rate,
+                    the limit or the pool size". Drawn against the target they chose instead, and
+                    against their replies, which are theirs to see. */}
+                {p.progress.outcomesAchieved !== null && p.outcome.target && (
                   <ProgressBar
-                    label="Meetings booked"
+                    label="Meetings booked against your target"
                     value={p.progress.outcomesAchieved}
-                    max={p.progress.delivered}
+                    max={p.outcome.target}
                     color="bg-emerald-500"
+                  />
+                )}
+                {o?.meetings_total != null && o?.replies_total != null && o.replies_total > 0 && (
+                  <ProgressBar
+                    label="Replies that became meetings"
+                    value={o.meetings_total}
+                    max={o.replies_total}
+                    color="bg-emerald-400"
                   />
                 )}
               </div>

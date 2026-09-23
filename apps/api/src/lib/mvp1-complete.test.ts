@@ -120,11 +120,18 @@ describe('Ⓑ · E2 · a finished client is told what they have not used', () =>
     expect(remainingProgrammeValue({ authorised: 2500, delivered: null })).toBe(null)
   })
 
-  it('the terminal view renders it from the payload it already had', () => {
+  it('🛑 the terminal view does NOT render "unused prospects" from the ceiling any more (R136)', () => {
+    // ⛓️ INVERTED 23 Sep (R136 ③ · ④). WAS `'the terminal view renders it from the payload it
+    // already had'`, asserting the workspace used `remainingProgrammeValue` over
+    // `progress.authorised`. That number was `sourcing_ceiling − sourced_used`: it disclosed the
+    // internal limit by subtraction (*"i said 400 internally. we dont disclose this."*), and R136
+    // ④ replaced "unused value stays on account" with a WALLET CREDIT for meetings not delivered
+    // (*"we refund credits to their wallet internally to use towards another icp run."*). The
+    // pure function above is kept and still tested; the client screen no longer calls it, and
+    // the ceiling is not on the client wire at all.
     const ws = src('apps/portal/src/components/milla/ProgrammeWorkspace.tsx')
-    expect(ws).toMatch(/remainingProgrammeValue/)
-    // 🛑 NO NEW ENDPOINT. Both inputs were already in `progress`.
-    expect(ws).toMatch(/progress\.authorised/)
+    expect(ws).not.toMatch(/remainingProgrammeValue/)
+    expect(ws).not.toMatch(/progress\.authorised/)
     expect(ws).toMatch(/progress\.delivered/)
   })
 

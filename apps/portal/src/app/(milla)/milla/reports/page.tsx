@@ -109,11 +109,9 @@ export default function MillaReportsPage() {
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {p.progress.authorised > 0 && (
-                    <ValueCard
-                      value={p.progress.delivered}
-                      label={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
-                    />
+                  {/* ⛓️ 23 Sep (R136 ③) — WAS measured against `progress.authorised`, the sourcing ceiling (meetings × 400): the internal limit, never disclosed. The server now sends only whether sourcing is authorised. */}
+                  {p.progress.sourcingAuthorised && (
+                    <ValueCard value={p.progress.delivered} label="People sourced" />
                   )}
                   <ValueCard
                     value={p.progress.outcomesAchieved}

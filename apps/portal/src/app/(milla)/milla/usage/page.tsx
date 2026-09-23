@@ -128,12 +128,17 @@ export default function MillaUsagePage() {
                 and never shown when nothing has been authorised: "0 of 0" is not information.
                 Payment 1 is what authorises this, which is why it can be non-zero long before
                 anybody has been contacted. */}
-            {p.progress.authorised > 0 && (
+            {/* ⛓️ 23 Sep (R136 ③) — the first stat WAS `People sourced of {authorised} authorised`;
+                `authorised` was the sourcing ceiling (meetings × 400), the internal limit the
+                founder locked as never disclosed. The gate is now a yes/no from the server. */}
+            {p.progress.sourcingAuthorised && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Stat v={p.progress.delivered.toLocaleString()} k={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`} />
+                <Stat v={p.progress.delivered.toLocaleString()} k="People sourced" />
                 <Stat
-                  v={p.progress.outcomesAchieved === null ? '—' : String(p.progress.outcomesAchieved)}
-                  k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
+                  v={p.progress.outcomesAchieved === null ? '—'
+                    : p.outcome.target ? `${p.progress.outcomesAchieved} of ${p.outcome.target}` : String(p.progress.outcomesAchieved)}
+                  k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now'
+                    : p.outcome.target ? 'Meetings booked against your target' : 'Meetings booked'}
                 />
               </div>
             )}

@@ -50,6 +50,10 @@ type CalcPayload = {
   data: CalcResult
   target_note: string
   illustrative_note: string
+  /** R136 ② — the best-efforts disclaimer, shown where they commit. Names no number. */
+  best_efforts_note?: string
+  /** R136 ⑥ — what to do when they want more than their targeting reaches. */
+  widen_note?: string
   benchmark: { leadsPerMeeting: number; minLeadsPerMeeting: number }
 }
 
@@ -71,8 +75,24 @@ function Figure({ label, value, hint }: { label: string; value: string; hint?: s
   )
 }
 
+/**
+ * 🛑 ⚑ 23 Sep (R136 ⑥) — WHAT THE POOL CARRIES, READ ONCE.
+ *
+ * Its own call, not part of the quote: the quote is pure arithmetic and re-runs on every slider
+ * movement, while this costs a provider round trip. `known: false` means we could not ask —
+ * the control is then left uncapped rather than capping a paying client at nothing because a
+ * vendor was slow.
+ */
+type Capacity = { committed: number; known: boolean }
+
+/** The ceiling the control stops at, or `null` when we have no trustworthy answer. */
+function capOf(c: Capacity | null): number | null {
+  return c && c.known && c.committed > 0 ? c.committed : null
+}
+
 export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
   const [meetings, setMeetings] = useState(10)
+  const [capacity, setCapacity] = useState<Capacity | null>(null)
   const [leadsPerMeeting, setLeadsPerMeeting] = useState<number | ''>('')
   const [value, setValue] = useState<number | ''>('')
   const [pct, setPct] = useState<number | ''>('')
@@ -104,6 +124,32 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
     return () => { live = false }
   }, [query])
 
+  // ⚠️ ONCE PER SCREEN, NOT PER KEYSTROKE — `[]`, deliberately. A provider call behind every
+  // slider movement is the cost this split exists to avoid. A failure leaves `capacity` null,
+  // which reads as "we do not know" and caps nothing.
+  useEffect(() => {
+    let live = true
+    ;(async () => {
+      try {
+        const r = await api.get<{ data: Capacity }>('/my/programme/capacity', await token())
+        if (live) setCapacity(r.data)
+      } catch { /* silent — an unknown capacity must not cap, and must not shout */ }
+    })()
+    return () => { live = false }
+  }, [])
+
+  const cap = capOf(capacity)
+
+  // 🛑 THE CONTROL CANNOT EXCEED WHAT THE POOL CARRIES. Clamping here as well as on the inputs
+  // is what makes a capacity arriving AFTER the client has already typed a larger number pull
+  // them back down, rather than leaving a stale over-target sitting in a box that now has a
+  // lower maximum.
+  useEffect(() => {
+    if (cap !== null && meetings > cap) setMeetings(cap)
+  }, [cap, meetings])
+
+  const atCeiling = cap !== null && meetings >= cap
+
   const choose = useCallback(async () => {
     setBusy(true); setErr(null)
     try {
@@ -132,14 +178,35 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
       {/* ── WHAT THEY CHOOSE ───────────────────────────────────────────────────────────── */}
       <div className="mt-4">
         <label htmlFor="calc-meetings" className={LABEL}>Targeted booked meetings</label>
+        {/* ── 🛑 ⚑ 23 Sep (R136 ⑥) — THE CONTROL STOPS WHERE THE POOL DOES ─────────────────
+             ⛓️ WAS: ~~`max={50}` on the slider and `max={500}` on the box~~ — two hard-coded
+             literals with no connection to whether this client's targeting contains enough
+             people to carry any of it. A client could buy twenty meetings out of a pool that
+             carries three, and every screen afterwards would keep agreeing with them.
+
+             🛑 FOUNDER-LOCKED: *"if we can only produce 10 but they want more. they need to
+             widen their own ICP."* So the control stops, and the sentence below hands them the
+             fields that move it. We do not widen it for them.
+
+             ⚠️ THE FALLBACK IS THE OLD CEILING, NOT ZERO. When capacity is unknown — no
+             targeting yet, or the provider could not be reached — `cap` is null and the control
+             behaves exactly as it did before. Capping a paying client at nothing because a
+             vendor was slow would be a worse failure than the one this fixes. */}
         <div className="flex items-center gap-3 mt-1">
-          <input id="calc-meetings" type="range" min={1} max={50} step={1} value={meetings}
+          <input id="calc-meetings" type="range" min={1} max={cap ?? 50} step={1} value={meetings}
             onChange={e => setMeetings(Number(e.target.value))}
             className="flex-1 accent-[#7C3AED]" />
-          <input aria-label="Targeted booked meetings" type="number" min={1} max={500} value={meetings}
-            onChange={e => setMeetings(Math.max(1, Number(e.target.value) || 1))}
+          <input aria-label="Targeted booked meetings" type="number" min={1} max={cap ?? 500} value={meetings}
+            onChange={e => setMeetings(
+              Math.min(cap ?? Number.MAX_SAFE_INTEGER, Math.max(1, Number(e.target.value) || 1)))}
             className="w-20 text-[15px] font-extrabold tabular-nums rounded-xl border border-[#e4dcf7] px-2.5 py-2 text-center" />
         </div>
+        {/* 🛑 AND WHEN THEY REACH IT, THEY ARE POINTED AT THEIR OWN TARGETING — never at a
+            suggestion of ours. The sentence is the server's, so this screen cannot soften it,
+            and it names no pool size and no rate. */}
+        {atCeiling && calc?.widen_note && (
+          <p className="text-[11.5px] text-[#9b8ec4] mt-1.5 leading-relaxed">{calc.widen_note}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
@@ -198,6 +265,25 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
       )}
 
       {err && <p className="text-[12.5px] text-red-700 mt-3">{err}</p>}
+
+      {/* ── 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE POINT OF COMMITMENT ─────────────
+           🛑 FOUNDER-LOCKED: *"we have to add a disclaimer to the client we do our best. this
+           is not a guarentee."*
+
+           ⚠️ IT IS NOT THE SAME SENTENCE AS THE ONE AT THE TOP, AND THE DIFFERENCE IS THE
+           POINT. `target_note` frames the number while they are still playing with it;
+           this says the part that one does not — that there is a point at which we STOP. A
+           client who reads only "target, not a guarantee" can still reasonably believe we keep
+           going until the number lands, which was true until 23 Sep.
+
+           ⚠️ AND IT NAMES NO NUMBER. Founder, same day: *"i said 400 internally. we dont
+           disclose this."* The sentence is interpolated from the server, never typed here, so
+           a screen cannot soften it and a second copy cannot drift from it. */}
+      {calc?.best_efforts_note && (
+        <p className="text-[11.5px] text-[#5c5279] mt-4 leading-relaxed rounded-xl bg-[#faf8ff] border border-[#ece5fb] px-3 py-2.5">
+          {calc.best_efforts_note}
+        </p>
+      )}
 
       <button onClick={() => void choose()} disabled={busy || chosen || !d}
         className="w-full mt-4 text-[14px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">

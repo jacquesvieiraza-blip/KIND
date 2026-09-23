@@ -8,6 +8,8 @@ export * from './partners-frozen'
 export * from './geography-support'
 // ⚑ 23 Sep (R142) — seniority is Apollo's own eleven values; one list for Brief, search and check.
 export * from './apollo-seniority'
+// ⚑ 23 Sep (R142 · A2a) — industry is picked from Apollo's own list; never typed, never guessed.
+export * from './apollo-industries'
 export * from './company-details'
 export * from './cost-floor'
 export * from './panel-state'

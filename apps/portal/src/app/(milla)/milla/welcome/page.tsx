@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { capacitySentence, committedCapacity, workablePool } from '@kind/shared'
 import {
   firstProofReadiness, PROOF_PREPARING_COPY, PROOF_NEEDS_US_COPY, PROOF_NEEDS_CLIENT_COPY,
-  APOLLO_SENIORITY_LABELS,
+  APOLLO_SENIORITY_LABELS, APOLLO_INDUSTRIES, PICK_INDUSTRY_COPY,
   type ProofReadiness, type ProofSummaryFacts,
 } from '@kind/shared'
 // ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
@@ -243,11 +243,16 @@ const STARTERS = ['We want more meetings', "Here’s who we sell to", 'What do y
 const SENIORITY_OPTIONS: string[] = [...APOLLO_SENIORITY_LABELS]
 const SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+']
 
-const FIELD_OPTIONS: Record<string, { options: string[]; free: boolean }> = {
+const FIELD_OPTIONS: Record<string, { options: string[]; free: boolean; max?: number }> = {
   target_roles: { options: [], free: true },
   seniority:    { options: SENIORITY_OPTIONS, free: false },
   company_size: { options: SIZE_OPTIONS, free: false },
   geography:    { options: [], free: true },
+  // ⚑ 23 Sep (R142 · A2a) — Industry is now a CLOSED list: Apollo's own industries, picked by
+  // the client. Founder: *"milla must say please look to the right and drop down and choose."*
+  // ⛓️ WAS absent — the row was "Order by (never excludes)", filled from the client's sentence
+  // and never sent to the search. Six is the ICP's own bound on industries.
+  target_category: { options: [...APOLLO_INDUSTRIES], free: false, max: 6 },
 }
 
 /** Which draft key each editable field writes to. The server reads these names, not the row ids. */
@@ -256,6 +261,7 @@ const PICK_KEY: Record<string, string> = {
   seniority:    'seniority_levels',
   company_size: 'company_sizes',
   geography:    'geographies',
+  target_category: 'industries',
 }
 
 /**
@@ -266,17 +272,30 @@ const PICK_KEY: Record<string, string> = {
  * the same interaction in both modes, which is why the closed and free variants share a
  * component rather than looking like two different ideas on one panel.
  */
-function PickField({ options, free, chosen, placeholder, onChange }: {
+function PickField({ options, free, chosen, placeholder, onChange, max }: {
   options: string[]
   free: boolean
   chosen: string[]
   placeholder: string
   onChange: (next: string[]) => void
+  /** ⚑ 23 Sep — the most that may be chosen; a further tick is ignored rather than refused by the server. */
+  max?: number
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const toggle = (v: string) =>
-    onChange(chosen.includes(v) ? chosen.filter(x => x !== v) : [...chosen, v])
+  // ⚑ 23 Sep (R142 · A2a) — a LONG closed list (Apollo's industries) gets a filter box. It only
+  // narrows what is shown; the client can still choose nothing that is not on the list.
+  const searchable = !free && options.length > 20
+  const full = max !== undefined && chosen.length >= max
+  const toggle = (v: string) => {
+    if (chosen.includes(v)) { onChange(chosen.filter(x => x !== v)); return }
+    if (full) return
+    onChange([...chosen, v])
+  }
+  const q = draft.trim().toLowerCase()
+  const shown = free ? chosen
+    : searchable ? [...chosen, ...options.filter(o => !chosen.includes(o) && (q === '' || o.toLowerCase().includes(q)))]
+    : options
   const add = () => {
     const v = draft.trim()
     // ⚠️ A DUPLICATE IS NOT AN ERROR, IT IS A NO-OP. Telling a client they already added
@@ -309,11 +328,18 @@ function PickField({ options, free, chosen, placeholder, onChange }: {
               <button type="button" onClick={add}
                 className="text-[11px] font-bold text-white bg-[#7C3AED] rounded-md px-2.5 shrink-0">Add</button>
             </div>
+          ) : searchable ? (
+            <input
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder="Type to find your industry"
+              className="w-full mb-1.5 text-[11.5px] border border-[#ded8e8] rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/25" />
           ) : null}
-          <div className="flex flex-wrap gap-1">
+          {full ? <div className="text-[10px] text-[#9b8ec4] mb-1">Up to {max} — untick one to choose another.</div> : null}
+          <div className={`flex flex-wrap gap-1 ${searchable ? 'max-h-48 overflow-y-auto' : ''}`}>
             {/* A closed field lists its vocabulary; a free one lists what the client has
                 already given us, so removing is the same gesture as adding. */}
-            {(free ? chosen : options).map(v => {
+            {shown.map(v => {
               const on = chosen.includes(v)
               return (
                 <button key={v} type="button" onClick={() => toggle(v)}
@@ -754,6 +780,21 @@ export default function MillaWelcomePage() {
     setMessages(m => [...m, { role: 'assistant', content: PROOF_NEEDS_CLIENT_COPY }])
   }, [proofHold])
 
+  // ── ⚑ 23 Sep (R142 · A2a) — NO INDUSTRY PICKED, NO NEXT STEP, AND MILLA SAYS WHERE TO PICK ──
+  //
+  // Founder: *"milla must say please look to the right and drop down and choose."* The industry
+  // is the one thing Milla never infers: it must come from Apollo's own list, chosen by the
+  // client. Until it is, "Yes, this represents us" stays locked (R138 — the next step is not
+  // presented until we have what it needs), and Milla says so ONCE, in the conversation.
+  const industryChosen =
+    (picked['target_category'] ?? targeting.find(t => t.id === 'target_category')?.sending ?? []).length > 0
+  const industryAsked = useRef(false)
+  useEffect(() => {
+    if (!proposed || industryChosen || industryAsked.current) return
+    industryAsked.current = true
+    setMessages(m => [...m, { role: 'assistant', content: PICK_INDUSTRY_COPY }])
+  }, [proposed, industryChosen])
+
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
   // ── 🛑 ⚑ 22 Sep — THE COUNT IS LIVE DURING THE BRIEF (founder-ruled) ──────────────────
@@ -1064,6 +1105,8 @@ export default function MillaWelcomePage() {
   }
 
   async function approve() {
+    // ⚑ 23 Sep (R142 · A2a) — the button is locked without an industry; this refuses a stale click too.
+    if (!industryChosen) { setError('Choose at least one industry on the right first — Milla needs it before she can look.'); return }
     if (!proposed) return
     setSaving(true); setError(null)
     try {
@@ -1660,6 +1703,7 @@ export default function MillaWelcomePage() {
                               chosen={chosen}
                               placeholder={t.placeholder}
                               onChange={next => savePick(t.id, next)}
+                              max={opts.max}
                             />
                           ) : (
                             <div className={`border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] ${answered ? '' : 'text-[#9b8ec4] text-[11.5px]'}`}>
@@ -1956,7 +2000,10 @@ export default function MillaWelcomePage() {
                   the sweep fixed the small print one line below and missed the button above
                   it, showing two prices at once. That is why a price is never hand-typed on
                   a screen a client reads — and why this screen now carries none at all. */}
-              <button disabled={saving || proofHold !== null} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
+              <button disabled={saving || proofHold !== null || !industryChosen} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
+              {!industryChosen ? (
+                <div className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 text-center">Choose at least one industry on the right first.</div>
+              ) : null}
               <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">We&rsquo;ll find real people who match this and show them to you — <b className="text-[#5c5279]">free, masked, and nobody is contacted</b>. You decide what happens next.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}

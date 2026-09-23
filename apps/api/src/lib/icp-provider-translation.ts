@@ -40,7 +40,7 @@
 // calls it; whether a value is legitimate is the canonical list, unchanged.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { ACCEPTED_SENIORITY_LABELS } from '@kind/shared'
+import { ACCEPTED_SENIORITY_LABELS, APOLLO_INDUSTRIES } from '@kind/shared'
 
 /** The three closed provider vocabularies, and the ONLY three. A fourth costs a code change. */
 export type ProviderField = 'industries' | 'seniority_levels' | 'company_sizes'
@@ -87,6 +87,26 @@ export const PROVIDER_VOCABULARIES: Record<ProviderField, readonly string[]> = {
   // `APOLLO_SENIORITY_LABELS`). The four shared labels are unchanged character for character.
   seniority_levels: ACCEPTED_SENIORITY_LABELS,
   company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
+}
+
+/**
+ * ⚑ 23 Sep (R142 · A2a) — WHAT AN ICP MAY BE *SAVED* WITH, which is wider than what we TRANSLATE
+ * INTO. The client now picks industries from Apollo's own list in the Brief; the write boundary
+ * (`POST`/`PUT /icps`) re-derives a review over what it is about to store, and against the
+ * sixteen alone it would have flagged "Construction" as untranslatable and blocked the client's
+ * Proof behind a K.I.N.D review. So the WRITE accepts Apollo's list as well.
+ *
+ * ⚠️ `PROVIDER_VOCABULARIES.industries` IS DELIBERATELY UNCHANGED. It is what a conversation is
+ * translated INTO and what the model's tool schema enumerates — widening it would let the
+ * model propose Apollo industries on the client's behalf, which is the assumption R142 forbids.
+ * Only a PICK reaches Apollo's list; a word never does.
+ */
+export const WRITE_VOCABULARIES: Record<ProviderField, readonly string[]> = {
+  ...PROVIDER_VOCABULARIES,
+  industries: [
+    ...PROVIDER_VOCABULARIES.industries,
+    ...APOLLO_INDUSTRIES.filter(a => !PROVIDER_VOCABULARIES.industries.some(v => v.toLowerCase() === a.toLowerCase())),
+  ],
 }
 
 /**

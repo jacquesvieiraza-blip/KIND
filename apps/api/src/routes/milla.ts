@@ -14,6 +14,7 @@ import { BACKGROUND_MODEL } from '../lib/models'
 // Apollo actually receives rather than our own stored labels. Pure, spends nothing, makes no
 // network call — the panel reads the search instead of describing it.
 import { buildSearchBody } from '../lib/apollo'
+import { apolloIndustriesOnly } from '@kind/shared'
 
 // ⛓️ 18 Sep (D-63) — ~~`const anthropic = new Anthropic(…)`~~ AND THE PERSONA NOTE THAT STOOD
 // HERE WENT WITH THE STATELESS DOOR. The module-level client had exactly one reader, the
@@ -823,6 +824,10 @@ export function briefReadModelFrom(
       const asSent = (k: 'person_titles' | 'person_seniorities' | 'organization_num_employees_ranges' | 'person_locations'): string[] =>
         Array.isArray(sent[k]) ? (sent[k] as string[]) : []
 
+      // ⚑ 23 Sep (R142 · A2a) — the industries the client PICKED from Apollo's list, and nothing else.
+      const pickedFacts = ((draft?.facts ?? {}) as Record<string, unknown>).picked as Record<string, unknown> | undefined
+      const pickedIndustries = apolloIndustriesOnly(Array.isArray(pickedFacts?.industries) ? pickedFacts!.industries as unknown[] : [])
+
       const row = (
         id: string, label: string, said: string, sending: string[], placeholder: string,
         note?: string, provider?: string[],
@@ -852,8 +857,16 @@ export function briefReadModelFrom(
           // rather than true-when-we-happened-to-fail — which is why it is no longer
           // conditional. A sentence that is only accurate in the degraded case is the kind of
           // copy that reads as reassurance and functions as a lie.
-          row('target_category', 'Order by (never excludes)', onboardingText('target_category'), list('industries'),
-            FILL, 'used to order the results — it never leaves anybody out'),
+          // ⛓️ 23 Sep (R142 · A2a) — WAS `row('target_category', 'Order by (never excludes)', …,
+          // FILL, 'used to order the results — it never leaves anybody out')`. Founder: *"this is
+          // why we use apollo drop downs and make sure we do not assume"* · *"milla must say
+          // please look to the right and drop down and choose."* The client now PICKS their
+          // industries from Apollo's own list here; their words stay shown underneath.
+          // ⚠️ ONLY WHAT THE CLIENT PICKED. `list('industries')` would also show a value WE derived
+          // from their sentence through the old sixteen-word list — an assumption, and one that
+          // would satisfy the "pick an industry first" lock without the client ever choosing.
+          row('target_category', 'Industry', onboardingText('target_category'), pickedIndustries,
+            'Choose from the list', 'from Apollo’s own industry list'),
           // ⚠️ THE ONE FIELD MILLA ASKS FOR. Exclusions are never derived from anything the
           // client said about who they WANT — they are an instruction, which is why this is
           // also the only row whose note claims to remove anybody.
@@ -1126,9 +1139,15 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     // same limits the spoken facts above already carry.
     picked: z.object({
       job_titles:       z.array(z.string().max(80)).max(10).nullish(),
-      seniority_levels: z.array(z.string().max(40)).max(6).nullish(),
+      // ⛓️ 23 Sep (R142) — WAS `.max(6)`, the size of our invented six-label list. A1 offers
+      // Apollo's eleven, and a client who ticked a seventh was refused and had the pick put
+      // back. Every option at once is still the bound.
+      seniority_levels: z.array(z.string().max(40)).max(11).nullish(),
       company_sizes:    z.array(z.string().max(40)).max(6).nullish(),
       geographies:      z.array(z.string().max(80)).max(8).nullish(),
+      // ⚑ 23 Sep (R142 · A2a) — industries picked from Apollo's own list. Anything not on it is
+      // dropped by `promotion.ts`, never stored. Six is the ICP's own bound on industries.
+      industries:       z.array(z.string().max(80)).max(6).nullish(),
     }).nullish(),
   }).parse(req.body ?? {})
 

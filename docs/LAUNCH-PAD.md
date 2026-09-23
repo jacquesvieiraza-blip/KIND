@@ -5,13 +5,13 @@
 > ⛓️ **PASSED — the launch day below is history (23 Sep): production has live clients (R135, R138).** ~~**🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.**~~ ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-## ✅ VERIFIED STATE — 23 Sep 2026 (`origin/main` = `e1ac1cb`)
+## ✅ VERIFIED STATE — 23 Sep 2026 (`origin/main` = `6a93c77`)
 
-- **Live = `main`.** The API, Milla, Vida and the website all report commit `e1ac1cb` from their health endpoints (checked 23 Sep). *RUNTIME VERIFIED.*
+- **Live = `main`.** The API, Milla, Vida and the website all report commit `6a93c77` from their health endpoints (checked 23 Sep, after #1737 merged). *RUNTIME VERIFIED.*
 - **Database matches the code.** All migrations applied, founder-checked in Vida → Engine, 23 Sep. *RUNTIME VERIFIED (founder).*
-- **Gate.** `check.sh` passes on `e1ac1cb` (498 test files · 10,502 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
-- **Money.** Programme only — $299 / $4 retired (R124 16 Sep · R137 23 Sep). **Partners frozen** (R139, 23 Sep).
-- **Preview site not in use.** `staging` is 738 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
+- **Gate.** `check.sh` passes on `6a93c77` (499 test files · 10,524 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
+- **Money.** Programme only — **$450 per *qualified* meeting**, 50/50 (R141, 23 Sep) — $299 / $4 retired (R124 16 Sep · R137 23 Sep). **Partners frozen** (R139, 23 Sep).
+- **Preview site not in use.** `staging` is 741 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
 - **GitHub caught up 23 Sep.** 71 obsolete audit issues and 15 finished/superseded inventory issues closed; every remaining open issue (114) carries a dated "where this stands" comment; PRs #1665–#1668 closed as already in `main`.
 
 ## ▶️ THIS WEEK — runlist
@@ -22,9 +22,9 @@
 | W2 | Confirm `POOLED_SENDERS_JSON` is set on Railway — unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
 | W3 | GO / no-GO: a sequence keeps sending if its campaign settings can't be read (GitHub #1527) | 🧍 |
 | W4 | GO / no-GO: `check.sh` must build `@kind/db` so it passes on any machine (GitHub #1548) | 🧍 |
-| W5 | Ruling: website pages type $450 / $437.50 / $400 while R124 says the curve is not published (GitHub #1493, #1502) | 🧍 |
-| W6 | Ruling: "qualified meeting" (draft GitHub PR #1737) is a new term — it needs a PRODUCT-RULES row before it ships | 🧍 |
-| W7 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+| W5 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+
+*Settled 23 Sep by R141 — no longer on the list: the website may show $450, and "qualified meeting" has its rule.*
 
 **Board:** 🟢106 · 🩷318 · 🟣2 · 🟡51 · 🔴190 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
 

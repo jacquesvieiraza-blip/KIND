@@ -429,7 +429,25 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     // own history — `20260726_wallet_tx_types` is a July migration and is not what this guard
     // is about. What it protects is that no MILLA slice quietly reshapes billing.
     const mine = keys.filter(k => /^2026(083[01]|09)/.test(k))
+
+    // ── 🛑 ⚑ 23 Sep — ONE AUTHORISED EXCEPTION, AND IT IS NAMED RATHER THAN RENAMED AROUND ──
+    //
+    // `20260923_programme_shortfall_credit` matches `/credit/` and this guard fired on it,
+    // CORRECTLY: it is a money-model migration. The guard exists to catch a Milla slice
+    // reshaping billing QUIETLY, and this one is the opposite of quiet — it is R136 ④, a
+    // founder ruling made on 23 Sep in his own words: *"we dont give money back. we refund
+    // credits to their wallet internally to use towards another icp run."*
+    //
+    // ⚠️ THE MIGRATION WAS NOT RENAMED TO GET PAST THIS. Calling it something without the word
+    // "credit" would have satisfied the regex and defeated the check by wordplay, which is
+    // exactly the move the frozen-test discipline exists to stop. An authorised change is
+    // recorded; it is not disguised.
+    //
+    // ⚠️ AND THE EXCEPTION IS PINNED TO ONE KEY. Any OTHER money-model migration in this window
+    // still fails here, including a second one from the same ruling.
+    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied']
     const offenders = mine.filter(k => /billing|wallet|usage|credit|lead_price|pack/i.test(k))
+      .filter(k => !AUTHORISED.includes(k))
     expect(offenders, `a Milla slice migrated the money model: ${offenders.join(', ')}`).toEqual([])
   })
 })

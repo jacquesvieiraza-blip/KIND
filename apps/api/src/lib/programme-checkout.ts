@@ -43,11 +43,32 @@ export async function createProgrammeCheckoutSession(params: {
   successUrl:  string
   cancelUrl:   string
   clientEmail: string
+  /**
+   * Wallet credit to apply, in integer cents. P1 only (R136 ④, founder-ruled 23 Sep).
+   *
+   * ⚠️ AN INTENTION, NOT A DRAW — nothing has left the wallet when this session is created.
+   * The money moves only when the payment is CONFIRMED, because an abandoned checkout that had
+   * already spent a client's credit would take their money and deliver nothing.
+   */
+  walletCreditCents?: number
 }): Promise<{ url: string | null; sessionId?: string; error?: string }> {
   if (!stripe) return { url: null, error: 'Stripe not configured' }
   try {
-    const amountCents = programmeStripeAmountCents(params.meetings, params.stage)
+    const owedCents = programmeStripeAmountCents(params.meetings, params.stage)
     const isFirst = params.stage === 'programme_first'
+
+    // 🛑 CREDIT IS P1 ONLY, ENFORCED HERE AND NOT ONLY AT THE CALLER. Founder-ruled: P1
+    // authorises sourcing, so a credit reduces the cost of starting the next run; P2 is going
+    // live, which is a different promise. A caller passing credit on P2 is a bug, and it is
+    // refused rather than quietly discounted.
+    const credit = isFirst ? Math.max(0, Math.floor(params.walletCreditCents ?? 0)) : 0
+    const amountCents = owedCents - credit
+    if (amountCents < 1) {
+      // Unreachable while `walletCreditForPayment` caps the credit, and asserted anyway: a
+      // zero or negative Stripe amount is rejected by Stripe, and the failure would arrive as
+      // a checkout error rather than as the rule violation it actually is.
+      return { url: null, error: 'Wallet credit cannot cover the whole payment.' }
+    }
     const session = await stripe.checkout.sessions.create({
       mode:                 'payment',
       payment_method_types: ['card'],
@@ -59,7 +80,7 @@ export async function createProgrammeCheckoutSession(params: {
           unit_amount: amountCents,
           product_data: {
             name: isFirst
-              ? `K.I.N.D programme — ${params.meetings} targeted booked meetings (first 50%)`
+              ? `K.I.N.D programme — ${params.meetings} targeted booked meetings (first 50%)${credit > 0 ? ' — wallet credit applied' : ''}`
               : `K.I.N.D programme — ${params.meetings} targeted booked meetings (second 50%, Go Live)`,
           },
         },
@@ -74,6 +95,10 @@ export async function createProgrammeCheckoutSession(params: {
         programmeId: params.programmeId,
         meetings:    String(params.meetings),
         type:        params.stage,
+        // ⚠️ THE INTENDED CREDIT TRAVELS WITH THE SESSION, and the webhook draws against it
+        // when the payment lands. It is the INTENTION — the webhook re-reads the live balance
+        // and never draws more than is actually there.
+        walletCreditCents: String(credit),
       },
     })
     return { url: session.url, sessionId: session.id }

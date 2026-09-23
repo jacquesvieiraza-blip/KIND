@@ -141,6 +141,48 @@ export function deliveredValueCents(boughtMeetings: number, deliveredMeetings: n
 }
 
 /**
+ * 🛑 THE SMALLEST CASH PAYMENT A PROGRAMME MAY TAKE, IN CENTS — founder-ruled 23 Sep.
+ *
+ * Asked whether wallet credit may cover a payment IN FULL, the founder answered **no**. So a
+ * credit is capped to leave at least this much going through Stripe.
+ *
+ * ⚠️ IT IS NOT AN ARBITRARY FLOOR. A fully covered payment would mean no Stripe session at all
+ * — Stripe rejects a zero-amount checkout — and the programme would need a payment authority
+ * that never touched Stripe. The schema currently enforces an XOR: a stage holds EITHER payment
+ * evidence OR internal authority (the House path), and a wallet-only payment is neither. Rather
+ * than open a third kind of door on a money path, the credit stops short of the whole.
+ *
+ * ⚠️ AND IT SITS ABOVE STRIPE'S OWN MINIMUM (about $0.50 USD), so the capped remainder is always
+ * an amount Stripe will actually accept.
+ */
+export const MIN_CASH_PAYMENT_CENTS = 100
+
+/**
+ * 🛑 HOW MUCH WALLET CREDIT MAY BE APPLIED TO ONE PAYMENT (R136 ④, founder-ruled 23 Sep).
+ *
+ * `min(balance, owed − MIN_CASH_PAYMENT_CENTS)`, floored at zero.
+ *
+ * ⚠️ **P1 ONLY, AND THAT IS THE FOUNDER'S ANSWER RATHER THAN A CONVENIENCE.** Asked which
+ * payment a credit may reduce, he chose the FIRST. P1 authorises sourcing, so reducing it
+ * reduces the cost of starting the next run — which is what *"to use towards another icp run"*
+ * means. Applying it to P2 would discount going live, a different promise. This function does
+ * not know the stage; the caller does, and only the P1 route calls it.
+ *
+ * ⚠️ **A PAYMENT TOO SMALL TO SPLIT TAKES NO CREDIT AT ALL.** If what is owed is at or below the
+ * minimum cash, the answer is zero rather than a negative — the client simply pays it.
+ *
+ * ⚠️ **THIS IS AN INTENTION, NOT A DRAW.** It is computed when the checkout session is created,
+ * and nothing has left the wallet at that point. The money moves only when the payment is
+ * CONFIRMED — otherwise an abandoned checkout would spend a client's credit and deliver nothing.
+ */
+export function walletCreditForPayment(balanceCents: number, owedCents: number): number {
+  const n = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0)
+  const room = n(owedCents) - MIN_CASH_PAYMENT_CENTS
+  if (room <= 0) return 0
+  return Math.min(n(balanceCents), room)
+}
+
+/**
  * What is owed back to the client when a programme stops short, in integer cents.
  *
  * ⚠️ THIS IS WALLET CREDIT, NOT A STRIPE REFUND (R136 ④). Founder-locked: *"we dont give money

@@ -473,9 +473,43 @@ async function programmeCheckout(
     return
   }
 
+  // ── 🛑 ⚑ 23 Sep (R136 ④) — WALLET CREDIT IS APPLIED TO P1, AND ONLY TO P1 ──────────────
+  //
+  // Founder-ruled 23 Sep. P1 authorises sourcing, so a credit reduces the cost of STARTING the
+  // next run — which is what *"to use towards another icp run"* means. P2 is going live, a
+  // different promise, and takes no credit.
+  //
+  // ⚠️ IT NEVER COVERS THE WHOLE PAYMENT. Asked directly, the founder answered *"No."* —
+  // `walletCreditForPayment` leaves at least the minimum cash going through Stripe.
+  //
+  // ⚠️ AND NOTHING LEAVES THE WALLET HERE. This is the amount we INTEND to apply; the draw
+  // happens when the payment is confirmed. A checkout the client abandons must not have spent
+  // their credit.
+  //
+  // ⚠️ AN UNREADABLE BALANCE APPLIES NO CREDIT RATHER THAN GUESSING ONE. The client pays full
+  // price and keeps their credit — recoverable. The opposite error discounts a payment against
+  // money that may not be there.
+  let walletCreditCents = 0
+  if (stage === 'programme_first') {
+    try {
+      const { walletCreditForPayment, programmeStripeAmountCents } = await import('@kind/shared')
+      const { data: w } = await db.from('clients')
+        .select('wallet_balance_usd').eq('id', clientId).maybeSingle()
+      const balanceUsd = Number((w as { wallet_balance_usd?: number | null } | null)?.wallet_balance_usd ?? 0)
+      // ⚠️ THE WALLET IS IN DOLLARS AND THE CURVE IS IN CENTS. Crossing that boundary without
+      // the ×100 would apply a credit a hundred times too small — and it would look plausible.
+      const balanceCents = Number.isFinite(balanceUsd) ? Math.max(0, Math.floor(balanceUsd * 100)) : 0
+      walletCreditCents = walletCreditForPayment(
+        balanceCents, programmeStripeAmountCents(p.meeting_target, stage))
+    } catch (err) {
+      console.error('[programme/me/checkout] wallet balance unreadable — charging full price', err)
+      walletCreditCents = 0
+    }
+  }
+
   const { createProgrammeCheckoutSession } = await import('../lib/programme-checkout')
   const r = await createProgrammeCheckoutSession({
-    clientId, programmeId: p.id, meetings: p.meeting_target, stage,
+    clientId, programmeId: p.id, meetings: p.meeting_target, stage, walletCreditCents,
     successUrl: String((req.body ?? {}).successUrl ?? ''),
     cancelUrl: String((req.body ?? {}).cancelUrl ?? ''),
     clientEmail: email.trim(),

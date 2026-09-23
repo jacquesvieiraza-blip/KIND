@@ -365,7 +365,15 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const intentId = typeof rawIntent === 'string' ? rawIntent : null
 
         if (programmeStage === 'programme_first') {
-          const r = await recordFirstPayment({ programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId })
+          // ⚠️ THE CREDIT COMES FROM THE SESSION THAT WAS ACTUALLY PAID (R136 ④), because it is
+          // what the client was actually discounted. Re-deriving it here from today's balance
+          // would draw an amount the checkout never took off the price.
+          const walletCreditCents = Number(
+            (session.metadata as Record<string, string> | null)?.walletCreditCents ?? 0)
+          const r = await recordFirstPayment({
+            programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId,
+            walletCreditCents: Number.isFinite(walletCreditCents) ? walletCreditCents : 0,
+          })
           if (!r.ok) {
             // The money arrived and we could not record it. 500 so Stripe retries — the
             // ref-based idempotency makes the retry safe.

@@ -50,7 +50,7 @@ const RECHOOSABLE = ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT'] as const
 
 export type ChoiceOutcome =
   | { ok: true; programme: ProgrammeRow; result: CalculatorResult; created: boolean }
-  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required'; detail: string }
+  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity'; detail: string; committed?: number }
 
 /**
  * Has this client finished Proof? Choosing a programme before that is out of order.
@@ -125,6 +125,59 @@ export async function chooseProgramme(
     }
   }
 
+  // ── 🛑 ⚑ 23 Sep (MVP1 stage 3) — THE CAP IS ENFORCED HERE, NOT ONLY ON THE SLIDER ───────
+  //
+  // 🛑 WHAT WAS WRONG. R136 PR B bound the meetings slider to committed capacity — in the
+  // browser. This function took `inputs.meetings` and priced it without ever asking whether the
+  // pool could carry it, so a direct POST bought a hundred meetings against a pool of three. The
+  // stage-flow document names it: *"Today a client can buy a hundred meetings against a
+  // four-thousand-person market and the calculator will price it."*
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"we would not offer 10 meetings when we can only deliver 6"* —
+  // and 23 Sep: *"if we can only produce 10 but they want more. they need to widen their own
+  // ICP."* So a target above capacity is REFUSED with the widen sentence, and a pool too small
+  // for a single meeting refuses every target.
+  //
+  // ⚠️ AN UNKNOWN POOL REFUSES NOTHING, THE SAME RULE THE SLIDER FOLLOWS. An unreachable
+  // provider is not the client's market being empty, and capping a paying client at zero
+  // because a vendor was slow is the worse of the two failures. It is PINNED as unknown (a
+  // moment with no number) so an operator can later tell "chosen blind" from "chosen before
+  // this check existed".
+  //
+  // ⚠️ AND IT IS ONE PROVIDER CALL PER PRESS, not per keystroke — this runs when the client
+  // commits to a number, never while they move the slider.
+  let pin: { committed_capacity: number | null; capacity_pinned_at: string }
+  {
+    let known = false
+    let committed = 0
+    try {
+      const { activeIcpFor, clientCapacityFor } = await import('./client-capacity')
+      // ⚠️ `activeIcpFor` applies EXACTLY the resolution `acceptedIcpFor` above does (live,
+      // else newest) and returns the full row the provider preview needs. Checking capacity
+      // against a different ICP than the programme is about to attach would cap the client
+      // against a pool their programme never touches.
+      const full = await activeIcpFor(clientId)
+      if (full && full.id === icp.id) {
+        const cap = await clientCapacityFor(clientId, full)
+        known = cap.known
+        committed = cap.committed
+      }
+    } catch (e) {
+      console.error(`[choose] capacity unreadable for client ${clientId} — not capping`, e)
+      known = false
+    }
+    if (known && result.meetings > committed) {
+      const { WIDEN_TO_GO_FURTHER } = await import('@kind/shared')
+      return {
+        ok: false, reason: 'over_capacity', committed,
+        detail: committed <= 0
+          ? `Your current targeting does not reach enough people for a programme yet. ${WIDEN_TO_GO_FURTHER}`
+          : `Your current targeting carries up to ${committed} booked meeting${committed === 1 ? '' : 's'}. ${WIDEN_TO_GO_FURTHER}`,
+      }
+    }
+    pin = { committed_capacity: known ? committed : null, capacity_pinned_at: new Date().toISOString() }
+  }
+
   const existing = await openProgrammeForClient(clientId)
   let programme: ProgrammeRow
 
@@ -145,6 +198,7 @@ export async function chooseProgramme(
       first_payment_cents: result.firstPaymentCents,
       second_payment_cents: result.secondPaymentCents,
       calculator_assumptions: result.assumptions,
+      ...pin,
       status: 'RECOMMENDED',
       updated_at: new Date().toISOString(),
     }).eq('id', existing.id).select().single()
@@ -160,6 +214,7 @@ export async function chooseProgramme(
     const { data, error } = await db.from('programmes').update({
       recommended_volume: result.recommendedVolume,
       calculator_assumptions: result.assumptions,
+      ...pin,
       status: 'RECOMMENDED',
       updated_at: new Date().toISOString(),
     }).eq('id', created.programme.id).select().single()

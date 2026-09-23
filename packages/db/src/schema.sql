@@ -976,6 +976,13 @@ create table if not exists public.programmes (
   -- freeze, the approval state and the money all stay where they were.
   approval_concern          text,
   approval_concern_at       timestamptz,
+  -- ── ⚑ 23 Sep · THE CAPACITY A CLIENT CHOSE AGAINST (20260923_programme_capacity_pin) ────
+  -- The cap was enforced only by the browser slider; `chooseProgramme` now refuses a target the
+  -- pool cannot carry and pins what the pool DID carry at that moment, so "was this sellable when
+  -- it was sold" has an answer that later movement in the pool cannot rewrite. NULL capacity with
+  -- a timestamp = the provider was unreachable and nothing was capped, recorded rather than hidden.
+  committed_capacity        int,
+  capacity_pinned_at        timestamptz,
   shortfall_credited_at     timestamptz,
   shortfall_credit_cents    int  not null default 0,
   delivered_meetings        int,                  -- persisted, never re-derived: a settled figure may not move

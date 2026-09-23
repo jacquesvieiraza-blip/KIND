@@ -125,6 +125,12 @@ export interface ProgrammeRow {
   // `select('*')` predating the migration returns rows without them.
   approval_concern?: string | null
   approval_concern_at?: string | null
+  // ── ⚑ 23 Sep · THE CAPACITY THE CLIENT CHOSE AGAINST (20260923_programme_capacity_pin) ──
+  //
+  // Written by `chooseProgramme` when the target is committed. NULL capacity beside a
+  // timestamp means the pool was UNKNOWN at that moment — chosen blind, deliberately recorded.
+  committed_capacity?: number | null
+  capacity_pinned_at?: string | null
   contribution_cents: number | null
   contribution_finalised_at: string | null
   disputed_at: string | null

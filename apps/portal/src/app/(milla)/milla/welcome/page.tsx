@@ -1860,9 +1860,13 @@ export default function MillaWelcomePage() {
                   → first 100 included → $4 after that. So the panel says the stage it is in,
                   and the money arrives when the money is actually being asked for.
                   ⚠️ NO PRICE OF ANY KIND BELONGS ON THIS SCREEN — not $299, not $4, not the
-                  first 100. The $299 ask lives behind "Looks right" on the desk, and the $4
-                  model is unchanged everywhere it legitimately appears (billing, usage, the
-                  wallet chip, the desk). This is copy, and only copy: no economics moved. */}
+                  first 100. ⛓️ 23 Sep — ~~"The $299 ask lives behind 'Looks right' on the
+                  desk, and the $4 model is unchanged everywhere it legitimately appears
+                  (billing, usage, the wallet chip, the desk)"~~. FALSE SINCE R124 (16 Sep:
+                  *"299/4 is gone. out. we are on the programme. all clients."*). "Looks right"
+                  posts `/leads/:id/proof-accept`, which charges nothing; billing and usage
+                  carry no per-lead price and a guard asserts it. The client's first payment is
+                  now P1 of a programme, reached through the calculator. */}
               <div className="text-[15px] font-bold mb-2">Free proof</div>
               <div className="bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                 <div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">What happens next</div>
@@ -1879,10 +1883,11 @@ export default function MillaWelcomePage() {
                   button read "go live for $299" and the next screen was billing: a prospect
                   was asked to pay having been shown nobody. The approved journey puts FREE
                   PROOF in between, so the words say what the click now does — she goes and
-                  finds them. The $299 ask is not deleted, it MOVED to where it already
-                  belonged: behind "Looks right" on the desk, which routes to
-                  `/milla/billing?start=1&from=proof`. It is still interpolated from
-                  PACK_PRICE_USD where it is rendered — the constant is untouched.
+                  finds them. ⛓️ 23 Sep — ~~"The $299 ask is not deleted, it MOVED … behind
+                  'Looks right' on the desk, which routes to `/milla/billing?start=1&from=proof`"~~.
+                  No longer true: nothing in the portal links there, and the Milla billing page
+                  takes no payment at all. R124 retired the pack; the first money a client is
+                  asked for is P1 of their programme.
                   ⚠️ The old label hand-typed "$99" and survived the 3-Aug $299 sweep because
                   the sweep fixed the small print one line below and missed the button above
                   it, showing two prices at once. That is why a price is never hand-typed on

@@ -223,8 +223,9 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
   })
 
   it('the approved recovery copy is what a prospect sees — verbatim, and no technical detail', () => {
-    expect(FAILED_RUN_HEADLINE).toBe('We hit a snag confirming your matches')
-    expect(FAILED_RUN_BODY).toBe('Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.')
+    // ⛓️ 23 Sep — the founder superseded the 26 Aug recovery copy: *"the i hit a snag is bulsshit. it is so customer unfriendly."*
+    expect(FAILED_RUN_HEADLINE).toBe('Your first examples are on their way')
+    expect(FAILED_RUN_BODY).toBe('Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.')
     // The server message for a failure IS that body — so the desk renders it like any
     // other terminal state, with nothing written locally.
     expect(runOutcomeMessage('failed', 0)).toBe(FAILED_RUN_BODY)
@@ -235,7 +236,8 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
   it('the desk renders the approved headline and never the word "failed"', () => {
     const start = portal.indexOf('terminalRun ? (')
     const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
-    expect(block).toContain('We hit a snag confirming your matches')
+    // ⛓️ 23 Sep — the founder superseded the 26 Aug recovery copy: *"the i hit a snag is bulsshit. it is so customer unfriendly."*
+    expect(block).toContain('Your first examples are on their way')
     expect(block).toContain('{terminalRun.message}')
     expect(block.toLowerCase()).not.toContain('>failed')
     expect(block).not.toMatch(/Failed</)

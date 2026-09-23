@@ -48,3 +48,5 @@ export * from './proof-wait'
 // disagreed: "Bad timing" was stored by the API and read back as "Other" by the calibration
 // side, so an operator saw a reason the client never gave.
 export * from './lead-reason-codes'
+// ⚑ 23 Sep — a client moves to Proof only when their people are ready to show (founder rule).
+export * from './proof-readiness'

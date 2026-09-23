@@ -212,7 +212,14 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     // TEXT (`boundedList(6, 40)`, no enum) — what they actually said. Writing
     // `decided.values.company_sizes` here would store our translation twice and the client's
     // answer zero times.
-    ...(arr(f.company_sizes).length > 0
+    //
+    // ⚑ 23 Sep — AND A PICK REPLACES THE PHRASE. When the client chose their size from the
+    // dropdown, THAT is their answer (22 Sep: "a pick is already canonical, which is the whole
+    // reason it may win") and it is what we search with. Writing their earlier phrase here as
+    // well left the check judging a different size from the one searched — Blackburne, 23 Sep:
+    // 20 found, 20 set aside on size. With no phrase stored, size is judged on the picked bands,
+    // which is exactly what the search used. Their words are still in the brief draft.
+    ...(!pick('company_sizes') && arr(f.company_sizes).length > 0
       ? { target_size: str(arr(f.company_sizes).join(', ')) }
       : {}),
     // ⚑ 22 Sep — same for location: `person_locations` is free-text place names at Apollo.

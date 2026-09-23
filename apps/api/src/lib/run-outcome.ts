@@ -14,11 +14,17 @@ import { exhaustedMessage } from './pdl-cursor'
 // tell a prospect their targeting matched nobody when the query never completed (R72).
 export type RunStatus = 'served' | 'no_match' | 'quota_exhausted' | 'demo' | 'audience_exhausted' | 'failed'
 
-/** The approved client-facing recovery copy for a crashed run (founder-locked 26 Aug).
- *  ⚠️ The prospect is NEVER shown the word "failed" — that is the internal state name. */
-export const FAILED_RUN_HEADLINE = 'We hit a snag confirming your matches'
+/** The client-facing copy for a run that ended without people to show.
+ *  ⚠️ The prospect is NEVER shown the word "failed" — that is the internal state name.
+ *
+ *  ⛓️ 23 Sep — SUPERSEDES the founder-locked 26 Aug copy, by the founder: ~~'We hit a snag
+ *  confirming your matches'~~ / ~~'Your setup is saved and has been flagged for K.I.N.D review.
+ *  You won’t need to start again.'~~ — *"the i hit a snag is bulsshit. it is so customer
+ *  unfriendly."* The body is the shared `PROOF_NEEDS_US_COPY`, word for word, so the Brief hold
+ *  and the desk cannot say two different things about the same wait. */
+export const FAILED_RUN_HEADLINE = 'Your first examples are on their way'
 export const FAILED_RUN_BODY =
-  'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
+  'Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.'
 
 /** ⚑ 26 Aug — THE ZERO THAT COMES AFTER WE ALREADY WIDENED.
  *

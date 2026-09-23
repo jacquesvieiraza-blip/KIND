@@ -18,7 +18,7 @@ import { canonicalLaunchCountry } from '@kind/shared'
 // ⚑ 10 Sep (C02) — the ONE hard-fit rule. Statically imported: `proof-fit` pulls only
 // `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
 // environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
-import { hardFit, REMOVING_CRITERIA } from './proof-fit'
+import { hardFit, POOL_SELECTION_CRITERIA } from './proof-fit'
 import { isPlaceholderEmail } from './email-hygiene'
 
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
@@ -234,8 +234,12 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   // old `structurallyAdmissible` note warned about, reintroduced while trying to honour a
   // ruling about something else. `structurallyAdmissible` treated unknown as admissible for
   // this reason and that half was right; what was wrong was only WHICH criteria may refuse.
+  // ⛓️ 23 Sep — `POOL_SELECTION_CRITERIA`, no longer `REMOVING_CRITERIA`. The gate now removes
+  // on exclusions only, because Apollo's filter already guaranteed geography, size and
+  // seniority for the people it returns. Our pool has no such filter in front of it, so it
+  // must still SELECT on those three itself — the "Apollo way" for the pool is to be the filter.
   const fitOf = poolFit(rec, icp)
-  return REMOVING_CRITERIA.every(k => fitOf[k] !== 'no')
+  return POOL_SELECTION_CRITERIA.every(k => fitOf[k] !== 'no')
 }
 
 /** The verdicts, computed once so the refusal rule above reads as one line. */

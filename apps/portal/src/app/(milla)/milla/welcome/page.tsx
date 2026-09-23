@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/client'
 // it derives from the shared constants at every surface that states it. A `Math.floor(n/400)`
 // written here would be a second definition of the promise, and the first one to drift.
 import { capacitySentence, committedCapacity, workablePool } from '@kind/shared'
+import {
+  firstProofReadiness, PROOF_PREPARING_COPY, PROOF_NEEDS_US_COPY, PROOF_NEEDS_CLIENT_COPY,
+  type ProofReadiness, type ProofSummaryFacts,
+} from '@kind/shared'
 // ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
 // place that decides what this screen is allowed to claim happened.
 import {
@@ -423,6 +427,16 @@ export default function MillaWelcomePage() {
   const [picked, setPicked] = useState<Record<string, string[]>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // ── 🛑 ⚑ 23 Sep — THE CLIENT STAYS IN THE BRIEF UNTIL THEIR PEOPLE ARE READY ─────────────
+  //
+  // Founder: *"we do not present the next step until we can verify we have the information we
+  // need. the onboarding portal should not allow us to move to this screen ever."* — *"20, or
+  // all of them if smaller."* ⛓️ WAS: confirm → `router.push('/milla?finding=1')` the moment the
+  // run was STARTED, so a run that produced nobody left the client on the Proof desk reading
+  // "We hit a snag confirming your matches" (Blackburne, 23 Sep). Now the client waits HERE,
+  // told what is happening, and moves only when `proofReadiness` says `ready`.
+  const [proofHold, setProofHold] = useState<ProofReadiness | null>(null)
+  const holdAsked = useRef(false)
   // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
   // path and the Get Help escape can both speak from it. The numbers are never derived here.
   const [briefProgress, setBriefProgress] = useState<{ count: number; total: number } | null>(null)
@@ -694,6 +708,44 @@ export default function MillaWelcomePage() {
   // a callback an effect re-runs, rather than a one-shot. Folding this into it would have
   // changed a line whose exact form is the guarantee.
   useEffect(() => { void refreshTargeting() }, [refreshTargeting])
+
+  // ⚑ 23 Sep — READ THE PROOF STATE: once on arrival (a returning client whose run is still
+  // being put together lands HERE, not on the desk), then every few seconds while held. The
+  // rule is the shared one; this page only supplies the facts the summary already carries.
+  const checkProof = useCallback(async (): Promise<ProofReadiness | null> => {
+    try {
+      const r = await api.get<{ data?: ProofSummaryFacts }>('/leads/milla-summary', await token())
+      // First Proof only — `null` for a client already past it, who is never held here.
+      return firstProofReadiness(r?.data)
+    } catch { return null }
+  }, [])
+  useEffect(() => {
+    let live = true
+    void (async () => {
+      const v = await checkProof()
+      if (!live || v === null || v === 'not_started') return
+      if (v === 'ready') { router.replace('/milla'); return }
+      setProofHold(v)
+    })()
+    return () => { live = false }
+  }, [checkProof, router])
+  useEffect(() => {
+    if (proofHold === null || proofHold === 'ready' || proofHold === 'not_started') return
+    const t = setInterval(() => {
+      void (async () => {
+        const v = await checkProof()
+        if (v === 'ready') { clearInterval(t); router.push('/milla'); return }
+        if (v !== null && v !== 'not_started') setProofHold(v)
+      })()
+    }, 4000)
+    return () => clearInterval(t)
+  }, [proofHold, checkProof, router])
+  // When only the client can move it forward, Milla says so ONCE, in the conversation.
+  useEffect(() => {
+    if (proofHold !== 'needs_client' || holdAsked.current) return
+    holdAsked.current = true
+    setMessages(m => [...m, { role: 'assistant', content: PROOF_NEEDS_CLIENT_COPY }])
+  }, [proofHold])
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -1194,7 +1246,10 @@ export default function MillaWelcomePage() {
         // ⚠️ AND IT DOES NOT PRETEND PROOF STARTED. They go to the desk with no `finding=1`
         // hint — because nothing is being found yet — and the desk's own honest copy stands.
         if ((proofErr as { code?: string })?.code === 'needs_icp_review') {
-          router.push('/milla')
+          // ⛓️ 23 Sep — WAS `router.push('/milla')`. Waiting on our translation is still waiting:
+          // they stay in the Brief, told it is ours to finish (founder's "do not present the
+          // next step" rule).
+          setProofHold('needs_us'); setSaving(false)
           return
         }
         // ── TERMINAL. NO RETRY, NO BILLING (founder-ruled 24 Aug) ───────────────────
@@ -1227,7 +1282,9 @@ export default function MillaWelcomePage() {
       // the URL or written to browser storage. This is the FIRST-CLIENT path — the one a
       // prospect is most likely to walk away from and come back to on another device — and
       // it is exactly the case a browser stamp could never have answered.
-      router.push('/milla?finding=1')
+      // ⛓️ 23 Sep — WAS `router.push('/milla?finding=1')`: the client was moved to the Proof desk
+      // the moment the run STARTED. They now wait here until `proofReadiness` says `ready`.
+      setProofHold('preparing'); setSaving(false)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 
@@ -1892,10 +1949,27 @@ export default function MillaWelcomePage() {
                   the sweep fixed the small print one line below and missed the button above
                   it, showing two prices at once. That is why a price is never hand-typed on
                   a screen a client reads — and why this screen now carries none at all. */}
-              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
+              <button disabled={saving || proofHold !== null} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
               <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">We&rsquo;ll find real people who match this and show them to you — <b className="text-[#5c5279]">free, masked, and nobody is contacted</b>. You decide what happens next.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
+            </div>
+          )}
+          {/* ── ⚑ 23 Sep — WHILE THEIR PEOPLE ARE BEING PUT TOGETHER, THEY STAY IN THE BRIEF ──
+              Never "a snag": either it is being put together, or it is ours to finish, or —
+              only when the search found nobody — Milla asks them to widen, in the chat. */}
+          {proofHold !== null && proofHold !== 'ready' && proofHold !== 'not_started' && (
+            <div className="mt-3 rounded-2xl border border-[#e4dcf7] bg-[#faf8ff] px-4 py-3.5">
+              <div className="text-[13.5px] font-extrabold text-[#1f1235]">
+                {proofHold === 'preparing' ? 'Putting your first examples together'
+                  : proofHold === 'needs_client' ? 'One thing to widen'
+                    : 'Your first examples are on their way'}
+              </div>
+              <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">
+                {proofHold === 'preparing' ? PROOF_PREPARING_COPY
+                  : proofHold === 'needs_client' ? PROOF_NEEDS_CLIENT_COPY
+                    : PROOF_NEEDS_US_COPY}
+              </p>
             </div>
           )}
         </aside>

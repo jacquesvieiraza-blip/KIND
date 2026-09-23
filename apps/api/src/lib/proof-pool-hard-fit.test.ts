@@ -277,7 +277,10 @@ describe('④ the operator counters — and no invented cost', () => {
 describe('⑤ one matcher, and it is the shared one', () => {
   it('the pool delegates to proof-fit and re-implements nothing', () => {
     const c = code(POOL)
-    expect(c).toContain("import { hardFit, REMOVING_CRITERIA } from './proof-fit'")
+    // ⛓️ 23 Sep — `POOL_SELECTION_CRITERIA`, was `REMOVING_CRITERIA`: the gate now removes on
+    // exclusions only, and the pool — with no provider filter in front of it — keeps selecting
+    // on geography, size and seniority. Still the shared module, still no matcher of its own.
+    expect(c).toContain("import { hardFit, POOL_SELECTION_CRITERIA } from './proof-fit'")
     // 🛑 THE LOOSE SUBSTRING HELPER IS GONE. Keeping it would leave the old test one edit
     // from returning.
     expect(c.includes('function containsAny'), 'the loose substring helper is back').toBe(false)

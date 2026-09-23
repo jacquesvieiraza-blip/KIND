@@ -810,21 +810,26 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(idAt).toBeLessThan(proofAt)
   })
 
-  it('a started proof lands the client on the desk, FLAGGED as finding', () => {
-    // ⚑ 24 Aug — plain '/milla' was not enough: the desk fetched once and told them "no
-    // leads waiting" while their run was still going. The flag is what turns the desk's
-    // honest-empty state into an honest-finding state.
-    expect(welcomeCode).toContain("router.push('/milla?finding=1')")
-    // ⛓️ 14 Sep (S1-RT-005) — STILL THE ONLY NAVIGATION OUT OF A SUCCESSFUL CONFIRMATION, and
-    // that is now asserted rather than counted. A second push exists for the NEEDS-ICP-REVIEW
-    // refusal — a client whose own words we could not translate into provider values — and it
-    // is deliberately NOT a success: it carries no `finding=1`, because nothing is being
-    // found for them yet and the desk must keep its honest copy.
-    const pushes = welcomeCode.match(/router\.push\('[^']*'\)/g) ?? []
-    expect(pushes).toHaveLength(2)
-    expect(pushes.filter(p => p.includes('finding=1')),
-      'exactly ONE navigation may claim a run has started').toHaveLength(1)
-    expect(pushes).toContain("router.push('/milla')")
+  it('🛑 a started proof HOLDS the client in the Brief — they move only when their people are ready (23 Sep)', () => {
+    // ⛓️ INVERTED 23 Sep. WAS `'a started proof lands the client on the desk, FLAGGED as
+    // finding'`, asserting `router.push('/milla?finding=1')` the moment the run STARTED. That is
+    // how Blackburne landed on a Proof desk reading "We hit a snag" with nobody on it. Founder:
+    // *"we do not present the next step until we can verify we have the information we need.
+    // the onboarding portal should not allow us to move to this screen ever."* — *"20, or all
+    // of them if smaller."*
+    expect(welcomeCode).not.toContain('finding=1')
+    // A started run and a needs-review refusal both HOLD — neither navigates.
+    expect(welcomeCode).toContain("setProofHold('preparing')")
+    expect(welcomeCode).toContain("setProofHold('needs_us')")
+    // The ONLY way out is the shared rule saying `ready`.
+    const pushes = welcomeCode.match(/router\.(push|replace)\('[^']*'\)/g) ?? []
+    expect(pushes.sort()).toEqual(["router.push('/milla')", "router.replace('/milla')"])
+    for (const p of ["router.push('/milla')", "router.replace('/milla')"]) {
+      const at = welcomeCode.indexOf(p)
+      expect(welcomeCode.slice(Math.max(0, at - 120), at), `${p} is not behind the readiness rule`)
+        .toMatch(/=== 'ready'/)
+    }
+    expect(welcomeCode).toContain('firstProofReadiness(')
   })
 
   it('THE ERROR PATH IS TERMINAL — no retry, no second call, no billing', () => {
@@ -851,9 +856,11 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // navigation. The TERMINAL-FAILURE claim is unchanged and is now scoped to the terminal
     // failure; the review branch gets its own assertions immediately below, so widening the
     // start anchor costs no coverage.
+    // ⛓️ 23 Sep — the end anchor WAS `router.push('/milla?finding=1')`; a successful start now
+    // HOLDS the client instead of navigating (see the test above), so the block ends there.
     const block = welcomeCode.slice(
       welcomeCode.indexOf("setError('Your targeting is saved"),
-      welcomeCode.indexOf("router.push('/milla?finding=1')"),
+      welcomeCode.indexOf("setProofHold('preparing')"),
     )
     expect(block.length, 'the proof failure block').toBeGreaterThan(0)
     expect(welcomeCode.indexOf("setError('Your targeting is saved"), 'the failure copy must exist').toBeGreaterThan(-1)
@@ -1005,7 +1012,9 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {
-    expect(deskSrc).toContain('Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.')
+    // ⛓️ 23 Sep — WAS the 26 Aug body ("…flagged for K.I.N.D review…"), superseded by the founder:
+    // *"the i hit a snag is bulsshit. it is so customer unfriendly."* Same place, new sentence.
+    expect(deskSrc).toContain('Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.')
     expect(deskCode).toContain('setFindingTimedOut(true)')
     expect(deskCode).not.toMatch(/we'll notify you the moment your|we will let you know|try proof again|start proof again/i)
   })
@@ -1032,7 +1041,10 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   it('a run in flight is still stated honestly — in the panel, not the greeting', () => {
     expect(deskSrc, 'the in-flight proof state was lost when the desk was replaced')
       .toContain('Finding your matches now…')
-    expect(deskSrc).toContain('We hit a snag confirming your matches')
+    // ⛓️ 23 Sep — WAS the 26 Aug headline; superseded by the founder ("the i hit a snag is
+    // bulsshit"). Asserted on CODE so a comment naming the old line cannot satisfy it.
+    expect(deskCode).toContain("'Your first examples are on their way'")
+    expect(deskCode).not.toContain("'We hit a snag confirming your matches'")
     expect(deskCode, 'the greeting branches on state again — it is one approved sentence')
       .not.toContain('No new leads waiting this moment')
   })

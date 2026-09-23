@@ -324,10 +324,16 @@ describe('what the client picked beats what we heard — and resolves the review
       company_sizes: ['around twenty to fifty'],
       picked: { company_sizes: ['201–500'] },
     }))
-    // Their phrase survives as the ICP's own size text, so "you said: around twenty to fifty"
-    // can sit under a field now reading 201–500 and an accidental pick is visible.
-    expect(rows.target_size).toBe('around twenty to fifty')
+    // ⛓️ 23 Sep — WAS: `rows.target_size` === 'around twenty to fifty'. Storing the phrase on the
+    // ICP made the Proof check judge size against the PHRASE while the search used the PICK —
+    // Blackburne, 23 Sep: 20 found, 20 set aside on size. The pick is their answer and now the
+    // only size on the ICP, so the check judges exactly what was searched.
+    expect(rows.target_size, 'the phrase must not outrank the pick on the ICP').toBeUndefined()
     expect(rows.company_sizes).toEqual(['201–500'])
+    // ⚠️ AND THE PHRASE IS NOT ERASED — the panel's "you said" reads the DRAFT's own words
+    // (`onboardingText`), never this ICP column, so the disagreement stays visible to them.
+    const src = readFileSync(join(__dirname, '../routes/milla.ts'), 'utf8')
+    expect(src).toContain("row('company_size',    'Employees',    onboardingText('company_size')")
   })
 })
 

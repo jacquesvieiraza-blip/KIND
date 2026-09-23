@@ -667,11 +667,47 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
 // `setAsideReason` removed the lot — the empty Proof screen, reached without a single
 // criterion ever saying `no`. "Never leaves anybody out" has to cover the company we could
 // not read, or it is not a promise about anything.
-export const RANKING_ONLY_CRITERIA: readonly HardCriterion[] = ['industry', 'category'] as const
+//
+// ── 🛑 ⚑ 23 Sep — AND NOW ONLY THE CLIENT'S OWN EXCLUSIONS REMOVE ANYBODY ─────────────────
+//
+// ⛓️ WAS: `RANKING_ONLY_CRITERIA = ['industry', 'category']`, so geography, SIZE, seniority and
+// company type still removed. Production, 23 Sep: Blackburne Enterprises reached Brief 11/11,
+// Apollo returned 20 real people from a workable pool of 11,510 — and all 20 were set aside on
+// SIZE. The client had picked their company size from the dropdown (which is what we SEARCHED
+// with) while the check judged size against the words in their brief, so the search and the
+// check disagreed about the same field and the check deleted everything the search found. The
+// same morning Vida's own panel was printing "Company size enforced by the provider filter —
+// never re-judged" beside it.
+//
+// 🛑 THE FOUNDER'S RULE, "APOLLO'S WAY" (MVP1 record, 21–22 Sep): *"You set filters. Apollo
+// returns the people who match. It does not then go back through its own results and throw
+// people out."* · *"Country, size, seniority and industry are guaranteed by the search. The
+// client's own words and their exclusions stay ours to judge, and can't-tell ranks lower
+// instead of binning."* · *"Only the client's exclusions remove anybody."*
+//
+// So every criterion except `excluded` now RANKS. The verdicts are still computed, banded and
+// captioned exactly as before — a wrong-size company is still "Worth a look", never starred,
+// never counted as a confirmed match — it is simply SHOWN, lower, instead of deleted.
+//
+// ⚠️ OUR OWN SAVED POOL IS NOT A PROVIDER SEARCH, so it still SELECTS on the three filters Apollo
+// would have applied — see `POOL_SELECTION_CRITERIA` below and `pool-sourcing.ts`. That is the
+// same ruling ("treat our Pool as Apollo way always"): the pool's selection is its filter.
+export const RANKING_ONLY_CRITERIA: readonly HardCriterion[] =
+  ['industry', 'category', 'geography', 'size', 'seniority', 'company_type'] as const
 
-/** The criteria that may actually cost a candidate their place. Everything except the two above. */
+/** The criteria that may actually cost a candidate their place: the client's exclusions only. */
 export const REMOVING_CRITERIA: readonly HardCriterion[] =
   HARD_CRITERIA.filter(k => !RANKING_ONLY_CRITERIA.includes(k))
+
+/**
+ * ⚑ 23 Sep — what OUR POOL selects on, because it has no provider filter in front of it.
+ *
+ * Apollo applies geography, size and seniority as search filters; a record in our own pool
+ * was never searched, so those three are its selection — plus the client's exclusions. A
+ * definite `no` refuses; `unknown` never does (owned records carry thin data by nature).
+ */
+export const POOL_SELECTION_CRITERIA: readonly HardCriterion[] =
+  ['geography', 'size', 'seniority', 'excluded'] as const
 
 /**
  * The first criterion the candidate actually FAILS, or null. Order is the founder's list.

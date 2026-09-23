@@ -12,7 +12,7 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS } from '@kind/shared'
+import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofReadiness } from '@kind/shared'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -451,6 +451,20 @@ export default function MillaHomePage() {
   useEffect(() => {
     if (summary && summary.icp_versions.length === 0) router.replace('/milla/welcome')
   }, [summary, router])
+  // ── 🛑 ⚑ 23 Sep — A FIRST PROOF THAT IS NOT READY IS NEVER SHOWN HERE ──────────────────
+  //
+  // Founder: *"we do not present the next step until we can verify we have the information we
+  // need. the onboarding portal should not allow us to move to this screen ever."* The Brief page
+  // now holds a client until `proofReadiness` says `ready`; this is the other door — a bookmark,
+  // a reload, an old `?finding=1` link — sent back to the Brief while it says anything else.
+  // ⚠️ FIRST PROOF ONLY, and only with no programme: a client past Proof is never sent back.
+  useEffect(() => {
+    if (!summary || summary.icp_versions.length === 0) return
+    // Wait for the programme read: deciding before it lands could send a programme client back.
+    if (!prog || prog.hasProgramme !== false) return
+    const v = firstProofReadiness(summary)
+    if (v !== null && v !== 'ready' && v !== 'not_started') router.replace('/milla/welcome')
+  }, [summary, prog, router])
   // $99 AT GO-LIVE (founder-locked) — a client who hasn't paid can still onboard, build
   // their plan and browse their masked leads FREE. They're NOT walled out. The $99 is the
   // GO-LIVE step: nothing sources or sends until it's paid (money rails enforce $0 = no
@@ -1681,10 +1695,12 @@ export default function MillaHomePage() {
               terminalRun ? (
                 <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
                   <div className="text-[15px] font-bold text-[#5c5279]">
-                    {/* ⚠️ FOUNDER-APPROVED RECOVERY COPY (26 Aug), verbatim. The word
-                        "failed" is the internal status and never appears here. */}
+                    {/* ⚠️ The word "failed" is the internal status and never appears here.
+                        ⛓️ 23 Sep — WAS the 26 Aug "We hit a snag confirming your matches";
+                        the founder: "the i hit a snag is bulsshit. it is so customer
+                        unfriendly." Same headline as `FAILED_RUN_HEADLINE`. */}
                     {proofFailed
-                      ? 'We hit a snag confirming your matches'
+                      ? 'Your first examples are on their way'
                       : proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
                   </div>
                   {/* The server's own canonical sentence — never re-written here, and for a
@@ -1711,7 +1727,7 @@ export default function MillaHomePage() {
                         only crosses to the recovery line once the bound is genuinely past.
                         One wait, one bound, one verdict — whether or not the URL has a
                         query string. */}
-                    {proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}
+                    {proofWaitEnded ? 'Your first examples are on their way' : 'Finding your matches now…'}
                   </div>
                   <div className="text-[13px] mt-1.5">
                     {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
@@ -1719,9 +1735,10 @@ export default function MillaHomePage() {
                         the literal text "We&rsquo;re". Entities only work in JSX text nodes,
                         which is what the paying-client line below is. */}
                     {proofWaitEnded
-                      /* Approved recovery copy, verbatim. No retry offered, no timing
-                         promised, and no technical detail — the diagnosis is in the alert. */
-                      ? 'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
+                      /* No retry offered, no timing promised, no technical detail — the
+                         diagnosis is in the alert. ⛓️ 23 Sep — WAS the 26 Aug body; the same
+                         sentence as `FAILED_RUN_BODY` / `PROOF_NEEDS_US_COPY` now. */
+                      ? 'Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.'
                       : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
                   </div>
                 </div>

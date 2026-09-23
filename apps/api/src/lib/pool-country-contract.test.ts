@@ -974,12 +974,20 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
     // No saved term ("Founder","CEO","CRO","VP Sales","Sales Director","Head of Sales") is a
     // substring of it. The old regex matched it anyway.
     expect('chief executive officer'.includes('ceo'), 'and it genuinely does not contain "ceo"').toBe(false)
-    expect(roleOk({ title: 'Chief Executive Officer' })).toBe(false)
+    // ⛓️ 23 Sep (R142) — THE ROW'S SENIORITY IS NOW BLANKED, so this case tests the TITLE alone.
+    // The shared `rec()` row carries Apollo's own `c_suite`, which the check could not read as
+    // "C-Suite" until R142 — this case was silently passing on that defect. Read correctly, a
+    // `c_suite` row IS the seniority the ICP asks for, so the title-synonym duty is isolated here.
+    expect(roleOk({ title: 'Chief Executive Officer', seniority: null })).toBe(false)
   })
 
   it('3 · stored "Chief Revenue Officer" does NOT match — `chief revenue` was invented too', () => {
     expect('chief revenue officer'.includes('cro')).toBe(false)
-    expect(roleOk({ title: 'Chief Revenue Officer' })).toBe(false)
+    // ⛓️ 23 Sep (R142) — THE ROW'S SENIORITY IS NOW BLANKED, so this case tests the TITLE alone.
+    // The shared `rec()` row carries Apollo's own `c_suite`, which the check could not read as
+    // "C-Suite" until R142 — this case was silently passing on that defect. Read correctly, a
+    // `c_suite` row IS the seniority the ICP asks for, so the title-synonym duty is isolated here.
+    expect(roleOk({ title: 'Chief Revenue Officer', seniority: null })).toBe(false)
   })
 
   it('4 · industry "SaaS" matches', () => expect(roleOk({ industry: 'SaaS' })).toBe(true))
@@ -1012,8 +1020,15 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
     // The saved terms are "VP / Director" and the six job titles. A row carrying neither a
     // real title nor a real level is refused; a row carrying a real TITLE is reused even
     // when its stored seniority is one of A3's invented spellings.
-    expect(roleOk({ seniority: 'Director', title: 'Barista' })).toBe(false)
-    expect(roleOk({ seniority: 'VP', title: 'Barista' }), 'bare `vp` was invented as well').toBe(false)
+    // ⛓️ 23 Sep (R142) — INVERTED. WAS `roleOk({ seniority: 'Director', title: 'Barista' })` and
+    // `…'VP'…` → false ("bare `director`/`vp` was invented"). They were not invented: the saved
+    // label "VP / Director" is SEARCHED at Apollo as `['vp', 'director']` (`buildSearchBody`), so
+    // a director or a VP is exactly who that ICP asked Apollo for. R142 makes the check read the
+    // label the way the search sends it. A seniority the ICP never asked for is still refused.
+    expect(roleOk({ seniority: 'Director', title: 'Barista' })).toBe(true)
+    expect(roleOk({ seniority: 'VP', title: 'Barista' })).toBe(true)
+    expect(roleOk({ seniority: 'Manager', title: 'Barista' }), 'a level the ICP never named').toBe(false)
+    expect(roleOk({ seniority: 'Intern', title: 'Barista' })).toBe(false)
     expect(roleOk({ seniority: 'Director', title: 'CEO' }), 'a real title carries the criterion').toBe(true)
   })
 
@@ -1021,7 +1036,9 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
   // employer sells. This is the A3 case that most over-predicted inventory: it counted rows
   // as reusable on one arm while the client's own targeting named three.
   it('11 · a non-matching title NO LONGER qualifies on industry', () => {
-    expect(roleOk({ title: 'Barista', industry: 'B2B SaaS' })).toBe(false)
+    // ⛓️ 23 Sep (R142) — seniority blanked so this tests the industry arm alone; the shared row's
+    // Apollo `c_suite` now reads correctly as C-Suite and would otherwise carry the criterion.
+    expect(roleOk({ title: 'Barista', industry: 'B2B SaaS', seniority: null })).toBe(false)
     // ⚠️ AND THIS ONE IS CORRECTLY REUSED, which I had expected to fail until the rule said
     // otherwise. The client asked for C-Suite people at SaaS firms; this row is a C-Suite
     // person at a SaaS firm. Title and seniority are ONE criterion satisfied by either (see

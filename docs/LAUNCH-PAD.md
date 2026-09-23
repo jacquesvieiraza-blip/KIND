@@ -18,15 +18,12 @@
 
 | # | Action *(GitHub # = issue on github.com · inventory # = PRODUCT-INVENTORY row)* | Owner |
 |---|---|---|
-| W1 | Confirm `POOLED_SENDERS_JSON` is set on Railway — unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
-| W2 | GO / no-GO: a sequence keeps sending if its campaign settings can't be read (GitHub #1527) | 🧍 |
-| W3 | GO / no-GO: `check.sh` must build `@kind/db` so it passes on any machine (GitHub #1548) | 🧍 |
-| W4 | GO / no-GO on three code risks found 23 Sep (CODE VERIFIED, RUNTIME UNVERIFIED): ① PDL is only half off — `pdl-search.ts:405-408` checks just the key, so client preview samples (`icps.ts:3296`) and `/engine/leads/test` still call PDL if `PDL_API_KEY` is set · ② the old `/leads/drip` cron still delivers pool leads to any client with a wallet balance, which a programme shortfall credit creates (`internal.ts:1856`) · ③ the cold-client pause counts a shortfall credit as "paid" (`onboarding-pack.ts:41`, `programme.ts:1915`) | 🧍 |
-| W6 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+| W1 | Pooled senders: in Railway → **@kind/api** → Variables, is there a variable named exactly `POOLED_SENDERS_JSON`? Yes / no is enough. Unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
+| W2 | 🔨 **GO given 23 Sep — being built, one PR each:** a) stop sending when campaign settings can't be read (GitHub #1527) · b) `check.sh` builds `@kind/db` (GitHub #1548) · c) PDL fully off in code (R143) · d) the old drip and cold-client pause skip shortfall-credit programme clients · e) trial wording out of the Vida playbook (#706 · GitHub #1494) · f) the test that pins inventory #700 | 🤖 |
 
-*Settled 23 Sep by R141 — no longer on the list: the website may show $450, and "qualified meeting" has its rule.*
+*Settled 23 Sep: the website may show $450 and "qualified meeting" has its rule (R141) · Apollo is the only provider (R143) · retention is 90 days, other surfaces updated later (R144) · `PDL_API_KEY` deleted from Railway (founder).*
 
-**Board:** 🟢106 · 🩷356 · 🟣2 · 🟡24 · 🔴179 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷356 · 🟣2 · 🟡24 · 🔴180 · ⏸6 · **Σ674** · live count: `scripts/count-inventory.sh`
 
 ---
 

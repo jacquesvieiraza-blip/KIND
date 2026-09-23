@@ -159,15 +159,57 @@ describe('the contract describes the programme the code actually prices', () => 
     expect(terms).toContain(`$${PROGRAMME_FLOOR_USD}`)
   })
 
-  it('§4 states the 50/50 split and denies the wallet outright', () => {
+  // ⛓️ 23 Sep — "DENIES THE WALLET OUTRIGHT" IS NO LONGER THE WHOLE TRUTH.
+  // The founder ruled that qualified meetings not delivered are credited to the client's account
+  // against the first payment of their next programme. The old §4 sentence said "no wallet,
+  // credits or top-ups … no balance is held on your account", which would have denied, in the
+  // contract, the one credit the product now owes. It is still not a top-up model — nobody
+  // pre-loads a balance — so that denial stays pinned, and the credit is now pinned beside it.
+  it('§4 states the 50/50 split, is still not a top-up model, and names the one credit it holds', () => {
     expect(terms).toContain('50% of your programme price')
     expect(terms).toContain('not a wallet top-up')
+    expect(terms).toContain('The one credit we hold for you is for qualified meetings we did not deliver')
+    expect(terms, 'the old sentence denied any balance — it contradicts the credit').not.toContain('no balance is held on your account')
   })
 
-  it('§5 defines a booked meeting — the thing actually being sold', () => {
-    // It appeared zero times in the previous contract.
-    expect(terms).toContain('booked meeting')
-    expect(terms).toContain('accepted in your calendar')
+  // ⛓️ 23 Sep — REWRITTEN BY FOUNDER RULING: "BOOKED MEETING" → "QUALIFIED MEETING".
+  //
+  // This pinned "booked meeting" and "accepted in your calendar": the definition of the thing
+  // being sold, which the previous contract had never defined at all. On 23 Sep the founder
+  // replaced it. His risk review put it plainly — charging for a calendar booking leaves M&V
+  // absorbing no-shows, wrong decision-makers and after-the-fact disputes it cannot control. So
+  // the thing being sold is now a QUALIFIED meeting, defined by seven conditions, and the old
+  // calendar-only definition is exactly what must not creep back.
+  it('§5 defines a QUALIFIED meeting by all seven conditions — the thing actually being sold', () => {
+    const conditions = [
+      'falls within your approved ICP and targeting criteria',
+      'agreed role, seniority or buying-influence criteria',
+      'positively agreed to a meeting with you',
+      'scheduled for an agreed date and time',
+      'genuine relevance to your stated offer, problem or service area',
+      'not an existing customer, active opportunity or excluded account',
+      'evidence the prospect&rsquo;s acceptance of the meeting',
+    ]
+    expect(terms).toContain('A <strong>qualified meeting</strong> is a meeting that meets all seven')
+    for (const c of conditions) expect(terms, `§5 has lost a condition: "${c}"`).toContain(c)
+    // The definition that carried the risk. "A real person at a company that matches the brief"
+    // is any person at any matching company — no role, no relevance, no evidence.
+    expect(terms, 'the old calendar-only definition is back').not.toContain('by a real person at a company that matches the brief')
+  })
+
+  it('§5 carries the credit, the no-show rules, the challenge window and the split of responsibility', () => {
+    expect(terms).toContain('each qualified meeting not delivered is credited to your account at the per-meeting rate you paid')
+    expect(terms).toContain('applied against the first payment of your next programme')
+    expect(terms).toContain('not paid out in cash')
+    expect(terms).toContain('reschedule the meeting once, at no additional charge')
+    expect(terms).toContain('You cancel or do not attend:</strong> the meeting counts as delivered')
+    expect(terms).toContain('within 3 business days of the meeting being booked into your calendar')
+    expect(terms).toContain('must identify which of the seven conditions above was not met')
+    expect(terms).toContain('judged against the information available at the point the meeting was booked')
+    expect(terms).toContain('<strong>You are responsible for</strong> attending')
+    // "Neither payment is contingent on the number of meetings produced" was true of a model
+    // with no credit. With one, it reads as denying the credit — a client would quote it back.
+    expect(terms, 'the sentence that denied the credit is back').not.toContain('neither payment is contingent on the number of meetings produced')
   })
 
   it('the contract states outreach is email only', () => {

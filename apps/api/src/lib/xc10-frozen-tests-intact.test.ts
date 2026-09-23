@@ -20,12 +20,27 @@
 // exception — and it reads the WORKING TREE, not `HEAD`, so an uncommitted edit is caught
 // before it is committed rather than after.
 //
-// ── THE TWO AUTHORISED EXCEPTIONS, BOTH PINNED TO THEIR EXACT CONTENT ───────────────────
+// ── THE THREE AUTHORISED EXCEPTIONS, ALL PINNED TO THEIR EXACT CONTENT ──────────────────
 //
 // ① **house-authority.test.ts — FOUNDER DECISION B, 18 Sep.** The global migration-count
 //    assertion was removed on his explicit instruction; the same tripwire lives in
 //    `migration-home.test.ts` and `schema-drift.test.ts`, which is where a global count belongs.
 //    Every House invariant in the file is untouched, and the diff is that one removal.
+//
+// ③ **house-authority.test.ts — THE R136 CEILING, FOUNDER-APPROVED 23 Sep.** A second
+//    authorised hunk in the same file, and it was raised as a STOP rather than taken: R136
+//    moves a programme's `sourcing_ceiling` from `recommended_volume` (meetings × 250) to
+//    `sourcingCeiling(meeting_target)` (meetings × 400), because the LIMIT and the EXPECTATION
+//    had been the same number and every programme therefore stopped sourcing at exactly the
+//    volume the plan said it needed. This frozen file asserted the old figure in four places
+//    and guarded the old FIELD in block ⑱, so the change could not land without editing it.
+//    The founder's words: *"approved. add the third exception and finish it."*
+//
+//    ⚠️ **WHAT IT AUTHORISES IS THE CEILING DERIVATION AND NOTHING ELSE.** Every removed line
+//    outside Decision B must name the ceiling or the volume it used to come from — asserted
+//    below, line by line — so no House invariant can be deleted inside an "authorised" hunk.
+//    The block that moved (⑱) got STRICTER, not weaker: it still refuses a non-positive and a
+//    NULL source, and it gained a case proving House opens the LIMIT and not the plan.
 //
 // ② **kill-switch-absolute.test.ts — ONE FIELD, FOUNDER-RULED 19 Sep.** FD-5 makes the send
 //    seam refuse anybody without an Apollo-verified business email; the frozen fixture's lead
@@ -198,32 +213,60 @@ describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
       .toBe(base)
   })
 
-  it('🛑 HOUSE AUTHORITY — DECISION B, and every House invariant still asserted', () => {
+  it('🛑 HOUSE AUTHORITY — DECISION B AND R136, and every House invariant still asserted', () => {
     const diff = diffAgainstBaseline(FROZEN['house authority'])
     expect(diff, 'the house-authority exception is gone — Decision B was reverted').not.toBe('')
-    // The authorised change is the removal of a GLOBAL migration count, which had no House
-    // invariant in it and made this file red for any unrelated migration anywhere.
+    // ① The 18 Sep change: removal of a GLOBAL migration count, which had no House invariant in
+    // it and made this file red for any unrelated migration anywhere.
     expect(diff).toContain('FOUNDER DECISION B')
-    // 🛑 AND IT IS THE DECISION AND NOTHING ELSE. One assertion line removed, and a chained
-    // note in its place — so an 'authorised' hunk cannot carry an unrelated edit inside it.
-    const { removed: gone } = changedLines(diff)
-    expect(gone.length, `the Decision B hunk removed ${gone.length} line(s); exactly 1 is authorised`).toBe(1)
-    expect(gone[0], 'the removed line is not the global migration-count assertion').toContain('toHaveLength(74)')
-    const { added } = changedLines(diff)
-    expect(added.join('\n'), 'the authorised hunk is not chained to the decision that made it')
+    // ② The 23 Sep change: the R136 ceiling derivation. Named in the diff so an unexplained
+    // second hunk cannot pass as this one.
+    expect(diff, 'the second hunk is not chained to the ruling that authorised it').toContain('R136')
+
+    const { removed: gone, added } = changedLines(diff)
+
+    // 🛑 DECISION B IS STILL EXACTLY ONE LINE. Widening the file's exception list must not
+    // widen the old exception too.
+    const decisionB = gone.filter(l => l.includes('toHaveLength(74)'))
+    expect(decisionB.length, `Decision B removed ${decisionB.length} line(s); exactly 1 is authorised`).toBe(1)
+
+    // 🛑 AND EVERY OTHER REMOVED LINE BELONGS TO THE CEILING, LINE BY LINE. This is what keeps
+    // "authorised" from becoming "unlocked": a House invariant deleted inside the R136 hunk
+    // names neither the ceiling nor the volume it used to be derived from, so it fails here.
+    for (const l of gone.filter(l => !l.includes('toHaveLength(74)'))) {
+      expect(l, `an unrelated line was removed inside the R136 hunk: ${l.trim()}`)
+        .toMatch(/sourcing_ceiling|recommended[_ ]volume|ceiling|LEADS_PER_TARGETED_MEETING/)
+    }
+    expect(added.join('\n'), 'the authorised hunks are not chained to the decisions that made them')
       .toMatch(/⛓️/)
   })
 
   it('🛑 AND NOTHING ELSE IN HOUSE AUTHORITY MOVED — the count went, the invariants did not', () => {
     const now = readFileSync(join(REPO, FROZEN['house authority']), 'utf8')
-    // The four House guarantees the file exists for. A "count removal" that took one of these
-    // with it would be a very quiet way to open House's authority.
+    // The House guarantees the file exists for. A "count removal" — or a ceiling change — that
+    // took one of these with it would be a very quiet way to open House's authority.
     for (const invariant of [
       'A1 must appear exactly once',
       'the Stripe writers refuse when internal authority already exists',
+      // ⚑ 23 Sep — the block R136 rewrote still refuses, and still refuses for both reasons.
+      'internal P1 never opens a ceiling from a figure that is not one',
+      'a refused authorisation must not write',
+      'internal authority must never write',
     ]) {
       expect(now, `house-authority no longer asserts: ${invariant}`).toContain(invariant)
     }
+  })
+
+  it('🛑 AND THE R136 BLOCK GOT STRICTER, NOT LOOSER — it gained a case, it did not lose one', () => {
+    // ⚠️ THE FAILURE THIS CATCHES IS THE PLAUSIBLE ONE. Rewriting a frozen guard to match a new
+    // derivation is exactly where a refusal quietly becomes an allowance: keep the happy path,
+    // drop the awkward negative cases, and the file still reads like a guard. So the two
+    // refusals and the new positive proof are all named here, in THIS file, which is not frozen.
+    const now = readFileSync(join(REPO, FROZEN['house authority']), 'utf8')
+    expect(now, 'the non-positive refusal is gone').toContain('refuses meeting_target = ')
+    expect(now, 'the NULL refusal is gone').toContain('refuses a NULL/absent meeting_target')
+    expect(now, 'House is no longer proved to open the LIMIT rather than the plan')
+      .toContain('House opens the LIMIT, not the plan')
   })
 })
 

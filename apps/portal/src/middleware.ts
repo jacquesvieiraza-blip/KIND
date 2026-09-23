@@ -1,5 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { PARTNERS_FROZEN } from '@kind/shared'
+
+/**
+ * ⚑ 23 Sep — THE PARTNER PAGES, FROZEN (founder: "Freeze."). Every partner persona's screens —
+ * the invite onboarding, the preview, the partner dashboard and the Client Partner seat — send
+ * the visitor to the start page while `PARTNERS_FROZEN` is true. The pages themselves are kept.
+ */
+export const FROZEN_PARTNER_PATHS = ['/partner-onboarding', '/partner-preview', '/dashboard/partner', '/dashboard/client-partner']
+export function isFrozenPartnerPath(pathname: string): boolean {
+  return FROZEN_PARTNER_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+}
 
 // ── #560 — EVERY PUBLIC ROUTE IS PUBLIC ON PURPOSE, AND SAYS SO ──────────────────────────
 //
@@ -65,6 +76,11 @@ export async function middleware(request: NextRequest) {
       new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `https://${host}`),
       308,
     )
+  }
+
+  // ⚑ 23 Sep — partners are frozen; their pages are closed before any session work is done.
+  if (PARTNERS_FROZEN && isFrozenPartnerPath(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   let supabaseResponse = NextResponse.next({ request })

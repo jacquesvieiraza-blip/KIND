@@ -13,6 +13,7 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { partnersFrozenGate } from '../middleware/partners-frozen'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { Resend } from 'resend'
@@ -32,6 +33,9 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
 
 export const partnersRouter = Router()
+// ⚑ 23 Sep — PARTNERS ARE FROZEN (founder: "Freeze."). The router's FIRST layer, so every route
+// declared below answers 410 while `PARTNERS_FROZEN` is true. Nothing below is changed or removed.
+partnersRouter.use(partnersFrozenGate)
 
 // ── Admin key guard ───────────────────────────────────────────────────────────
 

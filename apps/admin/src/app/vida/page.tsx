@@ -1021,11 +1021,22 @@ export default function VidaConsolePage() {
     // ⚠️ THE CONFIRMATION SAYS WHAT IT COSTS, because the honest answer is "nothing" and an
     // operator who assumes otherwise leaves the prospect stopped.
     if (!confirm(`Retry Proof for ${who}?\n\nThis sources a fresh set against their current targeting.\n\nTheir Proof attempt was RELEASED by the failed run, so this does not cost them an attempt. Correct the targeting FIRST if the last run was emptied by a criterion they do not meet.`)) return
+    // ── ⚑ 23 Sep — THE NOTE THE SERVER HAS REQUIRED SINCE 18 SEP ────────────────────────
+    //
+    // 🛑 XC-12 (18 Sep) made `POST /operator/proof-retry/:clientId` refuse any recovery without a
+    // `note` — "what were you recovering from?" — and this button was never given one. Every
+    // press was refused with "A note is required…", so no Proof could be retried from Vida for
+    // any client. Found 23 Sep by the founder on Blackburne Enterprises: "nothing".
+    //
+    // ⚠️ ASKED, NEVER INVENTED. A canned note would satisfy the server and record nothing — the
+    // audit exists to hold the operator's own reason. An empty answer sends nothing.
+    const note = window.prompt(`What is this retry recovering from? One line — it is recorded with the retry.\n\ne.g. "the old size rule set all 20 aside"`)?.trim() ?? ''
+    if (!note) { setLcMsg('Proof was not retried — a retry needs a one-line note saying what it is recovering from.'); return }
     setLcBusy('retry_proof'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/operator/proof-retry/${encodeURIComponent(selected)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icp_id: icp.id }),
+        body: JSON.stringify({ icp_id: icp.id, note }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Proof was not retried.')
       setLcMsg(j?.started

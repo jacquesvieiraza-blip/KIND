@@ -504,6 +504,7 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { calculateProgramme, meetingTargetProblem, TARGET_NOT_GUARANTEE, ILLUSTRATIVE_LABEL,
+            PROGRAMME_BEST_EFFORTS, WIDEN_TO_GO_FURTHER,
             LEADS_PER_TARGETED_MEETING, MIN_LEADS_PER_MEETING } = await import('@kind/shared')
     const meetings = Number(req.query.meetings)
     const problem = meetingTargetProblem(meetings)
@@ -521,11 +522,59 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
       // leave the caveats behind.
       target_note: TARGET_NOT_GUARANTEE,
       illustrative_note: ILLUSTRATIVE_LABEL,
+      // ⚑ 23 Sep (R136 ② · ⑥). Both travel WITH the numbers for the same reason the two above
+      // do: a screen cannot render the figures and leave the caveats behind, and neither
+      // sentence may be typed into a component where it would drift from the rule.
+      best_efforts_note: PROGRAMME_BEST_EFFORTS,
+      widen_note: WIDEN_TO_GO_FURTHER,
       benchmark: { leadsPerMeeting: LEADS_PER_TARGETED_MEETING, minLeadsPerMeeting: MIN_LEADS_PER_MEETING },
     })
   } catch (err) {
     console.error('[programme/me/calculator]', err)
     res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ⚑ 23 Sep (R136 ⑥) — WHAT THE SLIDER IS ALLOWED TO REACH
+//
+// The meetings control was `max={50}` with a number box accepting up to 500, hard-coded, with
+// no connection to whether the client's targeting contains enough people to carry any of it.
+// A client could buy twenty meetings out of a pool that carries three, and every screen after
+// that would keep agreeing with them.
+//
+// 🛑 IT IS A SEPARATE CALL FROM THE QUOTE, DELIBERATELY. `/calculator` is a pure arithmetic
+// read and is re-run on every slider movement; this one costs a provider round trip, so the
+// client fetches it ONCE per screen. Folding capacity into the quote would put a vendor call
+// behind every keystroke — the same "per selection, not per rail refresh" discipline Vida's
+// capacity read already follows.
+//
+// ⚠️ IT RETURNS `committed` AND `known`, AND NOTHING THAT LEAKS THE RATE. Founder, reaffirmed
+// 23 Sep: *"i said 400 internally. we dont disclose this."* The assembly is
+// `lib/client-capacity.ts`, shared with the Proof screen so the slider stops at exactly the
+// number Milla already promised them.
+//
+// ⚠️ AND A CLIENT WITH NO TARGETING YET IS `known: false`, NOT ZERO. They are simply earlier in
+// the journey than this question; answering "0 meetings" would be a claim about their market.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+myProgrammeRouter.get('/capacity', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { activeIcpFor, clientCapacityFor } = await import('../lib/client-capacity')
+    const icp = await activeIcpFor(clientId)
+    if (!icp) {
+      res.json({ success: true, data: { committed: 0, known: false } })
+      return
+    }
+    const cap = await clientCapacityFor(clientId, icp)
+    res.json({ success: true, data: { committed: cap.committed, known: cap.known } })
+  } catch (err) {
+    console.error('[programme/me/capacity]', err)
+    // ⚠️ AN UNREADABLE CAPACITY IS NOT A CAPACITY OF ZERO. The screen leaves the cap off rather
+    // than capping a paying client at nothing because a vendor was slow.
+    res.json({ success: true, data: { committed: 0, known: false } })
   }
 })
 

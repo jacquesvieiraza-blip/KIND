@@ -104,6 +104,70 @@ export function programmeTotalCents(meetings: number): number {
 }
 
 /**
+ * 🛑 WHAT A PROGRAMME IS ACTUALLY WORTH ONCE IT STOPS — founder-locked 23 Sep (R136 ⑤).
+ *
+ * His words: *"they pay for what they recieve."* So a client who bought ten and received seven
+ * is worth SEVEN meetings, not ten.
+ *
+ * ── 🛑 THE PRICE IS THE TIER THEY BOUGHT, AND THAT WAS THE FOUNDER'S EXPLICIT CHOICE ─────
+ *
+ * The curve is volume-tiered, so "seven meetings" has two possible prices: $437.50 each at the
+ * ten-meeting tier they actually bought, or $441.67 each at the seven-meeting tier they ended
+ * up with. Put to the founder as an A/B, he chose **A — the tier they bought.**
+ *
+ * ⚠️ AND THE REASON IS NOT A ROUNDING PREFERENCE. Pricing the shortfall at the smaller tier
+ * would make a client pay MORE PER MEETING because WE fell short — the discount they bought
+ * with volume would be clawed back by our own under-delivery. There is no way to say that to a
+ * client, so the code cannot do it: `delivered` sets the QUANTITY and `bought` sets the RATE.
+ *
+ * ⚠️ IT IS A VALUATION, NOT A REFUND, AND IT MOVES NO MONEY. What happens to the difference is
+ * R136 ④ — wallet credit toward another ICP run, never money back — and that path is not built
+ * here. This function answers one question: what did they receive, in cents.
+ *
+ * ⚠️ OVER-DELIVERY IS NOT BILLED. Delivering more than was bought is clamped to what was
+ * bought: the eleventh meeting on a ten-meeting programme is not an invoice a client agreed to.
+ */
+export function deliveredValueCents(boughtMeetings: number, deliveredMeetings: number): number {
+  assertMeetings(boughtMeetings)
+  if (!Number.isInteger(deliveredMeetings) || deliveredMeetings < 0) {
+    throw new ProgrammePricingError(
+      `Delivered meetings must be a whole number of at least 0 — received ${deliveredMeetings}.`,
+    )
+  }
+  const billable = Math.min(deliveredMeetings, boughtMeetings)
+  // 🛑 THE RATE COMES FROM `boughtMeetings`. Passing `billable` here is the defect this whole
+  // note exists to prevent, and it would look entirely reasonable in a diff.
+  return Math.round(pricePerMeetingUsd(boughtMeetings) * billable * 100)
+}
+
+/**
+ * What is owed back to the client when a programme stops short, in integer cents.
+ *
+ * ⚠️ THIS IS WALLET CREDIT, NOT A STRIPE REFUND (R136 ④). Founder-locked: *"we dont give money
+ * back. we refund credits to their wallet internally to use towards another icp run."* The
+ * existing lock that unused programme value never expires is REFINED by that, not overturned —
+ * the value survives, it is now denominated as credit.
+ *
+ * ⚠️ IT IS COMPUTED AGAINST WHAT WAS COLLECTED, and the caller supplies that figure rather than
+ * assuming the full price was paid. A programme that took only its first payment has less to
+ * return than one that paid in full, and inferring it from the price would credit a client for
+ * money nobody received — the same shape `computeContribution` already refuses.
+ */
+export function shortfallCreditCents(
+  boughtMeetings: number, deliveredMeetings: number, collectedCents: number,
+): number {
+  if (!Number.isInteger(collectedCents) || collectedCents < 0) {
+    throw new ProgrammePricingError(
+      `Collected amount must be a non-negative whole number of cents — received ${collectedCents}.`,
+    )
+  }
+  const earned = deliveredValueCents(boughtMeetings, deliveredMeetings)
+  // Clamped at zero: collecting less than was earned is a debt, not a credit, and this
+  // function is not the place that decides what to do about it.
+  return Math.max(0, collectedCents - earned)
+}
+
+/**
  * Recommended sourcing volume for a programme: `meetings × 250` (R77).
  *
  * This becomes the programme's `sourcing_ceiling` when the first payment authorises sourcing.

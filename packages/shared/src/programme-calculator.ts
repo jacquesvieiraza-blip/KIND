@@ -43,6 +43,43 @@ import {
 export const TARGET_NOT_GUARANTEE =
   'This is the outcome we aim for and build the programme around. It is a target, not a guarantee.'
 
+/**
+ * 🛑 THE DISCLAIMER AT THE POINT OF COMMITMENT — founder-locked 23 Sep (R136 ②).
+ *
+ * His instruction, verbatim: *"we have to add a disclaimer to the client we do our best. this
+ * is not a guarentee."*
+ *
+ * ── WHY IT IS A SECOND SENTENCE AND NOT A REWORDING OF THE ONE ABOVE ────────────────────
+ *
+ * `TARGET_NOT_GUARANTEE` frames the number while the client is still playing with it, at the
+ * top of the calculator. This one sits where they COMMIT, and says the part that sentence
+ * does not: that there is a point at which we stop. A client who reads only "target, not a
+ * guarantee" can still reasonably believe we keep going until the number lands — which was
+ * true until 23 Sep and is the promise the founder removed.
+ *
+ * ⚠️ IT NAMES NO NUMBER, AND THAT IS THE LOCK, NOT A STYLE CHOICE. Founder, reaffirmed the
+ * same day: *"i said 400 internally. we dont disclose this."* So: no rate, no ceiling, no pool
+ * size — the existence of a limit is client-facing, its value is not.
+ */
+export const PROGRAMME_BEST_EFFORTS =
+  'We will do our best to book this many meetings for you. There is a point at which we stop ' +
+  'working a programme, so this is what we commit to aiming for rather than a number we can ' +
+  'guarantee.'
+
+/**
+ * 🛑 WHAT THE CLIENT IS POINTED AT WHEN THEY WANT MORE THAN THE POOL CARRIES (R136 ⑥).
+ *
+ * Founder-locked 23 Sep: *"if we can only produce 10 but they want more. they need to widen
+ * their own ICP."*
+ *
+ * ⚠️ IT HANDS THEM THE CONTROL RATHER THAN AN OPINION — the same shape as the 22 Sep ruling
+ * that Milla never guesses on the client's behalf. We do not propose a wider targeting; we say
+ * which of their own fields moves the number.
+ */
+export const WIDEN_TO_GO_FURTHER =
+  'That is as far as your current targeting reaches. To aim higher, widen it — job titles, ' +
+  'seniority, company size or location — and this will move with it.'
+
 /** Illustrative outputs carry this, always. They are arithmetic on the client's own numbers. */
 export const ILLUSTRATIVE_LABEL =
   'Your own figures, worked through — an illustration, not a forecast or a promise from us.'

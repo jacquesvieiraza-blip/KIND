@@ -161,6 +161,17 @@ const live = (t: string): string => {
 }
 
 const ROUTE   = live(src('../routes/icps.ts'))
+// ── ⚑ 23 Sep (R136 ⑥) — THE ASSEMBLY MOVED, SO THESE GUARDS FOLLOWED IT ────────────────
+//
+// The three reads behind the client's capacity used to sit inline in `icps.ts`. The Programme
+// slider became a third caller and `icps.ts`'s own note is explicit that Brief, Proof and the
+// slider must read ONE derivation, so the assembly is now `lib/client-capacity.ts`.
+//
+// 🛑 THE RULES UNDER TEST DID NOT MOVE — only the file they live in. Each assertion below still
+// asks exactly what it asked before: the client shape withholds the operator numbers, an
+// unreadable pool is honest, the exclusion count is anchored to the client's own instruction,
+// and the already-worked subtraction happens on both sides.
+const HELPER  = live(src('./client-capacity.ts'))
 const WELCOME = live(readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/welcome/page.tsx'), 'utf8'))
 const DESK    = live(readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8'))
 
@@ -171,11 +182,14 @@ describe('🛑 the buffer is ours — it never reaches a client screen', () => {
     // decided not to sell them, and `headroom` is the difference itself.
     const at = ROUTE.indexOf("icpRouter.get('/:id/capacity'")
     expect(at, 'the capacity route is gone').toBeGreaterThan(-1)
-    const body = ROUTE.slice(at, at + 3_000)
-    expect(body).toContain('committed:')
-    expect(body).toContain('workable:')
-    expect(body, 'the operator-only benchmark is on a client route').not.toContain('benchmark')
-    expect(body, 'the headroom is on a client route').not.toContain('headroom')
+    expect(ROUTE.slice(at, at + 3_000), 'the route stopped reading the one derivation')
+      .toContain('clientCapacityFor')
+    // The shape itself is the helper's, and it is the shape that must withhold.
+    expect(HELPER).toContain('committed:')
+    expect(HELPER).toContain('workable:')
+    expect(HELPER, 'the operator-only benchmark reached the client shape')
+      .not.toMatch(/benchmark:/)
+    expect(HELPER, 'the headroom reached the client shape').not.toMatch(/headroom:/)
   })
 
   // ⛓️ 22 Sep — ~~`expect(code).not.toMatch(/\b400\b/)`~~ WAS THE WRONG QUESTION AND THE TEST
@@ -207,7 +221,7 @@ describe('🛑 a pool we could not measure is not a small pool', () => {
   it('the route reports `known`, and the tiles require it', () => {
     // "0 people · 0 meetings" after a provider timeout is a claim about the client's market
     // rather than about our connection — and it is the claim that would make them leave.
-    expect(ROUTE).toContain('known: preview?.error == null')
+    expect(HELPER).toContain('known: preview?.error == null')
     expect(DESK, 'the tiles render without knowing the pool is real')
       .toMatch(/capacity && capacity\.known/)
   })
@@ -218,10 +232,8 @@ describe('🛑 the exclusion subtraction is the client’s own instruction, noth
     // Everything else the gate sets aside is a real person we could still contact, ranked
     // lower. Subtracting those would shrink a pool we are making a promise against on the
     // strength of our own opinion about a prospect.
-    const at = ROUTE.indexOf("icpRouter.get('/:id/capacity'")
-    const body = ROUTE.slice(at, at + 3_000)
-    expect(body).toContain("'excluded:%'")
-    expect(body, 'the count widened beyond the client’s exclusions')
+    expect(HELPER).toContain("'excluded:%'")
+    expect(HELPER, 'the count widened beyond the client’s exclusions')
       .not.toMatch(/set_aside_reason.{0,40}not\.is|is\(.set_aside_reason., null\)/)
   })
 })
@@ -357,9 +369,7 @@ describe('🛑 the operator sees both numbers; the client still sees one', () =>
   it('🛑 both routes subtract the already-worked count, from the same column', () => {
     // A client-side pool that disagreed with the operator's would be two answers about one
     // market, in front of the person trying to explain it to them.
-    const client = ROUTE.slice(ROUTE.indexOf("icpRouter.get('/:id/capacity'"),
-      ROUTE.indexOf("icpRouter.get('/:id/capacity'") + 4_000)
-    expect(client).toContain('already_worked')
+    expect(HELPER).toContain('already_worked')
     expect(OPERATOR).toContain('already_worked')
   })
 

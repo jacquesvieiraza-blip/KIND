@@ -3364,52 +3364,17 @@ icpRouter.get('/:id/capacity', async (req: AuthRequest, res) => {
     if (icpErr) throw icpErr
     if (!icp) { res.status(404).json({ success: false, error: 'Targeting not found' }); return }
 
-    const { previewCount } = await import('../lib/apollo')
-    const { poolCapacity } = await import('@kind/shared')
-
-    // ⚠️ THE EXCLUSION COUNT IS THE ONE SUBTRACTION, and it is anchored to the stamped
-    // sentence rather than to a band or a score. `removalReason` writes `excluded: …` for
-    // exactly the criterion that is an instruction from the client; everything else the gate
-    // sets aside is a person we could still contact and must not be subtracted from a pool we
-    // are making a promise against.
-    const { count: excluded } = await db.from('leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).eq('icp_id', icp.id)
-      .like('set_aside_reason', 'excluded:%')
-
-    // ── 🛑 ⚑ 22 Sep — EVERYONE WE HAVE ALREADY SOURCED FOR THEM IS OUT OF THE POOL ──────
+    // ── ⚑ 23 Sep (R136 ⑥) — THE ASSEMBLY MOVED, THE ANSWER DID NOT ─────────────────────
     //
-    // 🛑 FOUNDER-LOCKED: *"we only count the unworked amount."* And it is harder than a
-    // conversion argument: the sourcing loop REFUSES a contact it already holds a lead row
-    // for — `leads` keyed on `(client_id, apollo_id)`, logged as "already owned by this
-    // client" — so these people cannot be served again at all. Counting them would promise
-    // meetings against humans the product will decline to hand over.
-    //
-    // ⚠️ CLIENT-WIDE, NOT ICP-SCOPED. The dedupe is `(client_id, apollo_id)` with no ICP in
-    // it, so a person sourced under an older targeting is still unavailable under this one.
-    // Scoping this count to `icp_id` would count them as fresh and re-create the gap.
-    const { count: worked } = await db.from('leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
+    // The three reads and their reasoning now live in `lib/client-capacity.ts`, because the
+    // Programme slider became the third caller and the note above this route is explicit that
+    // Brief, Proof and the slider must read ONE derivation. A second copy here would be the
+    // exact drift that note warns about, and it would not announce itself: both copies would
+    // keep returning plausible numbers while slowly disagreeing.
+    const { clientCapacityFor } = await import('../lib/client-capacity')
+    const data = await clientCapacityFor(clientId, icp as Parameters<typeof clientCapacityFor>[1])
 
-    const preview = await previewCount(icp as Parameters<typeof previewCount>[0], 'client')
-    const matched = typeof preview?.count === 'number' ? preview.count : 0
-    const cap = poolCapacity(matched, excluded ?? 0, worked ?? 0)
-
-    res.json({
-      success: true,
-      data: {
-        matched,
-        excluded: excluded ?? 0,
-        already_worked: worked ?? 0,
-        workable: cap.workable,
-        committed: cap.committed,
-        // ⚠️ AN HONEST NULL, NEVER A ZERO DRESSED AS AN ANSWER. If the provider could not be
-        // reached we do not know the pool size, and "0 people · 0 meetings" would read as a
-        // fact about this client's market rather than about our connection.
-        known: preview?.error == null,
-      },
-    })
+    res.json({ success: true, data })
   } catch (err) {
     console.error('[icps/capacity]', err)
     res.status(500).json({ success: false, error: 'Capacity could not be established' })

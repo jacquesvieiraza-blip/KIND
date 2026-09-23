@@ -88,6 +88,13 @@ fi
 # built here, first, every time.
 step "Shared package build" npx tsc -p packages/shared
 
+# ⚠️ 23 Sep (#1548) — `@kind/db` has EXACTLY the same shape (`"main": "./dist/index.js"`,
+# `dist` gitignored) and was never built here. On a fresh clone that meant ~281 type errors
+# ("Cannot find module '@kind/db'") and ~35 API tests failing to resolve the package; on a
+# machine with an old `packages/db/dist` it went green — against whatever that dist last was.
+# Same failure class as the shared build above, so the same fix: build it, every time.
+step "DB package build" npx tsc -p packages/db
+
 # 1. Does the API compile? A type error here is a runtime crash on the money path.
 step "API type-check" npx tsc --noEmit -p apps/api/tsconfig.json
 

@@ -335,7 +335,15 @@ describe('🛑 § E · the resolution belongs to one client and happens once', (
     // copy, drift is not expressible, so the check becomes: the values are exactly these, and
     // the two routers hold no second copy to drift from.
     expect(PROVIDER_VOCABULARIES.industries, 'the industry vocabulary changed').toEqual([...INDUSTRIES])
-    expect(PROVIDER_VOCABULARIES.seniority_levels, 'the seniority vocabulary changed').toEqual([...SENIORITY])
+    // ⛓️ 23 Sep (R142) — WAS `.toEqual([...SENIORITY])`, the six labels we invented. The accepted
+    // seniority vocabulary is now Apollo's own eleven, then the two legacy labels every saved ICP
+    // may still hold. Still ONE copy, still pinned literally here, so drift is still a red test.
+    expect(PROVIDER_VOCABULARIES.seniority_levels, 'the seniority vocabulary changed').toEqual([
+      'Owner', 'Founder', 'C-Suite', 'Partner', 'VP', 'Head of', 'Director', 'Manager', 'Senior',
+      'Entry level', 'Intern', 'VP / Director', 'Individual Contributor',
+    ])
+    // …and the six old labels are all still accepted, so no stored ICP stops validating.
+    for (const l of SENIORITY) expect(PROVIDER_VOCABULARIES.seniority_levels).toContain(l)
     expect(
       PROVIDER_VOCABULARIES.company_sizes,
       'the size bands changed — note the en-dashes (U+2013); an ASCII "tidy-up" stops matching every stored row',

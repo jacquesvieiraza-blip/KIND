@@ -6,6 +6,8 @@ export * from './partners-frozen'
 // ⚑ 14 Sep (S1-RT-006) — where we can commercially work, decided once. Distinct from the
 // provider-vocabulary problem: no human can translate a country we do not operate in.
 export * from './geography-support'
+// ⚑ 23 Sep (R142) — seniority is Apollo's own eleven values; one list for Brief, search and check.
+export * from './apollo-seniority'
 export * from './company-details'
 export * from './cost-floor'
 export * from './panel-state'

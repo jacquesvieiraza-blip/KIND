@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { capacitySentence, committedCapacity, workablePool } from '@kind/shared'
 import {
   firstProofReadiness, PROOF_PREPARING_COPY, PROOF_NEEDS_US_COPY, PROOF_NEEDS_CLIENT_COPY,
+  APOLLO_SENIORITY_LABELS,
   type ProofReadiness, type ProofSummaryFacts,
 } from '@kind/shared'
 // ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
@@ -219,7 +220,8 @@ const STARTERS = ['We want more meetings', "Here’s who we sell to", 'What do y
 // takes as typed. The last two are not filters at all — the locked preview draws no caret on
 // either, which is the drawing being faithful rather than incomplete:
 //
-//   · Seniority  — CLOSED. `person_seniorities`. Our six labels map to Apollo's own values.
+//   · Seniority  — CLOSED. `person_seniorities`. ~~Our six labels map to Apollo's own values.~~
+//                  ⛓️ 23 Sep (R142): Apollo's own eleven, from `@kind/shared/apollo-seniority`.
 //   · Employees  — CLOSED. `organization_num_employees_ranges`, via the six-band ladder.
 //   · Job titles — FREE TEXT. `person_titles` takes "Operations Director" as typed, so this
 //                  is an add/remove chip box. Offering a closed list here would be us
@@ -233,7 +235,12 @@ const STARTERS = ['We want more meetings', "Here’s who we sell to", 'What do y
 // "C-Suite"; `icps.seniority_levels` holds "C-Suite"; `buildSearchBody` turns it into
 // `c_suite` at the boundary, and the panel prints that underneath. One translation, in the
 // one place that has always done it.
-const SENIORITY_OPTIONS = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor']
+// ⛓️ 23 Sep (R142) — WAS ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior',
+// 'Individual Contributor'] — six labels we invented, two of which Apollo has no single value
+// for. Founder: *"this is why we use apollo drop downs and make sure we do not assume."* The
+// client now picks from Apollo's own eleven, read from the one shared list the search and the
+// Proof check also read.
+const SENIORITY_OPTIONS: string[] = [...APOLLO_SENIORITY_LABELS]
 const SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+']
 
 const FIELD_OPTIONS: Record<string, { options: string[]; free: boolean }> = {

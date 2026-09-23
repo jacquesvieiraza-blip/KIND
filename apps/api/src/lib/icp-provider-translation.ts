@@ -40,6 +40,8 @@
 // calls it; whether a value is legitimate is the canonical list, unchanged.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { ACCEPTED_SENIORITY_LABELS } from '@kind/shared'
+
 /** The three closed provider vocabularies, and the ONLY three. A fourth costs a code change. */
 export type ProviderField = 'industries' | 'seniority_levels' | 'company_sizes'
 
@@ -78,7 +80,12 @@ export const PROVIDER_FIELD_LABEL: Record<ProviderField, string> = {
  */
 export const PROVIDER_VOCABULARIES: Record<ProviderField, readonly string[]> = {
   industries:       ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'],
-  seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'],
+  // ⛓️ 23 Sep (R142) — WAS ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior',
+  // 'Individual Contributor'], a list WE invented. It is now Apollo's own eleven labels, plus the
+  // two old labels that have no single Apollo twin — kept ACCEPTED so every saved ICP still
+  // validates and still searches exactly as before, never OFFERED again (the Brief reads
+  // `APOLLO_SENIORITY_LABELS`). The four shared labels are unchanged character for character.
+  seniority_levels: ACCEPTED_SENIORITY_LABELS,
   company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
 }
 

@@ -26,7 +26,7 @@ import {
   authoriseFirstInternal, authoriseSecondInternal, goLiveProgramme,
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
-  recordMakeWhole, nextBatchSize, ProgrammeStorageError,
+  recordMakeWhole, settleProgrammeShortfall, nextBatchSize, ProgrammeStorageError,
 } from '../lib/programme'
 import { createProgrammeCheckoutSession } from '../lib/programme-checkout'
 
@@ -626,6 +626,41 @@ programmeRouter.post('/:id/make-whole', guard(async (req: Request, res: Response
   res.status(r.ok ? 200 : 400).json({
     success: r.ok, error: r.reason,
     note: 'Recorded as undelivered value settled. This is NOT a Stripe refund — if money is also to be returned, do that separately in Stripe.',
+  })
+}))
+
+/**
+ * 🛑 SETTLE A PROGRAMME THAT STOPPED SHORT — the credit goes to the WALLET (R136 ④).
+ *
+ * Founder-locked 23 Sep: *"we dont give money back. we refund credits to their wallet
+ * internally to use towards another icp run."*
+ *
+ * ⚠️ A HUMAN PRESSES THIS, AND THAT IS THE EXISTING RULE RATHER THAN A NEW ONE. `mayComplete`
+ * already says *"no background job may complete a programme on a clock"* — deciding that a
+ * programme has stopped is a judgement about a client, and settling it moves money.
+ *
+ * ⚠️ `deliveredMeetings` IS SUPPLIED, NOT COUNTED HERE. It is persisted by the settlement so
+ * the figure cannot move afterwards; a live count would keep changing as other programmes book.
+ *
+ * ⚠️ AND IT IS IDEMPOTENT BY CLAIM, NOT BY CARE. A second press is answered `alreadySettled`
+ * and moves nothing — `increment_wallet` is not idempotent, so the compare-and-set is what
+ * stands between a double-clicked button and a wallet credited twice.
+ */
+programmeRouter.post('/:id/settle-shortfall', guard(async (req: Request, res: Response) => {
+  const { deliveredMeetings, note } = req.body ?? {}
+  if (deliveredMeetings === undefined || deliveredMeetings === null) {
+    res.status(400).json({ success: false, error: 'deliveredMeetings is required — the credit is computed from it, and guessing it would invent a settlement figure.' })
+    return
+  }
+  const r = await settleProgrammeShortfall({
+    programmeId: req.params.id,
+    deliveredMeetings: Number(deliveredMeetings),
+    note: String(note ?? ''),
+  })
+  res.status(r.ok ? 200 : 400).json({
+    success: r.ok, error: r.reason,
+    creditCents: r.creditCents, alreadySettled: r.alreadySettled,
+    note: 'Credited to the client WALLET toward another run. This is NOT a Stripe refund — if money is also to be returned, do that separately in Stripe.',
   })
 }))
 

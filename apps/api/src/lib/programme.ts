@@ -99,6 +99,16 @@ export interface ProgrammeRow {
   pause_reason: PauseReason | null
   value_settled_at: string | null
   make_whole_cents: number
+  // ── ⚑ 23 Sep · THE SHORTFALL CREDIT (20260923_programme_shortfall_credit) ─────────────
+  //
+  // 🛑 OPTIONAL FOR THE SAME REASON THE RUN COLUMNS ARE: they are new, and every `select('*')`
+  // that predates the migration returns rows without them. `settleProgrammeShortfall` treats an
+  // ABSENT `shortfall_credited_at` as "cannot settle yet" rather than as "not yet settled" —
+  // without the column there is no claim, and without a claim a retry credits a wallet twice.
+  shortfall_credited_at?: string | null
+  shortfall_credit_cents?: number
+  /** Meetings actually delivered when the programme stopped. Persisted, never re-derived. */
+  delivered_meetings?: number | null
   contribution_cents: number | null
   contribution_finalised_at: string | null
   disputed_at: string | null
@@ -1587,6 +1597,146 @@ export async function recordMakeWhole(programmeId: string, cents: number, note: 
     'This is a DELIVERY obligation, not a Stripe refund. If money is also to be returned, do that separately.',
   ])
   return { ok: true }
+}
+
+/**
+ * 🛑 SETTLE A PROGRAMME THAT STOPPED SHORT — the credit goes to their WALLET (R136 ④).
+ *
+ * Founder-locked 23 Sep, verbatim: *"no. we dont give money back. we refund credits to their
+ * wallet internally to use towards another icp run."*
+ *
+ * ── WHY THIS EXISTS AT ALL, AND WHY IT DID NOT BEFORE ───────────────────────────────────
+ *
+ * Until R136 a programme could not honestly stop short: ten bought was ten owed, and we kept
+ * working at our cost. That promise is gone — we work to `meetings × 400` and stop — so a
+ * programme can now end owing a client the difference, and this is where that is settled.
+ *
+ * ── THE ORDER IS THE WHOLE DESIGN, AND EACH STEP IS WHERE IT IS FOR A REASON ─────────────
+ *
+ * ① **CLAIM** — compare-and-set on `shortfall_credited_at IS NULL`. `increment_wallet` is NOT
+ *    idempotent, so without a claim a double-clicked operator button credits twice. Exactly one
+ *    caller wins; the loser is told it is already settled and moves no money.
+ *
+ * ② **PAY** — the atomic `increment_wallet` RPC, the same mechanism every other money path
+ *    uses. Never a read-modify-write on `wallet_balance_usd`, which loses a concurrent credit.
+ *
+ * ③ **RECORD** — the ledger row, and `make_whole_cents`.
+ *
+ * ⚠️ **AND A FAILURE RELEASES THE CLAIM.** If ② or ③ fails the marker is set back to NULL, so a
+ * retry is possible without anybody editing the database — R132a's lesson in the founder's own
+ * words: *"Do not require the operator or Founder to manually edit the database."* A claim that
+ * cannot be handed back is a programme stuck with no exit.
+ *
+ * 🛑 THE CREDIT IS ADDED TO `make_whole_cents`, AND THAT IS NOT BOOKKEEPING TIDINESS.
+ * `computeContribution` subtracts that column from revenue, so partner commission automatically
+ * stops being paid on money we gave back. Writing the credit anywhere else would leave a
+ * partner earning 25% of revenue the client no longer owes — the R68 shape exactly.
+ *
+ * ⚠️ **DELIVERED MEETINGS ARE PERSISTED, NOT RE-DERIVED.** Meetings keep being booked on other
+ * programmes; recomputing this later would move a settled figure, which is the one thing a
+ * settlement may never do.
+ *
+ * ⚠️ **AND A ZERO CREDIT IS STILL A SETTLEMENT.** A programme that delivered everything it sold
+ * owes nothing and is closed here all the same — the timestamp records that the question was
+ * asked and answered, which is what stops it being asked again.
+ */
+export async function settleProgrammeShortfall(params: {
+  programmeId: string
+  deliveredMeetings: number
+  note: string
+}): Promise<ProgrammeResult & { creditCents?: number; alreadySettled?: boolean }> {
+  const { programmeId, deliveredMeetings, note } = params
+  if (!Number.isInteger(deliveredMeetings) || deliveredMeetings < 0) {
+    return { ok: false, reason: 'Delivered meetings must be a whole number of at least 0.' }
+  }
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+
+  const already = (p as unknown as { shortfall_credited_at?: string | null }).shortfall_credited_at
+  if (!('shortfall_credited_at' in (p as object))) {
+    // ⚠️ FAIL CLOSED ON AN UNMIGRATED COLUMN. Without the marker there is no claim, and without
+    // a claim this would credit a wallet again on every press. Retryable — it is our ordering.
+    return { ok: false, reason: 'This programme cannot be settled yet — run migration 20260923_programme_shortfall_credit. Nothing was credited.' }
+  }
+  if (already) return { ok: true, alreadySettled: true, creditCents: (p as unknown as { shortfall_credit_cents?: number }).shortfall_credit_cents ?? 0 }
+
+  // What they actually received, and what that leaves owing against money we actually hold.
+  const collectedCents =
+    (p.first_paid_at ? p.first_payment_cents : 0) + (p.second_paid_at ? p.second_payment_cents : 0)
+  let creditCents: number
+  try {
+    const { shortfallCreditCents } = await import('@kind/shared')
+    creditCents = shortfallCreditCents(p.meeting_target, deliveredMeetings, collectedCents)
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : 'The credit could not be computed.' }
+  }
+
+  // ① CLAIM. `.is('shortfall_credited_at', null)` makes this a compare-and-set: two concurrent
+  // presses cannot both win, and the loser updates zero rows.
+  const now = new Date().toISOString()
+  const { data: claimed, error: claimErr } = await db.from('programmes').update({
+    shortfall_credited_at: now,
+    shortfall_credit_cents: creditCents,
+    delivered_meetings: deliveredMeetings,
+    updated_at: now,
+  }).eq('id', programmeId).is('shortfall_credited_at', null).select()
+  if (claimErr) return { ok: false, reason: claimErr.message }
+  if (!claimed || claimed.length === 0) return { ok: true, alreadySettled: true }
+
+  const release = async (): Promise<void> => {
+    await db.from('programmes').update({
+      shortfall_credited_at: null, shortfall_credit_cents: 0, delivered_meetings: null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', programmeId)
+  }
+
+  // ② PAY. Skipped entirely when nothing is owed — a $0 wallet movement is a ledger row that
+  // says something happened when nothing did.
+  if (creditCents > 0) {
+    const { error: walletErr } = await db.rpc('increment_wallet', {
+      p_client_id: p.client_id, p_amount: creditCents / 100,
+    })
+    if (walletErr) {
+      await release()
+      return { ok: false, reason: `The wallet could not be credited (${walletErr.message}). Nothing was settled — try again.` }
+    }
+
+    // ③ RECORD. `reference` is uniquely indexed, so a row for this programme already existing
+    // means a previous attempt got here — that is the dedup working, not a failure.
+    const { error: ledgerErr } = await db.from('credit_transactions').insert({
+      client_id: p.client_id, type: 'wallet_topup', amount: creditCents / 100, plan: 'work_model',
+      reference: `programme-shortfall:${programmeId}`,
+      note: `Programme delivered ${deliveredMeetings} of ${p.meeting_target} — credit toward another run`,
+      created_at: now,
+    })
+    if (ledgerErr && ledgerErr.code !== '23505') {
+      // 🛑 THE MONEY MOVED AND THE LEDGER DID NOT. The claim is NOT released — releasing it
+      // would invite a retry that credits the wallet a second time. It is alerted instead, so
+      // a human reconciles a recorded overpayment rather than the product silently creating one.
+      void sendFounderAlert('payment_failed', 'Programme shortfall credited but not ledgered', [
+        `Programme ${programmeId} (client ${p.client_id}): ${creditCents} cents were added to the wallet and the ledger row FAILED (${ledgerErr.message}).`,
+        'The wallet balance is correct and the programme records the settlement. The ledger is missing one row.',
+        'Do NOT re-run the settlement — it would credit the wallet twice.',
+      ])
+    }
+  }
+
+  // The credit reduces revenue for contribution, exactly as operator-decided make-whole does.
+  await db.from('programmes').update({
+    make_whole_cents: p.make_whole_cents + creditCents,
+    value_settled_at: now,
+    updated_at: new Date().toISOString(),
+  }).eq('id', programmeId)
+
+  void sendFounderAlert('churn_risk', 'Programme settled short', [
+    `Programme ${programmeId} (client ${p.client_id}) delivered ${deliveredMeetings} of ${p.meeting_target} meetings.`,
+    creditCents > 0
+      ? `${creditCents} cents credited to their wallet toward another run.`
+      : 'Nothing was owed back.',
+    note,
+    'This is WALLET CREDIT, not a Stripe refund. If money is also to be returned, do that separately.',
+  ])
+  return { ok: true, creditCents }
 }
 
 /** A chargeback cannot be refused by code. Record it, stop delivery, preserve evidence, alert. */

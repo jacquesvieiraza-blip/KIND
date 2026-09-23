@@ -943,6 +943,23 @@ create table if not exists public.programmes (
   pause_reason              text,                 -- client | quality | icp_change
   value_settled_at          timestamptz,          -- unused value never expires; a human settles it
   make_whole_cents          int  not null default 0,
+  -- ── ⚑ 23 Sep · THE SHORTFALL CREDIT (20260923_programme_shortfall_credit · R136 ④) ───
+  -- R136 removed the overrun promise, so a programme can end having delivered fewer meetings
+  -- than were bought, and the founder ruled the difference goes back as WALLET CREDIT rather
+  -- than as money: "we dont give money back. we refund credits to their wallet internally to
+  -- use towards another icp run."
+  --
+  -- 🛑 `shortfall_credited_at` IS A CLAIM, NOT A LOG LINE. `increment_wallet` is not idempotent,
+  -- so the settlement claims this column with a compare-and-set on NULL — one winner per
+  -- programme — and hands it back if the wallet move then fails, so a retry needs nobody to
+  -- edit the database by hand (R132a).
+  --
+  -- ⚠️ THE CREDIT IS ALSO ADDED TO `make_whole_cents`, because `computeContribution` subtracts
+  -- that column from revenue. Recording it only here would leave a partner earning 25% of money
+  -- the client no longer owes.
+  shortfall_credited_at     timestamptz,
+  shortfall_credit_cents    int  not null default 0,
+  delivered_meetings        int,                  -- persisted, never re-derived: a settled figure may not move
   contribution_cents        int,                  -- NULL while live: never persist a provisional figure
   contribution_finalised_at timestamptz,
   disputed_at               timestamptz,

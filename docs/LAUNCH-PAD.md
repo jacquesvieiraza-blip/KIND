@@ -9,9 +9,9 @@
 
 - **Live = `6a93c77`.** The API, Milla, Vida and the website all report it from their health endpoints (checked 23 Sep). `main` is one merge ahead — #1738 (R142, Apollo seniority values) is merged but not yet shipped; merging does not deploy, `scripts/ship.sh` does. *RUNTIME VERIFIED.*
 - **Database matches the code.** All migrations applied, founder-checked in Vida → Engine, 23 Sep. *RUNTIME VERIFIED (founder).*
-- **Gate.** `check.sh` passes on `6a93c77` (499 test files · 10,524 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
+- **Gate.** `check.sh` passes on `main` `83e9c1b` + this docs change (500 test files · 10,533 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
 - **Money.** Programme only — **$450 per *qualified* meeting**, 50/50 (R141, 23 Sep) — $299 / $4 retired (R124 16 Sep · R137 23 Sep). **Partners frozen** (R139, 23 Sep).
-- **Preview site not in use.** `staging` is 741 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
+- **Preview site not in use.** `staging` is 743 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
 - **GitHub caught up 23 Sep.** 71 obsolete audit issues and 15 finished/superseded inventory issues closed; every remaining open issue (114) carries a dated "where this stands" comment; PRs #1665–#1668 closed as already in `main`.
 
 ## ▶️ THIS WEEK — runlist
@@ -21,11 +21,12 @@
 | W1 | Confirm `POOLED_SENDERS_JSON` is set on Railway — unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
 | W2 | GO / no-GO: a sequence keeps sending if its campaign settings can't be read (GitHub #1527) | 🧍 |
 | W3 | GO / no-GO: `check.sh` must build `@kind/db` so it passes on any machine (GitHub #1548) | 🧍 |
-| W4 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+| W4 | GO / no-GO on three code risks found 23 Sep (CODE VERIFIED, RUNTIME UNVERIFIED): ① PDL is only half off — `pdl-search.ts:405-408` checks just the key, so client preview samples (`icps.ts:3296`) and `/engine/leads/test` still call PDL if `PDL_API_KEY` is set · ② the old `/leads/drip` cron still delivers pool leads to any client with a wallet balance, which a programme shortfall credit creates (`internal.ts:1856`) · ③ the cold-client pause counts a shortfall credit as "paid" (`onboarding-pack.ts:41`, `programme.ts:1915`) | 🧍 |
+| W6 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
 
 *Settled 23 Sep by R141 — no longer on the list: the website may show $450, and "qualified meeting" has its rule.*
 
-**Board:** 🟢106 · 🩷357 · 🟣2 · 🟡23 · 🔴179 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷356 · 🟣2 · 🟡24 · 🔴179 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
 
 ---
 

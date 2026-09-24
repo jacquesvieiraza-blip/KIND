@@ -284,6 +284,43 @@ programmeRouter.post('/:id/refreeze', guard(async (req: Request, res: Response) 
 }))
 
 /**
+ * ⚑ 24 Sep — REWRITE THE MESSAGES OF A PACKAGE NOBODY HAS APPROVED AND NOTHING HAS LEFT.
+ *
+ * The founder's House walk: the package awaiting approval carried copy that named one sample
+ * prospect. This writes new words through the one generator, rebuilds every prepared person's
+ * copy from them, and re-freezes — so the client is asked about a NEW version. It refuses unless
+ * the programme is READY_FOR_APPROVAL, never approved, not paused and has sent nothing
+ * (`lib/programme-rewrite.ts`). It approves, charges, sends and moves nothing.
+ */
+programmeRouter.post('/:id/rewrite-messages', guard(async (req: Request, res: Response) => {
+  const { rewriteProgrammeMessages } = await import('../lib/programme-rewrite')
+  const r = await rewriteProgrammeMessages(req.params.id)
+  if (!r.ok) {
+    await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+      rewrite_messages: 'refused', code: r.code, reason: r.reason, by: pressedBy(req),
+      money: 'none — rewriting messages changes no authority and no money',
+    })
+    res.status(r.code === 'not_found' ? 404 : r.code === 'unreadable' ? 503 : 409)
+      .json({ success: false, error: r.reason, code: r.code })
+    return
+  }
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+    rewrite_messages: 'rewritten', people: r.rewritten, version: r.version, sequence: r.sequenceName,
+    by: pressedBy(req),
+    money: 'none — rewriting messages changes no authority and no money',
+    authorised: 'nothing — the client is asked to approve the new version',
+  })
+  res.json({
+    success: true,
+    data: {
+      rewritten: r.rewritten,
+      version: r.version,
+      headline: `New messages written and ${r.rewritten} prepared people updated. This is now version ${r.version}. The client is asked to approve it — nothing was approved, charged or sent.`,
+    },
+  })
+}))
+
+/**
  * 🛑 WITHDRAWN (founder-locked 11 Sep). THE CLIENT APPROVES; AN OPERATOR MAY NOT APPROVE FOR
  * THEM.
  *

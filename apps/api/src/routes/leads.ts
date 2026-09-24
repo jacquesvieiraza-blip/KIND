@@ -347,7 +347,7 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // ⛓️ 18 Sep (J5-C6) — `icp_id` JOINS THE SELECT, AND IT IS NOT SHOWN. It is how the card
       // is judged against the targeting it was SOURCED for rather than the client's newest
       // ICP — see the read below. Not added to the masked shape: the client sees a band.
-      .select('id, icp_id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at, apollo_id')
+      .select('id, icp_id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at, apollo_id, source')
       .eq('client_id', clientId)
       // 🛑 10 Sep — A SET-ASIDE CANDIDATE IS NEVER ON THE DESK. It failed a hard criterion the
       // client themselves named, and it was recorded rather than deleted so an operator can
@@ -538,6 +538,14 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
        * control hidden in a browser is not a refusal.
        */
       can_accept: !refused,
+      // ── ⚑ 24 Sep (R145 step 3b · #18 · D8) — WHERE THIS PERSON CAME FROM ──────────────────
+      // Founder: *"when it presents leads to a client i want a little note saying pooled from
+      // pool or apollo."* A provider acquisition stamps its own `source` and `apollo_id`; a copy
+      // served from our pool carries neither ("a copy is not an acquisition", icps.ts).
+      from: (l.source === 'apollo' || (typeof l.apollo_id === 'string' && l.apollo_id !== '' && !l.apollo_id.startsWith('pdl_')))
+        ? 'apollo' : l.source ? 'provider' : 'pool',
+      /** ⚑ 24 Sep (R145 step 3b) — the company's size as the row holds it; never a person fact. */
+      company_size: l.company_size ?? null,
       created_at: l.created_at ?? null,
       // A timestamp, not identity — it says WHICH BATCH, never who. The masked shape is
       // otherwise unchanged: no name, no email, no phone, whatever the row holds.

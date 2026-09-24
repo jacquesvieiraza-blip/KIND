@@ -121,6 +121,11 @@ async function withOneRetry<T>(run: () => Promise<T>): Promise<T> {
 const PROOF_CHIPS = [
   'Which of these look strongest?',
 ]
+// ⚑ 24 Sep (R145 step 3b · #26) — the redesign's Proof chips, word for word. The first and last
+// ACT (the panel's own gated handlers); the middle one is a question for Milla.
+const CHIP_ANOTHER = 'Show me another twenty'
+const CHIP_WIDEN = 'What if I add Germany?'
+const CHIP_ACCEPT = 'These are right'
 /** Only where a programme exists and is running — not before it starts, not once it ends. */
 const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
 /** Only once outreach has had the chance to produce something to measure. */
@@ -210,7 +215,19 @@ type MillaConversationApi = {
   announce: (text: string) => void
   /** Re-read the stage facts this column's header and chips are built from. */
   refreshStage: () => void
+  /**
+   * ⚑ 24 Sep (R145 step 3b · #26) — the Proof panel's two actions, offered as chips too. The chip
+   * does EXACTLY what the button beside the sample does — the same handler, the same server
+   * gate — so a chip can never become a second, ungated way to ask for more people (C06).
+   * `null` clears them (the desk left, or the server no longer offers the action).
+   */
+  setDeskActions: (a: DeskActions | null) => void
+  /** ⚑ 24 Sep (R145 step 3b · #25) — `announce`, but at most once per key for this visit. */
+  announceOnce: (key: string, lines: string[]) => void
 }
+
+/** The Proof panel's actions a chip may run. Each is present only while the server offers it. */
+export type DeskActions = { anotherSample?: (() => void) | null; accept?: (() => void) | null }
 
 const Ctx = createContext<MillaConversationApi | null>(null)
 
@@ -226,6 +243,7 @@ export function useMillaConversation(): MillaConversationApi {
 const INERT: MillaConversationApi = {
   focus: () => {}, publishDeskSet: () => {}, icpRevision: 0,
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
+  setDeskActions: () => {}, announceOnce: () => {},
 }
 
 export function MillaConversationProvider(
@@ -261,6 +279,8 @@ export function MillaConversationProvider(
   // restore needs (a child's claim runs before this provider's own mount effect), and state for
   // the render.
   const slotClaimedRef = useRef(false)
+  /** ⚑ 24 Sep — which thread read is the newest; an older one may not write. */
+  const restoreGen = useRef(0)
   const [slotClaimed, setSlotClaimed] = useState(false)
   const [chatSlot, setChatSlot] = useState<HTMLElement | null>(null)
   const [restoreNonce, setRestoreNonce] = useState(0)
@@ -303,12 +323,19 @@ export function MillaConversationProvider(
     // Brief is its own conversation until the client moves on, and before sign-up completes there
     // is no client row for `/milla/sessions` to answer about. Released → read, now.
     if (slotClaimedRef.current) return
-    (async () => {
+    // ⚑ 24 Sep (R145 step 3b) — ONLY THE NEWEST READ MAY WRITE. Two reads in flight (a hand-back
+    // and a stage refresh together, or React's development double-run) each cleared the thread
+    // and each added the greeting — Milla said hello twice. An older read now stops at its next
+    // step instead of writing over the newer one.
+    const gen = ++restoreGen.current
+    const stale = () => gen !== restoreGen.current
+    ;(async () => {
       /** The canonical thread as it actually stands — the truth recovery is read from. */
       let restored: Msg[] = []
       setMessages([]); setRestoreErr(null); setRestoreDone(false)
       try {
         const tok = await token()
+        if (stale()) return
         // ── ⚑ 24 Sep — THE BRIEF COMES FIRST, BECAUSE IT IS THE SAME CONVERSATION ────────────
         //
         // Founder: *"information not being carried"* · *"we never leave one chat to go to another."*
@@ -318,6 +345,7 @@ export function MillaConversationProvider(
         // client nothing here — the thread below still loads.
         const brief = await api.get<{ data?: { conversation?: { role: 'user' | 'assistant'; content: string }[] } }>(
           '/milla/brief-draft', tok).catch(() => null)
+        if (stale()) return
         const briefRows: Msg[] = (brief?.data?.conversation ?? [])
           .filter(t => (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string' && t.content.trim() !== '')
           .map((t, i) => ({ id: `brief-${i}`, role: t.role, content: t.content }))
@@ -328,11 +356,13 @@ export function MillaConversationProvider(
         // your earlier conversation" over the first screen after the Brief.
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
           .catch((e: unknown) => { if (failureOf(e).status === 404) return { data: [] as { id: string }[] }; throw e })
+        if (stale()) return
         const sid = list.data?.[0]?.id
         let rows: Msg[] = []
         if (sid) {
           setSessionId(sid)
           const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
+          if (stale()) return
           rows = (hist.data ?? []).slice(-20)
           if (rows.length > 0) {
             restored = rows
@@ -354,6 +384,7 @@ export function MillaConversationProvider(
         // history saw a greeting over a blank thread — and their composer still worked, so their
         // next sentence joined the real thread the screen had just denied existed, and they
         // re-explained things Milla had already been given as context.
+        if (stale()) return
         setRestoreErr(loadError(e))
         setRestoreDone(true)
       }
@@ -418,6 +449,8 @@ export function MillaConversationProvider(
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
   const publishDeskSet = useCallback((count: number | null) => setDeskSet(count), [])
+  const [deskActions, setDeskActionsState] = useState<DeskActions | null>(null)
+  const setDeskActions = useCallback((a: DeskActions | null) => setDeskActionsState(a), [])
   const claimChatSlot = useCallback(() => {
     slotClaimedRef.current = true
     setSlotClaimed(true)
@@ -435,6 +468,12 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `n-${Date.now()}`, role: 'assistant', content: t }])
   }, [])
   const refreshStage = useCallback(() => setStageNonce(n => n + 1), [])
+  const announcedKeys = useRef<Set<string>>(new Set())
+  const announceOnce = useCallback((key: string, lines: string[]) => {
+    if (announcedKeys.current.has(key)) return
+    announcedKeys.current.add(key)
+    for (const l of lines) announce(l)
+  }, [announce])
 
   /**
    * ⛓️ THE TRANSPORT SWITCHES; THE CONVERSATION DOES NOT.
@@ -648,7 +687,15 @@ export function MillaConversationProvider(
   // which is `describeOutcomes`' job and is handled there.
   const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (deskSet ?? 0) > 0
   const chips = !prog ? CHIPS : [
-    ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
+    // ⛓️ 24 Sep (R145 step 3b) — WAS `prog.stage === 'Proof' && !proofSetOnDesk ? [] : [...]`: at
+    // Proof the quick action ("Show me stronger examples") went to Milla as text, and she cannot
+    // source. The redesign's "Show me another twenty" below runs the panel's own gated action.
+    ...(prog.stage === 'Proof' ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
+    // ⚑ 24 Sep (R145 step 3b · #26) — the redesign's Proof chips. The two that ACT run the panel's
+    // own handlers (see `DeskActions`), and are offered only while the server offers the action.
+    ...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.anotherSample ? [CHIP_ANOTHER] : []),
+    ...(prog.stage === 'Proof' && proofSetOnDesk ? [CHIP_WIDEN] : []),
+    ...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.accept ? [CHIP_ACCEPT] : []),
     ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
     ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
@@ -684,8 +731,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage }),
-    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage])
+    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce }),
+    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),
@@ -782,7 +829,11 @@ export function MillaConversationProvider(
               programme question into a targeting conversation. */}
           {context !== 'icp' && chips.length > 0 && (
             <div className="mv-quickbar">
-              {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="mv-quick disabled:opacity-50">{c}</button>)}
+              {chips.map(c => <button key={c} onClick={() => {
+                if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
+                if (c === CHIP_ACCEPT && deskActions?.accept) { deskActions.accept(); return }
+                void send(c)
+              }} disabled={sending} className="mv-quick disabled:opacity-50">{c}</button>)}
             </div>
           )}
           <form onSubmit={e => { e.preventDefault(); send(input) }} className="mv-composer">

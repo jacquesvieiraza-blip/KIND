@@ -75,10 +75,12 @@ type Props = {
   /** POST /leads/proof/phone — empty means "the stored one is right". */
   onConfirmPhone: (phone: string) => Promise<string | null>
   busy?: boolean
+  /** ⚑ 24 Sep (R145 step 3b) — the redesign's line beside the buttons ("you are not selecting…"). */
+  note?: string | null
 }
 
 export function ProofCalibration({
-  state, onRequestStronger, onAccept, onStillNotRight, onConfirmPhone, busy, onCalibratedSet,
+  state, onRequestStronger, onAccept, onStillNotRight, onConfirmPhone, busy, onCalibratedSet, note,
 }: Props) {
   const [phone, setPhone] = useState('')
   const [sending, setSending] = useState(false)
@@ -107,10 +109,10 @@ export function ProofCalibration({
   // still offered to look again would contradict the client's own decision to stop.
   if (state.completed) {
     return (
-      <div className="mt-2 rounded-2xl border border-[#d9c4fb] bg-[#fcfaff] p-3.5">
-        <div className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Proof complete</div>
-        <div className="text-[14px] font-bold text-[#1f1235] mt-0.5">These are the right people</div>
-        <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">
+      <div className="mv-hero-card">
+        <div className="mv-eyebrow">Proof complete</div>
+        <h2 className="!text-[17px]">These are the right people</h2>
+        <p>
           Nothing more is needed here. Next, choose how many meetings you want your programme to book.
         </p>
       </div>
@@ -126,10 +128,10 @@ export function ProofCalibration({
     // After the number is confirmed: the calm state. Proof is still the stage.
     if (state.headline || confirmed) {
       return (
-        <div className="mt-2 rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] p-3.5">
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Calibration</div>
-          <div className="text-[14px] font-bold text-[#1f1235] mt-0.5">{state.headline ?? 'Help arranged'}</div>
-          <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">
+        <div className="mv-hero-card">
+          <div className="mv-eyebrow">Calibration</div>
+          <h2 className="!text-[17px]">{state.headline ?? 'Help arranged'}</h2>
+          <p>
             {confirmed ?? state.detail}
           </p>
         </div>
@@ -137,8 +139,8 @@ export function ProofCalibration({
     }
     // Before it: Milla takes responsibility and asks. One question, no options.
     return (
-      <div className="mt-2 rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] p-3.5">
-        <p className="text-[13px] text-[#1f1235] leading-relaxed">{state.ask}</p>
+      <div className="mv-section"><div className="mv-section-body">
+        <p className="text-[11px] text-[color:var(--mv-ink)] leading-relaxed">{state.ask}</p>
         <div className="flex gap-2 mt-2.5">
           <input value={phone} onChange={e => setPhone(e.target.value)} disabled={sending}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void confirm() } }}
@@ -152,85 +154,75 @@ export function ProofCalibration({
         {/* ⚠️ AN EMPTY BOX IS A VALID ANSWER when we already hold a number — the server reads
             it as "yes, that one". The client should not have to retype what they gave us. */}
         {err && <p className="text-[12px] text-red-700 mt-1.5">{err}</p>}
-      </div>
+      </div></div>
     )
   }
 
   if (!state.showTheseAreRight) return null
 
+  // ⛓️ 24 Sep (R145 step 3b) — THE REDESIGN'S CLOSING ROW. WAS a stack of full-width buttons:
+  // "These are right", "Show me stronger examples". Founder (R143, 23 Sep): Proof closes with one
+  // question and ONE button, **"These are my people"**; the redesign's secondary is "Show another
+  // sample" (#74). Same handlers, same server verdict deciding which exist — only the drawing and
+  // the words changed.
   return (
-    <div className="mt-1">
+    <div className="flex flex-col gap-2">
       {/* ⚑ ATTEMPT 2 SAYS WHAT CHANGED, IN ONE SENTENCE, FROM THE CLIENT'S OWN REASONS.
           Built server-side; null when there is nothing true to claim. */}
       {state.whatChanged && (
-        <div className="rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] px-3.5 py-2.5 mb-2">
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Updated set</div>
-          <p className="text-[12.5px] text-[#5c5279] mt-0.5 leading-relaxed">{state.whatChanged}</p>
-        </div>
+        <div className="mv-section"><div className="mv-section-body">
+          <div className="mv-eyebrow">Updated set</div>
+          <p className="mv-muted-note">{state.whatChanged}</p>
+        </div></div>
       )}
 
-      <button onClick={onAccept} disabled={busy}
-        className="w-full text-[13px] font-bold text-white rounded-xl py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-        These are right
-      </button>
-
-      {/* ── ATTEMPT 1 — the improved set, and it is a SPEND GATE not a button ───────────── */}
-      {state.showStronger && (
-        <>
-          <button onClick={onRequestStronger} disabled={busy || !state.strongerEnabled}
-            className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1.5 border border-[#ece5fb] bg-white hover:bg-[#faf8ff] disabled:opacity-45 disabled:hover:bg-white">
-            Show me stronger examples
-          </button>
-          {/* The founder's sentence, and it names the ACTION that unlocks it rather than
-              saying "not available" — a disabled control with no explanation reads as broken. */}
-          {state.strongerHint && (
-            <p className="text-[12px] text-[#9b8ec4] mt-1.5 text-center leading-relaxed">{state.strongerHint}</p>
-          )}
-        </>
-      )}
-
-      {/* ── ATTEMPT 2 — the honest way to say it is beyond improving ────────────────────
-          🛑 AND THE ONLY OTHER CONTROL. The founder's list of third-batch controls that must
-          not exist here is enforced by `proof-calibration-ui.test.ts`, which scans this file
-          for each of them — so they are named there and deliberately not repeated here.
-          Pressing this hands the client to a person, which is the truthful option once two
-          attempts have not worked. */}
-      {state.showStillNotRight && (
-        <button onClick={() => void onStillNotRight()} disabled={busy}
-          className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1.5 border border-[#ece5fb] bg-white hover:bg-[#faf8ff] disabled:opacity-50">
-          Still not right
+      <div className="mv-cta-row flex-wrap">
+        <button onClick={onAccept} disabled={busy} className="mv-btn primary disabled:opacity-50">
+          These are my people
         </button>
-      )}
 
-      {/* ── ⚑ 11 Sep (C39) — A PERSON HAS CORRECTED THE TARGETING, AND BOUGHT ONE SET ────
-          🛑 THIS IS THE ONLY WAY A THIRD BATCH CAN EXIST, and it required somebody to call
-          this client, fix their targeting and write down what was agreed. It replaces "Still
-          not right" rather than sitting beside it: they have already said that, and somebody
-          acted on it.
+        {/* ── ATTEMPT 1 — the improved set, and it is a SPEND GATE not a button ───────────── */}
+        {state.showStronger && (
+          <button onClick={onRequestStronger} disabled={busy || !state.strongerEnabled}
+            className="mv-btn disabled:opacity-45">
+            Show another sample
+          </button>
+        )}
 
-          ⚠️ THE SERVER DECIDES IT EXISTS. `showCalibratedSet` comes from `proofUiState`; this
-          file computes nothing, and the route the handler posts to re-checks the authority
-          for itself. Hiding the control is a courtesy — the refusal is the control.
+        {/* ── ATTEMPT 2 — the honest way to say it is beyond improving ────────────────────
+            🛑 AND THE ONLY OTHER CONTROL. The founder's list of third-batch controls that must
+            not exist here is enforced by `proof-calibration-ui.test.ts`, which scans this file
+            for each of them — so they are named there and deliberately not repeated here. */}
+        {state.showStillNotRight && (
+          <button onClick={() => void onStillNotRight()} disabled={busy} className="mv-btn disabled:opacity-50">
+            Still not right
+          </button>
+        )}
 
-          ⚠️ AND IT IS NEVER CALLED "Attempt 3". There is no third automatic attempt; this is
-          a different thing with a different name. */}
-      {state.showCalibratedSet && onCalibratedSet && (
-        <>
-          <button onClick={() => void onCalibratedSet()} disabled={busy}
-            className="w-full text-[13px] font-bold text-white rounded-xl py-2.5 mt-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+        {/* ── ⚑ 11 Sep (C39) — A PERSON HAS CORRECTED THE TARGETING, AND BOUGHT ONE SET ────
+            ⚠️ THE SERVER DECIDES IT EXISTS (`showCalibratedSet`), and it is never called
+            "Attempt 3" — there is no third automatic attempt. */}
+        {state.showCalibratedSet && onCalibratedSet && (
+          <button onClick={() => void onCalibratedSet()} disabled={busy} className="mv-btn primary disabled:opacity-50">
             Show me the updated set
           </button>
-          <p className="text-[12px] text-[#9b8ec4] mt-1.5 text-center leading-relaxed">
-            We&rsquo;ve corrected your targeting with you. This is the updated set.
-          </p>
-        </>
+        )}
+
+        {note ? <span className="mv-muted-note">{note}</span> : null}
+      </div>
+
+      {/* The founder's sentence, and it names the ACTION that unlocks it rather than saying
+          "not available" — a disabled control with no explanation reads as broken. */}
+      {state.showStronger && state.strongerHint && (
+        <p className="mv-muted-note">{state.strongerHint}</p>
+      )}
+      {state.showCalibratedSet && onCalibratedSet && (
+        <p className="mv-muted-note">We&rsquo;ve corrected your targeting with you. This is the updated set.</p>
       )}
 
-      {/* ⚠️ AND ONCE IT IS SPENT, NOTHING REPLACES IT. No second restart, no third automatic
-          attempt, no retry — the client is told plainly rather than left looking for a
-          control that is not coming. */}
+      {/* ⚠️ AND ONCE IT IS SPENT, NOTHING REPLACES IT. */}
       {state.restart === 'used' && !state.showCalibratedSet && (
-        <p className="text-[12px] text-[#9b8ec4] mt-2 text-center leading-relaxed">
+        <p className="mv-muted-note">
           This is the set we put together after we spoke. If it still isn&rsquo;t right, reply to
           Milla and the same person will pick it back up with you.
         </p>

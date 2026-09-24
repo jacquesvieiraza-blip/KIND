@@ -352,13 +352,19 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     // we had heard them. Their sentence exists from onboarding, so it is read here too.
     // ⚑ 10 Sep (A) — AND WHETHER PROOF IS FINISHED, which decides whether this screen is
     // still Proof or already the calculator. Both facts are client-level and read together.
-    const [stated, proofComplete] = await Promise.all([
+    // ⛓️ 24 Sep (R152) — AND WHETHER THIS IS THE HOUSE. It was only resolved once a programme
+    // row existed, so on the first Programme screen — no row yet — House was shown "Pay P1" and
+    // its first Accept opened a live Stripe page (the founder's walk, 24 Sep). Resolved here
+    // too, failing to `false` exactly as the programme path does.
+    const [stated, proofComplete, internalBilling] = await Promise.all([
       readStatedOutcomeFor(clientId), proofCompleteFor(clientId),
+      internalBillingFor(clientId),
     ])
     return {
       ...NO_PROGRAMME,
       stage: millaStage({ status: null, proofComplete }),
       outcome: { ...NO_PROGRAMME.outcome, stated },
+      money: { ...NO_PROGRAMME.money, internalBilling },
     }
   }
 
@@ -387,13 +393,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // ⚠️ RESOLVED ONCE, ALONGSIDE THE MEETING COUNT. Fails open to `false` — a wrong `true`
   // would tell a PAYING client they owe us nothing, which is a false statement about their
   // money; a wrong `false` shows House the wording it has had all along.
-  let internalBilling = false
-  try {
-    const { isHouseClient } = await import('./house-client')
-    internalBilling = await isHouseClient(clientId)
-  } catch (err) {
-    console.error('[customer-programme] house check failed for', clientId, err)
-  }
+  const internalBilling = await internalBillingFor(clientId)
 
   let outcomesAchieved: number | null = null
   try {
@@ -501,5 +501,22 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       ? { deliveredMeetings: p.delivered_meetings == null ? null : Number(p.delivered_meetings),
           creditCents: Number(p.shortfall_credit_cents ?? 0) }
       : null,
+  }
+}
+
+/**
+ * ⚑ 24 Sep (R152) — IS THIS THE HOUSE, FOR MONEY WORDING ONLY. One helper for both paths (no
+ * programme yet, and a programme row), so House is recognised on the first Programme screen as
+ * well as after it. ⚠️ Money only: it never decides a stage or a terminal state. Fails to
+ * `false` — a wrong `true` would tell a paying client they owe nothing; a wrong `false` shows
+ * House the ordinary wording.
+ */
+async function internalBillingFor(clientId: string): Promise<boolean> {
+  try {
+    const { isHouseClient } = await import('./house-client')
+    return await isHouseClient(clientId)
+  } catch (err) {
+    console.error('[customer-programme] house check failed for', clientId, err)
+    return false
   }
 }

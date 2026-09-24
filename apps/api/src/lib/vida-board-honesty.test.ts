@@ -212,29 +212,19 @@ describe('Vida renders the honest sentence', () => {
   const clients = stripCommentsForEnvScan(
     readFileSync(join(__dirname, '../../../admin/src/components/vida/VidaClients.tsx'), 'utf8'))
 
-  it('the flow rail asks how the account was funded before labelling step 2', () => {
-    // ⛓️ EXTENDED 3 Sep (C2) — ~~`flowStepLabel(n, label, selectedWork.funded_via)`~~ and
-    // ~~`step === 2 && via === 'comp' ? 'Comped'`~~. #619's property is unchanged and still
-    // asserted: step 2 is a MONEY SENTENCE and must not be printed without asking about the
-    // money. C2 adds a second way for it to be false — a PROGRAMME client never bought the
-    // $299 pack at all — so the label now takes the commercial model as well.
-    expect(src).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
-    expect(src).toContain("via === 'comp' ? 'Comped' : label")
-    expect(src, 'and a programme account is named as one').toContain("if (view === 'programme') return 'Programme'")
-    // ⛓️ AND A THIRD WAY FOR STEP 2 TO BE FALSE, added 3 Sep: an UNREADABLE commercial model.
-    // The label took a boolean, and a boolean has only one else — so a client whose model we had
-    // explicitly failed to resolve was shown "Paid $299" through the legacy arm.
-    expect(src).toContain("if (view === 'unresolved') return 'Model unresolved'")
-  })
-
-  it('a comped step 2 is NOT the green paid tick', () => {
-    // The green tick is the "we got paid" signal on this rail. A comp gets neutral slate.
-    expect(src).toContain("const comped = n === 2 && selectedWork.funded_via === 'comp'")
-    // ⛓️ C2 — a PROGRAMME step 2 takes the same neutral slate, for the same reason: neither a
-    // comp nor a programme is a pack payment, and only a pack payment earns the green tick.
-    expect(src).toContain('const progStep = n === 2 && (programmeModel || unresolvedModel)')
-    expect(src).toContain("(comped || progStep) && done ? 'bg-[#f1f0f4]")
-    expect(src).toContain("{done ? ((comped || progStep) ? '·' : '✓') : n}")
+  it('the flow rail can no longer print a payment — the step that could is gone', () => {
+    // ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS "the flow rail asks how the account was funded
+    // before labelling step 2" and "a comped step 2 is NOT the green paid tick". #619's property
+    // (step 2 was a MONEY SENTENCE and must not be printed without asking about the money) and
+    // C2's (a programme client never bought the pack) are held MORE strongly now: the retired
+    // strip with its "Paid $299" step is removed, and the redesign's operator rail that replaced
+    // it has no payment step at all. Nothing on the rail can say a comp or a programme paid.
+    expect(src).not.toContain('flowStepLabel(')
+    expect(src).not.toContain("const comped = n === 2")
+    expect(src).not.toMatch(/Paid \$\$\{PACK_PRICE_USD\}`\]/)
+    const RAIL = readFileSync(join(__dirname, '../../../admin/src/lib/vida-stage-copy.ts'), 'utf8')
+    const rail = RAIL.slice(RAIL.indexOf('export const OPERATOR_RAIL'), RAIL.indexOf('] as const', RAIL.indexOf('export const OPERATOR_RAIL')))
+    expect(rail).not.toMatch(/Paid|\$/)
   })
 
   it('THE PRICE IS NEVER HAND-TYPED — and #623 went further: it is no longer CALCULATED either', () => {

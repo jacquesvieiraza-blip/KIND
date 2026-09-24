@@ -646,10 +646,13 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(chain, 'the default must not be legacy').not.toMatch(/:\s*'legacy'\s*$/m)
     expect(vida).toContain("const unresolvedModel = modelView === 'unresolved' || modelView === 'loading'")
     // ① the rail
-    expect(vida).toContain("if (view === 'programme') return 'Programme'")
-    expect(vida).toContain("if (view === 'unresolved') return 'Model unresolved'")
-    expect(vida).toContain("if (view === 'loading') return 'Checking…'")
-    expect(vida).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
+    // ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS: `flowStepLabel`'s programme / unresolved /
+    // loading arms, and the call that labelled step 2. The retired strip that carried a "Paid"
+    // step 2 is GONE (the redesign's operator rail has no payment step), so the property is now
+    // held more strongly: there is no rail label left that could name a payment at all.
+    expect(vida).not.toContain('flowStepLabel(')
+    expect(vida).not.toMatch(/\[2, `Paid \$\$\{PACK_PRICE_USD\}`\]/)
+    expect(vida).toContain('rail={{ at: operatorRailAt(lc?.verdict.stage) }}')
     // ② the message an operator TYPES TO THE CLIENT — the sharpest of them
     expect(vida).toMatch(/programmeModel\s*\?\s*'Quick nudge — your programme is ready/)
     // ③ the legacy pack quota — rendered ONLY for a resolved legacy client, never for a
@@ -676,7 +679,10 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
     expect(vida).toContain("Their 👍 charges $4 and starts the work")
     expect(vida).toContain('the $4 is deliberately NOT charged while no campaign is active')
-    expect(vida).toContain("via === 'comp' ? 'Comped' : label")
+    // ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS `via === 'comp' ? 'Comped' : label`, the legacy
+    // strip's step-2 label. The strip is removed for EVERY client (the redesign's operator rail
+    // has no payment step), so there is no legacy rail sentence left to survive.
+    expect(vida).not.toContain("via === 'comp' ? 'Comped' : label")
   })
 
   it('🛑 AN UNRESOLVED MODEL NEVER RENDERS LEGACY ECONOMICS — every sentence has a third arm', () => {
@@ -688,10 +694,11 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // unresolved sentence is a strict subset of the legacy one: it asserts nothing about what
     // this client paid, owes, or has left. Claiming nothing is the only safe thing to say when
     // the answer is that we could not tell.
-    // ① the rail
-    expect(vida).toContain("if (view === 'unresolved') return 'Model unresolved'")
-    // ② the tick — neither a programme nor an unresolved account earns the green paid tick
-    expect(vida).toContain('const progStep = n === 2 && (programmeModel || unresolvedModel)')
+    // ①② ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS the rail's 'Model unresolved' arm and the
+    // neutral-tick `progStep`. The strip with a payment step is gone, so an unresolved client
+    // can no longer be shown a paid tick by it: nothing on the new operator rail names money.
+    expect(vida).not.toContain('const progStep = n === 2')
+    expect(vida).not.toContain('FLOW_STEPS.map(')
     // ③ the pack quota — legacy only
     expect(vida).toContain("selectedWork.pack.active && modelView === 'legacy'")
     // ④ the message typed TO THE CLIENT

@@ -402,7 +402,10 @@ describe('VIDA — THE SHELL, AFTER THE TWO-WORKSPACE MOVE', () => {
   })
 
   it('the panel is still the approved 216px, and the client list is the one fold', () => {
-    expect(code, 'the approved width is not implemented').toContain('w-[216px]')
+    // ⛓️ 24 Sep (R145 step 7) — WAS 216px (approved 9 Sep). The founder's redesign sets the Vida
+    // grid to `180px minmax(560px,1fr) 430px` (`mv-portal-vida`) — *"look at the panel size. the
+    // spacing… match everything"* — so the menu is 180px now. Still no icon rail.
+    expect(code, 'the approved width is not implemented').toContain('mv-leftnav w-[180px]')
     // ⚠️ NO 56px ICON RAIL. That breakpoint was NOT approved and must not be invented.
     expect(code, 'an unapproved icon-rail breakpoint was invented').not.toContain('w-[56px]')
     expect(code).toContain('const [openClients, setOpenClients] = useState(true)')

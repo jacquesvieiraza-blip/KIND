@@ -205,14 +205,17 @@ export async function generateProgrammeSequence(
   // person so the copy has something true to open on; `detokenise` puts the merge tokens back,
   // and `buildDraftStepsFromSequence` fills them per prospect at enrolment. The same shared
   // contract the operator route uses, so the two cannot drift.
-  const { detokenise } = await import('./sequence-tokens')
+  const { detokenise, ensureSignOff } = await import('./sequence-tokens')
+  // ⚑ 24 Sep — the sign-off is guaranteed by code, not left to the model. House's
+  // version 3 came back with no sign-off at all; R156 says House signs "K.I.N.D".
+  const signOff = (client.signer_name ?? '').trim() || (client.company_name ?? '').trim()
   const steps: ProgrammeSequenceStep[] = Array.from({ length: plan.depth }, (_, i) => i + 1)
     .map(n => {
       const st = draft[`step${n}`]
       return {
         step: n,
         subject: detokenise(String(st?.subject ?? '').trim(), sample),
-        body: detokenise(String(st?.body ?? '').trim(), sample),
+        body: ensureSignOff(detokenise(String(st?.body ?? '').trim(), sample), signOff),
         // `wait_days` is the delay AFTER this step. Taken from the plan, never invented —
         // writing 0 here is how two cold emails land in one morning.
         wait_days: plan.gaps[n - 1] ?? 4,

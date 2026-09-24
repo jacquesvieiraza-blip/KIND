@@ -148,3 +148,18 @@ export function stepDays(steps: { wait_days?: number | null }[]): number[] {
     return day
   })
 }
+
+/**
+ * ⚑ 24 Sep — EVERY EMAIL ENDS WITH ITS SIGN-OFF, WHATEVER THE MODEL DID.
+ *
+ * The model is told how to sign off; House's version 3 came back with no sign-off at all. An
+ * email already carrying the name on a line of its own is left exactly as it is; otherwise the
+ * name is added as the last line. No name (no signer, no company) → the body is unchanged.
+ */
+export function ensureSignOff(body: string, name: string): string {
+  const n = name.trim()
+  if (!n || !body.trim()) return body
+  const lines = body.split('\n').map(l => l.trim().toLowerCase())
+  if (lines.includes(n.toLowerCase())) return body
+  return `${body.replace(/\s+$/, '')}\n${n}`
+}

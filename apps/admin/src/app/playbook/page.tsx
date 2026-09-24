@@ -10,6 +10,12 @@ import {
   TrendingUp,
   ChevronDown,
 } from 'lucide-react'
+import { PROGRAMME_ANCHOR_1_USD, PROGRAMME_ANCHOR_10_USD, PROGRAMME_FLOOR_USD, PROOF_READY_TARGET } from '@kind/shared'
+
+// #706 — every account is on the programme (R124 · R137): the Brief and a free Proof come
+// before any payment (R138). Every price below is read from the shared curve (R81 · R141),
+// never typed — `usd` renders 450 → "450", 437.5 → "437.50".
+const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -196,7 +202,7 @@ function DiscoveryContent() {
           { phase: 'Pain Discovery', time: '15 min', desc: '5 questions with probes' },
           { phase: 'Demo Pivot', time: '5 min', desc: 'Bridge pain → demo' },
           { phase: 'Demo', time: '30 min', desc: 'See Section 3' },
-          { phase: 'Close', time: '5 min', desc: 'Next steps · trial booking' },
+          { phase: 'Close', time: '5 min', desc: 'Next steps · Brief + free Proof' },
         ].map(({ phase, time, desc }) => (
           <div key={phase} className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="font-semibold text-gray-800 text-sm">{phase}</p>
@@ -251,7 +257,7 @@ That's exactly what KIND was built to solve. Let me show you what your platform 
 
 [Handle objections — see Objection Handling section.]
 
-"Here's what I'd suggest as a next step: we set you up on a 14-day trial. No credit card lock-in, cancel any time, credits don't expire. I'll send a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
+"Here's what I'd suggest as a next step: we start your Brief — that's where we capture exactly who you want to reach, and nothing is paid at this stage. From it we prepare a free Proof: ${PROOF_READY_TARGET} real people from your market, so you judge the quality before you commit anything. I'll send a short proposal with the meeting target we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
 
 If they want time: "Of course. When specifically — tomorrow morning or Thursday?" [Never "I'll send it and you can get back to me."]`}</ScriptBlock>
       </div>
@@ -314,7 +320,7 @@ Click "New Campaign" → describe their offer in plain English → show sequence
 
 Show credit bundle tiers.
 
-"You start with a free trial. After that, most 5–50 lead/week clients run on the Starter bundle."`,
+"You start with your Brief and a free Proof — no payment. After that, the programme is priced per qualified meeting: ${usd(PROGRAMME_ANCHOR_1_USD)} for one, easing to ${usd(PROGRAMME_ANCHOR_10_USD)} at ten and a ${usd(PROGRAMME_FLOOR_USD)} floor from fifty — paid half at the start and half at approval."`,
       action: 'Show credit tier cards and top-up flow',
     },
     {
@@ -374,7 +380,7 @@ function ObjectionContent() {
     },
     {
       objection: "We don't have budget.",
-      response: `"I hear you. What are you currently spending on your sales effort — even just your own time? At your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in month one. Our Starter bundle is less than one client acquisition the old way. We also have a 14-day trial so you can prove the ROI before you commit anything."`,
+      response: `"I hear you. What are you currently spending on your sales effort — even just your own time? At your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in month one. Our Starter bundle is less than one client acquisition the old way. And before you commit anything, we prepare a free Proof — ${PROOF_READY_TARGET} real people from your market — so you can judge it first."`,
       tag: 'Budget',
     },
     {
@@ -399,7 +405,7 @@ function ObjectionContent() {
     },
     {
       objection: 'How do I know the leads are good?',
-      response: `"Fair challenge. Every data source has errors. What KIND does differently is show you exactly why each lead scored the way it did — you see the reasoning, so you're not flying blind. Our 8% reply rate isn't marketing copy — it's our actual average across campaigns. We can also set your trial up with a small batch in your exact ICP so you see quality before you commit."`,
+      response: `"Fair challenge. Every data source has errors. What KIND does differently is show you exactly why each lead scored the way it did — you see the reasoning, so you're not flying blind. Our 8% reply rate isn't marketing copy — it's our actual average across campaigns. That's what the free Proof is for: once your Brief is in, we show you ${PROOF_READY_TARGET} real people in your exact ICP so you see quality before you pay anything."`,
       tag: 'Quality',
     },
     {
@@ -496,7 +502,7 @@ function ProposalContent() {
         <Table
           headers={['When', 'Action']}
           rows={[
-            ['Day 1', 'Sign up, start 14-day trial'],
+            ['Day 1', 'Sign up, start your Brief — no payment'],
             ['Day 2–3', '30-min onboarding call — configure ICP, set up FIGSY'],
             ['Day 3–5', 'First batch of scored leads delivered to your dashboard'],
             ['Day 5–7', 'First campaign launched, sequences running'],
@@ -508,17 +514,17 @@ function ProposalContent() {
       <div className="bg-green-50 rounded-xl p-5 space-y-2">
         <h4 className="font-semibold text-green-800">Risk Reversal</h4>
         <ul className="space-y-1.5 text-sm text-green-700">
-          <li>14-day free trial — no credit card required upfront</li>
+          <li>{`Your Brief and a free ${PROOF_READY_TARGET}-person Proof come before any payment`}</li>
           <li>Credit model — pay per use, no monthly lock-in</li>
           <li>No long-term contract — cancel any time</li>
-          <li>If after the trial leads don&#39;t meet ICP standards, we rebuild the ICP before you pay a cent</li>
+          <li>The meeting count is a target, not a guarantee — any qualified meeting we don&#39;t deliver is credited to your wallet for your next programme</li>
         </ul>
       </div>
 
       <div className="border-2 border-[#7C3AED] rounded-xl p-5 text-center space-y-2">
         <p className="font-bold text-gray-900">Next Step — One Action</p>
         <p className="text-sm text-gray-500">
-          Click the link to start your 14-day trial and book your onboarding call. Or reply to this email and I&#39;ll set it up on a call.
+          Click the link to start your Brief and book your onboarding call — you see your free Proof before you pay anything. Or reply to this email and I&#39;ll set it up on a call.
         </p>
         <div className="flex items-center justify-center gap-2 mt-2">
           <span className="text-[#7C3AED] font-medium text-sm">→ KIND sign-up link</span>
@@ -546,7 +552,7 @@ Great speaking today. As promised — attached is the proposal with my recommend
 Quick summary:
 - Problem: [1-line summary of their pain from the call]
 - Recommended: [Product(s)]
-- Next step: 14-day trial, onboarding call booked for [date] / [book here: link]
+- Next step: your Brief and a free ${PROOF_READY_TARGET}-person Proof, onboarding call booked for [date] / [book here: link]
 
 Any questions, just reply here.
 
@@ -560,7 +566,7 @@ Any questions, just reply here.
 
 Checking in on the proposal — did you get a chance to look at it?
 
-One thing I didn't mention on the call: most clients have their first leads delivered within 2 hours of completing setup. The trial costs nothing to start.
+One thing I didn't mention on the call: most clients have their first leads delivered within 2 hours of completing setup. Your Brief and Proof cost nothing — you see real people from your market before you pay anything.
 
 Worth 15 minutes this week to get it running?
 

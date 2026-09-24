@@ -411,7 +411,12 @@ describe('required client data is never fabricated or defaulted', () => {
       .not.toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
     expect(welcomeCode).not.toContain('Before I can open your account I still need ')
     // The gate the plan and the CTA now sit behind is the server's state, not this tab's.
-    expect(welcomeCode).toContain('{!(serverReady && proposed) ? (')
+    // ⛓️ 24 Sep (R145 step 2) — WAS `{!(serverReady && proposed) ? (`, the switch between the workspace and the
+    // plan card. There is one panel now; the SAME two conditions gate the one button, through
+    // `blocker`, which names what is missing instead of hiding the button.
+    expect(welcomeCode).toContain('disabled={saving || blocker !== null}')
+    expect(welcomeCode).toMatch(/: !serverReady \? \(briefNext/)
+    expect(welcomeCode).toContain(": !proposed ? ")
     const onb = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
     expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country']")
     expect(onb, 'company name is still one of the canonical eleven, counted there')
@@ -654,8 +659,10 @@ describe('the free count may run during the Brief — but only through one door'
   it('🛑 no number is shown that no preview produced', () => {
     // The em-dash is the locked empty state, and a FAILED count must return to it rather than
     // leave the previous answer standing beside changed targeting.
-    expect(welcomeCode, 'the bar stopped falling back to the locked em-dash')
-      .toMatch(/matchCount === null \? '—'/)
+    // ⛓️ 24 Sep (R145 step 2) — WAS the bar's em-dash, `matchCount === null ? '—'`. The redesign's hero states the
+    // count as a sentence; with no count it says what to do instead, and still shows no number.
+    expect(welcomeCode, 'the hero stopped falling back when no count exists')
+      .toMatch(/matchCount === null\s*\?\s*'Tell Milla who you want to meet\.'/)
     expect(welcomeCode, 'a failed count no longer clears the number')
       .toMatch(/catch \{[\s\S]{0,400}?setMatchCount\(null\)/)
     expect(welcomeCode).not.toContain('Matches found')
@@ -686,7 +693,9 @@ describe('existing clients are not dragged through any of it', () => {
 // ─────────────────────────────────────────────────────────────────────────────────────────
 describe('everything downstream of the confirmation is byte-for-byte the same journey', () => {
   it('the reflect-back and its recorded confirmation are unchanged', () => {
-    expect(welcomeSrc).toContain('Here&rsquo;s what I understand about your business')
+    // ⛓️ 24 Sep (R145 step 2) — the reflect-back is a section of the one panel now, titled as the redesign titles
+    // its cards. WAS 'Here&rsquo;s what I understand about your business'.
+    expect(welcomeSrc).toContain('<b>What Milla understood</b>')
     expect(icpsSrc).toContain('milla_understanding_confirmed_at')
   })
 
@@ -929,7 +938,9 @@ describe('free proof runs before the client is ever asked to pay', () => {
   })
 
   it('the CTA asks to be shown people, and offers no price', () => {
-    expect(welcomeCode).toContain('"Yes, this represents us — show me who you\'d find"')
+    // ⛓️ 24 Sep (R145 step 2) · D2 — WAS "Yes, this represents us — show me who you'd find". The founder chose the
+    // redesign's one Brief button: "Show me who you'd find". Still no price.
+    expect(welcomeCode).toContain('"Show me who you\'d find"')
     expect(welcomeSrc).toContain('free, masked, and nobody is contacted')
     expect(welcomeCode).not.toMatch(/go live for/i)
   })
@@ -1444,7 +1455,9 @@ describe('no number is shown that no preview produced', () => {
   it('the panel describes the CURRENT stage, which is free', () => {
     expect(welcomeSrc).toContain('Free proof')
     expect(welcomeSrc).toContain('Up to 20 masked leads')
-    expect(welcomeSrc).toContain('See who K.I.N.D would find before you decide to go live.')
+    // ⛓️ 24 Sep (R145 step 2) — WAS 'See who K.I.N.D would find before you decide to go live.' on the plan card that
+    // is gone; the line under the one button carries the same promise and says the choice is theirs.
+    expect(welcomeSrc).toContain('You decide what happens next.')
   })
 
   it('NO price of any kind appears on this screen — not $299, not $4, not the first 100', () => {

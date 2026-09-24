@@ -235,3 +235,8 @@ button{cursor:pointer}
 .mv-preview-note{position:fixed;left:50%;bottom:7px;transform:translateX(-50%);font-size:8px;color:#aaa1ad;z-index:10;pointer-events:none}
 @media(max-width:1250px){.mv-app-shell{width:calc(100vw - 20px);height:calc(100vh - 20px);margin:10px auto}.mv-portal-milla{grid-template-columns:160px 460px minmax(360px,1fr)}.mv-portal-vida{grid-template-columns:160px minmax(500px,1fr) 380px}.mv-people-review,.mv-programme{grid-template-columns:1fr}.mv-metric-grid,.mv-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:930px){.mv-app-shell{height:auto;min-height:100vh;width:100%;margin:0;border-radius:0;border:0}.mv-portal-milla,.mv-portal-vida{grid-template-columns:130px minmax(0,1fr)}.mv-workspace,.mv-vida-chat{display:none}.mv-stagebar{overflow-x:auto}.mv-brand{min-width:auto}.mv-stage-title span{display:none}}
+
+/* ⚑ 24 Sep (R145 step 2) — THE ONE RULE THAT IS NOT THE REDESIGN'S OWN. The redesign's headings are
+   bold by the BROWSER's default; both portals load Tailwind's reset, which sets every heading to
+   `font-weight: inherit`. This puts back exactly what the reset took, and nothing else. */
+.mv-root h1,.mv-root h2,.mv-root h3{font-weight:700}

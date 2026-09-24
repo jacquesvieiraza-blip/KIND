@@ -14,7 +14,7 @@ import { BACKGROUND_MODEL } from '../lib/models'
 // Apollo actually receives rather than our own stored labels. Pure, spends nothing, makes no
 // network call — the panel reads the search instead of describing it.
 import { buildSearchBody } from '../lib/apollo'
-import { apolloIndustriesOnly } from '@kind/shared'
+import { apolloIndustriesOnly, NEVER_CONTACT_KINDS } from '@kind/shared'
 
 // ⛓️ 18 Sep (D-63) — ~~`const anthropic = new Anthropic(…)`~~ AND THE PERSONA NOTE THAT STOOD
 // HERE WENT WITH THE STATELESS DOOR. The module-level client had exactly one reader, the
@@ -827,11 +827,23 @@ export function briefReadModelFrom(
       // ⚑ 23 Sep (R142 · A2a) — the industries the client PICKED from Apollo's list, and nothing else.
       const pickedFacts = ((draft?.facts ?? {}) as Record<string, unknown>).picked as Record<string, unknown> | undefined
       const pickedIndustries = apolloIndustriesOnly(Array.isArray(pickedFacts?.industries) ? pickedFacts!.industries as unknown[] : [])
+      const strs = (v: unknown): string[] =>
+        Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : []
+      const pickedKinds = strs(pickedFacts?.exclusion_kinds)
+      const pickedNamed = strs(pickedFacts?.exclusions)
+      const REVIEW_ROW: Record<string, string> = { seniority_levels: 'seniority', company_sizes: 'company_size' }
+      const review = icp.icp_review as { requirements?: Array<{ field?: string; said?: unknown }> } | undefined
+      const needsPick = (review?.requirements ?? [])
+        .filter(r => typeof r.field === 'string' && REVIEW_ROW[r.field])
+        .map(r => ({ id: REVIEW_ROW[r.field as string], said: strs(r.said) }))
 
       const row = (
         id: string, label: string, said: string, sending: string[], placeholder: string,
         note?: string, provider?: string[],
-      ) => ({ id, label, said, sending, placeholder, provider: provider ?? [], ...(note ? { note } : {}) })
+        // ⚑ 24 Sep (R145 step 2 · #73) — a row the client edits under its OWN draft key, with a
+        // second closed tick-list. Sent, so the portal never names a fact of ours.
+        pickAs?: { key: string; kinds: readonly string[]; kinds_chosen: string[]; kinds_key: string },
+      ) => ({ id, label, said, sending, placeholder, provider: provider ?? [], ...(note ? { note } : {}), ...(pickAs ? { pick: pickAs } : {}) })
       const FILL = 'Milla will fill this'
       return {
         onboarding_targeting: [
@@ -870,9 +882,30 @@ export function briefReadModelFrom(
           // ⚠️ THE ONE FIELD MILLA ASKS FOR. Exclusions are never derived from anything the
           // client said about who they WANT — they are an instruction, which is why this is
           // also the only row whose note claims to remove anybody.
-          row('exclusions',      'Never contact', onboardingText('exclusions'),     [],
-            'Milla will ask', 'the only thing that removes anybody'),
+          // ⚑ 24 Sep (R145 step 2 · #73) — WAS `[]`: the row could only ever be said, never picked.
+          // It now shows what the client ticked and named, so "Never contact" is a list they can see.
+          row('exclusions',      'Never contact', onboardingText('exclusions'),
+            pickedNamed,
+            'Milla will ask', 'the only thing that removes anybody', undefined,
+            { key: 'exclusions', kinds: NEVER_CONTACT_KINDS, kinds_chosen: pickedKinds, kinds_key: 'exclusion_kinds' }),
         ],
+        // ── ⚑ 24 Sep (R145 step 2 · #71) — WORDS APOLLO HAS NO OPTION FOR, AND THE CLIENT PICKS ──
+        //
+        // Founder: *"we dont assume again. if unsure milla needs to ask."* ⛓️ WAS: an answer we
+        // could not match (seniority or size) was stored as an operator review, and the client
+        // waited on K.I.N.D after pressing confirm. Now the same verdict — `icpFromDraft`'s own
+        // `icp_review`, the one promotion would store — is sent BEFORE confirm, so the screen
+        // asks the client to pick on the right, and a pick resolves it.
+        needs_pick: needsPick,
+        // ⚑ 24 Sep (R145 step 2 · #8) — THE CLIENT'S OWN PICKS, AS STORED. The PUT replaces the
+        // whole `picked` object, and a tab that had been reloaded held none of the earlier picks —
+        // so choosing a size after a reload silently dropped the seniority chosen before it. The
+        // screen now starts from the stored set and sends it back whole.
+        onboarding_picked: Object.fromEntries(
+          ['job_titles', 'seniority_levels', 'company_sizes', 'geographies', 'industries', 'exclusions', 'exclusion_kinds']
+            .filter(k => Array.isArray(pickedFacts?.[k]))
+            .map(k => [k, strs(pickedFacts?.[k])]),
+        ),
         // The canonical arrays, for the free live count. People Search costs nothing; the
         // reveal is the cost, and nothing here reveals anybody.
         onboarding_search: {
@@ -1148,6 +1181,11 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
       // ⚑ 23 Sep (R142 · A2a) — industries picked from Apollo's own list. Anything not on it is
       // dropped by `promotion.ts`, never stored. Six is the ICP's own bound on industries.
       industries:       z.array(z.string().max(80)).max(6).nullish(),
+      // ⚑ 24 Sep (R145 step 2 · #73) — "Never contact" as picks. `exclusions` is the free list of
+      // named companies or domains; `exclusion_kinds` the two lists only the client holds, ticked
+      // so Milla asks for them. Neither is a provider filter — both only ever REMOVE people.
+      exclusions:       z.array(z.string().trim().min(1).max(120)).max(50).nullish(),
+      exclusion_kinds:  z.array(z.enum(NEVER_CONTACT_KINDS)).max(NEVER_CONTACT_KINDS.length).nullish(),
     }).nullish(),
   }).parse(req.body ?? {})
 

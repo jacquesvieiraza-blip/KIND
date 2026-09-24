@@ -101,7 +101,8 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     expect(welcome, 'the conversation took the working area again')
       .not.toMatch(/<section className="flex-1 min-w-0 flex flex-col">/)
     expect(welcome, 'the working area is a strip beside the conversation again')
-      .toMatch(/<aside className="flex-1 min-w-0/)
+      // ⛓️ 24 Sep (R145 step 2) — the redesign's own body class leads the list now; the width rule is unchanged.
+      .toMatch(/<aside className="(mv-workspace-body )?flex-1 min-w-0/)
     // ⚠️ AND SHE IS INTRODUCED. The page's own 54px header went when the shell's account bar
     // took over, and the conversation's header went with it — leaving the client talking to an
     // unlabelled box. This is the conversation's header, the same one MillaConversation draws.

@@ -92,7 +92,12 @@ describe('A2a · the screen: no industry, no next step — and Milla says where 
   const welcome = src('../../../portal/src/app/(milla)/milla/welcome/page.tsx')
 
   it('🛑 "Yes, this represents us" is locked until an industry is picked', () => {
-    expect(welcome).toContain('disabled={saving || proofHold !== null || !industryChosen}')
+    // ⛓️ 24 Sep (R145 step 2) — WAS `disabled={saving || proofHold !== null || !industryChosen}`. The one Brief
+    // button is now disabled by `blocker`, which names the missing industry; the button itself is
+    // not drawn at all while Proof is being held (`proofHold`), so the same three facts still gate it.
+    expect(welcome).toContain('disabled={saving || blocker !== null}')
+    expect(welcome).toContain(": !industryChosen ? 'Choose your industry on the right.")
+    expect(welcome).toContain("{proofHold === null || proofHold === 'not_started' ? (")
     expect(welcome).toMatch(/async function approve\(\) \{\n[^\n]*\n\s*if \(!industryChosen\)/)
   })
 

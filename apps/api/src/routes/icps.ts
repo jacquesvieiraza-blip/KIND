@@ -4575,6 +4575,26 @@ outstanding: that answer will be refused and the client will be shown a plain pr
 instead of a reply from you, which is a worse experience than one more natural question.`
     : ''}`
         }
+        // ── ⚑ 24 Sep (R145 step 2 · #69/#70) — "WHAT ELSE DO YOU NEED?" GETS A STRAIGHT ANSWER ──
+        //
+        // Founder: *"Milla does not tell me what else i need here. i need to ask???"* — and when
+        // he did ask, she could not say, because the one thing he still owed (the industry) is
+        // picked on the right and was never in her view. She now knows what is outstanding AND
+        // whether the industry has been chosen, and is told to answer the question plainly.
+        if (draft) {
+          const { apolloIndustriesOnly } = await import('@kind/shared')
+          const picked = ((draft.facts ?? {}) as Record<string, unknown>).picked as Record<string, unknown> | undefined
+          const hasIndustry = apolloIndustriesOnly(Array.isArray(picked?.industries) ? picked!.industries as unknown[] : []).length > 0
+          resumeBlock += `
+
+── IF THEY ASK WHAT ELSE YOU NEED ─────────────────────────────────────────
+Answer it directly, in one or two plain sentences. ${outstanding.length > 0
+  ? `Name what you still need: ${outstanding.join(', ')}.`
+  : 'Everything you ask for in conversation is held.'} ${hasIndustry
+  ? 'Their industry is chosen.'
+  : 'They have NOT yet chosen their industry. That is picked by them from the list on the right of their screen, never typed to you, so tell them to choose it there.'}
+Never ask again for anything listed above as already told to you.`
+        }
       } catch { /* the draft is unreadable; the conversation proceeds exactly as before */ }
     }
 

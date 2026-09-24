@@ -835,7 +835,9 @@ describe('THE WELCOME PANEL STATES THE PROGRAMME, NOT THE RETIRED CREDIT MODEL',
   // sentence was removed by a 22-Sep approved preview, and only he can retire his own copy.
   it('⑬ the approved promise survives the panel that carried it', () => {
     // ① The workspace exists and is named, so the client knows what they are looking at.
-    expect(WELCOME_CODE, 'the workspace lost its name').toContain('Your workspace')
+    // ⛓️ 24 Sep (R145 step 2) — WAS 'Your workspace'. The redesign names the box "Your targeting"; the shell's head
+    // already reads "Live workspace", and two boxes called "workspace" would be one too many.
+    expect(WELCOME_CODE, 'the workspace lost its name').toContain('<b>Your targeting</b>')
     // ② It fills as they talk — the six fields are present before anything is known.
     expect(WELCOME_CODE, 'the empty-state copy for an unanswered field is gone')
       .toContain('placeholder')

@@ -603,7 +603,10 @@ myProgrammeRouter.get('/capacity', async (req: AuthRequest, res) => {
       return
     }
     const cap = await clientCapacityFor(clientId, icp)
-    res.json({ success: true, data: { committed: cap.committed, known: cap.known } })
+    // ⚑ 24 Sep (R145 step 4 · #29) — AND THE WORKABLE POOL, which the Programme panel's Capacity card
+    // shows. The pool is the CLIENT's (matched − their own exclusions − already worked); the rates
+    // behind `committed` stay ours and are not sent.
+    res.json({ success: true, data: { committed: cap.committed, known: cap.known, workable: cap.workable } })
   } catch (err) {
     console.error('[programme/me/capacity]', err)
     // ⚠️ AN UNREADABLE CAPACITY IS NOT A CAPACITY OF ZERO. The screen leaves the cap off rather

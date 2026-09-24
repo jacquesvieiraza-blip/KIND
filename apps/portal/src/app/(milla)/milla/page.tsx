@@ -1777,7 +1777,13 @@ export default function MillaHomePage() {
         { target: 'chat',      title: 'Milla, any time', body: "Ask for more people, change who we're targeting, or tell me a lead was wrong. I'm how you steer it — there are no forms." },
         { target: 'kpi-meetings', title: 'What it comes back as', body: 'Booked meetings. We answer the replies, qualify them and put the meeting in your calendar — you just turn up.' },
       ]} />
-      {showProofDesk ? proofPanel : (
+      {/* ⚑ 24 Sep (R145 step 4) — AFTER PROOF THE RIGHT SIDE IS THE PROGRAMME SCREEN, DRAWN AS THE
+          REDESIGN DRAWS IT: no four-tile row above it and no box around it. The tiles said what the
+          panel now says itself (outcome, stage, progress, next). They remain only for the states
+          that have no panel: loading, and a programme read that failed. */}
+      {showProofDesk ? proofPanel : (!progFailed && prog && (prog.hasProgramme !== false || prog.stage === 'Recommendation')) ? (
+        <div className="flex-1 min-h-0"><ProgrammeScreen /></div>
+      ) : (
       <div className="flex-1 min-h-0 flex flex-col px-5 py-4">
       {/* ⛓️ 30 Aug (BUILD-004A-1) — THE $299 GO-LIVE BANNER IS REMOVED.
           It read "Go live — your first 100 leads are $299 … After the first 100 it's a flat

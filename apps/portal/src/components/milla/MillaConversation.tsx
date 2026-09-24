@@ -126,6 +126,7 @@ const PROOF_CHIPS = [
 const CHIP_ANOTHER = 'Show me another twenty'
 const CHIP_WIDEN = 'What if I add Germany?'
 const CHIP_ACCEPT = 'These are right'
+const CHIP_EXPLAIN_250 = 'Explain the 250'
 /** Only where a programme exists and is running — not before it starts, not once it ends. */
 const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
 /** Only once outreach has had the chance to produce something to measure. */
@@ -227,7 +228,12 @@ type MillaConversationApi = {
 }
 
 /** The Proof panel's actions a chip may run. Each is present only while the server offers it. */
-export type DeskActions = { anotherSample?: (() => void) | null; accept?: (() => void) | null }
+export type DeskActions = {
+  anotherSample?: (() => void) | null
+  accept?: (() => void) | null
+  /** ⚑ 24 Sep (R145 step 4 · #31) — the accept chip's own words where they differ ("Accept 10"). */
+  acceptLabel?: string | null
+}
 
 const Ctx = createContext<MillaConversationApi | null>(null)
 
@@ -697,6 +703,10 @@ export function MillaConversationProvider(
     ...(prog.stage === 'Proof' && proofSetOnDesk ? [CHIP_WIDEN] : []),
     ...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.accept ? [CHIP_ACCEPT] : []),
     ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
+    // ⚑ 24 Sep (R145 step 4 · #31) — the redesign's Programme chips: a question about the 250, and
+    // "Accept N", which runs the panel's own Accept · Pay P1 (so it cannot skip what the button does).
+    ...(prog.stage === 'Recommendation' ? [CHIP_EXPLAIN_250] : []),
+    ...(prog.stage === 'Recommendation' && deskActions?.accept ? [deskActions.acceptLabel ?? CHIP_ACCEPT] : []),
     ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
   ]
@@ -832,6 +842,7 @@ export function MillaConversationProvider(
               {chips.map(c => <button key={c} onClick={() => {
                 if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
                 if (c === CHIP_ACCEPT && deskActions?.accept) { deskActions.accept(); return }
+                if (deskActions?.accept && deskActions.acceptLabel && c === deskActions.acceptLabel) { deskActions.accept(); return }
                 void send(c)
               }} disabled={sending} className="mv-quick disabled:opacity-50">{c}</button>)}
             </div>

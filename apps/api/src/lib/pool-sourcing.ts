@@ -14,7 +14,7 @@
 //     can never over-source (pool-served count is subtracted from the PDL ask).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { canonicalLaunchCountry } from '@kind/shared'
+import { canonicalLaunchCountry, apolloIndustriesOnly } from '@kind/shared'
 // ⚑ 10 Sep (C02) — the ONE hard-fit rule. Statically imported: `proof-fit` pulls only
 // `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
 // environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
@@ -262,7 +262,9 @@ function poolFit(rec: PoolRecord, icp: PoolMatchIcp) {
     // ⚑ 18 Sep (J5-C4) — their stated range, so the pool and the provider path cannot
     // disagree about how big "50 to 100 people" is.
     target_size: icp.target_size ?? null,
-    industries: icp.industries ?? null,
+    // ⛓️ 24 Sep (R145 step 3a · #23) — ONLY APOLLO'S OWN INDUSTRIES, exactly what the search sends.
+    // WAS `icp.industries`, which held words WE derived; they may rank, never select.
+    industries: apolloIndustriesOnly(icp.industries ?? []),
     job_titles: icp.job_titles ?? null,
     seniority_levels: icp.seniority_levels ?? null,
     // ── ⚑ 18 Sep (J5-C12 · FD-1) — "IN EVERY PATH" INCLUDES THE FREE ONE ────────────────

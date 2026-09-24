@@ -347,7 +347,7 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // ⛓️ 18 Sep (J5-C6) — `icp_id` JOINS THE SELECT, AND IT IS NOT SHOWN. It is how the card
       // is judged against the targeting it was SOURCED for rather than the client's newest
       // ICP — see the read below. Not added to the masked shape: the client sees a band.
-      .select('id, icp_id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at')
+      .select('id, icp_id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at, apollo_id')
       .eq('client_id', clientId)
       // 🛑 10 Sep — A SET-ASIDE CANDIDATE IS NEVER ON THE DESK. It failed a hard criterion the
       // client themselves named, and it was recorded rather than deleted so an operator can
@@ -1437,7 +1437,7 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
     // ⛓️ 18 Sep (J5-C6) — the fit columns join the select so this route can ask the SAME
     // question the desk asked before it drew the card. Nothing here is returned to the client.
     const { data: lead } = await db.from('leads')
-      .select('id, client_id, icp_id, surfaced_for_approval_at, delivered_at, revealed_at, status, country, company_size, industry, job_title, seniority, company, category_fit, score')
+      .select('id, client_id, icp_id, surfaced_for_approval_at, delivered_at, revealed_at, status, country, company_size, industry, job_title, seniority, company, category_fit, score, apollo_id')
       .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 

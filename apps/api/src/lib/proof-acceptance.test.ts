@@ -644,7 +644,9 @@ describe('acceptance spends nothing and calls nobody', () => {
   it('and in the source, which catches the call a happy-path test never reaches', async () => {
     const src = strip(block())
     for (const forbidden of [
-      /pdlSearch|searchPeople|apollo|hunter|clearbit/i,
+      // ⛓️ 24 Sep (R145 step 3a) — `apollo(?!_id)`: the route now READS the lead's `apollo_id`
+      // column so its band agrees with the desk's (J5-C6). Reading a column calls nobody.
+      /pdlSearch|searchPeople|apollo(?!_id)|hunter|clearbit/i,
       /stripe|checkout|payment_intent|wallet|charge/i,
       /revealEmail|waterfallEnrich|enrichAndDeliver|approveLead/i,
       /sendConsentEmail|mailer|sendMail|smartlead|sequence/i,

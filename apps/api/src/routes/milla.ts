@@ -819,9 +819,11 @@ export function briefReadModelFrom(
       const sent = buildSearchBody({
         job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
         company_sizes: list('company_sizes'), geographies: list('geographies'),
-        industries: [], tech_stack: [], keywords: [], apollo_only_consented: true,
+        // ⛓️ 24 Sep (R145 step 3a) — WAS `industries: []`: the industry was never sent. It is now
+        // (Apollo's own entries only), so this preview is still the real request.
+        industries: list('industries'), tech_stack: [], keywords: [], apollo_only_consented: true,
       }, 1)
-      const asSent = (k: 'person_titles' | 'person_seniorities' | 'organization_num_employees_ranges' | 'person_locations'): string[] =>
+      const asSent = (k: 'person_titles' | 'person_seniorities' | 'organization_num_employees_ranges' | 'person_locations' | 'q_organization_keyword_tags'): string[] =>
         Array.isArray(sent[k]) ? (sent[k] as string[]) : []
 
       // ⚑ 23 Sep (R142 · A2a) — the industries the client PICKED from Apollo's list, and nothing else.
@@ -878,7 +880,7 @@ export function briefReadModelFrom(
           // from their sentence through the old sixteen-word list — an assumption, and one that
           // would satisfy the "pick an industry first" lock without the client ever choosing.
           row('target_category', 'Industry', onboardingText('target_category'), pickedIndustries,
-            'Choose from the list', 'from Apollo’s own industry list'),
+            'Choose from the list', 'from Apollo’s own industry list', asSent('q_organization_keyword_tags')),
           // ⚠️ THE ONE FIELD MILLA ASKS FOR. Exclusions are never derived from anything the
           // client said about who they WANT — they are an instruction, which is why this is
           // also the only row whose note claims to remove anybody.

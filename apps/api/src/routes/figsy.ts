@@ -2205,7 +2205,9 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
       try {
         if (await applyReplyBranching(enrollment, stepsCache) === 'skip') continue
       } catch (err) {
-        console.error('[figsy/send-due] branching', enrollment.id, ':', err)
+        // #1527 — a THROWN branching check holds the step, exactly like a returned read error.
+        console.error('[figsy/send-due] branching failed — holding this step:', enrollment.id, ':', err)
+        continue
       }
 
       try {

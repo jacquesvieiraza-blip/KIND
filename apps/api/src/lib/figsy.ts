@@ -501,7 +501,8 @@ export function sequenceTotalFor(e: { steps?: unknown; total_steps?: number | nu
  * Campaigns without configured steps keep the legacy behaviour (keep sending).
  * `reply_branch_handled_at` is advanced on every decision so a single reply only
  * branches once. Returns 'send' to proceed, or 'skip' if the enrollment was
- * already actioned this run.
+ * already actioned this run — or (#1527) if either read failed, which HOLDS the step
+ * without stamping the enrollment so the next run retries.
  *
  * @param stepsCache per-run cache of campaign_id → steps, to avoid refetching.
  */
@@ -513,17 +514,31 @@ export async function applyReplyBranching(
   if (enrollment.current_step < 1) return 'send'
 
   const since = enrollment.reply_branch_handled_at ?? enrollment.enrolled_at ?? '1970-01-01T00:00:00Z'
-  const { count } = await db.from('figsy_replies')
+  const { count, error: countErr } = await db.from('figsy_replies')
     .select('id', { count: 'exact', head: true })
     .eq('enrollment_id', enrollment.id)
     .gt('received_at', since)
+  // 🛑 #1527 — FAIL CLOSED. A reply count we could not read is not "no reply": it left `count`
+  // null and the step went to somebody who may have answered us. 'skip' HOLDS this step without
+  // touching the enrolment, so it stays due and the next run decides with a clean read.
+  if (countErr) {
+    console.error(`[figsy] applyReplyBranching: the reply count could not be read for enrollment ${enrollment.id} (${countErr.message}) — step ${enrollment.current_step + 1} HELD rather than sent to somebody who may have replied.`)
+    return 'skip'
+  }
   if (!count) return 'send'
 
   // Resolve the campaign's configured steps (cached per run).
   let steps = stepsCache.get(enrollment.campaign_id)
   if (steps === undefined) {
-    const { data: camp } = await db.from('figsy_campaigns')
+    const { data: camp, error: campErr } = await db.from('figsy_campaigns')
       .select('settings').eq('id', enrollment.campaign_id).maybeSingle()
+    // 🛑 #1527 — FAIL CLOSED, and DO NOT CACHE. A failed read left `steps` null, which reads as
+    // "no configured sequence" → 'continue' → the next step SENT to a person who replied — and
+    // the null was cached, so every other enrolment on this campaign inherited it for the run.
+    if (campErr) {
+      console.error(`[figsy] applyReplyBranching: the campaign's steps could not be read for enrollment ${enrollment.id} (campaign ${enrollment.campaign_id}: ${campErr.message}) — a reply exists, so step ${enrollment.current_step + 1} is HELD rather than sent.`)
+      return 'skip'
+    }
     steps = ((camp?.settings as { steps?: SeqStep[] } | null)?.steps) ?? null
     stepsCache.set(enrollment.campaign_id, steps)
   }

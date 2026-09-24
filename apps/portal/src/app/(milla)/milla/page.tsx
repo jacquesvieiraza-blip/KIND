@@ -12,7 +12,8 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofReadiness } from '@kind/shared'
+import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofReadiness, APOLLO_INDUSTRIES, APOLLO_SENIORITY_LABELS } from '@kind/shared'
+import { FilterRow } from '@/components/milla/FilterRow'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -348,6 +349,15 @@ export default function MillaHomePage() {
   const [refineFinal, setRefineFinal] = useState<IcpTargeting | null>(null)
   /** The ICP the preview was built against — proved unchanged before anything is spent. */
   const [refineIcpId, setRefineIcpId] = useState<string | null>(null)
+  // ── ⚑ 24 Sep (R149) — THE PROOF SCREEN'S OWN DROP-DOWNS ──────────────────────────────────
+  //
+  // Founder, asked whether the client may change industry and seniority on Proof itself:
+  // *"Yes, drop-downs"*. The live targeting is read once when the desk opens, and what the
+  // client ticks is only a DRAFT — nothing is written until they confirm on the same
+  // "Use this refinement and find another set?" step the chat refinement uses. One spend
+  // boundary, not two: the drop-downs build `refineFinal`, and `confirmRefine` sends it.
+  const [proofIcp, setProofIcp] = useState<(IcpTargeting & { id: string }) | null>(null)
+  const [pickDraft, setPickDraft] = useState<{ industries: string[]; seniority_levels: string[] } | null>(null)
   const [refineSaid, setRefineSaid]   = useState<string | null>(null)
   const [refineBusy, setRefineBusy]   = useState(false)
   const [refineErr, setRefineErr]     = useState<string | null>(null)
@@ -497,6 +507,24 @@ export default function MillaHomePage() {
     if (proofMode) void loadCalibration()
   }, [proofMode, leads?.length, loadCalibration])
 
+  // ⚑ 24 Sep (R149) — the live targeting behind the Proof drop-downs. A failed read leaves them
+  // out rather than offering to change values we could not show.
+  useEffect(() => {
+    if (!proofMode) return
+    let alive = true
+    void (async () => {
+      try {
+        const r = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', await token())
+        const core = r.data?.[0] ?? null
+        if (!alive) return
+        setProofIcp(core)
+        setPickDraft(core ? { industries: core.industries ?? [], seniority_levels: core.seniority_levels ?? [] } : null)
+      } catch { /* the drop-downs simply do not render */ }
+    })()
+    return () => { alive = false }
+  // Re-read when a new pass is recorded, so the rows show the targeting that pass ran on.
+  }, [proofMode, summary?.proof_passes_done])
+
   // ── ⚑ 24 Aug — WHERE THIS PROSPECT IS IN THE TWO-PASS PROOF JOURNEY ──────────────────
   //
   // ⚠️ BOTH CONDITIONS, ALWAYS. `proofMode` is the authoritative unpaid/proof signal the
@@ -643,6 +671,28 @@ export default function MillaHomePage() {
   // `name`, `tech_stack` and `keywords` are carried through unchanged. They are not editable
   // in this launch refinement and are never shown as changed — but `/icps/revise` validates
   // the whole ICP, so they must travel with it, holding exactly today's values.
+  /**
+   * ⚑ 24 Sep (R149) — THE DROP-DOWNS' STEP 2. The same three-way merge as the chat's, with no
+   * model in it: the two picked fields are replaced by what is ticked, every other field is the
+   * value already saved, and `name` / `tech_stack` / `keywords` / consent travel unchanged.
+   * It writes NOTHING — it opens the confirmation, and `confirmRefine` is still the only spend.
+   */
+  function reviewPicks() {
+    if (!proofIcp || !pickDraft || refineBusy) return
+    if (typeof proofIcp.apollo_only_consented !== 'boolean') { setRefineErr('I could not read your targeting just now — please try again.'); return }
+    const final: IcpTargeting = {
+      name: proofIcp.name || 'My targeting',
+      tech_stack: proofIcp.tech_stack ?? [],
+      keywords: proofIcp.keywords ?? [],
+      apollo_only_consented: proofIcp.apollo_only_consented,
+    }
+    for (const [k] of REFINE_FIELDS) final[k] = proofIcp[k] ?? []
+    final.industries = pickDraft.industries
+    final.seniority_levels = pickDraft.seniority_levels
+    setRefineOpen(true); setRefineErr(null); setRefineSaid(null)
+    setRefineFinal(final); setRefineIcpId(proofIcp.id)
+  }
+
   async function submitRefine(text: string) {
     const msg = text.trim(); if (!msg || refineBusy) return
     setRefineBusy(true); setRefineErr(null)
@@ -1300,7 +1350,10 @@ export default function MillaHomePage() {
                 <>
                   <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
                   <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
-                    This is your second and last free set — after it, we talk it through together.
+                    {/* ⛓️ 24 Sep (R149) — WAS a warning that this was the client's LAST free set.
+                        Refinement has had no ceiling since the founder's 22 Sep *"2. unlimited
+                        now."*, so the sentence promised a wall that is gone. */}
+                    Looking again is free — nothing is bought, and you can change it again after.
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button disabled={refineBusy} onClick={confirmRefine}
@@ -1526,6 +1579,34 @@ export default function MillaHomePage() {
         ) : null}
       </div>
 
+      {/* ⚑ 24 Sep (R149) — "Your targeting", with the Brief's own drop-downs, on Proof. Only while
+          a refinement is allowed (`canRefine`) and the live targeting was read. */}
+      {canRefine && proofIcp && pickDraft && (() => {
+        const changed = ['industries', 'seniority_levels'].some(k => {
+          const a = [...((proofIcp as Record<string, unknown>)[k] as string[] ?? [])].sort().join('|')
+          const b = [...pickDraft[k as 'industries' | 'seniority_levels']].sort().join('|')
+          return a !== b
+        })
+        return (
+          <div className="mv-section">
+            <div className="mv-section-head"><b>Your targeting</b><span>change it here · looking again is free</span></div>
+            <div className="mv-section-body">
+              <FilterRow label="Industry" options={[...APOLLO_INDUSTRIES]} free={false}
+                chosen={pickDraft.industries} placeholder="Any industry"
+                onChange={next => setPickDraft(d => d ? { ...d, industries: next } : d)} />
+              <FilterRow label="Seniority" options={[...APOLLO_SENIORITY_LABELS]} free={false}
+                chosen={pickDraft.seniority_levels} placeholder="Any seniority"
+                onChange={next => setPickDraft(d => d ? { ...d, seniority_levels: next } : d)} />
+              <div className="mv-cta-row mt-3">
+                <button type="button" className="mv-btn primary disabled:opacity-40" disabled={!changed || refineBusy || proofAttempted}
+                  onClick={reviewPicks}>
+                  Find a new sample with these
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
       {/* ⛓️ 3 Sep — an earlier set is not a programme, and it says so (founder wording, verbatim). */}
       {leads && leads.length > 0 && proofPassesDone === 0 && (
         <div className="mv-section"><div className="mv-section-body">

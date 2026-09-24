@@ -115,7 +115,9 @@ describe('#7 #56 #57 · ONE panel in every state — the fields never disappear'
 
   it('🛑 the redesign\'s hero, filter rows and one button', () => {
     expect(WELCOME).toContain('<div className="mv-hero-card">')
-    expect(WELCOME).toContain('<details className="mv-filter-row"')
+    // ⛓️ 24 Sep (R149) — the row moved, unchanged, to its own component (shared with Proof).
+    expect(WELCOME).toContain("import { FilterRow } from '@/components/milla/FilterRow'")
+    expect(code('../../../portal/src/components/milla/FilterRow.tsx')).toContain('<details className="mv-filter-row"')
     expect(WELCOME).toContain('<b>Your targeting</b>')
     expect(WELCOME.match(/"Show me who you'd find"/g) ?? []).toHaveLength(1)
   })

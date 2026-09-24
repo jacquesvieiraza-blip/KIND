@@ -972,6 +972,45 @@ export default function VidaConsolePage() {
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
+  // ── ⚑ 24 Sep — REWRITE THE MESSAGES OF A PACKAGE NOBODY HAS APPROVED ───────────────────
+  //
+  // The House walk's package awaiting approval carried copy naming one sample prospect. This
+  // writes new words, rebuilds every prepared person's copy and publishes a NEW version. Like
+  // the re-freeze it moves no status and grants no authority, so it is its own function and
+  // never one of the six `lifecycle()` moves. The server refuses unless nothing was approved or
+  // sent (`lib/programme-rewrite.ts`); this only decides whether to DRAW the button.
+  function canRewriteMessages(): boolean {
+    const p = prog?.programme
+    return !!p && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true
+  }
+
+  const rewriteMessages = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Rewrite the messages in ${who}'s programme?\n\nNew emails are written, every prepared person's copy is rebuilt from them, and the client is shown a NEW version to approve. It only works while nothing has been approved or sent.\n\nNOTHING is approved, charged or sent.`)) return
+    const settleBusy = forThisProgramme(setLcBusy)
+    setLcBusy('rewrite-messages'); setLcMsg(null)
+    try {
+      const res = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/rewrite-messages`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      })
+      const raw = await res.text()
+      let j: { success?: boolean; error?: string; data?: { headline?: string } } | null = null
+      try { j = raw ? JSON.parse(raw) : null } catch { j = null }
+      if (j === null) {
+        throw new Error(`K.I.N.D did not answer in time (HTTP ${res.status}). The rewrite may still be running — do not press again. Reload in a minute and read the package version.`)
+      }
+      if (!j.success) throw new Error(j.error || 'Nothing was rewritten.')
+      // ⚠️ THE SERVER'S OWN SENTENCE: how many people were updated and which version is now live.
+      say(String(j.data?.headline ?? 'The messages were rewritten.'))
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'Nothing was rewritten.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
   // ── ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER A ZERO-ELIGIBLE RUN ─────────────────────
   //
   // 🛑 THE PRODUCT HAD ALREADY PROMISED THIS. The client's desk shows the founder-locked
@@ -4604,6 +4643,11 @@ export default function VidaConsolePage() {
                           <button onClick={() => lifecycle('go-live', 'Make live')} disabled={lcBusy !== null}
                             className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
                             {lcBusy === 'go-live' ? '…' : 'Make programme live'}</button>
+                        )}
+                        {canRewriteMessages() && (
+                          <button onClick={() => void rewriteMessages()} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-[#7C3AED] bg-white border border-[#d9ccf5] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'rewrite-messages' ? 'Rewriting…' : 'Rewrite messages'}</button>
                         )}
                         {prog.programme.status === 'READY_FOR_APPROVAL' && (
                           <span className="text-[12.5px] font-semibold text-[#6b5f8c] bg-[#faf8ff] border border-[#eee7f7] rounded-lg px-2.5 py-1.5">

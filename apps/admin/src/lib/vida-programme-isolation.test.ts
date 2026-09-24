@@ -668,11 +668,17 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // `POST /programmes/:id/settle-shortfall`, which credits a wallet — so it is a programme-id
       // action whose confirmation names the SELECTED client, and it passes the same gate.
       'const settleProgramme = useCallback(async () => {',
+      // ⛓️ 24 Sep — A TENTH, REGISTERED HERE. `rewriteMessages` posts
+      // `POST /programmes/:id/rewrite-messages`, which rewrites a package awaiting approval and
+      // publishes a new version — a programme-id action whose confirmation names the SELECTED
+      // client, so it passes the same gate.
+      'const rewriteMessages = useCallback(async () => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
-    // Nine call sites, and no tenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle).
-    expect(code.split('programmeActionId()').length - 1).toBe(9)
+    // Ten call sites, and no eleventh action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
+    // 9 → 10 on 24 Sep (rewrite messages).
+    expect(code.split('programmeActionId()').length - 1).toBe(10)
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {
@@ -682,6 +688,8 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       'const refreezePackage = useCallback(async () => {',
       'const lifecycle = useCallback(async (action: string, label: string) => {',
       'const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {',
+      // ⛓️ 24 Sep — the rewrite publishes a new version, so its dialog must name the right client too.
+      'const rewriteMessages = useCallback(async () => {',
     ]) {
       const body = fnBody(code, fn)
       const gate = body.indexOf('programmeActionId()')
@@ -699,6 +707,8 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       ['const refreezePackage = useCallback(async () => {',                            'settleBusy(null)'],
       ['const lifecycle = useCallback(async (action: string, label: string) => {',     'settleBusy(null)'],
       ['const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {', 'settleBusy(null)'],
+      // ⛓️ 24 Sep — the rewrite settles through the same generation-scoped writer.
+      ['const rewriteMessages = useCallback(async () => {',                            'settleBusy(null)'],
     ]
     for (const [fn, settle] of FINALIZERS) {
       const body = fnBody(code, fn)
@@ -736,8 +746,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     // clear client B's busy flag mid-flight.
     // ⛓️ 23 Sep (MVP1 Stage 6) — EIGHT: `settleProgramme` credits a wallet on a programme id and
     // carries the same generation-scoped finalizer.
+    // ⛓️ 24 Sep — NINE: `rewriteMessages` is a programme-id action with the same finalizer.
     expect(settlers.filter(x => x === 'settleBusy'),
-      'a programme-id action lost its generation-scoped finalizer').toHaveLength(8)
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(9)
     // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
     // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
     // with the guarded four but is likewise not a programme-id action — it posts

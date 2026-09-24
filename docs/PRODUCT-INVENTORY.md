@@ -1,5 +1,7 @@
 # 📋 K.I.N.D — PRODUCT INVENTORY (the single status board)
 
+> 🗂️ **⛓️ FROZEN 24 SEP (R85a) — STATUS NOW LIVES ON THE K.I.N.D OPERATING BOARD:** https://github.com/users/jacquesvieiraza-blip/projects/5 · Every open item is a card there; the column is its status. **This page is kept as the history record** — its dots are true as of 24 Sep and are no longer updated. Nothing here was deleted.
+
 > ## 🧭 GROUPED BY AGENT (founder-locked 21 Jul) — the FREEZE is LIFTED
 > **The 9-Jul "FIGSY-only / family frozen" lock is retired** (KIND-MASTER 21 Jul). The inventory is now organized by **the three agents — FIGSY · MILLA · VIDA** — with every item filed under the agent it serves, so you can see per-agent what's **live vs left to complete**. **Denise & Tony are kept as their own lines with a destination column → they fold into MILLA.** Status of record is still the dot; dots are unchanged by this regrouping.
 >

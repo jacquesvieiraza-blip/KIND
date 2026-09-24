@@ -187,7 +187,7 @@ export const VALUE_SPINE = [
   'EVERY EMAIL CARRIES THE VALUE SPINE, in this order, in plain words (founder-ruled 24 Sep, R157):',
   '1. THE PROBLEM — one specific problem this person has in their role, said the way they would say it. The step\'s angle decides which problem.',
   '2. THE IMPACT — what that problem is costing them right now: time, missed deals, a thin pipeline, wasted spend. Describe it; do not quantify it.',
-  '3. THE RETURN — why fixing it pays for itself, put in THEIR terms. Frame it as a question or a conditional, e.g. "what is one more meeting with the right decision-maker worth to your team?" NEVER a number, percentage, price, result, timeframe or customer of our own — none may be invented.',
+  '3. THE RETURN — why fixing it pays for itself, put in THEIR terms. Frame it as a question or a conditional, for example: what is one more meeting with the right decision-maker worth to your team? NEVER a number, percentage, price, result, timeframe or customer of our own — none may be invented.',
   '4. THE SOLUTION — what the sender does about it, only from the grounding block, then the step\'s one low-friction question.',
   'Keep all four inside the step\'s word limit. Short sentences. No step may skip the problem or the impact.',
 ].join('\n')

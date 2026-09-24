@@ -92,6 +92,29 @@ export function suspensionMessage(companyName: string | null | undefined): strin
 
 export type ColdExemption = { exempt: boolean; why: string }
 
+// ── ⚑ 23 Sep (R124 · R136 · R137) — A PROGRAMME CLIENT IS NOT JUDGED BY A PER-LEAD CLOCK ───
+//
+// This rule's clock is "the newest REVEALED lead" — an approval under the retired per-lead
+// model. A programme client is not paced by reveals at all, so the clock says nothing about
+// whether they are working with us. And R136 made the collision live: a programme that stops
+// short credits the client's wallet with a `wallet_topup`, which is in `PAID_TX_TYPES`, so the
+// cron started treating that client as "paid" and could warn or SUSPEND them for not revealing.
+//
+// So the cron asks the one question every legacy door asks (`legacyDoorVerdict` →
+// `mayUseLegacyCommercialPath`) and passes the answer in here. A refusal exempts:
+//   · 403 — on the programme: the per-lead rule does not apply;
+//   · 503 — the model could not be read: a PER-LEAD rule must not pause a client we cannot
+//     place on the per-lead model. Unlike the house lookup below, "could not tell" here means
+//     "no authority to apply a legacy sanction", so it skips rather than suspends.
+//
+// ⚠️ OPTIONAL, AND ONLY THE CRON PASSES IT. `coldView` (the display surfaces) does not, so this
+// change is confined to the cron that pauses campaigns.
+
+/** The shape `legacyDoorVerdict` returns — restated so this module stays pure. */
+export type ColdLegacyVerdict =
+  | { allowed: true }
+  | { allowed: false; status: 403 | 503; reason: string }
+
 /**
  * Should `cold-check` skip this client entirely?
  *
@@ -103,12 +126,19 @@ export function coldCheckExempt(a: {
   isDemo: boolean | null | undefined
   /** Resolved by `decideHouseClient` — NEVER matched on company name (#584/#593). */
   houseClientId: string | null
+  /** From `legacyDoorVerdict(clientId)`. Omitted → no commercial-model exemption. */
+  legacyVerdict?: ColdLegacyVerdict
 }): ColdExemption {
   if (a.isDemo === true) {
     return { exempt: true, why: 'demo account — ours, not a client we carry a sender for' }
   }
   if (a.houseClientId && a.clientId === a.houseClientId) {
     return { exempt: true, why: 'the house account (Client Zero) — this rule is about a CLIENT going quiet while we pay for their mailbox. Our own bill is our own choice, and there is no churn to warn about.' }
+  }
+  if (a.legacyVerdict && !a.legacyVerdict.allowed) {
+    return a.legacyVerdict.status === 503
+      ? { exempt: true, why: `commercial model could not be read (${a.legacyVerdict.reason}) — a per-lead reveal rule is not applied to a client we cannot place on the per-lead model` }
+      : { exempt: true, why: 'on the programme (R137) — the 30-day reveal clock belongs to the retired per-lead model, so it neither warns nor suspends a programme client' }
   }
   return { exempt: false, why: '' }
 }

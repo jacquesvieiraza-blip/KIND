@@ -1756,11 +1756,19 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
       console.error('[cold-check] house resolution failed — failing OPEN, no exemption:', err instanceof Error ? err.message : err)
     }
 
+    // ⚑ 23 Sep (R137 · R136) — the reveal clock below is a PER-LEAD rule. A programme client
+    // (every account, since R137) is exempt; a shortfall credit (`wallet_topup`) no longer
+    // makes one "paid" in this rule's eyes. See `coldCheckExempt`.
+    const { legacyDoorVerdict } = await import('../lib/commercial-model')
+
     const now = new Date()
     let warned = 0, suspended = 0, exempted = 0
     for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
       const cid = c.id as string
-      const skip = coldCheckExempt({ clientId: cid, isDemo: c.is_demo as boolean | null, houseClientId })
+      const skip = coldCheckExempt({
+        clientId: cid, isDemo: c.is_demo as boolean | null, houseClientId,
+        legacyVerdict: await legacyDoorVerdict(cid),
+      })
       if (skip.exempt) {
         exempted++
         console.log(`[cold-check] skipped ${c.company_name ?? cid} — ${skip.why}`)
@@ -1870,6 +1878,21 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
 
         // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue
+
+        // ── 🛑 ⚑ 23 Sep (R124 · R136 · R137) — THE LEGACY DRIP ASKS WHO THE CLIENT IS ──────
+        //
+        // This is the per-lead drip: it reveals (spends) and delivers unattributed pool leads,
+        // ungated. It never asked the commercial model, and R136's shortfall credit gives a
+        // programme client a wallet balance. Every retired door asks `mayUseLegacyCommercialPath`
+        // through `legacyDoorVerdict`; this one now does too. It never throws, and an unreadable
+        // model refuses — the drip fails closed. The programme fences on the lead query below
+        // are unchanged.
+        const { legacyDoorVerdict } = await import('../lib/commercial-model')
+        const door = await legacyDoorVerdict(client.id)
+        if (!door.allowed) {
+          console.log(`[leads/drip] skip client ${client.id} — no legacy per-lead path (${door.status}): ${door.reason}`)
+          continue
+        }
 
         // ── #331 — cap the free-leads drip (FIGSY plan only; lead_gen untouched) ──
         if (normalizePlan(client.plan) === 'figsy') {

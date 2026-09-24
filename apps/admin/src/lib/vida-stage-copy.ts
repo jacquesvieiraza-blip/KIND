@@ -47,6 +47,26 @@ export const OPERATOR_RAIL = [
 ] as const
 export type OperatorRailStep = (typeof OPERATOR_RAIL)[number]
 
+/**
+ * ⚑ 24 Sep (R145 step 7 · #64) — WHERE ON OUR WORK RAIL A CLIENT IS, FROM THE ENGINE STAGE.
+ *
+ * ⚠️ ONLY WHAT THE STAGE ITSELF SAYS. Preparation (sourcing) is the people and the inbox; the
+ * frozen package at approval is the sequence; delivery is Run; a completed programme is Live
+ * and closed. Replies and Book are work INSIDE delivery that no stage separates, so they are
+ * never lit from here rather than lit by a guess. Before preparation there is no operator work
+ * yet, and nothing is lit.
+ */
+export function operatorRailAt(stage: string | null | undefined): OperatorRailStep | null {
+  switch (stage) {
+    case 'sourcing':   return 'Inbox + people'
+    case 'approval':   return 'Sequence'
+    case 'live':
+    case 'review':     return 'Run'
+    case 'completion': return 'Live'
+    default:           return null
+  }
+}
+
 export type StageFacts = {
   /** Brief facts held, and the denominator. `null` when the read failed. */
   brief: { collected: number; total: number } | null
@@ -117,7 +137,10 @@ export function nextActionCard(
     ? 'New client landed — no action needed'
     : stage === 'brief'
       ? 'Healthy Brief — no action needed'
-      : 'Proof confirmed by the client — no action needed'
+      // ⛓️ 24 Sep (R145 step 7 · #44) — was "Proof confirmed by the client", printed beside the
+      // lifecycle card's "Client: Reviewing" on the same panel. At this stage the client has NOT
+      // confirmed ("These are my people" is what moves them on), so the headline was the false half.
+      : 'Proof with the client — no action needed'
   return { kind: 'note', label: 'NEXT ACTION · NONE', body: `${headline}\n\n${body}` }
 }
 

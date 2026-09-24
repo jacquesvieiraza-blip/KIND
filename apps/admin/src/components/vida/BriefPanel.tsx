@@ -182,11 +182,15 @@ export function BriefPanel({ draftId }: { draftId: string }) {
   // confirmation is the client's to give. `needsYou: false` is therefore correct by
   // construction here — the escalation paths live on CLIENT rows, which a draft is not.
   const stage = d.brief.collected > 0 ? 'brief' : 'signup'
+  // ⛓️ 24 Sep (R145 step 7 · #41) — WAS `facts ? facts.spend.usd : null`, so while the facts read
+  // was in flight (or if it failed) the chip said "Spend — could not be read" about somebody who
+  // CANNOT have been spent on: a draft has no client row, so no sourcing batch can be ledgered
+  // against it (the same reason Proof is zero below). Zero is the fact, not a guess.
   const chips = stageChips({
     brief: { collected: d.brief.collected, total: d.brief.total },
-    spendUsd: facts ? facts.spend.usd : null,
-    records: facts ? facts.spend.records : null,
-    batches: facts ? facts.spend.batches : null,
+    spendUsd: facts ? facts.spend.usd : 0,
+    records: facts ? facts.spend.records : 0,
+    batches: facts ? facts.spend.batches : 0,
     needsYou: false,
   })
 
@@ -252,6 +256,9 @@ export function BriefPanel({ draftId }: { draftId: string }) {
       clientName={d.company_name || d.contact_name || 'Signed up'}
       subtitle={copy.subtitle}
       chips={chips}
+      // ⚑ 24 Sep (R145 step 7 · #64) — the redesign draws the operator rail on every stage; a
+      // draft has no operator work yet, so nothing on it is lit.
+      rail={{ at: null }}
       cards={[...copy.cards, ...extra]}
       actions={[]}
       busy={null}

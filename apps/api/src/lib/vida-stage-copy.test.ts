@@ -62,7 +62,10 @@ describe('🛑 normal is silent — an action has to be earned', () => {
   it('each one names the STATE, not the stage', () => {
     expect(text(nextActionCard('signup', { needsYou: false }))).toContain('New client landed')
     expect(text(nextActionCard('brief', { needsYou: false }))).toContain('Healthy Brief')
-    expect(text(nextActionCard('proof', { needsYou: false }))).toContain('Proof confirmed by the client')
+    // ⛓️ 24 Sep (R145 step 7 · #44) — was 'Proof confirmed by the client', which contradicted the
+    // lifecycle card's "Client: Reviewing" on the same panel. The client has not confirmed yet.
+    expect(text(nextActionCard('proof', { needsYou: false }))).toContain('Proof with the client')
+    expect(text(nextActionCard('proof', { needsYou: false }))).not.toContain('confirmed')
   })
 
   it('🛑 but when something IS owed it is an exception, and it says why', () => {

@@ -154,7 +154,9 @@ describe('the Vida shell is untouched — this is one filter clause and one butt
   // the kind and its destination, which is the thing that must not break, and the new kind's
   // own routing is pinned beside them rather than being an untested addition.
   it('the existing kind-based tab routing still works for the older alert kinds', () => {
-    const at = code.indexOf('onClick={() => setTab(')
+    // ⛓️ 24 Sep (R145 step 7 · #55) — FOUND BY ITS KIND, NOT BY BEING FIRST. The Vida column moved
+    // to the right of the cockpit, so the tab bar's own `setTab(t)` now comes first in the file.
+    const at = code.indexOf('onClick={() => setTab(a.kind')
     expect(at, 'the alert chip no longer routes to a tab at all').toBeGreaterThan(-1)
     const route = code.slice(at, code.indexOf('\n', at))
     expect(route, "the 'replies' kind no longer lands on the Inbox").toMatch(/'replies'[\s\S]*\?\s*'Inbox'/)
@@ -163,7 +165,7 @@ describe('the Vida shell is untouched — this is one filter clause and one butt
   })
 
   it('and an unattributed reply lands on the Inbox — the surface it is about', () => {
-    const at = code.indexOf('onClick={() => setTab(')
+    const at = code.indexOf('onClick={() => setTab(a.kind')
     const route = code.slice(at, code.indexOf('\n', at))
     expect(route).toMatch(/'reply_unattributed'[\s\S]*\?\s*'Inbox'/)
   })

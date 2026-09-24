@@ -225,6 +225,12 @@ type MillaConversationApi = {
   setDeskActions: (a: DeskActions | null) => void
   /** ⚑ 24 Sep (R145 step 3b · #25) — `announce`, but at most once per key for this visit. */
   announceOnce: (key: string, lines: string[]) => void
+  /**
+   * ⚑ 24 Sep (R145 step 6 · #38) — the client asks Milla something from a button on the right, in
+   * THIS chat, through the canonical sender. ⛓️ WAS a link to `/milla?ask=…`, which nothing read —
+   * the "ask Milla" buttons on Results and Complete went nowhere.
+   */
+  ask: (text: string) => void
 }
 
 /** The Proof panel's actions a chip may run. Each is present only while the server offers it. */
@@ -249,7 +255,7 @@ export function useMillaConversation(): MillaConversationApi {
 const INERT: MillaConversationApi = {
   focus: () => {}, publishDeskSet: () => {}, icpRevision: 0,
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
-  setDeskActions: () => {}, announceOnce: () => {},
+  setDeskActions: () => {}, announceOnce: () => {}, ask: () => {},
 }
 
 export function MillaConversationProvider(
@@ -475,6 +481,8 @@ export function MillaConversationProvider(
   }, [])
   const refreshStage = useCallback(() => setStageNonce(n => n + 1), [])
   const announcedKeys = useRef<Set<string>>(new Set())
+  const sendRef = useRef<((t: string) => void) | null>(null)
+  const ask = useCallback((text: string) => { const t = text.trim(); if (t) sendRef.current?.(t) }, [])
   const announceOnce = useCallback((key: string, lines: string[]) => {
     if (announcedKeys.current.has(key)) return
     announcedKeys.current.add(key)
@@ -495,6 +503,7 @@ export function MillaConversationProvider(
    * a retry after a failed or ambiguous attempt replays the same key instead of a new row.
    * The ordinary composer passes nothing and the server mints an id exactly as before.
    */
+  sendRef.current = (t: string) => { void send(t) }
   async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
     // 🛑 IDENTITY BEFORE THE NETWORK. A retry of the one unresolved turn reuses its id; a
@@ -709,6 +718,10 @@ export function MillaConversationProvider(
     // ⚑ 24 Sep (R145 step 5 · #78) — the redesign's Approval chips: questions for Milla. A change she
     // agrees makes a NEW version to approve; nothing here edits the frozen one.
     ...(prog.stage === 'Approval' ? ['Show me the full sequence', 'Change the sending window'] : []),
+    // ⚑ 24 Sep (R145 step 6) — the redesign's Results and Complete chips, as questions for Milla.
+    // (Its "Who never got contacted?" is left out: D6 — no never-contacted count.)
+    ...(prog.stage === 'Live' || prog.stage === 'Review' ? ['Show me my meetings'] : []),
+    ...(prog.stage === 'Completion' ? ['Price twenty meetings'] : []),
     ...(prog.stage === 'Recommendation' && deskActions?.accept ? [deskActions.acceptLabel ?? CHIP_ACCEPT] : []),
     ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
@@ -744,8 +757,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce }),
-    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce])
+    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, ask }),
+    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, ask])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),

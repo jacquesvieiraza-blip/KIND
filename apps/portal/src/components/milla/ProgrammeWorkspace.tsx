@@ -117,6 +117,7 @@ export type CustomerProgramme = {
 // name locally, and this component calls `programmeMoney` itself — tsc caught it at once.
 import { programmeMoney } from '@/lib/programme-money'
 export { programmeMoney }
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 
 /**
  * What Milla needs next, derived from the stage.
@@ -171,6 +172,7 @@ export function nextActionFor(p: CustomerProgramme): string {
 }
 
 export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
+  const ask = useMillaConversation().ask
   // ⛓️ 16 Sep (B1) — PROJECTED. The index is a position in the canonical six, so this strip,
   // the Milla shell ribbon and Vida's operator ribbon cannot number one client three ways.
   const stageIndex = MVP1_MILLA_STAGES.indexOf(mvp1MillaStageFromLegacy(p.stage))
@@ -329,12 +331,15 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
         {/* ── THE CONVERSATION ACCELERATOR ────────────────────────────────────────────
             Founder's words, per stage. A conversation starter, not a control: it takes the
             customer to Milla with the question already asked. */}
-        <a
-          href={`/milla?ask=${encodeURIComponent(p.quickAction)}`}
-          className="inline-block border border-[#ece5fb] rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors"
+        {/* ⛓️ 24 Sep (R145 step 6 · #38) — WAS `<a href={`/milla?ask=…`}>`: nothing read `?ask=`, so
+            the client landed on Home with nothing asked. It now asks Milla, in the one chat. */}
+        <button
+          type="button"
+          onClick={() => ask(p.quickAction)}
+          className="mv-btn"
         >
           {p.quickAction}
-        </a>
+        </button>
     </div>
   )
 }

@@ -115,7 +115,10 @@ describe('🛑 ③ the desk never lists a set-aside candidate', () => {
     expect(c).toContain('company_size, seniority')       // selected for the derivation
     // …and not present in the masked object the client receives.
     const masked = c.slice(c.indexOf('const masked ='), c.indexOf('res.json({ success: true, data: masked })'))
-    expect(masked.includes('company_size: '), 'company_size leaked into the masked card').toBe(false)
+    // ⛓️ 24 Sep (R145 step 3b) — COMPANY SIZE IS NOW ON THE CARD, as the redesign draws it
+    // ("Wren & C— LLP · 51–200"). Founder: *"match everything."* It is a fact about the company,
+    // not one of our rules; the rules (seniority, the criteria verdicts) stay off the card.
+    expect(masked.includes('company_size: l.company_size ?? null'), 'the size the redesign shows is missing').toBe(true)
     expect(masked.includes('seniority: '), 'seniority leaked into the masked card').toBe(false)
   })
 })

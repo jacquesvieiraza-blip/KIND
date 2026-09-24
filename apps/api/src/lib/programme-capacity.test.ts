@@ -255,10 +255,16 @@ describe('🛑 the widen route is offered without an opinion attached', () => {
   it('the Proof desk states the capacity and points at the fields', () => {
     const flat = DESK.replace(/\s+/g, ' ')
     expect(flat, 'the capacity is not stated on the desk').toContain('Your targeting carries')
-    expect(flat, 'the client is not handed the controls')
-      .toContain('Widen it yourself in the targeting fields on your Brief')
+    // ⛓️ 24 Sep (R145 step 3b · #82) — WAS 'set the targeting yourself in the fields on your Brief'
+    // and a link to /milla/welcome. Both were false by then: the Brief is SEALED once confirmed
+    // (PUT /milla/brief-draft answers 409), and the Brief page sends a client whose Proof is ready
+    // straight back to the desk — the "Open my Brief" loop the founder hit. At Proof the targeting
+    // changes through Milla: she reflects back the exact targeting before anything runs (25 Aug),
+    // and the client decides — no guess (22 Sep). Whether the drop-downs themselves should also
+    // sit on the Proof screen is put to the founder in the step-3b report.
+    expect(flat, 'the client is not told how to widen').toContain('Tell Milla where to widen')
     expect(flat, 're-counting is not promised as free').toContain('looking is free')
-    expect(DESK, 'there is no route to the fields').toContain('/milla/welcome')
+    expect(DESK, 'the link that looped back is back').not.toContain('href="/milla/welcome"')
   })
 
   it('🛑 and it proposes no geography, industry or size of its own', () => {

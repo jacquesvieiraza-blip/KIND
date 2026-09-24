@@ -129,6 +129,6 @@ describe('the band is the same on every surface that judges a Proof card', () =>
     expect(src('./proof-gate.ts')).toContain("category_fit, apollo_id'")
     expect(src('../routes/leads.ts')).toContain('category_fit, score, apollo_id')
     expect(src('./milla-proof-context-io.ts')).toContain('first_name, last_name, apollo_id')
-    expect(src('../routes/leads.ts')).toContain("category_fit, created_at, surfaced_for_approval_at, apollo_id')")
+    expect(src('../routes/leads.ts')).toContain('category_fit, created_at, surfaced_for_approval_at, apollo_id')
   })
 })

@@ -1025,7 +1025,12 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     // Removing the field to satisfy the old wording would have reintroduced the defect this
     // guard has nothing to do with. So the one identifier is exempted by name, and every
     // other mention of a provider is still refused.
-    expect(deskCode.replace(/apollo_only_consented/g, ' ')).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
+    // ⛓️ 24 Sep (R145 step 3b · D8) — ONE MORE EXEMPTION, AND IT IS THE FOUNDER'S OWN WORDS.
+    // *"when it presents leads to a client i want a little note saying pooled from pool or
+    // apollo."* (D8, approved 24 Sep). So "From Apollo" is the one provider name a client may
+    // read, as a source label; every other provider mention is still refused.
+    expect(deskCode.replace(/apollo_only_consented/g, ' ').replace(/apollo: 'From Apollo'/g, ' ').replace(/'apollo'/g, ' '))
+      .not.toMatch(/\bPDL\b|Apollo|Hunter/i)
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {

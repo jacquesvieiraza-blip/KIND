@@ -533,8 +533,15 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
     it('the desk offers the fields rather than a stop', () => {
       expect(HOME_CODE, 'a proof-exhausted wall came back').not.toContain('proofExhausted &&')
       const flat = HOME.replace(/\s+/g, ' ')
-      expect(flat, 'the client is not pointed at the fields they can set themselves')
-        .toContain('set the targeting yourself in the fields on your Brief')
+      // ⛓️ 24 Sep (R145 step 3b · #82) — WAS 'set the targeting yourself in the fields on your Brief'
+      // and a link to /milla/welcome. Both were false by then: the Brief is SEALED once confirmed
+      // (PUT /milla/brief-draft answers 409), and the Brief page sends a client whose Proof is ready
+      // straight back to the desk — the "Open my Brief" loop the founder hit. At Proof the targeting
+      // changes through Milla: she reflects back the exact targeting before anything runs (25 Aug),
+      // and the client decides — no guess (22 Sep). Whether the drop-downs themselves should also
+      // sit on the Proof screen is put to the founder in the step-3b report.
+      expect(flat, 'the client is not told how to change the targeting')
+        .toContain('tell her what to change')
       expect(flat, 'a person is no longer offered').toContain('rather a person looked at it with you')
     })
 

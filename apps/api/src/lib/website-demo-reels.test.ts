@@ -46,6 +46,18 @@ describe('each page plays its own reel, under its own picture', () => {
     })
   }
 
+  // The founder, 24 Sep: "change the captions. keep the pictures". The old captions described
+  // the old stills — "Your brief, confirmed…" under a Results screen, "sending state, daily cap"
+  // under a Prepare screen. A caption that describes a different picture is a small lie a
+  // visitor reads directly under the thing it is wrong about.
+  it('each caption describes the picture above it, not the one it replaced', () => {
+    const cap = (p: string) => read(p).match(/<div class="product-caption"><strong>[^<]*<\/strong><span>([^<]*)<\/span>/)?.[1] ?? ''
+    expect(cap('index.html')).toBe('Results: your programme in progress, and only the replies that need you. Demo data.')
+    expect(cap('vida.html')).toBe('The operator view: a programme preparing itself, with nothing waiting on a person. Demo records.')
+    expect(read('index.html'), 'the old Milla caption is back').not.toContain('Your brief, confirmed by you before anything runs')
+    expect(read('vida.html'), 'the old Vida caption is back').not.toContain('sending state, daily cap and what still needs approval')
+  })
+
   it('the Milla and Vida pages do not play the same thing any more', () => {
     const href = (p: string) => read(p).match(/<a class="mv-play" href="([^"]+)"/)![1]
     expect(href('index.html')).not.toBe(href('vida.html'))

@@ -46,7 +46,9 @@ export const SOURCING_AUTHORISED_STATUSES: ProgrammeStatus[] = [
 export type PauseReason = 'client' | 'quality' | 'icp_change'
 
 /** Controlled execution batch size (founder lock 4) — "approximately 250". */
-export const PROGRAMME_BATCH_SIZE = 250
+// ⛓️ 24 Sep — now defined in `@kind/shared` so the client's Approval screen reads the same number.
+import { PROGRAMME_BATCH_SIZE } from '@kind/shared'
+export { PROGRAMME_BATCH_SIZE }
 
 export interface ProgrammeRow {
   id: string

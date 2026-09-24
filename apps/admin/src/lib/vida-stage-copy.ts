@@ -42,7 +42,12 @@ export type StageChip = { text: string; tone: 'plain' | 'ok' | 'warn' | 'stop' }
  * "Sequence" — they are the mailbox and the copy, which is work that happens to them rather
  * than work they do.
  */
+//
+// ⛓️ 24 Sep (R148) — THE TRIM IS REVERSED, BY THE FOUNDER. Asked "9, like the redesign, or keep
+// 6?", the founder chose *"9, like the redesign"*. The 22 Sep option-A reasoning above is kept as the
+// history it is; the rail now draws the redesign's nine, with the client's first three steps.
 export const OPERATOR_RAIL = [
+  'Signed up', 'Brief', 'Programme',
   'Inbox + people', 'Sequence', 'Run', 'Replies', 'Book', 'Live',
 ] as const
 export type OperatorRailStep = (typeof OPERATOR_RAIL)[number]
@@ -53,11 +58,15 @@ export type OperatorRailStep = (typeof OPERATOR_RAIL)[number]
  * ⚠️ ONLY WHAT THE STAGE ITSELF SAYS. Preparation (sourcing) is the people and the inbox; the
  * frozen package at approval is the sequence; delivery is Run; a completed programme is Live
  * and closed. Replies and Book are work INSIDE delivery that no stage separates, so they are
- * never lit from here rather than lit by a guess. Before preparation there is no operator work
- * yet, and nothing is lit.
+ * never lit from here rather than lit by a guess.
  */
 export function operatorRailAt(stage: string | null | undefined): OperatorRailStep | null {
   switch (stage) {
+    // ⛓️ 24 Sep (R148) — the nine-step rail: a client row at `signup` has confirmed its Brief;
+    // Proof and the recommendation are both the road to the Programme.
+    case 'signup':         return 'Brief'
+    case 'proof':
+    case 'recommendation': return 'Programme'
     case 'sourcing':   return 'Inbox + people'
     case 'approval':   return 'Sequence'
     case 'live':

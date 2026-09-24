@@ -256,9 +256,10 @@ export function BriefPanel({ draftId }: { draftId: string }) {
       clientName={d.company_name || d.contact_name || 'Signed up'}
       subtitle={copy.subtitle}
       chips={chips}
-      // ⚑ 24 Sep (R145 step 7 · #64) — the redesign draws the operator rail on every stage; a
-      // draft has no operator work yet, so nothing on it is lit.
-      rail={{ at: null }}
+      // ⚑ 24 Sep (R145 step 7 · #64) — the redesign draws the operator rail on every stage.
+      // ⛓️ 24 Sep (R148) — WAS `{ at: null }`. The rail is now the redesign's nine, which start
+      // with the client's own steps: a draft with no fact yet has signed up; with one, it is at Brief.
+      rail={{ at: stage === 'brief' ? 'Brief' : 'Signed up' }}
       cards={[...copy.cards, ...extra]}
       actions={[]}
       busy={null}

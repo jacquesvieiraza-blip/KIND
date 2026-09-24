@@ -103,9 +103,9 @@ export function LifecyclePanel({
         {!attn && <div className="mv-automation">AI running · no action needed</div>}
       </div>
       <div className="flex flex-col gap-3.5 px-[22px] py-5">
-      {/* ⚑ #64 — the operator rail, in the redesign's own style. Founder-ruled 22 Sep (option A):
-          the steps the six-stage FLOW bar above already shows are trimmed, so it starts at
-          Inbox + people. `at: null` lights nothing — a client not yet at operator work. */}
+      {/* ⚑ #64 — the operator rail, in the redesign's own style.
+          ⛓️ 24 Sep (R148) — WAS trimmed to six (22 Sep option A); the founder chose the
+          redesign's nine. `at: null` lights nothing — a stage we cannot place. */}
       {rail && (
         <div className="mv-rail-flow">
           {OPERATOR_RAIL.map((step, i) => (

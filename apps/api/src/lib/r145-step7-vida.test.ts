@@ -51,14 +51,16 @@ describe('#64 · the operator rail in the redesign\'s style, lit from the engine
     expect(PAGE).not.toContain('FLOW_STEPS.map(')
     expect(PAGE).not.toContain('flowStepLabel(')
     expect(PAGE).toContain('rail={{ at: operatorRailAt(lc?.verdict.stage) }}')
-    expect(BRIEF).toContain('rail={{ at: null }}')
+    expect(BRIEF).toContain("rail={{ at: stage === 'brief' ? 'Brief' : 'Signed up' }}")
     expect(PANEL).toContain('<div className="mv-rail-flow">')
   })
 
-  it('🛑 only what the stage says is lit — nothing before our work starts', () => {
-    expect(operatorRailAt('signup')).toBeNull()
-    expect(operatorRailAt('proof')).toBeNull()
-    expect(operatorRailAt('recommendation')).toBeNull()
+  it('🛑 only what the stage says is lit', () => {
+    // ⛓️ 24 Sep (R148) — WAS null for signup / proof / recommendation, while the rail was trimmed
+    // to six. The founder chose the redesign's nine, so those stages now light their own step.
+    expect(operatorRailAt('signup')).toBe('Brief')
+    expect(operatorRailAt('proof')).toBe('Programme')
+    expect(operatorRailAt('recommendation')).toBe('Programme')
     expect(operatorRailAt('sourcing')).toBe('Inbox + people')
     expect(operatorRailAt('approval')).toBe('Sequence')
     expect(operatorRailAt('live')).toBe('Run')

@@ -67,6 +67,8 @@ export type BatchSummary = {
 export type ProgrammeTruth = {
   programme: {
     id: string
+    /** ⚑ 24 Sep — the owner. Vida refuses a programme it cannot attribute (BL-1). */
+    client_id: string
     status: ProgrammeStatus
     state: ProgrammeOperationalState
     meeting_target: number
@@ -338,6 +340,12 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   return {
     programme: {
       id: p.id,
+      // ⛓️ 24 Sep — WHOSE PROGRAMME THIS IS, SENT. Vida has refused any programme whose owner it
+      // cannot read since 13 Sep (BL-1, `decideProgrammeResponse`), and this object never carried
+      // it — `client_id` was SELECTED (`PROGRAMME_COLUMNS`) and then dropped here. So every client
+      // with a programme read as "belongs to a different client" and lost its whole panel. Found on
+      // the founder's House walk, 24 Sep.
+      client_id: p.client_id,
       status: p.status,
       state: operationalState(p, { strandedBatches: stranded.length, liveCampaign }),
       meeting_target: p.meeting_target,

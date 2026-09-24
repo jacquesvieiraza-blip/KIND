@@ -409,7 +409,10 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     try {
       if (await applyReplyBranching(enrollment, stepsCache) === 'skip') { r.skipped++; continue }
     } catch (err) {
-      console.error('[send-due] branching', enrollment.id, ':', err)
+      // #1527 — a THROWN branching check holds the step, exactly like a returned read error.
+      // Falling through here sent the next step to a person who may have replied.
+      console.error('[send-due] branching failed — holding this step:', enrollment.id, ':', err)
+      r.skipped++; continue
     }
 
     // Which mailbox carries THIS message? Least-used first; a box at its own daily_cap drops

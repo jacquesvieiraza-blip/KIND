@@ -12,6 +12,7 @@ import { db } from '@kind/db'
 import { verifySmartlead, smartleadConfigured } from '../lib/smartlead'
 import { pdlSearchPeople, pdlSearchDiagnostic } from '../lib/pdl-search'
 import { waterfallEnrich, revealTrace } from '../lib/enrichment'
+import { providerRetired } from '../lib/retired-providers'
 
 export const engineRouter = Router()
 
@@ -66,7 +67,9 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       industries:       csv(req.query.industry,   []),
     }
 
-    const pdlConfigured = !!process.env.PDL_API_KEY
+    // ⛓️ R146 (23 Sep) / FD-6 — a key does not make PDL a source. `pdl-search` refuses it
+    // anyway; this keeps the report from claiming a source that was never asked.
+    const pdlConfigured = !!process.env.PDL_API_KEY && !providerRetired('pdl')
     const hunterConfigured = !!process.env.HUNTER_API_KEY
     // Small sample (size 5) keeps the free-tier credit burn low — PDL bills 1 credit/record.
     const leads = pdlConfigured ? await pdlSearchPeople(icp, 5) : []
@@ -114,7 +117,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       enrichmentWaterfall,
       note: pdlConfigured
         ? 'PDL discovery + Hunter/Clearbit enrichment — Apollo NOT used. Source label shown per lead.'
-        : 'PDL_API_KEY not set on this service — PDL discovery is dormant; set the key to test.',
+        : 'PDL is RETIRED (FD-6 / R146) — PDL discovery is off in code and a key does not re-enable it.',
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'leads test failed'

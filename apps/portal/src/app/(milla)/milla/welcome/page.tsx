@@ -184,6 +184,12 @@ const GREETING_LINES = [
   "Hi, I’m Milla. Welcome — you’re in.",
   "There’s nothing to fill in and nothing to set up. Tell me what you’re trying to achieve and who you want in front of, in whatever words you’d use, and I’ll shape the rest from there.",
   "Everything I understand appears on the right as we talk, so you can see me getting it right — or tell me when I’ve got it wrong.\n\nLooking costs nothing. You don’t pay for anything until you’ve seen real people and decided how many meetings you want.",
+  // ⚑ 23 Sep (R144) — THE FOURTH MESSAGE: WHAT TO TYPE FIRST. Founder, verbatim: *"welcome is
+  // good. but it actually does not then tell me what to do next. i have to assume here. the 3
+  // messages are great. but there should be a 4th message. say please tell us who you are, name
+  // etc. just to get going."* It asks for the first three brief facts in their own order —
+  // contact name, company, website — and the website is read by the existing BASIC read.
+  "To get us going — what’s your name, and which company are you with? If you have a website, send it too and I’ll read it, so you don’t have to explain everything.",
 ]
 
 /**

@@ -71,33 +71,36 @@ describe('the Resolve targeting button reaches a real surface', () => {
   })
 })
 
+// ⛓️ 24 Sep (R145 step 2) — THE PLAN CARD IS GONE, AND EVERY DUTY BELOW MOVED INTO THE FILTER ROWS.
+// WAS: chips of their words on a "Proposed ICP" card (`briefCompanySizes.length ? briefCompanySizes
+// : proposed.company_sizes`, …) and one line under them, "We'll search for …", built from
+// `proposed.*`. Founder: *"i cant add more informaiton when the purple part comes up"* — the card
+// replaced the fields. Each field is now one row that shows, in order: their words ("you said"),
+// the values chosen, and — labelled as ours — what Apollo is actually sent. The server builds all
+// three from the durable Brief with the real request builder, so the line cannot drift.
 describe('the plan tells the client what we will search for', () => {
   it('🛑 THEIR OWN WORDS STILL LEAD — J5-C4 is preserved, not reversed', () => {
-    // 🛑 THE FOUNDER DECIDED THIS ON 18 Sep and nothing in R135 overrules it. A fix that
-    // replaced their sentence with our enums would be undoing a founder decision by accident,
-    // which is exactly the class of drift the citation law exists to stop.
-    expect(plan).toContain('briefCompanySizes.length ? briefCompanySizes : proposed.company_sizes')
-    expect(plan).toContain('briefSeniority.length ? briefSeniority : proposed.seniority_levels')
+    // 🛑 THE FOUNDER DECIDED THIS ON 18 Sep and nothing in R135 overrules it.
+    expect(plan).toContain('said={t.said || undefined}')
+    expect(plan).toContain('you said: {said}')
   })
 
   it('🛑 AND OURS FOLLOW, LABELLED AS OURS', () => {
     expect(plan, 'the client still cannot see what we will actually search for')
-      .toContain('We&rsquo;ll search for')
+      .toContain('stored &amp; sent as: {sentAs.join(\' · \')}')
+    expect(plan).toContain('sentAs={t.provider}')
   })
 
-  it('it is built from the canonical proposal, never from their raw phrasing', () => {
-    // The whole value of the line is that it shows the MAPPED values — the ones that go to
-    // the provider. Building it from `brief*` would just repeat the chips above it.
-    const block = plan.slice(plan.indexOf('We&rsquo;ll search for'))
-      .slice(0, 420)
-    expect(block).toContain('proposed.seniority_levels')
-    expect(block).toContain('proposed.company_sizes')
-    expect(block, 'the line repeats their words instead of showing the translation')
-      .not.toContain('briefCompanySizes')
+  it('it is built from the canonical values the search sends, never from their raw phrasing', () => {
+    // `provider` is `buildSearchBody`'s own output, sent by the server per row.
+    const block = plan.slice(plan.indexOf('stored &amp; sent as'))
+      .slice(0, 200)
+    expect(block).toContain('sentAs')
+    expect(block, 'the line repeats their words instead of showing the translation').not.toContain('said')
   })
 
   it('🛑 AND AN EMPTY PLAN GAINS NO EMPTY ROW', () => {
-    // A plan with no mapped values must not render "We'll search for ." at somebody.
-    expect(plan).toContain('proposed.seniority_levels.length > 0 || proposed.company_sizes.length > 0')
+    // A field with nothing mapped must not render "stored & sent as:" at somebody.
+    expect(plan).toContain('{sentAs && sentAs.length > 0')
   })
 })

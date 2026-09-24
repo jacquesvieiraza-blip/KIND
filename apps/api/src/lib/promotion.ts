@@ -239,7 +239,14 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     // ⚠️ FD-6: Apollo is the only provider, so the consent the schema asks for is given by
     // the promotion itself. There is no second provider for it to mean anything else about.
     apollo_only_consented: true,
-    ...(str(f.exclusions) ? { exclusions: str(f.exclusions) } : {}),
+    // ⚑ 24 Sep (R145 step 2 · #73) — AND THE COMPANIES THEY NAMED IN THE "Never contact" FIELD.
+    // Joined onto what they said, never replacing it: both are instructions to leave people out.
+    ...(() => {
+      const said = str(f.exclusions)
+      const named = arr(picks.exclusions).map(s => s.trim())
+      const all = [said, ...named].filter(Boolean).join('; ')
+      return all ? { exclusions: all } : {}
+    })(),
     // ⚠️ SET-ONLY, LIKE `PUT /icps`. A brief that translates cleanly writes NEITHER column
     // rather than writing `null` — clearing a review belongs to the operator resolve route
     // alone, which re-canonicalises every value first.

@@ -691,9 +691,10 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
   it('🛑 10 · the exclusions the client gave are RENDERED before they approve', () => {
     // ⛓️ `bad_fit` was declared on the Business type and rendered by nothing. The client said
     // it three times and the screen never showed it back once.
-    expect(PAGE).toContain('Who we will NOT contact — ')
-    expect(PAGE).toContain('{briefExclusions.trim() && <div>')
-    expect(PAGE).toContain('{briefExclusions}</span>')
+    // ⛓️ 24 Sep (R145 step 2) — the same row in the redesign's key/value list. WAS 'Who we will NOT contact — ',
+    // `{briefExclusions.trim() && <div>` and `{briefExclusions}</span>`.
+    expect(PAGE).toContain('<span>Who we will NOT contact</span><strong>{briefExclusions}</strong>')
+    expect(PAGE).toContain('{briefExclusions.trim() ? <div className="mv-kv-row">')
     // 🛑 AND IT IS THE SERVER'S CANONICAL RESOLUTION, NOT A HARD-CODED STRING.
     expect(PAGE).toContain("setBriefExclusions(typeof d.brief_exclusions === 'string' ? d.brief_exclusions : '')")
     expect(PAGE, 'nothing about the live conversation may be hard-coded into the screen')
@@ -701,15 +702,20 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
   })
 
   it('🛑 11 · the geography chips prefer the durable Brief over one sample', () => {
-    expect(PAGE).toContain('chips(briefGeographies.length ? briefGeographies : proposed.geographies)')
+    // ⛓️ 24 Sep (R145 step 2) — the plan card's chips are gone. Location is now a filter row that ALWAYS reads the
+    // durable Brief (`onboarding_targeting`, built by `icpFromDraft` on the server), so it can no
+    // longer be one completion's sample at all. WAS
+    // `chips(briefGeographies.length ? briefGeographies : proposed.geographies)`.
+    expect(PAGE).not.toContain('proposed.geographies')
+    expect(PAGE).toContain('setTargeting(d.data?.onboarding_targeting ?? [])')
     expect(PAGE).toContain('setBriefGeographies(Array.isArray(d.brief_geographies) ? d.brief_geographies : [])')
   })
 
   it('🛑 12 · the account block still shows country as STILL NEEDED when unknown', () => {
     // Unknown must look unknown. The panel already had this; what changed is that it is now
     // reachable, because the completion no longer forces the model to invent a country.
-    expect(PAGE).toContain('Based in — ')
-    expect(PAGE).toContain('{profile!.country || <span className="text-[#c9a0a0]">still needed</span>}')
+    // ⛓️ 24 Sep (R145 step 2) — the same row in the redesign's key/value list. WAS 'Based in — ' and a pink span.
+    expect(PAGE).toContain('<span>Based in</span><strong>{profile!.country || \'still needed\'}</strong>')
   })
 
   it('🛑 the server sends both canonical facts on every completion', () => {

@@ -191,6 +191,9 @@ describe('J3-C1 · the onboarding exception is deliberate and is the only one', 
     // The bar is absent; the journey is not. The onboarding panel names what happens next
     // rather than leaving a prospect with no sense of the sequence at all.
     const welcome = codeOf(join(MILLA_ROOT, 'milla/welcome/page.tsx'))
-    expect(welcome).toMatch(/Your targeting plan|Proposed ICP/)
+    // ⛓️ 24 Sep (R145 step 2) — the plan card ("Your targeting plan" / "Proposed ICP") is gone; the one panel is
+    // headed "Your targeting", and the line under its button names the next step or what is missing.
+    expect(welcome).toMatch(/Your targeting plan|Proposed ICP|<b>Your targeting<\/b>/)
+    expect(welcome).toContain('Free proof.')
   })
 })

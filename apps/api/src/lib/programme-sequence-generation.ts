@@ -78,7 +78,13 @@ type SampleLead = {
  * does not regenerate, because regenerating would silently replace copy that may already be
  * inside a customer's frozen review snapshot.
  */
-export async function generateProgrammeSequence(programmeId: string): Promise<GenerateSequenceResult> {
+export async function generateProgrammeSequence(
+  programmeId: string,
+  // ⚑ 24 Sep — ONLY `rewriteProgrammeMessages` passes this, and only after proving the programme
+  // is awaiting approval, was never approved and has sent nothing. Every other caller keeps the
+  // rule below: an existing sequence is the answer and is never regenerated.
+  opts: { replaceExisting?: boolean } = {},
+): Promise<GenerateSequenceResult> {
   const id = typeof programmeId === 'string' ? programmeId.trim() : ''
   if (!id) return { ok: false, alreadyPresent: false, reason: 'A programme id is required. Nothing was written.' }
 
@@ -90,7 +96,7 @@ export async function generateProgrammeSequence(programmeId: string): Promise<Ge
   // 🛑 AN EXISTING SEQUENCE IS THE ANSWER, NOT AN OBSTACLE. Operator-authored, previously
   // generated, or House's — if the chain resolved words with steps in them, those are the words
   // this programme sends and nothing here may touch them.
-  if (sequenceId && existingSteps.length > 0) {
+  if (sequenceId && existingSteps.length > 0 && opts.replaceExisting !== true) {
     return { ok: false, alreadyPresent: true, reason: 'This programme already has a canonical sequence with message steps, so none was generated.' }
   }
   if (!campaignId) {

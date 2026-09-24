@@ -1273,10 +1273,14 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     expect(d).not.toContain('refineDraft')
   })
 
-  it('the confirmation sentence and the two-passes warning are unchanged', () => {
+  it('the confirmation sentence is unchanged, and it no longer promises a last set', () => {
     const d = desk()
     expect(d).toContain('Use this refinement and find another set?')
-    expect(d).toContain('This is your second and last free set — after it, we talk it through together.')
+    // ⛓️ 24 Sep (R149) — WAS 'This is your second and last free set — after it, we talk it
+    // through together.' Refinement has no ceiling (founder-locked 22 Sep, *"2. unlimited now."*),
+    // so the warning described a wall that no longer exists.
+    expect(d).not.toContain('second and last free set')
+    expect(d).toContain('Looking again is free — nothing is bought, and you can change it again after.')
   })
 
   // ── BATCH SEPARATION ────────────────────────────────────────────────────────────────

@@ -1029,7 +1029,11 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     // *"when it presents leads to a client i want a little note saying pooled from pool or
     // apollo."* (D8, approved 24 Sep). So "From Apollo" is the one provider name a client may
     // read, as a source label; every other provider mention is still refused.
-    expect(deskCode.replace(/apollo_only_consented/g, ' ').replace(/apollo: 'From Apollo'/g, ' ').replace(/'apollo'/g, ' '))
+    // ⛓️ 24 Sep (R149) — AND TWO CONSTANT NAMES. The Proof drop-downs read their options from
+    // `APOLLO_INDUSTRIES` / `APOLLO_SENIORITY_LABELS` (R142: "we use apollo drop downs"). Those
+    // are identifiers in code, never words on the screen; the rule still refuses any other mention.
+    expect(deskCode.replace(/apollo_only_consented/g, ' ').replace(/apollo: 'From Apollo'/g, ' ').replace(/'apollo'/g, ' ')
+      .replace(/\bAPOLLO_INDUSTRIES\b|\bAPOLLO_SENIORITY_LABELS\b/g, ' '))
       .not.toMatch(/\bPDL\b|Apollo|Hunter/i)
   })
 

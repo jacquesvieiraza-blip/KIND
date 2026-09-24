@@ -261,6 +261,9 @@ describe('⑤ it appears where the client already is, and only when it should', 
   })
 
   it('it is silent at every stage that is not an approval', () => {
-    expect(PAGE).toContain('review.canApprove || review.programme.approved_at')
+    // ⛓️ 24 Sep (R145 step 5) — the same two states, now drawn as two places: the panel while it
+    // can be approved, and its approved state after. Still silent at every other stage.
+    expect(PAGE).toContain('review?.programme && review.canApprove && !review.programme.approved_at ? (')
+    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && (')
   })
 })

@@ -75,14 +75,20 @@ export default function ProgrammePage() {
   // inviting a second payment. So while the return flag stands and the payment is not yet on
   // record, the panel says the payment arrived and is being confirmed, offers no button, and
   // re-reads the programme until it is. Bounded: after two minutes it stops asking and says so.
-  const [paidReturn, setPaidReturn] = useState(false)
+  const [paidReturn, setPaidReturn] = useState<'first' | 'second' | null>(null)
   const [confirmSlow, setConfirmSlow] = useState(false)
   useEffect(() => {
-    try { setPaidReturn(new URLSearchParams(window.location.search).get('paid') === 'first') } catch { /* no URL */ }
+    try {
+      const v = new URLSearchParams(window.location.search).get('paid')
+      setPaidReturn(v === 'first' || v === 'second' ? v : null)
+    } catch { /* no URL */ }
   }, [])
-  const awaitingFirst = paidReturn && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+  const awaitingFirst = paidReturn === 'first' && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+  // ⚑ 24 Sep (R145 step 5) — the same wait after the SECOND payment (Approve vN and pay P2).
+  const awaitingSecond = paidReturn === 'second' && !!p && !p.money.secondPaidAt && !p.money.secondAuthorisedAt
+  const awaiting = awaitingFirst || awaitingSecond
   useEffect(() => {
-    if (!awaitingFirst) return
+    if (!awaiting) return
     let n = 0
     const t = setInterval(() => {
       n += 1
@@ -90,7 +96,28 @@ export default function ProgrammePage() {
       void load()
     }, 4000)
     return () => clearInterval(t)
-  }, [awaitingFirst, load])
+  }, [awaiting, load])
+
+  // ⚑ 24 Sep (R145 step 5 · #34) — an approval updates the review at once AND re-reads the
+  // programme, so the P2 card (which reads `approvedAt` from the programme) appears without a reload.
+  const onApproved = useCallback((at: string | null) => setReview(r => (r && r.programme
+    ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
+    : r)), [])
+  // ⚑ 24 Sep (R145 step 5 · #32) — "Approve vN and pay P2": once the approval is STORED, the second
+  // payment opens in the same press. If it cannot open, the approval stands and the P2 card shows
+  // at once (#34) from the re-read — the client is never asked to approve twice.
+  const payAfterApproval = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const c = await api.post<{ data: { url: string } }>('/my/programme/checkout/second', {
+        successUrl: `${window.location.origin}/milla?paid=second`,
+        cancelUrl: window.location.href,
+      }, session?.access_token)
+      if (c.data?.url) { window.location.href = c.data.url; return }
+    } catch { /* the P2 card below carries the payment and its own error */ }
+    void load()
+  }, [load])
 
   // ⚑ 24 Sep (#75) — "Widen targeting" hands the question to Milla, in the one chat, and puts the
   // cursor in her composer. She re-counts free; the slider's ceiling moves with the targeting.
@@ -129,10 +156,12 @@ export default function ProgrammePage() {
   // same payload, so the two screens cannot show different numbers for one programme.
   return (
     <div className="mv-workspace-body h-full overflow-y-auto [&>*]:shrink-0">
-      {awaitingFirst ? (
+      {awaiting ? (
         <div className="mv-hero-card">
           <div className="mv-eyebrow">Payment received</div>
-          <h2 className="!text-[17px]">Thank you — we’re confirming your first payment and preparing your programme.</h2>
+          <h2 className="!text-[17px]">{awaitingFirst
+            ? 'Thank you — we’re confirming your first payment and preparing your programme.'
+            : 'Thank you — we’re confirming your second payment. Your approved programme is next in line to go live.'}</h2>
           <p>
             {confirmSlow
               ? 'Stripe is taking longer than usual to confirm it to us. You don’t need to pay again — this page will show it as soon as it lands, and Milla can check for you.'
@@ -145,6 +174,17 @@ export default function ProgrammePage() {
           alreadyAccepted={acceptanceGate(p) === 'accepted'}
           onChosen={() => { void load() }}
           onWiden={widen} />
+      ) : review?.programme && review.canApprove && !review.programme.approved_at ? (
+        /* ⚑ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE RIGHT SIDE IS THE APPROVAL PANEL, ALONE. */
+        <ProgrammeApproval
+          data={review}
+          secondPaymentCents={p.money.secondPaymentCents ?? null}
+          secondDue={!p.money.secondPaidAt && !p.money.secondAuthorisedAt && !p.money.internalBilling}
+          onApproved={at => {
+            onApproved(at)
+            if (!p.money.secondPaidAt && !p.money.secondAuthorisedAt && !p.money.internalBilling) void payAfterApproval()
+            else void load()
+          }} />
       ) : (
       <ProgrammeWorkspace p={p} />
       )}
@@ -164,15 +204,9 @@ export default function ProgrammePage() {
           />
         </div>
       )}
-      {review?.programme && (review.canApprove || review.programme.approved_at) && (
-        <div className="mt-3">
-          <ProgrammeApproval
-            data={review}
-            onApproved={at => setReview(r => (r && r.programme
-              ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
-              : r))}
-          />
-        </div>
+      {/* After approval the panel's approved state stays with the programme's status. */}
+      {review?.programme && review.programme.approved_at && (
+        <ProgrammeApproval data={review} onApproved={onApproved} />
       )}
     </div>
   )

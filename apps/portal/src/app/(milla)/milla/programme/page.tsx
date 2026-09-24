@@ -33,11 +33,16 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
+import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
 import { acceptanceGate } from '@/lib/programme-acceptance'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
   const [review, setReview] = useState<ApprovalPayload | null>(null)
+  // ⚑ 24 Sep (R145 step 6) — replies for the Results panel; a non-fatal read, like the review.
+  const [summary, setSummary] = useState<OutcomeSummary | null>(null)
+  // ⚑ 24 Sep (#39) — the next programme is priced on this same screen, from Complete.
+  const [pricingNext, setPricingNext] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -57,6 +62,10 @@ export default function ProgrammePage() {
           const rev = await api.get<{ data: ApprovalPayload }>('/my/programme/review', session?.access_token)
           setReview(rev.data)
         } catch { setReview(null) }
+        try {
+          const sm = await api.get<{ data: OutcomeSummary }>('/leads/milla-summary', session?.access_token)
+          setSummary(sm.data ?? null)
+        } catch { setSummary(null) }
       } catch (e) {
         // ⚠️ THE SERVER'S SENTENCE WINS. It sends the locked copy; this only falls back to the
         // same constant when the request never reached a response at all.
@@ -185,6 +194,12 @@ export default function ProgrammePage() {
             if (!p.money.secondPaidAt && !p.money.secondAuthorisedAt && !p.money.internalBilling) void payAfterApproval()
             else void load()
           }} />
+      ) : p.stage === 'Completion' && pricingNext ? (
+        /* #39 — a next programme can start: the same calculator, the same one button. */
+        <ProgrammeCalculator onChosen={() => { setPricingNext(false); void load() }} onWiden={widen} />
+      ) : (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') ? (
+        /* ⚑ 24 Sep (R145 step 6 · #61 #62) — Results while it runs, Complete when it ends. */
+        <ProgrammeOutcome p={p} summary={summary} onPriceNext={p.stage === 'Completion' ? () => setPricingNext(true) : undefined} />
       ) : (
       <ProgrammeWorkspace p={p} />
       )}

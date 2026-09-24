@@ -43,4 +43,14 @@ describe('R152 · the new House login', () => {
     expect(code('../../../portal/src/app/(milla)/milla/programme/page.tsx'))
       .toContain('internalBilling={p.money.internalBilling === true}')
   })
+
+  it('🛑 …and House is recognised BEFORE a programme exists — the first Accept opens no Stripe page', () => {
+    // ⛓️ 24 Sep — the founder's walk: the first Programme screen (no programme row yet) showed
+    // House "Pay P1 ($2,187.50)", because the House check ran only once a row existed.
+    const CP = code('./customer-programme.ts')
+    const at = CP.indexOf('if (!data0) {')
+    const branch = CP.slice(at, CP.indexOf('const p = data0', at))
+    expect(branch).toContain('internalBillingFor(clientId)')
+    expect(branch).toContain('money: { ...NO_PROGRAMME.money, internalBilling },')
+  })
 })

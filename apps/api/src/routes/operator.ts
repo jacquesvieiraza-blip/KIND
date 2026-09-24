@@ -988,7 +988,7 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
     const { client_id } = (req.body ?? {}) as { client_id?: string }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-    const { passLead } = await import('../lib/approve-lead')
+    const { passLead } = await import('../lib/lead-pass')
     const outcome = await passLead(req.params.id, client.id)
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'pass_lead',

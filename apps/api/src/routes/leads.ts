@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Response } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { BACKGROUND_MODEL } from '../lib/models'
@@ -13,12 +13,9 @@ import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { audienceForClient, companyNameSearchAllowed, COMPANY_SEARCH_UNAVAILABLE } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
-import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
-import { launchHoldMessage } from '@kind/shared'
-import { sendFounderAlert } from '../lib/alerts'
 import { fundedVia } from '../lib/onboarding-pack'
 import { PROOF_BASIS_FIELDS, pgTextArrayLiteral, readCandidate, basisMatchesRow } from '../lib/proof-candidate'
 
@@ -268,23 +265,6 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 // browser hiding columns. Scoped to the client's own delivered, not-yet-revealed, not-passed
 // leads. After the client approves ($1), the full contact comes back through /leads/:id/reveal
 // or the normal /leads list (revealed=true).
-// #v2 — "here are the 50 they approved". A client working through a batch would otherwise
-// fire one alert per lead, so this is throttled to one summary per client per 30 minutes
-// (in-memory, per process — deliberately simple; the goal is a nudge, not an audit trail).
-const lastApprovalAlert = new Map<string, number>()
-const APPROVAL_ALERT_WINDOW_MS = 30 * 60 * 1000
-function shouldAlertApprovals(clientId: string): boolean {
-  const now = Date.now()
-  const last = lastApprovalAlert.get(clientId)
-  if (last && now - last < APPROVAL_ALERT_WINDOW_MS) return false
-  lastApprovalAlert.set(clientId, now)
-  if (lastApprovalAlert.size > 500) {
-    const oldest = [...lastApprovalAlert.entries()].sort((a, b) => a[1] - b[1])[0]
-    if (oldest) lastApprovalAlert.delete(oldest[0])
-  }
-  return true
-}
-
 leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -1174,73 +1154,23 @@ leadRouter.post('/:id/optout', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to block lead' }) }
 })
 
-// ── REVEAL a lead — spend $1 to unmask the email (#420/#421/#422) ──────────────
-// The per-qualified-lead model: leads arrive MASKED (email hidden). The client
-// browses free, dedups against their own CRM, and spends $1 only to reveal the
-// net-new ones they choose. Money-safe by design:
-//   • Atomic CLAIM on revealed_at (…WHERE revealed_at IS NULL) → concurrent reveals
-//     can't both charge. Loser is idempotent (returns the email, no charge).
-//   • crm_existing → the client already owns it → NO charge.
-//   • Charge is the gate: try_charge_reveal_credit. No credit → 402, un-claim.
-//   • No email found → REFUND the $1 (fail-closed) + un-claim → 422.
-//   • On success: unique credit_transactions.reference='reveal:'+id backstops
-//     charge-once-per-lead (#424).
-leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-reveal', byUser: true }), async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    // The minimum-20 gate applies to every door into the money path, or it isn't a gate.
-    const revealGate = await batchGate(clientId, [req.params.id])
-    // ⚠️ THE FENCE IS ANSWERED BEFORE THE BATCH MINIMUM, because they are different refusals:
-    // "choose 20" invites them to do more of a thing they may no longer do at all.
-    if ('fenced' in revealGate) { res.status(409).json({ success: false, error: revealGate.fenced.code, message: revealGate.fenced.message }); return }
-    if ('refusal' in revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.refusal.required, message: revealGate.refusal.reason }); return }
-    // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
-    // charged once per lead. Delegate to approveLead so there is exactly one money path.
-    const { approveLead } = await import('../lib/approve-lead')
-    const outcome = await approveLead(req.params.id, clientId)
-    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-    // ⚑ 18 Sep (XC-2 · LR 21) — a read this path depends on could not be completed. A 503,
-    // not a 404: the lead is not missing, and nothing was revealed or charged.
-    if (outcome.status === 'unavailable') {
-      res.status(503).json({ success: false, error: 'unavailable', message: 'We could not check this lead just now, so nothing was approved and nothing was charged. Please try again shortly.' })
-      return
-    }
-    // The function's own programme fence. `batchGate` above already refused this client, so
-    // reaching here would mean the two layers disagree — answered identically either way.
-    if (outcome.status === 'programme_fenced') { res.status(409).json({ success: false, error: outcome.code, message: outcome.message }); return }
-    if (outcome.status === 'insufficient_funds') { res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return }
-    if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
-    if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
-    if (outcome.status === 'no_campaign') { res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return }
-    if (outcome.status === 'launch_hold') { res.status(409).json({ success: false, error: 'launch_hold', country: outcome.country, message: launchHoldMessage(outcome.country) }); return }
-    // "Here are the N they approved" — throttled to one summary per client per 30 min, so a
-    // client working through a batch is one nudge rather than fifty.
-    if (shouldAlertApprovals(clientId)) {
-      void (async () => {
-        const [{ count: approvedEver }, { data: c }] = await Promise.all([
-          db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
-          db.from('clients').select('company_name').eq('id', clientId).maybeSingle(),
-        ])
-        const { packState } = await import('../lib/onboarding-pack')
-        const pack = packState(true, approvedEver ?? 0)
-        void sendFounderAlert('new_signup', `${c?.company_name ?? 'A client'} is approving leads`, [
-          `${approvedEver ?? 0} approved in total.`,
-          pack.left > 0 ? `${pack.left} of their included ${pack.included} left.` : `Pack used — they're on $4 a lead now.`,
-          'Next: their sequence needs approving before anything goes out.',
-        ]).catch(() => {})
-      })().catch(() => {})
-    }
-    res.json({ success: true, revealed: true, email: outcome.email, charged: outcome.charged })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
-})
+// ── ⛓️ 24 Sep (R145 #47 · R137) — REVEAL, APPROVE AND APPROVE-BATCH ARE RETIRED, AND THEIR CODE IS GONE ──
+//
+// Founder: *"the 299/4 is retired/ this must go."* These three were the $4-per-approved-lead
+// charge (`approveLead`, with its pack quota, wallet charge, reversal, commission and the
+// minimum-20 batch gate). R137 refused every account at the door; this deletes what stood behind
+// it, so no code path can charge a client per lead again. "Not a fit" (`/:id/pass`) is live and
+// untouched — it moved to `lib/lead-pass.ts`.
+//
+// ⚠️ THE ROUTES STILL ANSWER, WITH A 410 AND A SENTENCE, exactly like the retired checkout: a
+// stale tab that posts here is told plainly that nothing was charged, rather than a bare 404.
+export const PER_LEAD_RETIRED_MESSAGE =
+  'Approving leads one by one is no longer how K.I.N.D works — everything now runs through your programme. Nothing was charged.'
+const perLeadRetired = (_req: AuthRequest, res: Response) => {
+  res.status(410).json({ success: false, error: 'retired', message: PER_LEAD_RETIRED_MESSAGE })
+}
+leadRouter.post('/:id/reveal', perLeadRetired)
 
-// ── #487 APPROVE-GATED REVEAL — the $4 trigger (CLIENT side, for Milla) ────────
-// The client taps 👍 approve on a masked lead in their portal: this reveals the contact
-// ($1) AND sets our team to work it ($3) in ONE action — the ONLY place both fire. The
-// heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
-// so the money sequence is identical everywhere. Scoped to the client's own lead by
-// getClientId → the lead's client_id (enforced inside approveLead's queries).
 // ── THE KILL-SWITCH APPLIES TO CONSENT MAIL TOO ────────────────────────────────
 // A consent request is an unsolicited email to a stranger. `icps.ts` already carries the
 // scar: *"consent sends must obey the same kill-switch as outreach — previously they sent
@@ -1259,144 +1189,8 @@ const COLD_MAIL_OFF = {
   message: 'Sending to prospects is switched off right now, so no consent email went out. Nothing else changed.',
 }
 
-// ── THE MINIMUM-20 GATE (founder-locked 25 Jul) ────────────────────────────────
-// A client's inbox costs us ~$40/month from the day they sign, so a client who approves
-// five people is a client we run a free mail service for. When we send someone their
-// people they choose at least 20 — and the founder asked for a HARD gate, so it lives
-// HERE, on the server, not on a disabled button anyone can step around with a fetch.
-//
-// ⚠️ IT COUNTS THE LEADS, NOT THE REQUEST. The first version took `selecting: number`
-// straight from `ids.length`, which made the gate trivially bypassable: send twenty ids
-// where nineteen are already-approved (or simply invented), the gate sees "20", and the
-// client approves ONE. Eighteen unit tests passed on that, because they tested the pure
-// decision function while the hole was in what the route fed it.
-//
-// So the ids are RESOLVED against the database first: only rows that are this client's,
-// surfaced, undecided and not passed count toward the minimum. Returns the resolved ids
-// on success so the caller works on exactly what was validated, never on raw input.
-async function batchGate(
-  clientId: string,
-  requestedIds: string[],
-): Promise<{ fenced: { code: string; message: string } } | { refusal: BatchCheck } | { valid: string[] }> {
-  // 🛑 THE PROGRAMME FENCE COMES FIRST, AND BEFORE EVERY OTHER LINE IN THIS FUNCTION.
-  //
-  // Founder-locked 3 Sep: a client with an OPEN PROGRAMME may not use the legacy per-lead
-  // commercial paths at all. This is the single chokepoint all three of them share — approve,
-  // reveal and approve-batch each call `batchGate` before they call `approveLead` — so placing
-  // it here fences all three with one line that cannot be forgotten on a fourth route.
-  //
-  // ⚠️ ITS POSITION IS THE GUARANTEE. Everything that mutates or charges happens inside
-  // `approveLead`, which runs only after this function returns something other than a refusal.
-  // So the refusal lands before `revealed_at`, before the pack row, before `try_charge_wallet`,
-  // before `autoEnrollLead` — not "early in the flow" but strictly before the first of them.
-  const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
-  const fence = await checkLegacyPerLeadAuthority(clientId)
-  if (!fence.allowed) return { fenced: { code: fence.code, message: fence.message } }
-
-  const { checkBatch } = await import('../lib/approval-batch')
-
-  // Which of the submitted ids are genuinely approvable RIGHT NOW, for THIS client.
-  const { data: rows } = requestedIds.length > 0
-    ? await db.from('leads').select('id')
-        .eq('client_id', clientId).in('id', requestedIds)
-        .not('surfaced_for_approval_at', 'is', null)
-        .is('revealed_at', null).neq('status', 'passed')
-    : { data: [] as { id: string }[] }
-  const valid = (rows ?? []).map((r: { id: string }) => r.id)
-
-  const [{ count: available }, { count: approvedEver }] = await Promise.all([
-    // Everything in front of them, so the requirement can never exceed what they have.
-    db.from('leads').select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).not('surfaced_for_approval_at', 'is', null)
-      .is('revealed_at', null).neq('status', 'passed'),
-    db.from('leads').select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).not('revealed_at', 'is', null),
-  ])
-
-  const check = checkBatch(valid.length, available ?? 0, approvedEver ?? 0)
-  return check.allowed ? { valid } : { refusal: check }
-}
-
-leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-approve', byUser: true }), async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const gate = await batchGate(clientId, [req.params.id])
-    if ('fenced' in gate) { res.status(409).json({ success: false, error: gate.fenced.code, message: gate.fenced.message }); return }
-    if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
-    const { approveLead } = await import('../lib/approve-lead')
-    const outcome = await approveLead(req.params.id, clientId)
-    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-    if (outcome.status === 'insufficient_funds') {
-      // ONE WALLET — the flat $4 couldn't be charged, so NOTHING moved.
-      res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return
-    }
-    if (outcome.status === 'no_email') {
-      res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not verify an email for this lead — you were not charged.' }); return
-    }
-    if (outcome.status === 'already_in_crm') {
-      res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return
-    }
-    if (outcome.status === 'no_campaign') {
-      // We charge for WORK. With no active campaign there is nothing to enrol into, so
-      // the wallet was deliberately left untouched (see approve-lead.ts step 3c).
-      res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return
-    }
-    if (outcome.status === 'launch_hold') {
-      // Not an error the client did anything to cause, and not a dead end for the lead — it
-      // goes back on the queue untouched. Said in those words rather than as a failure.
-      res.status(409).json({ success: false, error: 'launch_hold', country: outcome.country, message: launchHoldMessage(outcome.country) }); return
-    }
-    res.json({ success: true, ...outcome })
-  } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }
-})
-
-// ── APPROVE A BATCH — the door the minimum-20 gate sends people through ────────
-// One request, N leads. Each still goes through approveLead(), so the money path is
-// byte-identical to a single approve — the pack quota, the $4 charge, the dead-email
-// refund, the no-campaign refusal. Nothing is charged until the gate passes.
-//
-// Partial failures are reported per lead rather than rolled back: a dud email in a batch
-// of 30 must not un-approve the other 29, and approveLead already refuses to charge for
-// the ones it can't complete.
-leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 'lead-approve-batch', byUser: true }), async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const ids = Array.isArray(req.body?.lead_ids) ? [...new Set(req.body.lead_ids.filter((v: unknown) => typeof v === 'string'))] as string[] : []
-    if (ids.length === 0) { res.status(400).json({ success: false, error: 'lead_ids required' }); return }
-    // A bounded batch: 200 is the whole desk, and an unbounded loop here would hold the
-    // request open long enough to time out mid-charge.
-    if (ids.length > 200) { res.status(400).json({ success: false, error: 'Too many at once — 200 max.' }); return }
-
-    const gate = await batchGate(clientId, ids)
-    if ('fenced' in gate) { res.status(409).json({ success: false, error: gate.fenced.code, message: gate.fenced.message }); return }
-    if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
-    // Work on what the gate VALIDATED, not on what was posted. Anything the client sent
-    // that wasn't theirs, wasn't surfaced or was already decided is simply not here.
-    const approvable = gate.valid
-
-    const { approveLead } = await import('../lib/approve-lead')
-    const results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> = []
-    // SEQUENTIAL on purpose: try_charge_wallet is the atomic gate, and firing 30 charges
-    // concurrently against one wallet is how a client gets charged past their balance.
-    for (const id of approvable) {
-      const out = await approveLead(id, clientId).catch(() => ({ status: 'error' as const }))
-      results.push({ id, status: out.status, email: 'email' in out ? out.email : null, charged: 'charged' in out ? out.charged : undefined })
-      // Stop the moment the money runs out — every further attempt would fail the same way.
-      if (out.status === 'insufficient_funds') break
-    }
-
-    const approved = results.filter(r => r.status === 'approved')
-    res.json({
-      success: true, approved: approved.length, attempted: approvable.length, results,
-      message: approved.length === approvable.length
-        ? `${approved.length} approved — we're on it.`
-        : `${approved.length} of ${approvable.length} approved. The rest are listed below with why.`,
-    })
-  } catch (err) { console.error('[approve-batch]', err); res.status(500).json({ success: false, error: 'Failed to approve' }) }
-})
+leadRouter.post('/:id/approve', perLeadRetired)
+leadRouter.post('/approve-batch', perLeadRetired)
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 //  👍 LOOKS RIGHT — PROOF ACCEPTANCE (founder-ruled 25 Aug)
@@ -1714,7 +1508,7 @@ leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lea
       console.error('[pass] lead_feedback write threw for lead', req.params.id, e)
     }
 
-    const { passLead } = await import('../lib/approve-lead')
+    const { passLead } = await import('../lib/lead-pass')
     const outcome = await passLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found or already actioned' }); return }
     // 🛑 A REFUSED WRITE IS SAID PLAINLY. It used to arrive as the 404 above — "already

@@ -34,7 +34,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { resolveHouseUserIds } from './real-clients'
-import { HOUSE_ACCOUNT_EMAIL } from './real-clients-logic'
+import { isHouseEmail } from './real-clients-logic'
 import { db } from '@kind/db'
 
 /** Whose work is this? The only input provider choice is ever allowed to have. */
@@ -385,7 +385,8 @@ export async function audienceForClientStrict(
     )
   }
 
-  return email === HOUSE_ACCOUNT_EMAIL ? 'house' : 'client'
+  // ⛓️ 24 Sep (R152) — WAS `email === HOUSE_ACCOUNT_EMAIL`: the House is a list now.
+  return isHouseEmail(email) ? 'house' : 'client'
 }
 
 export async function audienceForClient(clientId: string): Promise<Audience> {

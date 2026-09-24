@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
 import CloneBestClientButton from './CloneBestClientButton'
 import { ClientsTabs } from '@/components/ClientsTabs'
-import { HOUSE_ACCOUNT_EMAIL } from '@/lib/revenue-exclusions'
+import { isHouseEmail } from '@/lib/revenue-exclusions'
 
 interface ChurnRiskEntry {
   client_id: string
@@ -162,7 +162,7 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
     for (const u of (users || [])) {
       const clientId = userIdToClient[u.id]
       if (clientId) {
-        if ((u.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL) houseClientIds.add(clientId)
+        if (isHouseEmail(u.email)) houseClientIds.add(clientId)
         if (u.last_sign_in_at) {
           const diffDays = Math.floor((now.getTime() - new Date(u.last_sign_in_at).getTime()) / 86400000)
           lastLoginMap[clientId] = diffDays

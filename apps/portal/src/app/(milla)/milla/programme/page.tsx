@@ -181,6 +181,7 @@ export default function ProgrammePage() {
         <ProgrammeCalculator
           startAt={p.outcome.target}
           alreadyAccepted={acceptanceGate(p) === 'accepted'}
+          internalBilling={p.money.internalBilling === true}
           onChosen={() => { void load() }}
           onWiden={widen} />
       ) : review?.programme && review.canApprove && !review.programme.approved_at ? (

@@ -31,7 +31,7 @@
 //
 // The judgement for all three lives here, pure, so it is provable without a database.
 
-import { HOUSE_ACCOUNT_EMAIL } from './real-clients-logic'
+import { HOUSE_ACCOUNT_EMAIL, isHouseEmail } from './real-clients-logic'
 export { HOUSE_ACCOUNT_EMAIL }
 
 /**
@@ -374,7 +374,8 @@ export async function isHouseClient(clientId: string): Promise<boolean> {
     const userId = (client as { user_id: string | null }).user_id
     if (!userId) return false
     const { data } = await db.auth.admin.getUserById(userId)
-    return (data?.user?.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL
+    // ⛓️ 24 Sep (R152) — WAS `=== HOUSE_ACCOUNT_EMAIL`: the House is a list now.
+    return isHouseEmail(data?.user?.email)
   } catch (err) {
     console.warn('[house-client] isHouseClient failed — treated as NOT house:', err)
     return false

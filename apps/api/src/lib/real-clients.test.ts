@@ -58,6 +58,9 @@ describe('computeExcludedClientIds — demo ∪ house never count toward revenue
   })
 
   it('house email constant is the founder testing account, lower-cased', () => {
-    expect(HOUSE_ACCOUNT_EMAIL).toBe('hello@get-kind.com')
+    // ⛓️ 24 Sep (R152) — WAS 'hello@get-kind.com'. The founder ordered a new House account; the old
+    // address stays House (its history is never revenue) but is no longer the login.
+    expect(HOUSE_ACCOUNT_EMAIL).toBe('jacques.vieiraza+house@gmail.com')
+    expect(HOUSE_ACCOUNT_EMAIL).toBe(HOUSE_ACCOUNT_EMAIL.toLowerCase())
   })
 })

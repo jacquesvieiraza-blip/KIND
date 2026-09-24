@@ -67,7 +67,7 @@ export type GateOutcome =
 // structural rule answers alone — which is unchanged behaviour and is why FD-2's model
 // judgement lands on the DESK BAND, the surface its runtime proof names.
 const CANDIDATE_COLUMNS =
-  'id, country, company_size, industry, job_title, seniority, company, category_fit'
+  'id, country, company_size, industry, job_title, seniority, company, category_fit, apollo_id'
 
 /**
  * Is `leads.set_aside_reason` there?

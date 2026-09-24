@@ -31,7 +31,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { launchCountrySpellings } from '@kind/shared'
+import { launchCountrySpellings, apolloSenioritiesFor } from '@kind/shared'
 import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
 import { isSuppressed } from './suppression'
 import {
@@ -148,7 +148,11 @@ export async function selectPoolCandidates(
     const geos   = (icp.geographies      ?? []).map(clean).filter(Boolean)
     const titles = (icp.job_titles       ?? []).map(clean).filter(Boolean)
     const inds   = (icp.industries       ?? []).map(clean).filter(Boolean)
-    const sens   = (icp.seniority_levels ?? []).map(clean).filter(Boolean)
+    // ⛓️ 24 Sep (R145 step 3a · #23) — AND APOLLO'S OWN SENIORITY KEYS. A pooled row bought from
+    // Apollo stores `c_suite`, never our label "C-Suite", so the prefilter asked for a word the
+    // rows do not hold. Both spellings are asked; the decision below is unchanged.
+    const sens   = [...new Set([...(icp.seniority_levels ?? []), ...apolloSenioritiesFor(icp.seniority_levels ?? [])])]
+      .map(clean).filter(Boolean)
 
     // ── ⚑ 27 Aug — THE COUNTRY TERM IS EXPANDED TO EVERY SPELLING OF THAT COUNTRY ────────
     //

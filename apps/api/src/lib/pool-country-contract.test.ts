@@ -970,7 +970,13 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
     expect(roleOk({ title: 'Group CEO, EMEA' }), 'substring, so a longer title still matches').toBe(true)
   })
 
-  it('2 · stored "Chief Executive Officer" does NOT match — `chief executive` was invented', () => {
+  // ⛓️ 24 Sep (R145 step 3a · #72) — CASES 2 AND 3 ARE INVERTED BY A FOUNDER RULING. They pinned "no invented synonyms":
+  // a pooled "Chief Executive Officer" did not match a saved "CEO". Founder, 23 Sep: *"CEO is one
+  // thing. we need to look at how Apollo asks for an ICP match and follow this"* — tracker #72,
+  // approved 24 Sep: *"a 'Chief Executive Officer' counts as 'CEO'"*. Apollo's own title search
+  // treats them as one title. The shorthand list (`TITLE_SHORTHANDS`) is closed and spelled out;
+  // nothing is inferred from a sentence, and "Founder" still does not become anything else.
+  it('2 · stored "Chief Executive Officer" MATCHES "CEO" — the same title, as Apollo reads it', () => {
     // No saved term ("Founder","CEO","CRO","VP Sales","Sales Director","Head of Sales") is a
     // substring of it. The old regex matched it anyway.
     expect('chief executive officer'.includes('ceo'), 'and it genuinely does not contain "ceo"').toBe(false)
@@ -978,16 +984,18 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
     // The shared `rec()` row carries Apollo's own `c_suite`, which the check could not read as
     // "C-Suite" until R142 — this case was silently passing on that defect. Read correctly, a
     // `c_suite` row IS the seniority the ICP asks for, so the title-synonym duty is isolated here.
-    expect(roleOk({ title: 'Chief Executive Officer', seniority: null })).toBe(false)
+    expect(roleOk({ title: 'Chief Executive Officer', seniority: null })).toBe(true)
+    // …and a title that is NOT a spelling of one the ICP holds still does not match.
+    expect(roleOk({ title: 'Chief Marketing Officer', seniority: null })).toBe(false)
   })
 
-  it('3 · stored "Chief Revenue Officer" does NOT match — `chief revenue` was invented too', () => {
+  it('3 · stored "Chief Revenue Officer" MATCHES "CRO" — the same ruling', () => {
     expect('chief revenue officer'.includes('cro')).toBe(false)
     // ⛓️ 23 Sep (R142) — THE ROW'S SENIORITY IS NOW BLANKED, so this case tests the TITLE alone.
     // The shared `rec()` row carries Apollo's own `c_suite`, which the check could not read as
     // "C-Suite" until R142 — this case was silently passing on that defect. Read correctly, a
     // `c_suite` row IS the seniority the ICP asks for, so the title-synonym duty is isolated here.
-    expect(roleOk({ title: 'Chief Revenue Officer', seniority: null })).toBe(false)
+    expect(roleOk({ title: 'Chief Revenue Officer', seniority: null })).toBe(true)
   })
 
   it('4 · industry "SaaS" matches', () => expect(roleOk({ industry: 'SaaS' })).toBe(true))

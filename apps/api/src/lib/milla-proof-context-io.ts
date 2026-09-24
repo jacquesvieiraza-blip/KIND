@@ -57,7 +57,7 @@ export async function readProofChatContext(clientId: string): Promise<ProofChatC
     // a hard criterion the client named; it is kept for an operator to see, and describing
     // one to the client as part of their set would undo the whole structural gate in prose.
     const { data: rows, error } = await db.from('leads')
-      .select('id, job_title, company, industry, country, company_size, seniority, score, score_reasoning, first_name, last_name')
+      .select('id, job_title, company, industry, country, company_size, seniority, score, score_reasoning, first_name, last_name, apollo_id')
       .eq('client_id', clientId)
       .is('set_aside_reason', null)
       .not('delivered_at', 'is', null)

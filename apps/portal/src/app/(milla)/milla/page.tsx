@@ -12,14 +12,16 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofReadiness } from '@kind/shared'
+import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofReadiness, APOLLO_INDUSTRIES, APOLLO_SENIORITY_LABELS } from '@kind/shared'
+import { FilterRow } from '@/components/milla/FilterRow'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 // ⚑ 3 Sep (PR B) — THE CUSTOMER'S REVIEW AND THEIR ONE APPROVAL (R39, 15 Aug: "the client
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
 // Approval stage, so every other stage's screen is byte-for-byte what it was.
-import ProgrammeReview from '@/components/milla/ProgrammeReview'
+// ⚑ 24 Sep — the Programme screen itself, so Home's right side can BE it once Proof is confirmed.
+import ProgrammeScreen from './programme/page'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
@@ -31,6 +33,10 @@ import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconc
 // PROGRAMME and renders the shared workspace; the conversation stays the spine.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
+  /** ⚑ 24 Sep (R145 step 3b · #18) — where this person came from, the server's word. */
+  from?: 'apollo' | 'pool' | 'provider' | null
+  /** ⚑ 24 Sep (R145 step 3b) — the company's size as the row holds it. */
+  company_size?: string | null
   /** ⚑ 18 Sep (J5-C8) — no fit number is available for this person, and the card says so. */
   not_scored?: boolean
   /**
@@ -273,6 +279,8 @@ export default function MillaHomePage() {
   const [noteText, setNoteText] = useState('')
   const [progFailed, setProgFailed] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  // ⚑ 24 Sep (R145 step 3b) — which sample person is featured for teaching; null = the server's pick.
+  const [featuredId, setFeaturedId] = useState<string | null>(null)
   // ⛓️ 30 Aug — READ-ONLY NOW, AND ALWAYS EMPTY ON THIS SCREEN. The only two writers were
   // the paid approve paths, both removed above. It is kept because `pendingRaw` and the
   // proof wait bound both read it, and because a reveal arriving from anywhere else must
@@ -341,6 +349,15 @@ export default function MillaHomePage() {
   const [refineFinal, setRefineFinal] = useState<IcpTargeting | null>(null)
   /** The ICP the preview was built against — proved unchanged before anything is spent. */
   const [refineIcpId, setRefineIcpId] = useState<string | null>(null)
+  // ── ⚑ 24 Sep (R149) — THE PROOF SCREEN'S OWN DROP-DOWNS ──────────────────────────────────
+  //
+  // Founder, asked whether the client may change industry and seniority on Proof itself:
+  // *"Yes, drop-downs"*. The live targeting is read once when the desk opens, and what the
+  // client ticks is only a DRAFT — nothing is written until they confirm on the same
+  // "Use this refinement and find another set?" step the chat refinement uses. One spend
+  // boundary, not two: the drop-downs build `refineFinal`, and `confirmRefine` sends it.
+  const [proofIcp, setProofIcp] = useState<(IcpTargeting & { id: string }) | null>(null)
+  const [pickDraft, setPickDraft] = useState<{ industries: string[]; seniority_levels: string[] } | null>(null)
   const [refineSaid, setRefineSaid]   = useState<string | null>(null)
   const [refineBusy, setRefineBusy]   = useState(false)
   const [refineErr, setRefineErr]     = useState<string | null>(null)
@@ -480,6 +497,33 @@ export default function MillaHomePage() {
   // `has_funded` is the same fact the go-live banner already reads — no new state, no new
   // endpoint, and a client who pays flips to the commercial desk by paying.
   const proofMode = needsGoLive
+  // ── 🛑 ⚑ 24 Sep (R145 step 3b) — THE PROOF CONTROLS LOAD WITH THE DESK ───────────────────────
+  // Founder: *"i clicked looks right to all and nothing happened after this."* ⛓️ WAS: nothing on
+  // mount read `/leads/proof/calibration` — it was read only after a "Not a fit" or a reason was
+  // saved. So a client who liked what they saw never got the closing button (or the capacity it
+  // carries): the one path through Proof opened only for clients who disliked somebody. It now
+  // loads as soon as the desk is a Proof desk, and again whenever the set on it changes.
+  useEffect(() => {
+    if (proofMode) void loadCalibration()
+  }, [proofMode, leads?.length, loadCalibration])
+
+  // ⚑ 24 Sep (R149) — the live targeting behind the Proof drop-downs. A failed read leaves them
+  // out rather than offering to change values we could not show.
+  useEffect(() => {
+    if (!proofMode) return
+    let alive = true
+    void (async () => {
+      try {
+        const r = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', await token())
+        const core = r.data?.[0] ?? null
+        if (!alive) return
+        setProofIcp(core)
+        setPickDraft(core ? { industries: core.industries ?? [], seniority_levels: core.seniority_levels ?? [] } : null)
+      } catch { /* the drop-downs simply do not render */ }
+    })()
+    return () => { alive = false }
+  // Re-read when a new pass is recorded, so the rows show the targeting that pass ran on.
+  }, [proofMode, summary?.proof_passes_done])
 
   // ── ⚑ 24 Aug — WHERE THIS PROSPECT IS IN THE TWO-PASS PROOF JOURNEY ──────────────────
   //
@@ -627,6 +671,28 @@ export default function MillaHomePage() {
   // `name`, `tech_stack` and `keywords` are carried through unchanged. They are not editable
   // in this launch refinement and are never shown as changed — but `/icps/revise` validates
   // the whole ICP, so they must travel with it, holding exactly today's values.
+  /**
+   * ⚑ 24 Sep (R149) — THE DROP-DOWNS' STEP 2. The same three-way merge as the chat's, with no
+   * model in it: the two picked fields are replaced by what is ticked, every other field is the
+   * value already saved, and `name` / `tech_stack` / `keywords` / consent travel unchanged.
+   * It writes NOTHING — it opens the confirmation, and `confirmRefine` is still the only spend.
+   */
+  function reviewPicks() {
+    if (!proofIcp || !pickDraft || refineBusy) return
+    if (typeof proofIcp.apollo_only_consented !== 'boolean') { setRefineErr('I could not read your targeting just now — please try again.'); return }
+    const final: IcpTargeting = {
+      name: proofIcp.name || 'My targeting',
+      tech_stack: proofIcp.tech_stack ?? [],
+      keywords: proofIcp.keywords ?? [],
+      apollo_only_consented: proofIcp.apollo_only_consented,
+    }
+    for (const [k] of REFINE_FIELDS) final[k] = proofIcp[k] ?? []
+    final.industries = pickDraft.industries
+    final.seniority_levels = pickDraft.seniority_levels
+    setRefineOpen(true); setRefineErr(null); setRefineSaid(null)
+    setRefineFinal(final); setRefineIcpId(proofIcp.id)
+  }
+
   async function submitRefine(text: string) {
     const msg = text.trim(); if (!msg || refineBusy) return
     setRefineBusy(true); setRefineErr(null)
@@ -1120,10 +1186,44 @@ export default function MillaHomePage() {
   // Now the CONTROLS come from `calib` (the server's verdict) and the free-text panel below
   // is only the mechanism behind one of them. `canRefine` still gates the panel itself, so a
   // stale verdict can never open a spend path the server would refuse.
+  // ⚑ 24 Sep (R145 step 3b) — the set-level acceptance, lifted out so the chat's "These are
+  // right" chip runs the SAME handler as the button (`setDeskActions` below). Unchanged inside.
+  async function acceptSet() {
+        // ── 🛑 10 Sep (A) — THIS NOW RECORDS THE ACCEPTANCE ─────────────────────────────
+        //
+        // ⛓️ IT USED TO BE `void loadCalibration()` — a GET. The component's own comment said
+        // "Records that the set is right; Proof is finished"; it recorded nothing, so the
+        // controls re-rendered unchanged and the button stayed pressable for ever.
+        //
+        // ⚠️ NOTHING IS SOURCED BY IT. The route writes one timestamp; no pass is claimed and
+        // no provider is called. The client has just told us to stop looking.
+        // ⚠️ THE RELOAD RUNS EITHER WAY, so the screen takes the SERVER's verdict on whether
+        // Proof is closed rather than assuming its own press worked.
+        try {
+          await api.post('/leads/proof/complete', {}, await token())
+          // ── 🛑 ⚑ 24 Sep — AND THE NEXT STAGE COMES UP, WITH MILLA SAYING SO ───────────────
+          // Founder: *"i clicked looks right to all and nothing happened after this… we need to
+          // get past to get to the next stage"* · *"from one screen to one choice to the next."*
+          // Proof is closed on the server; the right side becomes the Programme below (see the
+          // branch on `prog`), and Milla tells the client, in the ONE chat, what just happened.
+          // Wording from the approved preview's Proof close.
+          conversation.announce('Good. Next, on the right: choose how many meetings you want. The slider won’t let you pick more than your pool can carry.')
+          conversation.refreshStage()
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'That did not save — could you try once more?')
+        } finally {
+          await loadCalibration()
+          await load()
+        }
+      }
+
   const calibrationControl = !calib || pending.length === 0 ? null : (
     <ProofCalibration
       state={calib}
       busy={refineBusy}
+      note={capacity && capacity.known
+        ? `Milla is calibrating the wider ${capacity.workable.toLocaleString()} — you are not selecting from these ${pending.length}.`
+        : null}
       onRequestStronger={openRefine}
       // ── ⚑ 11 Sep (C39) — SPEND THE ONE CALIBRATED RESTART ──────────────────────────────
       //
@@ -1156,26 +1256,7 @@ export default function MillaHomePage() {
           void loadCalibration()
         }
       }}
-      onAccept={async () => {
-        // ── 🛑 10 Sep (A) — THIS NOW RECORDS THE ACCEPTANCE ─────────────────────────────
-        //
-        // ⛓️ IT USED TO BE `void loadCalibration()` — a GET. The component's own comment said
-        // "Records that the set is right; Proof is finished"; it recorded nothing, so the
-        // controls re-rendered unchanged and the button stayed pressable for ever.
-        //
-        // ⚠️ NOTHING IS SOURCED BY IT. The route writes one timestamp; no pass is claimed and
-        // no provider is called. The client has just told us to stop looking.
-        // ⚠️ THE RELOAD RUNS EITHER WAY, so the screen takes the SERVER's verdict on whether
-        // Proof is closed rather than assuming its own press worked.
-        try {
-          await api.post('/leads/proof/complete', {}, await token())
-        } catch (e) {
-          setError(e instanceof Error ? e.message : 'That did not save — could you try once more?')
-        } finally {
-          await loadCalibration()
-          await load()
-        }
-      }}
+      onAccept={() => void acceptSet()}
       onStillNotRight={async () => {
         try {
           await api.post('/leads/proof/still-not-right', {}, await token())
@@ -1269,7 +1350,10 @@ export default function MillaHomePage() {
                 <>
                   <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
                   <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
-                    This is your second and last free set — after it, we talk it through together.
+                    {/* ⛓️ 24 Sep (R149) — WAS a warning that this was the client's LAST free set.
+                        Refinement has had no ceiling since the founder's 22 Sep *"2. unlimited
+                        now."*, so the sentence promised a wall that is gone. */}
+                    Looking again is free — nothing is bought, and you can change it again after.
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button disabled={refineBusy} onClick={confirmRefine}
@@ -1395,8 +1479,373 @@ export default function MillaHomePage() {
     </div>
   )
 
+  // ── 🛑 ⚑ 24 Sep (R145 step 3b) — THE PROOF PANEL, AS THE REDESIGN DRAWS IT ─────────────────
+  //
+  // Founder: *"this is the vision of the product… build every section both in milla and vida to
+  // this"* · *"i dont have time to sit here and go thru looks right"* · R143: Proof closes with
+  // ONE question and ONE button, "These are my people". ⛓️ WAS: four KPI tiles over a second row
+  // of four capacity tiles (two "Next" cards), then every card with its own Looks right / Not a
+  // fit, and "Open my Brief" — which the Brief sent straight back here (the #82 loop). Now:
+  //   · one hero — what this pool can carry, the workable count, $0 charged (#14, #15);
+  //   · "Teach Milla what good looks like": ONE featured person with the reaction controls, and
+  //     the rest as a sample list — tap one to feature it (#19). Company named in full, no
+  //     person's name (D9); each says where it came from, our pool or Apollo (#18, D8);
+  //   · one closing row: "These are my people" + "Show another sample" (#20, #74).
+  // Every lock on the card is kept: the band's own words, the server's `can_accept`, the reason
+  // on a refused card, "Not scored" said out loud, and nothing here spends or reveals anyone.
+  // ⚑ 24 Sep (R145 step 3b · #26) — offer the panel's two actions as chips, only while the server
+  // offers them (the same verdict that draws the buttons).
+  const setDeskActions = conversation.setDeskActions
+  const offerAnother = !!calib && !calib.completed && !calib.escalated && calib.showStronger && calib.strongerEnabled && pending.length > 0
+  const offerAccept = !!calib && !calib.completed && !calib.escalated && calib.showTheseAreRight && pending.length > 0
+  const acceptRef = useRef(acceptSet); acceptRef.current = acceptSet
+  const refineRef = useRef(openRefine); refineRef.current = openRefine
+  useEffect(() => {
+    setDeskActions(offerAnother || offerAccept ? {
+      anotherSample: offerAnother ? () => refineRef.current() : null,
+      accept: offerAccept ? () => void acceptRef.current() : null,
+    } : null)
+    return () => setDeskActions(null)
+  }, [offerAnother, offerAccept, setDeskActions])
+
+  // ── ⚑ 24 Sep (R145 step 3b · #25) — MILLA OPENS PROOF, IN THE ONE CHAT ─────────────────────
+  // The redesign's opening, adapted to D9 (companies named, people not) and never typed numbers:
+  // both counts are the server's. Said once per set per visit (`announceOnce` keeps the key in the
+  // conversation, not in browser storage — this page holds no second store of its own).
+  const introBatch = proofBatches[0] ?? ''
+  const announceOnceRef = useRef(conversation.announceOnce); announceOnceRef.current = conversation.announceOnce
+  useEffect(() => {
+    if (!proofMode || !capacity || !capacity.known || pending.length === 0 || !introBatch) return
+    const n = pending.filter(l => batchKey(l) === introBatch).length
+    announceOnceRef.current(`proof-intro-${introBatch}`, [
+      `There are ${capacity.matched.toLocaleString()} people who match what you told me. Here are ${n} of them.`,
+      `Companies are named, people aren’t, and nothing has been bought — this costs you nothing. I’m asking one question: are these your people? You’re not choosing from these ${n}. They’re a sample of the ${capacity.workable.toLocaleString()}.`,
+    ])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proofMode, capacity?.known, introBatch, pending.length])
+
+  const showProofDesk = !progFailed && !!prog && !(prog.hasProgramme !== false || prog.stage === 'Recommendation')
+  const featured = pending.find(l => l.id === featuredId)
+    ?? pending.find(l => batchKey(l) === (proofBatches[0] ?? '') && l.band === 'start_here')
+    ?? pending[0] ?? null
+  const initialsOf = (s: string) => s.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·'
+  const sizeOf = (v: string | null | undefined) => {
+    if (!v) return null
+    const n = Number(v)
+    return Number.isInteger(n) && String(n) === v.trim() ? `${n.toLocaleString()} people` : v
+  }
+  const FROM_LABEL: Record<string, string> = { apollo: 'From Apollo', pool: 'From our pool', provider: 'From a data provider' }
+  const proofPanel = (
+    <div className="mv-workspace-body flex-1 min-h-0 overflow-y-auto [&>*]:shrink-0">
+      {/* ── THE HERO — what this pool can carry, before anybody pays (founder-locked 22 Sep:
+           *"we would not offer 10 meetings when we can only deliver 6"*). The pool size and the
+           rate stay ours ("we build buffer only we know"); nothing rather than zero when the
+           provider could not be asked. */}
+      <div className="mv-hero-card">
+        <div className="mv-eyebrow">Free proof{pending.length > 0 ? ` · ${pending.length}-person sample` : ''}</div>
+        {proofMode && capacity && capacity.known ? (
+          <div className="mv-hero-row">
+            <div>
+              <div className="mv-hero-number tabular-nums">{capacity.committed}</div>
+              <div className="mv-hero-caption">
+                {capacity.committed > 0
+                  ? 'booked meetings we can commit to at this targeting'
+                  : 'not enough people at this targeting yet — tell Milla and we’ll widen it'}
+              </div>
+            </div>
+            <div>
+              <strong className="text-[13px] tabular-nums">{capacity.workable.toLocaleString()} workable people</strong>
+              {/* The subtraction is shown because it is the client's OWN instruction doing the
+                  removing. Nothing else on this screen removes anybody. */}
+              <div className="mv-hero-caption">
+                {capacity.excluded > 0
+                  ? `${capacity.matched.toLocaleString()} matched − ${capacity.excluded.toLocaleString()} excluded · $0 charged`
+                  : 'nobody excluded yet · $0 charged'}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <h2 className="!text-[17px]">Real people who match what you told Milla.</h2>
+        )}
+        {/* ⚑ 22 Sep — the widen route, with no guessing in it. ⛓️ 24 Sep (#82) — WAS a link,
+            "Open my Brief", to a page that sends a client whose Proof is ready straight back
+            here. Widening is said to Milla, in the one chat. */}
+        {proofMode && capacity && capacity.known ? (
+          <p className="mt-2">
+            {capacity.committed > 0
+              ? <>Your targeting carries <b>{capacity.committed}</b> booked {capacity.committed === 1 ? 'meeting' : 'meetings'}. Want more? Tell Milla where to widen &mdash; looking is free, and nothing is bought.</>
+              : <>There aren&rsquo;t enough people at this targeting for a programme yet. Tell Milla where to widen &mdash; looking is free.</>}
+          </p>
+        ) : null}
+      </div>
+
+      {/* ⚑ 24 Sep (R149) — "Your targeting", with the Brief's own drop-downs, on Proof. Only while
+          a refinement is allowed (`canRefine`) and the live targeting was read. */}
+      {canRefine && proofIcp && pickDraft && (() => {
+        const changed = ['industries', 'seniority_levels'].some(k => {
+          const a = [...((proofIcp as Record<string, unknown>)[k] as string[] ?? [])].sort().join('|')
+          const b = [...pickDraft[k as 'industries' | 'seniority_levels']].sort().join('|')
+          return a !== b
+        })
+        return (
+          <div className="mv-section">
+            <div className="mv-section-head"><b>Your targeting</b><span>change it here · looking again is free</span></div>
+            <div className="mv-section-body">
+              <FilterRow label="Industry" options={[...APOLLO_INDUSTRIES]} free={false}
+                chosen={pickDraft.industries} placeholder="Any industry"
+                onChange={next => setPickDraft(d => d ? { ...d, industries: next } : d)} />
+              <FilterRow label="Seniority" options={[...APOLLO_SENIORITY_LABELS]} free={false}
+                chosen={pickDraft.seniority_levels} placeholder="Any seniority"
+                onChange={next => setPickDraft(d => d ? { ...d, seniority_levels: next } : d)} />
+              <div className="mv-cta-row mt-3">
+                <button type="button" className="mv-btn primary disabled:opacity-40" disabled={!changed || refineBusy || proofAttempted}
+                  onClick={reviewPicks}>
+                  Find a new sample with these
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+      {/* ⛓️ 3 Sep — an earlier set is not a programme, and it says so (founder wording, verbatim). */}
+      {leads && leads.length > 0 && proofPassesDone === 0 && (
+        <div className="mv-section"><div className="mv-section-body">
+          <b className="text-[11px]">Earlier activity</b>
+          <p className="mv-muted-note mt-1">You don’t have an active programme yet. These are examples you’ve previously reviewed to help Milla learn what fits.</p>
+        </div></div>
+      )}
+      {error && <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
+      {!leads && !error && <p className="mv-muted-note">Loading…</p>}
+      {justPassed && (
+              <div className="bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3.5">
+                <div className="text-[13px] text-[#4c4368] font-semibold">Passed. What was off about them?</div>
+                <div className="text-[12px] text-[#9b8ec4] mt-0.5">Optional — it tunes what I find you next.</div>
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {REASON_CHIPS.map(c => (
+                    <button key={c.code}
+                      onClick={() => void sendReason(justPassed.id, c.code)}
+                      className="text-[12.5px] font-bold text-[#7C3AED] bg-white border-[1.5px] border-[#e4d4fb] rounded-lg px-2.5 py-1.5">
+                      {c.label}
+                    </button>
+                  ))}
+                  <button onClick={() => { setJustPassed(null); setNoteError(null) }}
+                    className="text-[12.5px] font-semibold text-[#9b8ec4] px-2.5 py-1.5">
+                    Skip
+                  </button>
+                </div>
+                {/* ⚡ 18 Sep (J5-C11 · LR 17) — TOLD. The tap used to dismiss this row
+                    before the write, so a lost reason was invisible — and this tap is what
+                    opens "Show me stronger examples". The row now stays until the answer is
+                    stored, and says so when it is not. Skipping still costs nothing. */}
+                {noteError && (
+                  <div data-testid="reaction-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2">
+                    {noteError}
+                  </div>
+                )}
+              </div>
+            )}
+            {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
+              /* ⚑ 24 Aug — FINDING vs GENUINELY EMPTY. These are different facts and used to
+                 render the same sentence. A prospect whose proof run is in flight was told
+                 "no leads waiting" and promised a notification nothing sends. The paying
+                 client's copy below is UNCHANGED on purpose — its own "we'll notify you"
+                 claim predates this build and is the founder's call, not this commit's. */
+              /* ⚑ 26 Aug — TERMINAL BEATS SPINNER. Checked BEFORE `finding`, because
+                 `finding` is only ever a claim about what we started; `terminalRun` is
+                 the server's record of how it actually ended. When both are true the run
+                 is over and the flag is stale. */
+              terminalRun ? (
+                <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  <div className="text-[15px] font-bold text-[#5c5279]">
+                    {/* ⚠️ The word "failed" is the internal status and never appears here.
+                        ⛓️ 23 Sep — WAS the 26 Aug "We hit a snag confirming your matches";
+                        the founder: "the i hit a snag is bulsshit. it is so customer
+                        unfriendly." Same headline as `FAILED_RUN_HEADLINE`. */}
+                    {proofFailed
+                      ? 'Your first examples are on their way'
+                      : proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
+                  </div>
+                  {/* The server's own canonical sentence — never re-written here, and for a
+                      crash it carries no provider name, status code or stack. */}
+                  <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
+                  {/* Nothing on this branch starts another search, and no control offers to. */}
+                </div>
+              ) : proofAwaiting ? (
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  <div className="text-[15px] font-bold text-[#5c5279]">
+                    {/* ⚑ 26 Aug — THE WAIT IS BOUNDED. When the poll exhausts and the server
+                        still has no terminal outcome for this run — persistence failed, the
+                        row is missing, or /milla-summary itself kept erroring — the desk
+                        stops claiming to be searching. It says the approved recovery line
+                        instead. No spinner runs forever, and no client-side guess becomes a
+                        result: this branch only ever renders when `terminalRun` is absent,
+                        so real backend truth always wins.
+
+                        ⛓️ CORRECTION PASS — `proofAwaiting` JOINS `finding` HERE rather than
+                        getting its own branch below. A clean-URL reopen used to fall to a
+                        separate card that said "We hit a snag" IMMEDIATELY, with no elapsed
+                        time considered at all; now it enters this identical bounded wait, so
+                        a claimed proof at 30s or 90s reads "Finding your matches now…" and
+                        only crosses to the recovery line once the bound is genuinely past.
+                        One wait, one bound, one verdict — whether or not the URL has a
+                        query string. */}
+                    {proofWaitEnded ? 'Your first examples are on their way' : 'Finding your matches now…'}
+                  </div>
+                  <div className="text-[13px] mt-1.5">
+                    {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
+                        expression container, so an HTML entity is not decoded — it renders as
+                        the literal text "We&rsquo;re". Entities only work in JSX text nodes,
+                        which is what the paying-client line below is. */}
+                    {proofWaitEnded
+                      /* No retry offered, no timing promised, no technical detail — the
+                         diagnosis is in the alert. ⛓️ 23 Sep — WAS the 26 Aug body; the same
+                         sentence as `FAILED_RUN_BODY` / `PROOF_NEEDS_US_COPY` now. */
+                      ? 'Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.'
+                      : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
+                  </div>
+                </div>
+              ) : (
+                /* ⛓️ 3 Sep — THE NEUTRAL PROOF BASELINE. *"Nothing to react to right now."* is
+                   true and stays for everyone it was written for, but for a client at Proof
+                   with an empty desk it is a dead end: it states an absence and offers no way
+                   out of it, on the one screen whose whole job is to start the conversation.
+                   ⚠️ NO NEW COPY. `nextActionFor` is the SAME founder-approved per-stage
+                   sentence the programme workspace already renders — *"Tell Milla the outcome
+                   you want"* at Proof — reused here rather than re-written. Same card, same
+                   colours, same spacing: only the sentence inside it differs, and only for
+                   this state. */
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  {prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'}
+                </div>
+              )
+            )}
+
+      {featured ? (
+        <div className="mv-section">
+          <div className="mv-section-head">
+            <b>Teach Milla what good looks like</b>
+            <span>{pending.length} of your {proofMode && capacity && capacity.known ? capacity.workable.toLocaleString() : 'matches'} · sample only · nothing bought</span>
+          </div>
+          <div className="mv-section-body">
+            <div className="mv-people-review">
+              {(() => {
+                const l = featured
+                const busy = acting === l.id
+                return (
+                  <div className={`mv-person-feature ${l.band === 'start_here' ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : ''}`}>
+                    {/* ⚑ 10 Sep (C06) — the label is the band, in the server's own words; the star
+                        belongs to `start_here` only; no band means no label. */}
+                    {l.band && l.band_label && (
+                      <div className={`text-[9px] font-extrabold uppercase tracking-[0.1em] mb-2 ${l.band === 'start_here' ? 'text-[color:var(--mv-accent-deep)]' : 'text-[color:var(--mv-dim)]'}`}>
+                        {l.band === 'start_here' ? <>★ {l.band_label}</> : l.band_label}
+                      </div>
+                    )}
+                    <div className="mv-person-top">
+                      <div className="mv-person-avatar">{initialsOf(l.company)}</div>
+                      {/* ⚑ 22 Sep (D9) — *"no name. full company."* The company in full; no person's name. */}
+                      <div className="mv-person-info min-w-0 flex-1">
+                        <b>{l.company}</b>
+                        <span>{l.role}</span>
+                        <span>{[sizeOf(l.company_size), l.country].filter(Boolean).join(' · ')}</span>
+                        {l.from ? <span data-testid="lead-from" className="mv-pill !inline-block mt-1.5">{FROM_LABEL[l.from] ?? l.from}</span> : null}
+                      </div>
+                      {/* ⛓️ 18 Sep (J5-C8) — an unscored card says so rather than leaving a gap. */}
+                      {l.score != null
+                        ? <span className="text-right"><span className="text-[16px] font-extrabold text-[color:var(--mv-accent-deep)] tabular-nums">{l.score}</span><span className="block text-[8px] uppercase tracking-wide text-[color:var(--mv-dim)] font-extrabold">score</span></span>
+                        : l.not_scored
+                          ? <span data-testid="lead-not-scored" title="We could not produce a fit score for this prospect. They are still part of your set." className="text-right"><span className="text-[9px] font-extrabold uppercase tracking-wide text-[color:var(--mv-dim)]">Not scored</span></span>
+                          : null}
+                    </div>
+                    {/* ⚑ 18 Sep (J5-C6) — the claim matches the label: a refused card carries the
+                        criterion in the client's own words, never the scorer's case for it. */}
+                    {l.why_fits && <div className="mv-reason"><b>Why Milla picked this person</b><br />{l.why_fits}</div>}
+                    {l.band_reason && <div data-testid="lead-band-reason" className="mv-reason"><b>Why this isn&rsquo;t a fit:</b> {l.band_reason}</div>}
+                    {/* ⛓️ 30 Aug — the three controls the founder specified, and only those. No
+                        control here reveals a contact, spends a pass or costs anything; and none
+                        accepts a refused card (the server's `can_accept`, and the route refuses too). */}
+                    <div className="mv-person-actions">
+                      {l.can_accept !== false && (
+                        <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
+                          className="mv-btn primary disabled:opacity-50">
+                          {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
+                        </button>
+                      )}
+                      <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className="mv-btn disabled:opacity-50">Not a fit</button>
+                    </div>
+                    {noteFor === l.id ? (
+                      <div onClick={e => e.stopPropagation()}>
+                        <div className="flex gap-1.5 mt-2">
+                          <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
+                            placeholder="Tell Milla why"
+                            className="flex-1 min-w-0 text-[11px] rounded-lg border border-[color:var(--mv-line2)] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6f3df4]/25" />
+                          <button disabled={noteSaving} onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
+                            className="mv-btn dark !py-1.5 disabled:opacity-50">
+                            {noteSaving ? 'Saving…' : 'Send'}
+                          </button>
+                        </div>
+                        {/* ⚡ 18 Sep (J5-C11) — the words stay in the box; a failed save says so. */}
+                        {noteError && (
+                          <div data-testid="note-not-saved" className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                            {noteError}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText(''); setNoteError(null) }}
+                        className="mv-muted-note mt-2 hover:text-[color:var(--mv-accent-deep)]">
+                        Tell Milla why
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+              {/* THE REST OF THE SAMPLE — no buttons on every card (#19). Tap one to teach Milla
+                  about that person instead. Newest set first; a heading only when there are two. */}
+              <div className="mv-sample-list min-w-0 max-h-[300px] overflow-y-auto">
+                {pending.filter(l => l.id !== featured.id).map((l, i, rest) => (
+                  <Fragment key={l.id}>
+                    {showBatchLabels && (i === 0 || batchKey(rest[i - 1]) !== batchKey(l)) && (
+                      <div className="text-[8px] font-extrabold uppercase tracking-[0.1em] text-[color:var(--mv-dim)] pt-1">
+                        {batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}
+                        {/* ⚑ 26 Aug — say how many, because the number is the honest part. */}
+                        <span className="ml-1 normal-case tracking-normal">
+                          · {pending.filter(x => batchKey(x) === batchKey(l)).length} {pending.filter(x => batchKey(x) === batchKey(l)).length === 1 ? 'match' : 'matches'}
+                        </span>
+                      </div>
+                    )}
+                    <button type="button" onClick={() => setFeaturedId(l.id)}
+                      className="mv-mini-person text-left w-full hover:border-[#d9cff2]">
+                      <div className="mv-mini-av">{initialsOf(l.company)}</div>
+                      <div className="min-w-0 flex-1">
+                        <b className="truncate">{l.company}</b>
+                        <span className="truncate">{[l.role, sizeOf(l.company_size)].filter(Boolean).join(' · ')}</span>
+                        {l.from ? <span>{FROM_LABEL[l.from] ?? l.from}{l.band === 'start_here' ? ' · ★' : ''}</span> : null}
+                      </div>
+                    </button>
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* THE ONE QUESTION AND THE ONE BUTTON (R143) — the server's controls, drawn once. */}
+      {calibrationControl}
+      {refineOpen && refinePanel}
+      {/* ⚑ 22 Sep — after a refinement, the fields are a route, and a person is something to ask for. */}
+      {proofMode && proofPassesDone > 0 && (
+        <p className="mv-muted-note">
+          Still not right? Ask Milla again as many times as you like, and tell her what to change
+          &mdash; she re-counts for free. If you&rsquo;d rather a person looked at it with you, just say so.
+        </p>
+      )}
+    </div>
+  )
+
   return (
-    <div className="h-full flex flex-col overflow-hidden px-5 py-4">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* THE WALKTHROUGH (flow v2 step 1) — once, on their first visit, then never again.
           Steps whose element isn't on screen skip themselves, so a fresh account with an
           empty lead desk still gets a coherent tour. */}
@@ -1409,6 +1858,14 @@ export default function MillaHomePage() {
         { target: 'chat',      title: 'Milla, any time', body: "Ask for more people, change who we're targeting, or tell me a lead was wrong. I'm how you steer it — there are no forms." },
         { target: 'kpi-meetings', title: 'What it comes back as', body: 'Booked meetings. We answer the replies, qualify them and put the meeting in your calendar — you just turn up.' },
       ]} />
+      {/* ⚑ 24 Sep (R145 step 4) — AFTER PROOF THE RIGHT SIDE IS THE PROGRAMME SCREEN, DRAWN AS THE
+          REDESIGN DRAWS IT: no four-tile row above it and no box around it. The tiles said what the
+          panel now says itself (outcome, stage, progress, next). They remain only for the states
+          that have no panel: loading, and a programme read that failed. */}
+      {showProofDesk ? proofPanel : (!progFailed && prog && (prog.hasProgramme !== false || prog.stage === 'Recommendation')) ? (
+        <div className="flex-1 min-h-0"><ProgrammeScreen /></div>
+      ) : (
+      <div className="flex-1 min-h-0 flex flex-col px-5 py-4">
       {/* ⛓️ 30 Aug (BUILD-004A-1) — THE $299 GO-LIVE BANNER IS REMOVED.
           It read "Go live — your first 100 leads are $299 … After the first 100 it's a flat
           $4 a lead". That is the legacy pack, and the live customer path has no legacy
@@ -1492,455 +1949,22 @@ export default function MillaHomePage() {
             </div>
           ) : !prog ? (
             <div className="px-3.5 py-3"><p className="text-[14px] text-[#9b8ec4]">Loading your programme…</p></div>
-          ) : prog.hasProgramme !== false ? (
-            /* ⛓️ 3 Sep — THIS BRANCHED ON `stage !== 'Proof'`, AND THAT IS NOT THE QUESTION.
-               `millaStage` maps a DRAFT programme AND no programme at all to 'Proof', so a
-               client WITH a programme fell into the legacy client-scoped desk below and saw
-               their own history presented as current programme work. The question the branch
-               actually asks is "does a programme exist", and `hasProgramme` is that fact. */
-            <div className="px-3.5 py-3 overflow-y-auto">
-              <ProgrammeWorkspace p={prog} />
-              {/* ⚑ 3 Sep (PR B) — REVIEW + THE ONE APPROVAL, AT THE APPROVAL STAGE ONLY.
-                  `millaStage` maps BOTH `READY_FOR_APPROVAL` and `APPROVED` to 'Approval', so
-                  this covers the before and the after of the customer's single act: the
-                  prospects and the button, then the approved state and the same prospects.
-                  ⚠️ THE WORKSPACE ABOVE IS UNTOUCHED. It still renders exactly as it did at
-                  every stage including this one — the review is added beneath it, never in
-                  place of it, because the stage rail and the money facts are still true. */}
-              {prog.stage === 'Approval' && (
-                <div className="mt-4 pt-4 border-t border-[#eee7f7]">
-                  <ProgrammeReview token={token} />
-                </div>
-              )}
-            </div>
-          ) : (
-          <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
-            {/* ── 🛑 ⚑ 22 Sep — WHAT THIS POOL CAN CARRY, BEFORE ANYBODY PAYS ─────────────
-                 🛑 FOUNDER-LOCKED: *"we would not offer 10 meetings when we can only deliver
-                 6. so our calulator presented to the client in the portal says. we can get you
-                 10. we best have the amount of people to do so."*
-
-                 🛑 AND IT BELONGS HERE, AT PROOF, RATHER THAN AT THE CALCULATOR. The locked
-                 preview puts WE CAN COMMIT TO on the Proof screen precisely because this is
-                 where the client is still shaping the targeting: narrowing costs them
-                 meetings we can commit to, and they have to see that while it is still free to
-                 change. A cap that first appears on the slider is a cap that appears after they
-                 have decided.
-
-                 ⛓️ 23 Sep — WAS *"narrowing costs them headroom"*. Headroom used to mean work
-                 we would absorb past the plan; the founder removed that promise, so narrowing
-                 now costs them the only thing it ever really cost them — meetings.
-
-                 ⚠️ THE POOL SIZE AND THE RATE ARE NOT ON THIS SCREEN. "we build buffer only we
-                 know" — the client is shown WORKABLE POOL and what we can commit to; the 400,
-                 the 250 view and the headroom between them stay ours and are not even in the
-                 route's response.
-
-                 ⚠️ AND IT SAYS NOTHING RATHER THAN ZERO WHEN THE PROVIDER COULD NOT BE ASKED.
-                 `known: false` means we do not know the pool size; rendering "0 people · 0
-                 meetings" would be a claim about this client's market instead of about our
-                 connection, and it is the claim that would make them leave. */}
-            {proofMode && capacity && capacity.known && (
-              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 grid grid-cols-2 [@media(min-width:1100px)]:grid-cols-4 gap-2.5">
-                <div className="rounded-2xl bg-[#7C3AED] text-white px-4 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#d8c8f8]">We can commit to</div>
-                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">{capacity.committed}</div>
-                  <div className="text-[10.5px] leading-snug text-[#f0e6ff] mt-1">
-                    {capacity.committed > 0
-                      ? 'booked meetings — what this pool can carry, before you pay anything'
-                      : 'not enough people at this targeting yet — tell Milla and we’ll widen it'}
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Workable pool</div>
-                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">{capacity.workable.toLocaleString()}</div>
-                  {/* ⚠️ THE SUBTRACTION IS SHOWN because it is the client's OWN instruction
-                      doing the removing, and they should see it working. Nothing else on this
-                      screen removes anybody. */}
-                  <div className="text-[10.5px] text-[#5c5279] mt-1">
-                    {capacity.excluded > 0
-                      ? `${capacity.matched.toLocaleString()} matched − ${capacity.excluded.toLocaleString()} excluded`
-                      : 'nobody excluded yet'}
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Charged so far</div>
-                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">$0</div>
-                  <div className="text-[10.5px] text-[#5c5279] mt-1">nothing bought</div>
-                </div>
-                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Next</div>
-                  <div className="text-[13px] font-extrabold leading-snug mt-1">Say whether these are your people</div>
-                  <div className="text-[10.5px] text-[#5c5279] mt-1">then the programme</div>
-                </div>
-              </div>
-            )}
-            {/* ── 🛑 ⚑ 22 Sep — THE WIDEN ROUTE, WITH NO GUESSING IN IT ──────────────────
-                 🛑 FOUNDER-LOCKED, TWICE: *"if Milla cant answer we then say to the client
-                 please use drop down boxes on right mannually. we never assume"* and *"we
-                 cant guess peoples way of speaking ever."*
-
-                 🛑 WHAT THE LOCKED PREVIEW HAS MILLA DO HERE IS *"Ireland is the closest fit
-                 to what you described"* — a judgement about which country resembles a market,
-                 which is exactly the kind of guess that produced the invented industry
-                 vocabulary. So the route is offered WITHOUT the opinion: the client is told
-                 what their targeting carries, told widening is free, and handed the fields.
-                 They choose Ireland; we never propose it.
-
-                 ⚠️ IT IS SHOWN AT EVERY CAPACITY, NOT ONLY AT ZERO — which is the "six, not
-                 ten" moment. A client looking at a pool that carries six has to learn that
-                 BEFORE they pay for ten, and the honest way to tell them is the number plus
-                 the control, not a warning they cannot act on.
-
-                 ⚠️ AND NOTHING IS SPENT TO RE-COUNT. People Search is free; the promise in
-                 this sentence is one the product can keep. */}
-            {proofMode && capacity && capacity.known && (
-              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
-                {capacity.committed > 0
-                  ? <>Your targeting carries <b className="text-[#17101f]">{capacity.committed}</b>{' '}
-                    booked {capacity.committed === 1 ? 'meeting' : 'meetings'}. Want more than that?</>
-                  : <>There aren&rsquo;t enough people at this targeting for a programme yet.</>}
-                {' '}Widen it yourself in the targeting fields on your Brief and I&rsquo;ll
-                re-count straight away &mdash; looking is free, and nothing is bought.
-                {' '}<a href="/milla/welcome" className="font-semibold text-[#5b21b6] underline underline-offset-2">Open my Brief</a>
-              </div>
-            )}
-            {/* ⚠️ THEY ARE A SAMPLE, AND SAYING SO IS THE POINT. The locked preview heads this
-                list "Twenty of your 4,317" and has Milla say it out loud: *"You're not choosing
-                from these twenty. They're a sample of the four thousand."* A client who thinks
-                twenty people IS the pool reads a weak card as evidence the whole market is
-                weak — which is the wrong conclusion drawn from the right screen. */}
-            {proofMode && capacity && capacity.known && leads && leads.length > 0 && (
-              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 text-[12.5px] text-[#5c5279]">
-                <b className="text-[#17101f]">{leads.length} of your {capacity.workable.toLocaleString()}</b>
-                {' '}· masked · free · nobody has been contacted — these are a sample, not the whole list.
-              </div>
-            )}
-            {/* the wallet top-up banner is gone with the paid desk */}
-            {/* ⛓️ 3 Sep — THIS SET IS NOT A PROGRAMME, AND IT NOW SAYS SO.
-                This branch is reached ONLY when no programme row exists, and the list beneath
-                it comes from `/leads/for-approval`, which is scoped to `client_id` and has no
-                time bound at all ("NO TIME LIMIT ON PAID LEADS", founder-locked 25 Jul). For a
-                client with history that is history: House's retired desk rendered here as
-                three prospect cards under a heading that said "Your programme".
-                🛑 NOTHING IS HIDDEN AND NOTHING IS DELETED — the founder's second acceptable
-                option, taken because the first (show nothing) would also blank the FREE PROOF
-                calibration set, which is the launch acquisition motion and legitimately lives
-                on this screen. The records stay; the claim that they are a current programme
-                does not. */}
-            {/* ⛓️ 3 Sep (C2 live) — AND NOT DURING A PROOF SESSION. `/leads/for-approval` is now
-                bounded to the client's CURRENT work, so for a declared programme client between
-                programmes this list is empty and the banner disappears with it — which is the
-                House fix. What remains is a client mid FREE PROOF, whose cards ARE current: the
-                banner's own words, "examples you've previously reviewed", are false about a set
-                that was surfaced minutes ago. `proofPassesDone` is the same positive signal the
-                server scopes on, so the two cannot disagree. */}
-            {leads && leads.length > 0 && proofPassesDone === 0 && (
-              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3">
-                {/* Founder-locked wording, 3 Sep. Verbatim — no extra explanation. */}
-                <div className="text-[13px] text-[#4c4368] font-semibold">Earlier activity</div>
-                <div className="text-[12.5px] text-[#6b6288] mt-0.5">
-                  You don’t have an active programme yet. These are examples you’ve previously reviewed to help Milla learn what fits.
-                </div>
-              </div>
-            )}
-            {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
-            {!leads && !error && <p className="text-[14px] text-[#9b8ec4]">Loading…</p>}
-            {/* the #570 subset disclosure went with the capped approval list */}
-            {/* ── CALIBRATION v1 (P32) — the reason chip row ─────────────────────────────
-                Appears ONLY after a pass, above the list, and disappears on any tap. It is
-                skippable by ignoring it: nothing here blocks the next action, and the pass it
-                refers to has already completed. "One tap, never mandatory." */}
-            {justPassed && (
-              <div className="bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3.5">
-                <div className="text-[13px] text-[#4c4368] font-semibold">Passed. What was off about them?</div>
-                <div className="text-[12px] text-[#9b8ec4] mt-0.5">Optional — it tunes what I find you next.</div>
-                <div className="flex flex-wrap gap-1.5 mt-2.5">
-                  {REASON_CHIPS.map(c => (
-                    <button key={c.code}
-                      onClick={() => void sendReason(justPassed.id, c.code)}
-                      className="text-[12.5px] font-bold text-[#7C3AED] bg-white border-[1.5px] border-[#e4d4fb] rounded-lg px-2.5 py-1.5">
-                      {c.label}
-                    </button>
-                  ))}
-                  <button onClick={() => { setJustPassed(null); setNoteError(null) }}
-                    className="text-[12.5px] font-semibold text-[#9b8ec4] px-2.5 py-1.5">
-                    Skip
-                  </button>
-                </div>
-                {/* ⚡ 18 Sep (J5-C11 · LR 17) — TOLD. The tap used to dismiss this row
-                    before the write, so a lost reason was invisible — and this tap is what
-                    opens "Show me stronger examples". The row now stays until the answer is
-                    stored, and says so when it is not. Skipping still costs nothing. */}
-                {noteError && (
-                  <div data-testid="reaction-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2">
-                    {noteError}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* ⛓️ 30 Aug — THE "APPROVED · CONTACT" CARD IS GONE. It was the receipt for a paid
-                per-lead approve: a revealed email and "working it now". Calibration reveals
-                nobody and contacts nobody, so there is no receipt to render. */}
-            {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
-              /* ⚑ 24 Aug — FINDING vs GENUINELY EMPTY. These are different facts and used to
-                 render the same sentence. A prospect whose proof run is in flight was told
-                 "no leads waiting" and promised a notification nothing sends. The paying
-                 client's copy below is UNCHANGED on purpose — its own "we'll notify you"
-                 claim predates this build and is the founder's call, not this commit's. */
-              /* ⚑ 26 Aug — TERMINAL BEATS SPINNER. Checked BEFORE `finding`, because
-                 `finding` is only ever a claim about what we started; `terminalRun` is
-                 the server's record of how it actually ended. When both are true the run
-                 is over and the flag is stale. */
-              terminalRun ? (
-                <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  <div className="text-[15px] font-bold text-[#5c5279]">
-                    {/* ⚠️ The word "failed" is the internal status and never appears here.
-                        ⛓️ 23 Sep — WAS the 26 Aug "We hit a snag confirming your matches";
-                        the founder: "the i hit a snag is bulsshit. it is so customer
-                        unfriendly." Same headline as `FAILED_RUN_HEADLINE`. */}
-                    {proofFailed
-                      ? 'Your first examples are on their way'
-                      : proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
-                  </div>
-                  {/* The server's own canonical sentence — never re-written here, and for a
-                      crash it carries no provider name, status code or stack. */}
-                  <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
-                  {/* Nothing on this branch starts another search, and no control offers to. */}
-                </div>
-              ) : proofAwaiting ? (
-                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  <div className="text-[15px] font-bold text-[#5c5279]">
-                    {/* ⚑ 26 Aug — THE WAIT IS BOUNDED. When the poll exhausts and the server
-                        still has no terminal outcome for this run — persistence failed, the
-                        row is missing, or /milla-summary itself kept erroring — the desk
-                        stops claiming to be searching. It says the approved recovery line
-                        instead. No spinner runs forever, and no client-side guess becomes a
-                        result: this branch only ever renders when `terminalRun` is absent,
-                        so real backend truth always wins.
-
-                        ⛓️ CORRECTION PASS — `proofAwaiting` JOINS `finding` HERE rather than
-                        getting its own branch below. A clean-URL reopen used to fall to a
-                        separate card that said "We hit a snag" IMMEDIATELY, with no elapsed
-                        time considered at all; now it enters this identical bounded wait, so
-                        a claimed proof at 30s or 90s reads "Finding your matches now…" and
-                        only crosses to the recovery line once the bound is genuinely past.
-                        One wait, one bound, one verdict — whether or not the URL has a
-                        query string. */}
-                    {proofWaitEnded ? 'Your first examples are on their way' : 'Finding your matches now…'}
-                  </div>
-                  <div className="text-[13px] mt-1.5">
-                    {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
-                        expression container, so an HTML entity is not decoded — it renders as
-                        the literal text "We&rsquo;re". Entities only work in JSX text nodes,
-                        which is what the paying-client line below is. */}
-                    {proofWaitEnded
-                      /* No retry offered, no timing promised, no technical detail — the
-                         diagnosis is in the alert. ⛓️ 23 Sep — WAS the 26 Aug body; the same
-                         sentence as `FAILED_RUN_BODY` / `PROOF_NEEDS_US_COPY` now. */
-                      ? 'Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.'
-                      : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
-                  </div>
-                </div>
-              ) : (
-                /* ⛓️ 3 Sep — THE NEUTRAL PROOF BASELINE. *"Nothing to react to right now."* is
-                   true and stays for everyone it was written for, but for a client at Proof
-                   with an empty desk it is a dead end: it states an absence and offers no way
-                   out of it, on the one screen whose whole job is to start the conversation.
-                   ⚠️ NO NEW COPY. `nextActionFor` is the SAME founder-approved per-stage
-                   sentence the programme workspace already renders — *"Tell Milla the outcome
-                   you want"* at Proof — reused here rather than re-written. Same card, same
-                   colours, same spacing: only the sentence inside it differs, and only for
-                   this state. */
-                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  {prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'}
-                </div>
-              )
-            )}
-            {pending.map((l, i) => {
-              const busy = acting === l.id
-              // ⚑ 25 Aug — ONE HEADING AT EACH BATCH BOUNDARY. `pending` is already sorted
-              // newest batch first, so a heading is due whenever this row's batch differs
-              // from the row above it. Proof only, and only when there are two sets to tell
-              // apart — a single set needs no label and a paying client has no sets at all.
-              const newBatch = showBatchLabels && (i === 0 || batchKey(pending[i - 1]) !== batchKey(l))
-              return (
-                <Fragment key={l.id}>
-                {newBatch && (
-                  <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] pt-1.5 px-1">
-                    {batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}
-                    {/* ⚑ 26 Aug — SAY HOW MANY, because the number is the honest part.
-                        A short batch is not a failure and must not be dressed as a full
-                        one: the heading states the actual count and claims nothing about
-                        a target, promises no more to come, and offers no retry. Shown
-                        only in proof mode, where a batch is a countable set. */}
-                    {showBatchLabels && (
-                      <span className="ml-1.5 font-bold text-[#9b8ec4] normal-case tracking-normal">
-                        · {pending.filter(x => batchKey(x) === batchKey(l)).length} {pending.filter(x => batchKey(x) === batchKey(l)).length === 1 ? 'match' : 'matches'}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {/* ⛓️ THE CARD IS NO LONGER SELECTABLE. The pointer cursor and the picked
-                    highlight both belonged to the pick-N gate; a calibration card is reacted
-                    to, not chosen. The "we'd start here" emphasis stays — it is a steer, not
-                    a selection. */}
-                <div
-                  className={`rounded-2xl p-3.5 transition-shadow ${
-                    l.band === 'start_here' ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
-                  {/* ── ⚑ 10 Sep (C06) — THE LABEL IS THE BAND, AND THE STAR BELONGS TO ONE BAND ──
-                      🛑 THIS READ `l.recommended && "★ We'd start here"`, and `recommended` was
-                      the top 20 BY SCORE — on a 20-card proof pass, all of them. The founder was
-                      shown a starred management consultancy at 72/100 above a sentence saying it
-                      had no evidence of digital marketing. The star claimed a judgement about
-                      that person and meant only "this was in the list".
-
-                      ⚠️ THE WORDS ARE THE SERVER'S (`band_label`), so the screen cannot reword a
-                      band into a stronger claim, and the star is drawn for `start_here` ONLY —
-                      a structurally-unknown card is `worth_a_look` and can never be starred,
-                      whatever the model scored it.
-
-                      ⚠️ NO BAND MEANS NO LABEL. An older payload without one renders nothing
-                      rather than falling back to the rank star: silence is honest, and the
-                      fallback is the exact defect this replaces. */}
-                  {l.band && l.band_label && (
-                    l.band === 'start_here'
-                      ? <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED] mb-2">★ {l.band_label}</div>
-                      : <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] mb-2">{l.band_label}</div>
-                  )}
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center shrink-0">🎭</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <div className="min-w-0"><b className="text-[14px] block leading-tight">{l.role}</b><span className="text-[12.5px] text-[#9b8ec4]">@ {l.company}</span></div>
-                        {/* ⛓️ 18 Sep (J5-C8) — WAS `{l.score != null && <span>…}` ALONE, so an
-                            unscored prospect's card was silently missing its number. The server
-                            records the difference (`not_scored`), so the card states it rather
-                            than leaving a gap the client has to interpret. */}
-                        {l.score != null
-                          ? <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>
-                          : l.not_scored
-                            ? <span data-testid="lead-not-scored" title="We could not produce a fit score for this prospect. They are still part of your set." className="ml-auto text-right"><span className="text-[11px] font-extrabold uppercase tracking-wide text-[#9b8ec4]">Not scored</span></span>
-                            : null}
-                      </div>
-                      {/* ── ⚑ 18 Sep (J5-C6 · PV 02) — THE CLAIM MATCHES THE LABEL ────────
-                          🛑 A "Not a fit" card used to render "Why this fits: …" — the
-                          scorer's case FOR a company the product had just refused, which is
-                          the 72/100 card one band over. The server no longer sends
-                          `why_fits` on a refused card; it sends `band_reason` instead, the
-                          criterion in the client's own words. Neither is reworded here. */}
-                      {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
-                      {/* ⚠️ THE LABEL IS THE BAND'S OWN WORDS, and it deliberately avoids the
-                          operator vocabulary: `mvp1-proof-exception.test.ts` locks the
-                          criterion names (and the phrase this panel would naturally use) out
-                          of the client app. The sentence itself is the server's. */}
-                      {l.band_reason && <div data-testid="lead-band-reason" className="text-[13px] text-[#6b6383] mt-2 leading-relaxed bg-[#f6f4fa] rounded-lg px-2.5 py-2"><b className="text-[#8d85a5]">Why this isn&rsquo;t a fit:</b> {l.band_reason}</div>}
-                      {/* ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE THREE CONTROLS THE FOUNDER
-                          SPECIFIED, AND ONLY THOSE: Looks right · Not a fit · an optional
-                          "Tell Milla why". What was here instead: the proof signal, a pick-N
-                          selection gate, and a paid per-lead approve carrying a price. The
-                          last two were the paid desk and are gone — no button on this card
-                          reveals a contact, spends a pass or costs anything. */}
-                      <div className="flex gap-1.5 mt-2.5">
-                        {/* ── 🛑 ⚑ 18 Sep (J5-C6) — NO ACCEPT CONTROL ON A REFUSED CARD ────
-                            "👍 Looks right" is not a reaction: `/leads/:id/proof-accept`
-                            ADOPTS a widened proof basis onto the live ICP, so accepting a
-                            card the product refused would rewrite the client's targeting on
-                            the strength of it — and write the `approve` feedback the
-                            calibration escalation counts.
-
-                            ⚠️ THE SERVER DECIDES, NOT THIS SCREEN. `can_accept` comes from
-                            the same band the card's label came from; re-deriving the refused
-                            band here would be a second authority on fit, which is what
-                            `band_label` was introduced to stop. `!== false` so an older
-                            payload without the field behaves exactly as before.
-
-                            ⚠️ AND THE ROUTE REFUSES IT TOO. A control absent from a browser
-                            is not a refusal. */}
-                        {l.can_accept !== false && (
-                          <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
-                            className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                            {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
-                                anything starts, not that anyone is contacted, not what it is
-                                worth — it states only that the reaction was recorded. */}
-                            {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
-                          </button>
-                        )}
-                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className={`text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50${l.can_accept === false ? ' flex-1' : ''}`}>Not a fit</button>
-                      </div>
-                      {/* THE OPTIONAL THIRD CONTROL. Ignoring it costs nothing and blocks
-                          nothing; it is a text box, not a step. */}
-                      {noteFor === l.id ? (
-                        <div onClick={e => e.stopPropagation()}>
-                          <div className="flex gap-1.5 mt-1.5">
-                            <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
-                              placeholder="Tell Milla why"
-                              className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-                            <button disabled={noteSaving} onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
-                              className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED] disabled:opacity-50">
-                              {noteSaving ? 'Saving…' : 'Send'}
-                            </button>
-                          </div>
-                          {/* ⚡ 18 Sep (J5-C11 · LR 17) — THE WORDS ARE STILL IN THE BOX ABOVE.
-                              The old shape cleared the input on the first line of `sendNote`,
-                              so a failed write destroyed the client's sentence and said
-                              nothing. Sending again is one tap, not retyping. */}
-                          {noteError && (
-                            <div data-testid="note-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
-                              {noteError}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText(''); setNoteError(null) }}
-                          className="text-[12px] font-semibold text-[#9b8ec4] mt-1.5 hover:text-[#7C3AED]">
-                          Tell Milla why
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {/* THE REFINEMENT SITS WITH THE SET IT REFINES — under the last card of the
-                    LATEST batch, above any "Earlier set" heading. With one batch this is the
-                    final card, which is exactly where it rendered before. */}
-                {i === lastLatestIdx && <>{calibrationControl}{refineOpen && refinePanel}</>}
-                </Fragment>
-              )
-            })}
-            {/* ── 🛑 ⚑ 22 Sep — THE WALL IS GONE, AND THE FIELDS ARE THE WAY FORWARD ──────
-                 ⛓️ WAS: a statement that the client had spent both of their proof passes and
-                 that K.I.N.D would review it with them — founder-approved wording on 30 Aug,
-                 and true while two passes was the hard limit. It is now false in both halves:
-                 no pass is spent for ever, and nobody is waiting in a queue for a review they
-                 did not ask for. The old sentence is deliberately NOT quoted here — a guard
-                 asserts it has left this file, and a tombstone that reproduces it verbatim
-                 fails that guard while appearing to document it.
-
-                 🛑 FOUNDER-LOCKED 22 Sep: *"if Milla cant answer we then say to the client
-                 please use drop down boxes on right mannually. we never assume."* So the
-                 dead end becomes a route the client can take themselves — and a person
-                 becomes something they can ASK for rather than something they hit.
-
-                 ⚠️ IT IS SHOWN AFTER A REFINEMENT, NOT AFTER A LIMIT. `proofPassesDone > 0`
-                 means they have already tried once; that is the moment adjusting the fields
-                 directly is worth suggesting, and it is the moment we previously chose to
-                 tell them to stop. */}
-            {proofMode && proofPassesDone > 0 && (
-              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
-                Still not right? Ask Milla again as many times as you like &mdash; or set the
-                targeting yourself in the fields on your Brief, and I&rsquo;ll re-count for free.
-                {' '}If you&rsquo;d rather a person looked at it with you, just say so.
-              </div>
-            )}
-            {/* ⛓️ NO PRICE FOOTER. It carried the per-lead price and, in proof, a promise that
-                reacting takes you live. Neither is true of calibration, and the price string
-                itself is forbidden on this file by name — so it is not quoted here either. */}
-          {/* ⛓️ THE PICK-N BATCH BAR IS GONE. "Start work on N →" belonged to the paid
-              desk: pick twenty, approve them together, charge for them. Calibration is one
-              reaction at a time and costs nothing. */}
-          </div>
-          )}
+          ) : (prog.hasProgramme !== false || prog.stage === 'Recommendation') ? (
+            /* ── 🛑 ⚑ 24 Sep — AFTER PROOF, THE RIGHT SIDE IS THE PROGRAMME, AND ALL OF IT ─────
+               Founder: *"we never leave one chat to go to another… the only change is the right
+               screen"* · *"from one screen to one choice to the next."*
+               ⛓️ WAS two branches, and both were dead ends: a client who had just confirmed their
+               Proof has no programme row, so they kept the Proof desk and the calculator lived only
+               behind the rail's Programme link; and once a programme existed this showed
+               ~~`<ProgrammeWorkspace p={prog} />` + `<ProgrammeReview />` at Approval~~ — the status,
+               but not the Accept, P1, P2 or Approve cards, which lived only on /milla/programme.
+               The Programme screen itself is now rendered HERE, beside the same conversation: one
+               implementation, so Home and the rail's Programme link cannot show different things.
+               ⚠️ `hasProgramme !== false` IS KEPT AS THE QUESTION (3 Sep): a draft programme maps
+               to 'Proof' too, and asking "does a programme exist" is what keeps a client with one
+               off the Proof desk. */
+            <ProgrammeScreen />
+          ) : null}
         </aside>
       </div>
 
@@ -1980,6 +2004,8 @@ export default function MillaHomePage() {
             <span className="text-[12.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Meeting rate {Math.round(nexus.meeting_rate * 1000) / 10}%</span>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   )

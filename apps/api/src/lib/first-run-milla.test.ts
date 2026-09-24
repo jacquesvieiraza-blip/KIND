@@ -411,7 +411,12 @@ describe('required client data is never fabricated or defaulted', () => {
       .not.toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
     expect(welcomeCode).not.toContain('Before I can open your account I still need ')
     // The gate the plan and the CTA now sit behind is the server's state, not this tab's.
-    expect(welcomeCode).toContain('{!(serverReady && proposed) ? (')
+    // ⛓️ 24 Sep (R145 step 2) — WAS `{!(serverReady && proposed) ? (`, the switch between the workspace and the
+    // plan card. There is one panel now; the SAME two conditions gate the one button, through
+    // `blocker`, which names what is missing instead of hiding the button.
+    expect(welcomeCode).toContain('disabled={saving || blocker !== null}')
+    expect(welcomeCode).toMatch(/: !serverReady \? \(briefNext/)
+    expect(welcomeCode).toContain(": !proposed ? ")
     const onb = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
     expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country']")
     expect(onb, 'company name is still one of the canonical eleven, counted there')
@@ -522,7 +527,13 @@ describe('Milla wears her own face, and FIGSY is nowhere in her first run', () =
     // `milla-vida-shell.test.ts` pins to absent. Her face on the first screen is the
     // requirement; which file draws it is not.
     const shellCode = readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8')
-    expect(shellCode, "the shell lost Milla's canonical face").toContain('/agents/milla.png')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): WAS `expect(shellCode).toContain('/agents/milla.png')`.
+    // The founder's redesign draws the brand as the M&V mark and Milla as her gradient "M"
+    // avatar with her name — no photograph — and he ordered it matched exactly. The 24-Aug
+    // duty this guarded is kept word for word below: nothing on her first run may show another
+    // agent's face (FIGSY), and onboarding may not bypass the portal chrome.
+    expect(shellCode, "the shell lost the M&V brand mark").toContain('<div className="mv-mark">M</div>')
+    expect(shellCode, 'another agent\'s face is on Milla\'s screen').not.toMatch(/figsy\.(png|jpg|webp)/i)
     // ⚠️ ANCHORED TO A STATEMENT, NOT TO THE TEXT. The shell's own tombstone comment quotes
     // the removed line verbatim — a plain `toContain` matches the history and reports the
     // fix as the defect.
@@ -648,8 +659,10 @@ describe('the free count may run during the Brief — but only through one door'
   it('🛑 no number is shown that no preview produced', () => {
     // The em-dash is the locked empty state, and a FAILED count must return to it rather than
     // leave the previous answer standing beside changed targeting.
-    expect(welcomeCode, 'the bar stopped falling back to the locked em-dash')
-      .toMatch(/matchCount === null \? '—'/)
+    // ⛓️ 24 Sep (R145 step 2) — WAS the bar's em-dash, `matchCount === null ? '—'`. The redesign's hero states the
+    // count as a sentence; with no count it says what to do instead, and still shows no number.
+    expect(welcomeCode, 'the hero stopped falling back when no count exists')
+      .toMatch(/matchCount === null\s*\?\s*'Tell Milla who you want to meet\.'/)
     expect(welcomeCode, 'a failed count no longer clears the number')
       .toMatch(/catch \{[\s\S]{0,400}?setMatchCount\(null\)/)
     expect(welcomeCode).not.toContain('Matches found')
@@ -680,7 +693,9 @@ describe('existing clients are not dragged through any of it', () => {
 // ─────────────────────────────────────────────────────────────────────────────────────────
 describe('everything downstream of the confirmation is byte-for-byte the same journey', () => {
   it('the reflect-back and its recorded confirmation are unchanged', () => {
-    expect(welcomeSrc).toContain('Here&rsquo;s what I understand about your business')
+    // ⛓️ 24 Sep (R145 step 2) — the reflect-back is a section of the one panel now, titled as the redesign titles
+    // its cards. WAS 'Here&rsquo;s what I understand about your business'.
+    expect(welcomeSrc).toContain('<b>What Milla understood</b>')
     expect(icpsSrc).toContain('milla_understanding_confirmed_at')
   })
 
@@ -923,7 +938,9 @@ describe('free proof runs before the client is ever asked to pay', () => {
   })
 
   it('the CTA asks to be shown people, and offers no price', () => {
-    expect(welcomeCode).toContain('"Yes, this represents us — show me who you\'d find"')
+    // ⛓️ 24 Sep (R145 step 2) · D2 — WAS "Yes, this represents us — show me who you'd find". The founder chose the
+    // redesign's one Brief button: "Show me who you'd find". Still no price.
+    expect(welcomeCode).toContain('"Show me who you\'d find"')
     expect(welcomeSrc).toContain('free, masked, and nobody is contacted')
     expect(welcomeCode).not.toMatch(/go live for/i)
   })
@@ -1008,7 +1025,16 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     // Removing the field to satisfy the old wording would have reintroduced the defect this
     // guard has nothing to do with. So the one identifier is exempted by name, and every
     // other mention of a provider is still refused.
-    expect(deskCode.replace(/apollo_only_consented/g, ' ')).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
+    // ⛓️ 24 Sep (R145 step 3b · D8) — ONE MORE EXEMPTION, AND IT IS THE FOUNDER'S OWN WORDS.
+    // *"when it presents leads to a client i want a little note saying pooled from pool or
+    // apollo."* (D8, approved 24 Sep). So "From Apollo" is the one provider name a client may
+    // read, as a source label; every other provider mention is still refused.
+    // ⛓️ 24 Sep (R149) — AND TWO CONSTANT NAMES. The Proof drop-downs read their options from
+    // `APOLLO_INDUSTRIES` / `APOLLO_SENIORITY_LABELS` (R142: "we use apollo drop downs"). Those
+    // are identifiers in code, never words on the screen; the rule still refuses any other mention.
+    expect(deskCode.replace(/apollo_only_consented/g, ' ').replace(/apollo: 'From Apollo'/g, ' ').replace(/'apollo'/g, ' ')
+      .replace(/\bAPOLLO_INDUSTRIES\b|\bAPOLLO_SENIORITY_LABELS\b/g, ' '))
+      .not.toMatch(/\bPDL\b|Apollo|Hunter/i)
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {
@@ -1438,7 +1464,9 @@ describe('no number is shown that no preview produced', () => {
   it('the panel describes the CURRENT stage, which is free', () => {
     expect(welcomeSrc).toContain('Free proof')
     expect(welcomeSrc).toContain('Up to 20 masked leads')
-    expect(welcomeSrc).toContain('See who K.I.N.D would find before you decide to go live.')
+    // ⛓️ 24 Sep (R145 step 2) — WAS 'See who K.I.N.D would find before you decide to go live.' on the plan card that
+    // is gone; the line under the one button carries the same promise and says the choice is theirs.
+    expect(welcomeSrc).toContain('You decide what happens next.')
   })
 
   it('NO price of any kind appears on this screen — not $299, not $4, not the first 100', () => {

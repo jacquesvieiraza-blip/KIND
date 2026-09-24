@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
+import { FilterRow } from '@/components/milla/FilterRow'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 // ⚑ 22 Sep — THE CAPACITY MODEL, IMPORTED RATHER THAN RE-DERIVED. Method rule 7 applied to
@@ -11,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { capacitySentence, committedCapacity, workablePool } from '@kind/shared'
 import {
   firstProofReadiness, PROOF_PREPARING_COPY, PROOF_NEEDS_US_COPY, PROOF_NEEDS_CLIENT_COPY,
-  APOLLO_SENIORITY_LABELS, APOLLO_INDUSTRIES, PICK_INDUSTRY_COPY,
+  APOLLO_SENIORITY_LABELS, APOLLO_INDUSTRIES, PICK_INDUSTRY_COPY, NEVER_CONTACT_ASK_COPY,
   type ProofReadiness, type ProofSummaryFacts,
 } from '@kind/shared'
 // ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
@@ -270,103 +273,8 @@ const PICK_KEY: Record<string, string> = {
   target_category: 'industries',
 }
 
-/**
- * One editable targeting field — a closed list of toggles, or an add/remove chip box.
- *
- * ⚠️ NOT A `<select>`. Every one of these is multi-value (a client wants C-Suite AND
- * VP/Director), and a native multi-select is close to unusable on a phone. Toggling chips is
- * the same interaction in both modes, which is why the closed and free variants share a
- * component rather than looking like two different ideas on one panel.
- */
-function PickField({ options, free, chosen, placeholder, onChange, max }: {
-  options: string[]
-  free: boolean
-  chosen: string[]
-  placeholder: string
-  onChange: (next: string[]) => void
-  /** ⚑ 23 Sep — the most that may be chosen; a further tick is ignored rather than refused by the server. */
-  max?: number
-}) {
-  const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState('')
-  // ⚑ 23 Sep (R142 · A2a) — a LONG closed list (Apollo's industries) gets a filter box. It only
-  // narrows what is shown; the client can still choose nothing that is not on the list.
-  const searchable = !free && options.length > 20
-  const full = max !== undefined && chosen.length >= max
-  const toggle = (v: string) => {
-    if (chosen.includes(v)) { onChange(chosen.filter(x => x !== v)); return }
-    if (full) return
-    onChange([...chosen, v])
-  }
-  const q = draft.trim().toLowerCase()
-  const shown = free ? chosen
-    : searchable ? [...chosen, ...options.filter(o => !chosen.includes(o) && (q === '' || o.toLowerCase().includes(q)))]
-    : options
-  const add = () => {
-    const v = draft.trim()
-    // ⚠️ A DUPLICATE IS NOT AN ERROR, IT IS A NO-OP. Telling a client they already added
-    // "COO" is noise; quietly not adding it twice is the behaviour they expected anyway.
-    if (v && !chosen.includes(v)) onChange([...chosen, v])
-    setDraft('')
-  }
-  return (
-    <div className="relative">
-      <div
-        onClick={() => setOpen(o => !o)}
-        className="border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] cursor-pointer">
-        {chosen.length === 0
-          ? <span className="text-[#9b8ec4] text-[11.5px]">{placeholder}</span>
-          : chosen.map(v => (
-            <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
-          ))}
-        <span className="ml-auto text-[#9b8ec4] text-[12px] leading-none">⌄</span>
-      </div>
-      {open ? (
-        <div className="absolute z-20 mt-1 left-0 right-0 bg-white border border-[#ded8e8] rounded-[9px] shadow-lg p-2">
-          {free ? (
-            <div className="flex gap-1.5 mb-1.5">
-              <input
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
-                placeholder="Type and press enter"
-                className="flex-1 min-w-0 text-[11.5px] border border-[#ded8e8] rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/25" />
-              <button type="button" onClick={add}
-                className="text-[11px] font-bold text-white bg-[#7C3AED] rounded-md px-2.5 shrink-0">Add</button>
-            </div>
-          ) : searchable ? (
-            <input
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              placeholder="Type to find your industry"
-              className="w-full mb-1.5 text-[11.5px] border border-[#ded8e8] rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/25" />
-          ) : null}
-          {full ? <div className="text-[10px] text-[#9b8ec4] mb-1">Up to {max} — untick one to choose another.</div> : null}
-          <div className={`flex flex-wrap gap-1 ${searchable ? 'max-h-48 overflow-y-auto' : ''}`}>
-            {/* A closed field lists its vocabulary; a free one lists what the client has
-                already given us, so removing is the same gesture as adding. */}
-            {shown.map(v => {
-              const on = chosen.includes(v)
-              return (
-                <button key={v} type="button" onClick={() => toggle(v)}
-                  className={`text-[10.5px] font-semibold rounded-md px-1.5 py-0.5 border ${on
-                    ? 'bg-[#f3ecff] text-[#5b21b6] border-[#ddcdf7]'
-                    : 'bg-white text-[#5c5279] border-[#ded8e8]'}`}>
-                  {v}{on ? ' ×' : ''}
-                </button>
-              )
-            })}
-            {free && chosen.length === 0
-              ? <span className="text-[10.5px] text-[#9b8ec4]">Nothing yet — type above, or just tell Milla.</span>
-              : null}
-          </div>
-          <button type="button" onClick={() => setOpen(false)}
-            className="mt-2 w-full text-[10.5px] font-semibold text-[#5c5279] py-1">Done</button>
-        </div>
-      ) : null}
-    </div>
-  )
-}
+// ⛓️ 24 Sep (R149) — `FilterRow` MOVED to `@/components/milla/FilterRow`, unchanged, so the
+// Proof screen's drop-downs are the very same control as the Brief's.
 // ⚠️ REFINING IS NOT STARTING AGAIN (22 Aug, integration fix). A prospect who says "not
 // these people" after their first proof batch arrives back on this page — and it greeted
 // them as a stranger and saved as if it were building something new. The server now keeps
@@ -400,6 +308,11 @@ function resumeGreeting(count: number, total: number, nextLabel: string | null):
 
 export default function MillaWelcomePage() {
   const router = useRouter()
+  // ⚑ 24 Sep — THE ONE CHAT. This page runs the Brief's conversation engine, but it draws it in
+  // the shell's column — claimed on arrival, handed back on leaving (see the portal below).
+  const conversation = useMillaConversation()
+  const claimChatSlot = conversation.claimChatSlot
+  useEffect(() => claimChatSlot(), [claimChatSlot])
   const [messages, setMessages] = useState<Msg[]>(GREETING_LINES.map(content => ({ role: 'assistant', content })))
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
@@ -451,6 +364,8 @@ export default function MillaWelcomePage() {
     /** The values Apollo actually receives, from the server's own request builder. */
     provider: string[]
     note?: string
+    /** ⚑ 24 Sep (R145 step 2 · #73) — a row edited under its own draft key, with a second tick-list. */
+    pick?: { key: string; kinds: string[]; kinds_chosen: string[]; kinds_key: string }
   }>>([])
   // ⚑ 22 Sep — the client's own outcome sentence, for the workspace's lead tile. Server's
   // `desired_outcome` fact verbatim; this file composes no sentence about their business.
@@ -464,6 +379,11 @@ export default function MillaWelcomePage() {
    * on the next refresh.
    */
   const [picked, setPicked] = useState<Record<string, string[]>>({})
+  // ⚑ 24 Sep (R145 step 2 · #8) — the picks the SERVER holds, keyed by draft key. The PUT replaces
+  // the whole set, so every save starts from this and never from an empty tab.
+  const [serverPicked, setServerPicked] = useState<Record<string, string[]>>({})
+  // ⚑ 24 Sep (R145 step 2 · #71) — the fields whose words matched no Apollo option: the client picks them.
+  const [needsPick, setNeedsPick] = useState<Array<{ id: string; said: string[] }>>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // ── 🛑 ⚑ 23 Sep — THE CLIENT STAYS IN THE BRIEF UNTIL THEIR PEOPLE ARE READY ─────────────
@@ -683,12 +603,22 @@ export default function MillaWelcomePage() {
     const tk = await token()
     try {
       const d = await api.get<{ data: {
-        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; placeholder: string; provider: string[]; note?: string }>
+        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; placeholder: string; provider: string[]; note?: string; pick?: { key: string; kinds: string[]; kinds_chosen: string[]; kinds_key: string } }>
         onboarding_search?: Record<string, string[]> | null
         onboarding_outcome?: string
         progress?: { count: number; total: number }
+        onboarding_state?: 'conversing' | 'ready'
+        next?: { id: string; label: string } | null
+        needs_pick?: Array<{ id: string; said: string[] }>
+        onboarding_picked?: Record<string, string[]>
       } }>('/milla/brief-draft', tk)
       setTargeting(d.data?.onboarding_targeting ?? [])
+      setNeedsPick(d.data?.needs_pick ?? [])
+      setServerPicked(d.data?.onboarding_picked ?? {})
+      // ⚑ 24 Sep (R145 step 2 · #9) — the button under the fields reads the server's own state and
+      // next fact after EVERY turn, so it can say what is missing — not only on arrival.
+      if (d.data?.onboarding_state) setServerReady(d.data.onboarding_state === 'ready')
+      if (d.data && 'next' in d.data) setBriefNext(d.data.next?.label ?? null)
       setOutcome(d.data?.onboarding_outcome ?? '')
       // ── 🛑 ⚑ 22 Sep — AND THE LIVE COUNT, WHICH THE LOCK ABOVE USED TO FORBID ──────────
       //
@@ -796,10 +726,42 @@ export default function MillaWelcomePage() {
     (picked['target_category'] ?? targeting.find(t => t.id === 'target_category')?.sending ?? []).length > 0
   const industryAsked = useRef(false)
   useEffect(() => {
-    if (!proposed || industryChosen || industryAsked.current) return
+    // ⛓️ 24 Sep (R145 step 2) — WAS `if (!proposed || …)`: Milla asked only after the plan was
+    // proposed. Founder: *"before we get to this next part choose from the drop downs"* — so she
+    // now asks as soon as the server holds everything she asks for in conversation, too.
+    if ((!proposed && !serverReady) || industryChosen || industryAsked.current) return
     industryAsked.current = true
     setMessages(m => [...m, { role: 'assistant', content: PICK_INDUSTRY_COPY }])
-  }, [proposed, industryChosen])
+  }, [proposed, serverReady, industryChosen])
+
+  // ── ⚑ 24 Sep (R145 step 2 · #71) — NO APOLLO OPTION FOR THEIR WORDS, SO MILLA ASKS THEM TO PICK ──
+  // Founder: *"we dont assume again. if unsure milla needs to ask."* Said ONCE per field, in the chat.
+  const pickAsked = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    for (const n of needsPick) {
+      if (pickAsked.current.has(n.id)) continue
+      pickAsked.current.add(n.id)
+      const label = targeting.find(t => t.id === n.id)?.label ?? 'that field'
+      const said = n.said.length ? `“${n.said.join(', ')}”` : 'what you told me'
+      setMessages(m => [...m, { role: 'assistant', content:
+        `I couldn’t match ${said} to one of Apollo’s options (${label}), and I won’t guess. Please look to the right, open ${label} and pick what fits.` }])
+    }
+  }, [needsPick, targeting])
+
+  /**
+   * ⚑ 24 Sep (R145 step 2 · #9) — the ONE thing still missing before "Show me who you'd find", or
+   * null. Every input is the server's (readiness, next fact, picks, the review verdict) — this file
+   * decides no fact of its own; it only chooses which of the server's answers to say first.
+   */
+  const blocker: string | null =
+    status !== 'ready' ? 'Loading your Brief…'
+      : !serverReady ? (briefNext
+        ? `Milla still needs: ${briefNext}. Tell her in the chat.`
+        : 'Keep talking to Milla. She’ll say when she has what she needs.')
+      : !industryChosen ? 'Choose your industry on the right. Open Industry and tick at least one.'
+      : needsPick.length > 0 ? `Open ${targeting.find(t => t.id === needsPick[0].id)?.label ?? 'that field'} on the right and pick what fits. Apollo has no option for what you said.`
+      : !proposed ? 'Tell Milla “that’s everything” and she’ll put your plan together.'
+      : null
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -861,16 +823,18 @@ export default function MillaWelcomePage() {
    * search disagrees. `refreshTargeting` then re-reads the truth either way.
    */
   const savePick = useCallback(async (rowId: string, next: string[]) => {
-    const key = PICK_KEY[rowId]
+    // ⚑ 24 Sep — a row the server sends with its own `pick.key` is saved under that key directly.
+    const key = PICK_KEY[rowId] ?? rowId
     if (!key) return
     const before = picked
     const merged = { ...picked, [rowId]: next }
     setPicked(merged)
     try {
-      const body: Record<string, string[]> = {}
-      for (const [id, k] of Object.entries(PICK_KEY)) {
-        const v = merged[id]
-        if (Array.isArray(v)) body[k] = v
+      // ⛓️ 24 Sep — WAS `const body = {}`: after a reload the tab held no earlier picks, so this
+      // body replaced the stored set with ONE field. It now starts from what the server holds.
+      const body: Record<string, string[]> = { ...serverPicked }
+      for (const [id, v] of Object.entries(merged)) {
+        if (Array.isArray(v)) body[PICK_KEY[id] ?? id] = v
       }
       await api.put('/milla/brief-draft', { picked: body }, await token())
     } catch {
@@ -878,7 +842,7 @@ export default function MillaWelcomePage() {
       setError('That change could not be saved just now — nothing else you told Milla is affected.')
     }
     await refreshTargeting()
-  }, [picked, refreshTargeting])
+  }, [picked, serverPicked, refreshTargeting])
 
   /** The existing BASIC website read, moved inside Milla. Returns evidence to be CONFIRMED,
    *  never targeting to be applied. First-run only, once per distinct website. */
@@ -1418,35 +1382,32 @@ export default function MillaWelcomePage() {
              ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT — byte-identical to
              `MillaConversation`'s own column, so the first run and every later screen are the
              same object at every width rather than two things that resemble each other. */}
-        <section className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
-          {/* ⚑ 22 Sep — HER HEADER, RESTORED WHERE IT BELONGS. The page's own 54px header went
-              when the shell's account bar took over, and it took this with it: the client was
-              left talking to an unlabelled box. This is the conversation's header, not the
-              page's — the same one `MillaConversation` draws, so she is introduced the same
-              way on the first screen as on the other nine. */}
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
-            <img src="/agents/milla.png" alt="" className="w-7 h-7 rounded-lg object-cover object-top" />
-            <div className="min-w-0 truncate">
-              <b className="text-[15px]">Milla</b>
-              <span className="text-[#9b8ec4] text-[12.5px]"> · conversational &amp; strategic</span>
-            </div>
-            <span className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] inline-flex items-center gap-1.5 whitespace-nowrap">
-              <span className="w-2 h-2 rounded-full bg-[#c9bee6]" /> Outreach hasn&rsquo;t started
-            </span>
-          </div>
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-3">
+        {/* ── 🛑 ⚑ 24 Sep — THE BRIEF SPEAKS IN THE ONE CHAT, NOT A SECOND ONE ─────────────────
+             Founder, verbatim: *"we never leave one chat to go to another. not how it workss. evern
+             the first part. the only change is the right screen."*
+             ⛓️ WAS: ~~`<section className="w-full md:w-[600px] shrink-0 …">`~~ — this page drew its
+             OWN conversation column (header, transcript, composer) while the shell's stood down,
+             so moving on to Proof replaced one chat with another and the Brief vanished.
+             Now the shell's column is the only one: this page CLAIMS its body (`claimChatSlot`)
+             and renders the Brief's transcript and composer into it through a portal. Every word,
+             rule and control below is unchanged — only where it is drawn moved. Releasing the
+             claim (leaving this page) hands the column back, and the shell shows the Brief first. */}
+        {conversation.chatSlot ? createPortal(
+          <>
+          <div ref={bodyRef} className="mv-chat">
+            <>
               {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`mv-msg ${m.role === 'user' ? 'client' : 'agent'}`}>
+                  <div className="mv-who">{m.role === 'user' ? 'You' : 'Milla'}</div>
                   {/* ⚑ 22 Sep — `whitespace-pre-line`, because the locked opening's third
                       message carries a real paragraph break before "Looking costs nothing"
                       and the default collapse ran the commercial promise onto the end of the
                       sentence above it. Applies to every bubble: Milla's own replies already
                       contained blank lines that were being flattened the same way. */}
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7]'}`}>{m.content}</div>
+                  <div className="mv-bubble whitespace-pre-line">{m.content}</div>
                 </div>
               ))}
-              {thinking && <div className="flex justify-start"><div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[13px]">Milla is thinking…</div></div>}
+              {thinking && <div className="mv-msg agent"><div className="mv-who">Milla</div><div className="mv-bubble text-[#a29aa9]">Milla is thinking…</div></div>}
               {error && (
                 <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-3">
                   <span className="flex-1">{error}</span>
@@ -1494,9 +1455,9 @@ export default function MillaWelcomePage() {
                   )}
                 </div>
               )}
-            </div>
+            </>
           </div>
-          <div className="shrink-0 px-6 pb-5 pt-2 border-t border-[#eee7f7] bg-white">
+          <div className="shrink-0">
             {/* The composer is closed until we know whether this person already has an
                 account — see the `status` comment above. A failed lookup offers a retry
                 rather than a guess, because both guesses are wrong for somebody. */}
@@ -1508,7 +1469,7 @@ export default function MillaWelcomePage() {
                  The composer below stays exactly as enabled as it was: the client answers in
                  their own words, and the next turn is an ordinary Milla turn. */}
             {outstanding && status === 'ready' && (
-              <div role="status" className="max-w-2xl mx-auto mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
+              <div role="status" className="mx-[18px] mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
                 <span aria-hidden className="text-[13px] leading-none mt-0.5">📝</span>
                 <span className="text-[12.5px] text-[#5c5279] leading-relaxed">
                   {/* ── 🛑 ⚑ 16 Sep (S1-ONB-002) — THE NUMBER IS THE ELEVEN, OR THERE IS NO NUMBER.
@@ -1538,499 +1499,213 @@ export default function MillaWelcomePage() {
                  longer the untouched opening, Milla is asking her own questions and a row of
                  generic openers beneath them would be competing with her. */}
             {isUntouchedGreeting(messages) && status === 'ready' && !thinking && (
-              <div className="max-w-2xl mx-auto mb-2 flex flex-wrap gap-1.5">
+              <div className="mv-quickbar">
                 {STARTERS.map(s => (
-                  <button key={s} type="button" onClick={() => send(s)}
-                    className="text-[11.5px] text-[#4c4459] bg-white border border-[#ded8e8] rounded-full px-3 py-1.5 hover:border-[#7C3AED] hover:text-[#5b21b6]">
+                  <button key={s} type="button" onClick={() => send(s)} className="mv-quick">
                     {s}
                   </button>
                 ))}
               </div>
             )}
             {status === 'error' ? (
-              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="mx-[18px] mb-[18px] flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <span className="text-[12.5px] text-[#7a6a3a]">I couldn&rsquo;t load your account just now, so I&rsquo;d rather not start until I can.</span>
                 <button type="button" onClick={() => { void loadStatus() }}
                   className="text-[12.5px] font-bold text-white rounded-xl px-4 py-2 bg-[#7C3AED] shrink-0">Try again</button>
               </div>
             ) : (
-              <form onSubmit={e => { e.preventDefault(); send(input) }} className="max-w-2xl mx-auto flex gap-2">
+              <form onSubmit={e => { e.preventDefault(); send(input) }} className="mv-composer">
                 <input value={input} onChange={e => setInput(e.target.value)} disabled={status !== 'ready'}
                   placeholder={status === 'ready' ? 'e.g. Heads of Ops at UK logistics firms, 50–500 staff…' : 'One moment — getting your account ready…'}
-                  className="flex-1 text-[13.5px] rounded-xl border border-[#e4dcf7] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 disabled:opacity-50" />
-                <button type="submit" disabled={status !== 'ready' || thinking || !input.trim()} className="text-[13px] font-bold text-white rounded-xl px-6 bg-[#7C3AED] disabled:opacity-50">Send</button>
+                  className="disabled:opacity-50" />
+                <button type="submit" disabled={status !== 'ready' || thinking || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
               </form>
             )}
           </div>
-        </section>
+          </>,
+          conversation.chatSlot,
+        ) : null}
 
-        {/* proposal */}
-        {/* ⚑ 22 Sep — THE WORKSPACE IS THE SCREEN, not a 420px strip beside a conversation
-             that had taken everything. `flex-1` here and a fixed column to its left is the
-             approved portal shape, and the same one Home uses. */}
-        <aside className="flex-1 min-w-0 bg-[#faf8ff] overflow-y-auto">
-          {/* ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE SERVER'S STATE GATES THE PANEL ────────────
-               `proposed` is the plan's CONTENT — the provider-translated arrays, which exist
-               nowhere but a completion reply. `serverReady` is the AUTHORITY. Both are
-               required: content without authority is what rendered a finished plan and a live
-               Confirm button above "Based in — still needed". */}
-          {!(serverReady && proposed) ? (
-            /* ⚑ 22 Sep — A WORKSPACE CARD, NOT A SIDEBAR. Styled for a 420px strip, this read
-               as a column of notes; on the approved portal the working area is the screen, so
-               it is a bordered card on the panel ground — the same shape Home's workspace and
-               the Complete screen's "Final programme" use. */
-            // ── 🛑 ⚑ 22 Sep — THE WORKSPACE, AS THE APPROVED PORTAL DRAWS IT ─────────────
-            //
-            // ⛓️ WAS: one white card headed "Your targeting plan", whose body was a single
-            // sentence until the first fact landed — ~~`{targeting.length === 0 ? <span>As we
-            // chat, Milla builds your ICP…</span> : …}`~~.
-            //
-            // 🛑 THAT SENTENCE IS WHAT THE FOUNDER ACTUALLY LANDED ON AFTER SIGNING UP, and he
-            // described it as a blank screen, correctly. The locked preview's first screen is
-            // a WORKSPACE: four tiles across the top, a bordered box headed "Your workspace ·
-            // 0 of 11 understood · nothing charged", six labelled fields already present and
-            // reading "Milla will fill this", and a bar along the bottom holding the match
-            // count. Every one of those exists before the client has said a word — because
-            // watching them fill is the product, and a panel that appears only once it is
-            // full cannot be watched filling.
-            //
-            // ⚠️ SECTIONS 0 AND 1 ARE THE SAME SCREEN, which is why they are one build. There
-            // is no empty-state component and no filled-state component: there is this, with
-            // `said`/`sending` empty or not. The server now guarantees all six rows exist in
-            // both states (`routes/milla.ts`), so this file never has to invent a field.
-            <div className="p-4 flex flex-col gap-3 min-h-full">
-              {/* ── THE FOUR TILES ── the locked order: OUTCOME · STAGE · PROGRESS · NEXT. */}
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                {/* ⚠️ THE OUTCOME IS THEIRS, WORD FOR WORD, or it is honestly absent. The tile
-                    never paraphrases and never guesses from the targeting — "Book meetings with
-                    MDs and COOs" composed from job titles would be us putting a goal in their
-                    mouth on the first screen of the product. */}
-                <div className="rounded-xl bg-[#7C3AED] text-white px-3.5 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#d8c8f8]">Outcome</div>
-                  {outcome ? (
-                    <>
-                      <div className="text-[15px] font-extrabold mt-1">✓</div>
-                      <div className="text-[11px] leading-snug text-[#f0e6ff] mt-1">{outcome}</div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-[15px] font-extrabold mt-1">—</div>
-                      <div className="text-[11px] leading-snug text-[#f0e6ff] mt-1">Not set yet. Milla writes this from what you tell her, in your words.</div>
-                    </>
-                  )}
+        {/* ── 🛑 ⚑ 24 Sep (R145 step 2) — THE BRIEF PANEL, AS THE REDESIGN DRAWS IT ─────────────
+             Founder: *"yes but i cant add more informaiton when the purple part comes up"* ·
+             *"match everything. colors everything."* ⛓️ WAS two screens in one: a workspace of
+             six fields that was REPLACED by a "Proposed ICP" card the moment Milla finished, so
+             the fields vanished exactly when the client wanted to check them, and the only way
+             back was "Keep adjusting the target". Now there is ONE panel in every state:
+               · the hero — how much Milla understands and how many people match (the count is
+                 still the single gated `preview-count` call site, via `countFor`);
+               · "Your targeting" — Apollo-style filter rows, always visible, always editable;
+               · what Milla understood about the business, once there is something to show;
+               · ONE button, "Show me who you'd find", lit only when everything is there, and a
+                 line under it saying exactly what is still missing (#9).
+             Locks kept from the panel this replaces: the client's own words stay visible under a
+             changed field; "stored & sent as" prints what Apollo receives; the capacity sentence
+             is derived (`capacitySentence(committedCapacity(…))`), never typed, and never the
+             400; no price of any kind appears on this screen (R124). */}
+        <aside className="mv-workspace-body flex-1 min-w-0 overflow-y-auto [&>*]:shrink-0">
+          {(() => {
+            const pct = briefProgress && briefProgress.total > 0 ? Math.round((briefProgress.count / briefProgress.total) * 100) : 0
+            return (
+              <div className="mv-hero-card">
+                <div className="mv-eyebrow">
+                  {briefProgress && briefProgress.count > 0 ? `Milla understands ${briefProgress.count} of ${briefProgress.total}` : 'Milla is listening'}
                 </div>
-                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Stage</div>
-                  <div className="text-[17px] font-extrabold tracking-[-0.02em] mt-1">Brief</div>
-                  <div className="text-[10.5px] text-[#5c5279] mt-0.5">current</div>
-                </div>
-                {/* ⚠️ A HARD ZERO, NOT A PLACEHOLDER. Nobody has been contacted and nothing has
-                    been booked; the tile states that rather than hiding until there is news. */}
-                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Progress</div>
-                  <div className="text-[21px] font-extrabold tracking-[-0.02em] tabular-nums mt-1">0</div>
-                  <div className="text-[10.5px] text-[#5c5279] mt-0.5">meetings booked</div>
-                </div>
-                {/* ⚠️ NEXT IS THE SERVER'S `next.label` — the same fact `briefNext` already
-                    holds and the same one Milla will actually ask for. Deriving "what's
-                    missing" here would be a second answer to a question the server owns, and
-                    the two would disagree the moment a fact is answered in words we cannot
-                    use. Before anything is known there is nothing to ask FOR yet, so the tile
-                    carries the locked opening instruction instead. */}
-                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
-                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Next</div>
-                  <div className="text-[13px] font-extrabold leading-snug mt-1">
-                    {briefNext ?? 'Tell Milla what you’re trying to achieve'}
-                  </div>
-                  <div className="text-[10.5px] text-[#5c5279] mt-1">
-                    {briefNext ? 'what Milla needs' : 'one message is enough to start'}
-                  </div>
-                </div>
+                <h2>
+                  {matchCount === null
+                    ? 'Tell Milla who you want to meet.'
+                    : `${matchCount.toLocaleString()} people match this so far.`}
+                </h2>
+                <p>
+                  {matchCount === null
+                    ? <>One message is enough to start. This fills in as you talk &mdash; nothing is charged and nobody is contacted.</>
+                    : <>That&rsquo;s {capacitySentence(committedCapacity(workablePool(matchCount)))} &mdash; free to look at, nothing charged, nothing bought.</>}
+                  {outcome ? <><br />Your outcome: <b className="text-[color:var(--mv-ink)]">{outcome}</b></> : null}
+                </p>
+                <div className="mv-progress-track"><div className="mv-progress-fill" style={{ width: `${pct}%` }} /></div>
               </div>
+            )
+          })()}
 
-              {/* ── THE WORKSPACE BOX ── */}
-              <div className="bg-white border border-[#e7e3ec] rounded-xl flex-1 flex flex-col min-h-0">
-                <div className="px-4 py-3 border-b border-[#e7e3ec] flex items-baseline gap-3 flex-wrap">
-                  <b className="text-[12.5px]">Your workspace</b>
-                  {/* ⚠️ THE COUNT AND ITS DENOMINATOR ARE BOTH THE SERVER'S. `briefProgress`
-                      carries `{count, total}` as the server sent them; hard-coding "11" would
-                      be a second definition of the Brief, and the eleven has already changed
-                      once. Until the first read lands there is no count to state, so the line
-                      says only what is true — nothing has been charged. */}
-                  <span className="text-[10.5px] text-[#5c5279] ml-auto">
-                    {briefProgress ? `${briefProgress.count} of ${briefProgress.total} understood · ` : ''}
-                    nothing charged
-                  </span>
-                </div>
-                <div className="p-4 flex-1">
-                  {/* ── THE SIX FIELDS ── three across above the breakpoint, as the lock draws
-                      them. `targeting` is a fixed six from the server, so this maps rather than
-                      branching on emptiness: an unanswered field renders its own placeholder
-                      and keeps its place in the grid. */}
-                  {/* ── ⚑ 22 Sep — THE WARM LINE, WHILE THERE IS NOTHING HERE YET ──────────
-                       🛑 FOUNDER-ASKED, 22 Sep: *"we need a welcome message of some sort. this
-                       helps the client. like say hello. its warm."* — and he chose the panel
-                       over the chat, because Milla already says hello and the WORKSPACE was the
-                       cold half: six empty boxes and no word about what they are for.
-
-                       ⚠️ IT IS ALSO WHERE HIS 30-AUG SENTENCE USED TO LIVE, which is the other
-                       half of why it belongs here. *"As we chat, Milla builds your ICP here"*
-                       was removed with the panel that carried it; this says the same thing in
-                       the same place, above a workspace that now actually exists to fill.
-
-                       ⚠️ IT LEAVES THE MOMENT THE FIRST FIELD FILLS. An encouragement to start
-                       is help; the same sentence still sitting there over a filled workspace is
-                       clutter, and the client has visibly already started. */}
-                  {targeting.every(t => t.said === '' && t.sending.length === 0) ? (
-                    <div className="mb-3.5 text-[11.5px] text-[#5c5279] leading-relaxed">
-                      Nothing here yet. Tell Milla what you&rsquo;re after and this fills in as
-                      you talk &mdash; nothing is charged and nobody is contacted.
-                    </div>
-                  ) : null}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {targeting.map(t => {
-                      const answered = t.said !== '' || t.sending.length > 0
-                      const opts = FIELD_OPTIONS[t.id]
-                      const chosen = picked[t.id] ?? t.sending
-                      return (
-                        <div key={t.id} className="min-w-0">
-                          <label className="block text-[10px] font-bold text-[#4c4459] mb-1">{t.label}</label>
-                          {/* ── 🛑 ⚑ 22 Sep — "YOU EITHER TALK TO MILLA OR DROP THEM DOWN" ───
-                              🛑 FOUNDER-LOCKED. Four of the six are editable here; the other two
-                              are not, and that is the approved preview's own drawing rather than
-                              an omission — "Order by" and "Never contact" carry no caret in it,
-                              because neither is a list to choose from. Which four are editable
-                              and WHAT KIND of control each gets is decided by `FIELD_OPTIONS`,
-                              from Apollo's actual vocabularies. */}
-                          {opts ? (
-                            <PickField
-                              options={opts.options}
-                              free={opts.free}
-                              chosen={chosen}
-                              placeholder={t.placeholder}
-                              onChange={next => savePick(t.id, next)}
-                              max={opts.max}
-                            />
-                          ) : (
-                            <div className={`border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] ${answered ? '' : 'text-[#9b8ec4] text-[11.5px]'}`}>
-                              {answered ? (
-                                <>
-                                  {t.said ? <span className="text-[11.5px] text-[#17101f] w-full">{t.said}</span> : null}
-                                  {t.sending.map(v => (
-                                    <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
-                                  ))}
-                                </>
-                              ) : t.placeholder}
-                            </div>
-                          )}
-                          {/* ⚠️ THEIR WORDS STAY VISIBLE UNDER AN EDITED FIELD, and this is the
-                              point of storing a pick beside the sentence rather than over it: a
-                              client who said "around twenty to fifty" and then picked 201–500 by
-                              accident can SEE the disagreement. Overwriting the sentence would
-                              have hidden exactly the mistake the panel exists to catch. */}
-                          {opts && t.said ? (
-                            <div className="text-[9.5px] text-[#9b8ec4] mt-1 leading-snug">you said: {t.said}</div>
-                          ) : null}
-                          {/* ⚠️ THE PROVIDER VALUES, PRINTED AS APOLLO RECEIVES THEM. The lock
-                              puts "stored & sent as: c_suite, vp, director" under the field, and
-                              `c_suite` is not what we store — we store "C-Suite". The server
-                              runs the real request builder so this line cannot drift from the
-                              search; printing our own label under this caption would make the
-                              one claim the panel exists for false. */}
-                          {t.provider.length > 0 ? (
-                            <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1 font-mono">stored &amp; sent as: {t.provider.join(' · ')}</div>
-                          ) : null}
-                          {t.note ? <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1">{t.note}</div> : null}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* ── THE BAR ── the match count, and what it costs: nothing.
-                      ⚠️ THE NUMBER IS ONLY SHOWN WHEN WE HAVE ONE. `matchCount` is set by the
-                      SINGLE gated `preview-count` call site this file is pinned to — see
-                      `refreshTargeting` for the lock and the founder decision still owed about
-                      running the free search before the account row exists. Until then the bar
-                      holds the locked em-dash, which is the honest state: we have not asked. */}
-                  <div className="mt-4 pt-3.5 border-t border-[#e7e3ec] flex items-center gap-3.5 flex-wrap">
-                    <b className="text-[23px] font-extrabold tracking-[-0.02em] tabular-nums">
-                      {matchCount === null ? '—' : matchCount.toLocaleString()}
-                    </b>
-                    {/* ── 🛑 ⚑ 22 Sep — "around ten meetings at this size" ──────────────────
-                         🛑 THE LOCKED BRIEF BAR, AND THE HALF THAT WAS MISSING. The count has
-                         been live since the gate came off; this is what the count MEANS to the
-                         client, which is the only part of it they actually care about.
-
-                         ⚠️ NEITHER NUMBER IS A PROMISE — AND THAT CHANGED ON 23 Sep.
-                         ⛓️ WAS: ~~*"THE NUMBER OF PEOPLE IS NOT A PROMISE AND THE MEETINGS
-                         ARE"*~~. Founder-locked 23 Sep: *"we dont promise 10 if we cant deliver
-                         10… we have to add a disclaimer to the client we do our best. this is
-                         not a guarentee."* The meeting count is now a best-efforts TARGET; we
-                         work to the limit and stop. So this line must never harden into a
-                         commitment, and `capacitySentence` keeps its *"around"* for exactly
-                         that reason.
-
-                         ⚠️ IT STILL STATES THE MEETINGS AND NEVER THE ARITHMETIC. Founder,
-                         reaffirmed 23 Sep: *"i said 400 internally. we dont disclose this."* —
-                         so no rate, no limit, no pool size on this line.
-
-                         ⚠️ AND IT IS DERIVED, NEVER TYPED. `capacitySentence(committedCapacity(…))`
-                         is the same pair the Proof tiles and the Programme slider read, so the
-                         number a client is told at Brief cannot disagree with the number the
-                         slider later stops at. */}
-                    <span className="text-[11px] text-[#5c5279] leading-snug">
-                      people match this so far
-                      {matchCount === null ? null : (
-                        <> &mdash; <b className="text-[#17101f]">{capacitySentence(committedCapacity(workablePool(matchCount)))}</b></>
-                      )}
-                      <br />free to look at · nothing bought
-                    </span>
-                    {/* ── ⚑ 22 Sep — "Two more answers, then Proof" ──────────────────────
-                         🛑 THE LOCKED BAR CHANGES ITS LABEL AS THE BRIEF FILLS: "Milla is
-                         listening" at stage 0, "Two more answers, then Proof" at stage 1. It
-                         is the only place on the screen that tells the client how close they
-                         are to seeing real people, which is the thing they are actually here
-                         for.
-
-                         ⚠️ THE NUMBER IS THE SERVER'S REMAINDER, never a count this file
-                         keeps. `briefProgress` is the server's own verdict, so the label
-                         and the question Milla asks next can never disagree about how much is
-                         left — the "0 things still needed" beside a request for a fact defect
-                         this page already carries a note about. */}
-                    <span className="ml-auto text-[12px] font-bold text-[#4c4459] bg-white border border-[#ded8e8] rounded-[10px] px-4 py-2">
-                      {!briefProgress || briefProgress.count === 0
-                        ? 'Milla is listening'
-                        : briefProgress.count >= briefProgress.total
-                          ? 'Ready for Proof'
-                          : (() => {
-                            const left = briefProgress.total - briefProgress.count
-                            return left === 1 ? 'One more answer, then Proof' : `${left} more answers, then Proof`
-                          })()}
-                    </span>
-                  </div>
-                </div>
+          <div className="mv-filter-shell">
+            <div className="mv-filter-top">
+              <div className="mv-copy">
+                <b>Your targeting</b>
+                <small>Milla builds this from your conversation. Open any filter to check or change it.</small>
               </div>
+              {matchCount !== null ? <div className="mv-match-pill">{matchCount.toLocaleString()} matches · live</div> : null}
+            </div>
+            <div className="mv-filter-list">
+              {targeting.map((t, i) => {
+                if (t.pick) {
+                  const pk = t.pick
+                  const kinds = picked[pk.kinds_key] ?? pk.kinds_chosen
+                  const named = picked[pk.key] ?? t.sending
+                  return (
+                    <FilterRow key={t.id} label={t.label} options={[]} free chosen={named}
+                      placeholder={t.said || t.placeholder} said={t.said && named.length + kinds.length > 0 ? t.said : undefined}
+                      note={t.note}
+                      onChange={next => savePick(pk.key, next)}
+                      extra={{
+                        options: pk.kinds, chosen: kinds,
+                        onChange: next => {
+                          if (next.length > kinds.length) setMessages(m => [...m, { role: 'assistant', content: NEVER_CONTACT_ASK_COPY }])
+                          void savePick(pk.kinds_key, next)
+                        },
+                      }} />
+                  )
+                }
+                const opts = FIELD_OPTIONS[t.id]
+                const chosen = picked[t.id] ?? t.sending
+                return opts ? (
+                  <FilterRow key={t.id} label={t.label} options={opts.options} free={opts.free} max={opts.max}
+                    chosen={chosen} placeholder={t.placeholder} said={t.said || undefined}
+                    sentAs={t.provider} note={t.note} open={i === 0 || needsPick.some(n => n.id === t.id)}
+                    onChange={next => savePick(t.id, next)} />
+                ) : null
+              })}
+            </div>
+            <div className="mv-filter-note">
+              <span>✦</span>
+              <span><b>You don&rsquo;t need to fill this in.</b> Milla turns what you say into Apollo&rsquo;s own filters; these let you see and correct them.</span>
+            </div>
+          </div>
+
+          {/* ── WHAT MILLA UNDERSTOOD — the account and the business, read back before they
+               become the client's record. Nothing is invented for the panel; if it reads wrong,
+               the fix is to tell Milla. Shown once there is something to show. */}
+          {(showProfile || (business && (Object.values(business).some(Boolean) || intent)) || briefExclusions.trim()) ? (
+            <div className="mv-section">
+              <div className="mv-section-head"><b>What Milla understood</b><span>tell Milla if anything is off</span></div>
+              <div className="mv-section-body">
+                {refining ? <p className="mv-muted-note mb-2">This updates your existing targeting &mdash; same plan, sharpened.</p> : null}
+                <div className="mv-kv-list">
+                  {showProfile ? <>
+                    <div className="mv-kv-row"><span>Company</span><strong>{profile!.company_name || 'still needed'}</strong></div>
+                    <div className="mv-kv-row"><span>Based in</span><strong>{profile!.country || 'still needed'}</strong></div>
+                    {profile!.contact_name ? <div className="mv-kv-row"><span>Speaking to</span><strong>{profile!.contact_name}</strong></div> : null}
+                    {profile!.website ? <div className="mv-kv-row"><span>Website</span><strong>{profile!.website}</strong></div> : null}
+                  </> : null}
+                  {business?.product ? <div className="mv-kv-row"><span>What you sell</span><strong>{business.product}</strong></div> : null}
+                  {business?.pain_points ? <div className="mv-kv-row"><span>The problem you solve</span><strong>{business.pain_points}</strong></div> : null}
+                  {business?.differentiators ? <div className="mv-kv-row"><span>What makes you different</span><strong>{business.differentiators}</strong></div> : null}
+                  {intent ? <div className="mv-kv-row"><span>What this campaign is for</span><strong>{intent}</strong></div> : null}
+                  {business?.tone ? <div className="mv-kv-row"><span>How you want to sound</span><strong>{business.tone}</strong></div> : null}
+                  {/* ⚑ 14 Sep (S1-RT-009A) — who we will NOT contact, from the durable Brief. */}
+                  {briefExclusions.trim() ? <div className="mv-kv-row"><span>Who we will NOT contact</span><strong>{briefExclusions}</strong></div> : null}
+                </div>
+                {/* Proof is shown SPLIT, because the split is the promise: we may know something
+                    and still not be allowed to say it. */}
+                {proof.length > 0 ? (
+                  <div className="mt-3">
+                    <div className="mv-eyebrow">Proof we may use in your emails</div>
+                    {proof.filter(p => p.permitted).length > 0
+                      ? <div>{proof.filter(p => p.permitted).map((p, i) => <span key={i} className="mv-tag">{p.claim}</span>)}</div>
+                      : <div className="mv-muted-note">None yet &mdash; we will not name a customer or quote a result until you say we can.</div>}
+                    {proof.some(p => !p.permitted)
+                      ? <div className="mv-muted-note mt-1">{proof.filter(p => !p.permitted).length} other thing(s) you mentioned are saved but <b>will not be used</b> until you approve them.</div>
+                      : null}
+                  </div>
+                ) : null}
+                {/* ⚑ 24 Aug — FROM YOUR WEBSITE, NOT FROM YOU. Listed separately and named as
+                    unconfirmed; it reaches the targeting only once the client says it is right. */}
+                {webHints.length > 0 ? (
+                  <div className="mt-3">
+                    <div className="mv-eyebrow">From a quick read of your website · not yet confirmed</div>
+                    <div>{webHints.map((h, i) => <span key={i} className="mv-tag">{h}</span>)}</div>
+                    <div className="mv-muted-note mt-1">We guessed these from your site &mdash; they are <b>not part of your targeting</b> until you tell Milla which ones fit.</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* ── ⚑ 24 Sep (R145 step 2 · #9 · D2) — ONE BUTTON, AND WHAT IS STILL MISSING ──────
+               Founder: *"Milla does not tell me what else i need here. i need to ask???"* and
+               *"it says it has everything but wont let me thru"*. The button is always here; it
+               is lit only when the server says the Brief is ready, the industry is picked and no
+               field is waiting on a pick — and the line under it names the one thing missing.
+               ⚑ round 4 — the button IS the confirmation (`clients.milla_understanding_confirmed_at`);
+               ⚑ 24 Aug — on a first run it also opens the account, immediately before the ICP. */}
+          {/* ── THIS SCREEN DESCRIBES ONE STAGE, AND THE STAGE IS FREE (founder-ruled 24 Aug) ──
+               ⚠️ NO PRICE OF ANY KIND BELONGS ON THIS SCREEN — not $299, not $4, not the first
+               100. ⛓️ 23 Sep — ~~"The $299 ask lives behind 'Looks right' on the desk"~~.
+               FALSE SINCE R124 (16 Sep: *"299/4 is gone. out. we are on the programme. all clients."*).
+               Nothing in the portal links to the retired pack, and the Milla billing page takes no
+               payment at all; the client's first payment is P1 of a programme, on the Programme
+               screen. ⛓️ 24 Sep (R145 · D2) — the button, which read "Yes, this represents us —
+               show me who you'd find", is now the redesign's one Brief button. */}
+          {proofHold === null || proofHold === 'not_started' ? (
+            <div className="flex flex-col gap-2">
+              <div className="mv-cta-row">
+                <button disabled={saving || blocker !== null} onClick={approve}
+                  className="mv-btn primary flex-1 disabled:opacity-50">
+                  {saving ? 'Saving…' : "Show me who you'd find"}
+                </button>
+              </div>
+              <div className="mv-muted-note text-center">
+                {blocker ?? <><b>Free proof.</b> Up to 20 masked leads who match this &mdash; <b>free, masked, and nobody is contacted</b>. You decide what happens next.</>}
+              </div>
+              {error ? <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div> : null}
             </div>
           ) : (
-            <div className="p-6">
-              <div className="text-[15px] font-bold mb-1">Proposed ICP · <span className="text-[#7C3AED]">v1</span></div>
-              <div className="text-[13px] text-[#5c5279] font-semibold mb-3">{proposed.name}</div>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {/* ⚑ 14 Sep (S1-RT-009B) — geography comes from the DURABLE Brief when it
-                    holds one. The chips and the line below must never be able to disagree
-                    about which countries the client asked for. */}
-                {/* ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — THEIR WORDS, OURS ONLY AS A FALLBACK ──
-                    🛑 EVERY CHIP HERE USED TO BE PROVIDER VOCABULARY. `seniority_levels` and
-                    `industries` are closed lists; `company_sizes` is our six-band ladder. So
-                    a client who said "digital marketing agencies, ten to fifty people" was
-                    shown "Marketing · Consulting · 11–50 staff" on the one card they approve,
-                    and their own phrase appeared on no client screen in the portal.
-
-                    ⚠️ THE FALLBACK IS LOAD-BEARING, and it is why geography is written this
-                    way already: a conversation with no durable Brief behind it (an older tab,
-                    a failed resolve) must still render the plan rather than an empty row. The
-                    provider array is what it falls back TO, never what it prefers. */}
-                {[
-                  ...chips(briefSeniority.length ? briefSeniority : proposed.seniority_levels),
-                  ...chips(briefRoles.length ? briefRoles : proposed.job_titles),
-                  ...chips(briefTargetCategory ? [briefTargetCategory] : proposed.industries),
-                  ...chips(briefGeographies.length ? briefGeographies : proposed.geographies),
-                  ...chips(briefCompanySizes.length ? briefCompanySizes : proposed.company_sizes.map(s => `${s} staff`)),
-                ].map((c, i) => (
-                  <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>
-                ))}
-              </div>
-
-              {/* ── 🛑 ⚑ 19 Sep (R135) — WHAT WE WILL ACTUALLY GO AND LOOK FOR ──────────────
-                  🛑 THE CHIPS ABOVE ARE THEIR WORDS, AND THEY STAY THAT WAY. J5-C4 (18 Sep,
-                  LR 10,12) put the client's own phrasing on the one card they approve, and
-                  nothing here takes it back — a client who said "ten to fifty people" still
-                  reads their own sentence.
-
-                  ⚠️ BUT THEIR WORDS ARE NOT WHAT WE SEARCH. The seniority and size we send to
-                  the provider are a closed vocabulary, and until now the client never saw the
-                  mapped values at all — so the one moment they could have caught a wrong
-                  reading, before we spend their money, passed in silence. Seven clients were
-                  parked on a translation nobody showed them.
-
-                  ⚠️ ADDITIVE, AND SECOND. Their words lead; ours follow, labelled as ours, in
-                  smaller type. If the two ever disagree the client can see it and say so —
-                  which is the whole point of showing it. Rendered only when there is something
-                  to show, so a plan with no mapped values gains no empty row. */}
-              {(proposed.seniority_levels.length > 0 || proposed.company_sizes.length > 0) && (
-                <div className="text-[11.5px] text-[#9b8ec4] leading-relaxed mb-4 -mt-2">
-                  <span className="font-semibold">We&rsquo;ll search for </span>
-                  {[
-                    proposed.seniority_levels.join(', '),
-                    proposed.company_sizes.length ? `at ${proposed.company_sizes.join(', ')} staff` : '',
-                  ].filter(Boolean).join(' ')}
-                  {proposed.geographies.length ? ` in ${proposed.geographies.join(', ')}` : ''}.
-                </div>
-              )}
-
-              {/* ── YOUR ACCOUNT (24 Aug) ───────────────────────────────────────────────
-                  The facts that used to be typed into a form before the client had entered
-                  K.I.N.D. Read back here for the same reason the business understanding is:
-                  so the client sees what we heard before it becomes their record. Shown only
-                  on a genuine first run — an existing client already has these and is never
-                  asked again. Nothing is pre-filled or guessed; a blank means Milla has not
-                  been told yet, and the button below will ask rather than submit. */}
-              {showProfile && (
-                <div className="border border-[#eee7f7] rounded-xl p-3.5 mb-4 bg-[#fcfbff]">
-                  <div className="text-[15px] font-bold mb-2">Your account</div>
-                  <div className="space-y-2 text-[12.5px] leading-relaxed">
-                    <div><span className="text-[#9b8ec4] font-semibold">Company — </span><span className="text-[#5c5279]">{profile!.company_name || <span className="text-[#c9a0a0]">still needed</span>}</span></div>
-                    <div><span className="text-[#9b8ec4] font-semibold">Based in — </span><span className="text-[#5c5279]">{profile!.country || <span className="text-[#c9a0a0]">still needed</span>}</span></div>
-                    {profile!.contact_name && <div><span className="text-[#9b8ec4] font-semibold">Speaking to — </span><span className="text-[#5c5279]">{profile!.contact_name}</span></div>}
-                    {profile!.phone && <div><span className="text-[#9b8ec4] font-semibold">Mobile — </span><span className="text-[#5c5279]">{profile!.phone}</span></div>}
-                    {profile!.website && <div><span className="text-[#9b8ec4] font-semibold">Website — </span><span className="text-[#5c5279]">{profile!.website}</span></div>}
-                  </div>
-                </div>
-              )}
-
-              {/* ── WHAT WE UNDERSTAND ABOUT YOU (22 Aug) ───────────────────────────────
-                  The client confirms we understood their BUSINESS — they do not review
-                  copy, and they never become the copywriter. Everything shown here is
-                  read back from what Milla actually stored; nothing is invented for the
-                  panel. If it reads wrong, the fix is to tell Milla, not to edit a field.
-                  Rendered only when the conversation produced something to show. */}
-              {business && (Object.values(business).some(Boolean) || intent) && (
-                <div className="border border-[#eee7f7] rounded-xl p-3.5 mb-4 bg-[#fcfbff]">
-                  <div className="text-[15px] font-bold mb-2">Here&rsquo;s what I understand about your business</div>
-              {refining && (
-                <p className="text-[11.5px] text-[#9b8ec4] mb-2">
-                  This updates your existing targeting — same plan, sharpened. We keep everything you&rsquo;ve seen so far.
+            /* ⚑ 23 Sep — WHILE THEIR PEOPLE ARE BEING PUT TOGETHER, THEY STAY IN THE BRIEF. Never
+               "a snag": either it is being put together, or it is ours to finish, or — only when
+               the search found nobody — Milla asks them to widen, in the chat. */
+            proofHold !== 'ready' ? (
+              <div className="mv-hero-card">
+                <div className="mv-eyebrow">Proof</div>
+                <h2 className="!text-[17px]">
+                  {proofHold === 'preparing' ? 'Putting your first examples together'
+                    : proofHold === 'needs_client' ? 'One thing to widen'
+                      : 'Your first examples are on their way'}
+                </h2>
+                <p>
+                  {proofHold === 'preparing' ? PROOF_PREPARING_COPY
+                    : proofHold === 'needs_client' ? PROOF_NEEDS_CLIENT_COPY
+                      : PROOF_NEEDS_US_COPY}
                 </p>
-              )}
-                  <div className="space-y-2 text-[12.5px] leading-relaxed">
-                    {business.product && <div><span className="text-[#9b8ec4] font-semibold">What you sell — </span><span className="text-[#5c5279]">{business.product}</span></div>}
-                    {business.pitch && <div><span className="text-[#9b8ec4] font-semibold">Why it matters — </span><span className="text-[#5c5279]">{business.pitch}</span></div>}
-                    {business.pain_points && <div><span className="text-[#9b8ec4] font-semibold">The problem you solve — </span><span className="text-[#5c5279]">{business.pain_points}</span></div>}
-                    {business.differentiators && <div><span className="text-[#9b8ec4] font-semibold">What makes you different — </span><span className="text-[#5c5279]">{business.differentiators}</span></div>}
-                    {intent && <div><span className="text-[#9b8ec4] font-semibold">What this campaign is for — </span><span className="text-[#5c5279]">{intent}</span></div>}
-                    {business.tone && <div><span className="text-[#9b8ec4] font-semibold">How you want to sound — </span><span className="text-[#5c5279]">{business.tone}</span></div>}
-                    {/* ── 🛑 ⚑ 14 Sep (S1-RT-009A) — WHO WE WILL NOT CONTACT ──────────────
-                        The client said it three times and this screen never once showed it
-                        back. `bad_fit` was declared on the type and rendered nowhere, so the
-                        only way to tell whether we had heard them was to say it again. The
-                        value is the server's resolution of fact #10 from the DURABLE Brief —
-                        not this turn's sample, and not a hard-coded string. */}
-                    {briefExclusions.trim() && <div><span className="text-[#9b8ec4] font-semibold">Who we will NOT contact — </span><span className="text-[#5c5279]">{briefExclusions}</span></div>}
-                  </div>
-
-                  {/* Proof is shown SPLIT, because the split is the promise: we may know
-                      something and still not be allowed to say it. */}
-                  {proof.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[#eee7f7]">
-                      <div className="text-[10px] uppercase font-extrabold text-[#b3a9cc] mb-1.5">Proof we may use in your emails</div>
-                      {proof.filter(p => p.permitted).length > 0
-                        ? <div className="flex flex-wrap gap-1.5">{proof.filter(p => p.permitted).map((p, i) => (
-                            <span key={i} className="text-[11.5px] font-semibold text-[#059669] bg-[#e8f7f0] rounded-full px-2.5 py-1">{p.claim}</span>
-                          ))}</div>
-                        : <div className="text-[12px] text-[#9b8ec4]">None yet — we will not name a customer or quote a result until you say we can.</div>}
-                      {proof.some(p => !p.permitted) && (
-                        <div className="text-[11.5px] text-[#9b8ec4] mt-2">
-                          {proof.filter(p => !p.permitted).length} other thing(s) you mentioned are saved but <b className="text-[#5c5279]">will not be used</b> until you approve them.
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── FROM YOUR WEBSITE, NOT FROM YOU (24 Aug) ───────────────────────
-                      The reflect-back has to keep these apart. Everything above is what the
-                      client SAID; this is what a machine guessed from a quick read of their
-                      site and they have not yet endorsed. Founder's ruling: website evidence
-                      is not unquestioned truth, and a hint may never silently become
-                      canonical targeting. So it is listed separately, named as unconfirmed,
-                      and it reaches the saved ICP only once the client tells Milla it is
-                      right — at which point Milla stops listing it here. */}
-                  {webHints.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[#eee7f7]">
-                      <div className="text-[10px] uppercase font-extrabold text-[#b3a9cc] mb-1.5">From a quick read of your website · not yet confirmed</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {webHints.map((h, i) => (
-                          <span key={i} className="text-[11.5px] font-semibold text-[#8a7fa8] bg-[#f4f1fa] border border-dashed border-[#d9cff0] rounded-full px-2.5 py-1">{h}</span>
-                        ))}
-                      </div>
-                      <div className="text-[11.5px] text-[#9b8ec4] mt-2">
-                        We guessed these from your site — you haven&rsquo;t told us they&rsquo;re right, so they are <b className="text-[#5c5279]">not part of your targeting</b>. Tell Milla which ones fit and she&rsquo;ll add them.
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-[11.5px] text-[#9b8ec4] mt-3">
-                    Confirming below tells us this represents you, and we record that. If anything is off, keep talking to Milla — we would rather fix it now than write from it.
-                  </div>
-                </div>
-              )}
-
-              {/* ── THIS SCREEN DESCRIBES ONE STAGE, AND THE STAGE IS FREE (founder-ruled 24 Aug) ──
-                  This was a "Starter plan" card: an Approvals tile reading "$4 per approved
-                  lead", and a line ending "you only ever pay when you approve a lead". Every
-                  word of it was TRUE and every word of it was PREMATURE — it quoted the
-                  post-purchase per-lead price to a prospect who has not seen a single lead
-                  yet, on the one screen whose whole job is now "here is what free proof will
-                  show you". The approved sequence is free proof → they judge the fit → $299
-                  → first 100 included → $4 after that. So the panel says the stage it is in,
-                  and the money arrives when the money is actually being asked for.
-                  ⚠️ NO PRICE OF ANY KIND BELONGS ON THIS SCREEN — not $299, not $4, not the
-                  first 100. ⛓️ 23 Sep — ~~"The $299 ask lives behind 'Looks right' on the
-                  desk, and the $4 model is unchanged everywhere it legitimately appears
-                  (billing, usage, the wallet chip, the desk)"~~. FALSE SINCE R124 (16 Sep:
-                  *"299/4 is gone. out. we are on the programme. all clients."*). "Looks right"
-                  posts `/leads/:id/proof-accept`, which charges nothing; billing and usage
-                  carry no per-lead price and a guard asserts it. The client's first payment is
-                  now P1 of a programme, reached through the calculator. */}
-              <div className="text-[15px] font-bold mb-2">Free proof</div>
-              <div className="bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
-                <div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">What happens next</div>
-                <div className="text-[19px] font-extrabold">Up to 20 masked leads</div>
-                <div className="text-[11px] text-[#9b8ec4]">See who K.I.N.D would find before you decide to go live.</div>
               </div>
-
-              {/* ⚑ round 4 — THE BUTTON IS THE CONFIRMATION. Pressing it persists the business
-                  understanding AND records that the client said it represents them
-                  (`clients.milla_understanding_confirmed_at`).
-                  ⚑ 24 Aug — on a first run it also OPENS THE ACCOUNT, through the unchanged
-                  /auth/onboard handler, immediately before the ICP is saved.
-                  ⚑ 24 Aug (free-proof entry) — AND NO PRICE APPEARS HERE ANY MORE. This
-                  button read "go live for $299" and the next screen was billing: a prospect
-                  was asked to pay having been shown nobody. The approved journey puts FREE
-                  PROOF in between, so the words say what the click now does — she goes and
-                  finds them. ⛓️ 23 Sep — ~~"The $299 ask is not deleted, it MOVED … behind
-                  'Looks right' on the desk, which routes to `/milla/billing?start=1&from=proof`"~~.
-                  No longer true: nothing in the portal links there, and the Milla billing page
-                  takes no payment at all. R124 retired the pack; the first money a client is
-                  asked for is P1 of their programme.
-                  ⚠️ The old label hand-typed "$99" and survived the 3-Aug $299 sweep because
-                  the sweep fixed the small print one line below and missed the button above
-                  it, showing two prices at once. That is why a price is never hand-typed on
-                  a screen a client reads — and why this screen now carries none at all. */}
-              <button disabled={saving || proofHold !== null || !industryChosen} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
-              {!industryChosen ? (
-                <div className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 text-center">Choose at least one industry on the right first.</div>
-              ) : null}
-              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">We&rsquo;ll find real people who match this and show them to you — <b className="text-[#5c5279]">free, masked, and nobody is contacted</b>. You decide what happens next.</div>
-              <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
-              {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
-            </div>
-          )}
-          {/* ── ⚑ 23 Sep — WHILE THEIR PEOPLE ARE BEING PUT TOGETHER, THEY STAY IN THE BRIEF ──
-              Never "a snag": either it is being put together, or it is ours to finish, or —
-              only when the search found nobody — Milla asks them to widen, in the chat. */}
-          {proofHold !== null && proofHold !== 'ready' && proofHold !== 'not_started' && (
-            <div className="mt-3 rounded-2xl border border-[#e4dcf7] bg-[#faf8ff] px-4 py-3.5">
-              <div className="text-[13.5px] font-extrabold text-[#1f1235]">
-                {proofHold === 'preparing' ? 'Putting your first examples together'
-                  : proofHold === 'needs_client' ? 'One thing to widen'
-                    : 'Your first examples are on their way'}
-              </div>
-              <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">
-                {proofHold === 'preparing' ? PROOF_PREPARING_COPY
-                  : proofHold === 'needs_client' ? PROOF_NEEDS_CLIENT_COPY
-                    : PROOF_NEEDS_US_COPY}
-              </p>
-            </div>
+            ) : null
           )}
         </aside>
       </div>

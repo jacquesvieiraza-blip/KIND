@@ -333,12 +333,16 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // was deciding what a customer meant; the dropdowns exist so the client can say what they
   // meant WITHOUT anything having to interpret them. A pick is the one input on this screen
   // that cannot be misread.
-  { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'PickField/savePick — 3 `chosen.includes(v)` membership checks on the client\'s own picked chips', klass: 'B', why: 'asks whether a chip the client selected is already selected; no sentence is read and no meaning is inferred' },
+  { file: 'apps/portal/src/components/milla/FilterRow.tsx', what: 'PickField/savePick — 3 `chosen.includes(v)` membership checks on the client\'s own picked chips', klass: 'B', why: 'asks whether a chip the client selected is already selected; no sentence is read and no meaning is inferred' },
   // ⚑ 23 Sep (R142 · A2a) — FOUR MORE, ALL IN THE INDUSTRY PICKER'S FILTER BOX. Apollo's list is
   // ~150 entries, so the closed dropdown gets a "type to find" box: `draft.trim().toLowerCase()`,
   // `o.toLowerCase().includes(q)`, and `!chosen.includes(o)`. It narrows which LIST ENTRIES are
   // shown; it decides nothing, stores nothing, and the client still clicks the entry they mean.
-  { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'PickField industry filter — 4 ops (`draft.trim().toLowerCase()`, `o.toLowerCase().includes(q)`, `!chosen.includes(o)`) narrowing the visible entries of Apollo\'s closed list', klass: 'B', why: 'filters which dropdown entries are SHOWN; the client still picks one — nothing is inferred or stored from what they type' },
+  { file: 'apps/portal/src/components/milla/FilterRow.tsx', what: 'PickField industry filter — 4 ops (`draft.trim().toLowerCase()`, `o.toLowerCase().includes(q)`, `!chosen.includes(o)`) narrowing the visible entries of Apollo\'s closed list', klass: 'B', why: 'filters which dropdown entries are SHOWN; the client still picks one — nothing is inferred or stored from what they type' },
+  // ⚑ 24 Sep (R145 step 2) — ONE MORE, IN THE "Never contact" ROW'S SECOND TICK-LIST:
+  // `extra.chosen.includes(v)` asks whether a box the client ticked is ticked. The same class-B
+  // membership check as the three above; `PickField` became `FilterRow` with no other new op.
+  { file: 'apps/portal/src/components/milla/FilterRow.tsx', what: 'FilterRow "Never contact" kinds — 1 `extra.chosen.includes(v)` membership check on a box the client ticked', klass: 'B', why: 'asks whether a tick-box the client selected is selected; no sentence is read' },
   { file: 'apps/portal/src/components/milla/MillaConversation.tsx', what: 'PAUSE_STAGES / ROI_STAGES / OUTREACH_STAGES .includes(prog.stage)', klass: 'B', why: 'membership on a STAGE ENUM the server issued, never on what the client typed' },
   { file: 'apps/portal/src/app/(milla)/milla/page.tsx', what: 'OUTREACH_STAGES.includes(prog.stage)', klass: 'B', why: 'same stage enum, a render gate' },
   { file: 'apps/portal/src/app/(dashboard)/AgentColumn.tsx', what: 'pathname regexes ×3', klass: 'B', why: 'URL routing; the subject is the address bar, not a sentence' },
@@ -388,7 +392,11 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       // ⛓️ 22 Sep — 8 → 11. The three new hits are the editable workspace fields; see the
       // LANGUAGE_HITS entry above for why a pick is the one input here that cannot be misread.
       // ⛓️ 23 Sep (R142 · A2a) — 11 → 15: the industry picker's filter box, classified above.
-      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 15,
+      // ⛓️ 24 Sep (R145 step 2) — 15 → 16: the "Never contact" tick-list, classified above.
+      // ⛓️ 24 Sep (R149) — 16 → 8 here and 8 in `FilterRow.tsx`: the row moved, unchanged, into
+      // its own component so the Proof screen's drop-downs are the same control. Same 16 ops.
+      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 8,
+      'apps/portal/src/components/milla/FilterRow.tsx': 8,
       'apps/portal/src/components/milla/MillaConversation.tsx': 3,
       'apps/portal/src/app/(milla)/milla/page.tsx': 1,
       'apps/portal/src/app/(dashboard)/AgentColumn.tsx': 3,

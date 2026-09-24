@@ -32,21 +32,16 @@ const FACTS = (o: Partial<StageFacts> = {}): StageFacts => ({
 const text = (c: ReturnType<typeof nextActionCard>): string =>
   JSON.stringify(c)
 
-describe('🛑 the operator rail is the operator’s work, not the client’s journey', () => {
-  it('it starts where the client’s own journey stops being the whole story', () => {
-    // ⛓️ The preview draws NINE, the first three of which repeat the six-stage FLOW ribbon
-    // above them. Founder-ruled 22 Sep (option A): keep both, trim the overlap — which is the
-    // Section 0 lesson applied to the operator side.
-    expect([...OPERATOR_RAIL]).toEqual(
-      ['Inbox + people', 'Sequence', 'Run', 'Replies', 'Book', 'Live'])
-  })
-
-  it('🛑 and it never repeats a client stage', () => {
-    for (const clientStage of ['Signed up', 'Brief', 'Proof', 'Programme', 'Approval', 'Complete']) {
-      expect(OPERATOR_RAIL as readonly string[],
-        `"${clientStage}" is on both the ribbon and the rail — two vocabularies again`)
-        .not.toContain(clientStage)
-    }
+describe('🛑 the operator rail is the redesign’s nine (R148, 24 Sep)', () => {
+  // ⛓️ 24 Sep (R148) — WAS "it starts where the client's own journey stops" (six steps, from
+  // Inbox + people) and "it never repeats a client stage", both pinning the 22 Sep option-A
+  // trim. The founder reversed it: asked "9, like the redesign, or keep 6?", the founder chose
+  // *"9, like the redesign"*. The rail now draws exactly the redesign's nine, in its order.
+  it('it draws the redesign’s nine, in order', () => {
+    expect([...OPERATOR_RAIL]).toEqual([
+      'Signed up', 'Brief', 'Programme',
+      'Inbox + people', 'Sequence', 'Run', 'Replies', 'Book', 'Live',
+    ])
   })
 })
 
@@ -62,7 +57,10 @@ describe('🛑 normal is silent — an action has to be earned', () => {
   it('each one names the STATE, not the stage', () => {
     expect(text(nextActionCard('signup', { needsYou: false }))).toContain('New client landed')
     expect(text(nextActionCard('brief', { needsYou: false }))).toContain('Healthy Brief')
-    expect(text(nextActionCard('proof', { needsYou: false }))).toContain('Proof confirmed by the client')
+    // ⛓️ 24 Sep (R145 step 7 · #44) — was 'Proof confirmed by the client', which contradicted the
+    // lifecycle card's "Client: Reviewing" on the same panel. The client has not confirmed yet.
+    expect(text(nextActionCard('proof', { needsYou: false }))).toContain('Proof with the client')
+    expect(text(nextActionCard('proof', { needsYou: false }))).not.toContain('confirmed')
   })
 
   it('🛑 but when something IS owed it is an exception, and it says why', () => {

@@ -28,10 +28,12 @@
 // figure sitting beside a real price reads as a promise unless something says otherwise.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { programmeMoney } from '@/lib/programme-money'
+import { postAcceptance, type AcceptResponse } from '@/lib/programme-acceptance'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 
 type Assumptions = { leadsPerMeeting: number; averageClientValue: number; meetingToClientPct: number }
 type CalcResult = {
@@ -61,20 +63,6 @@ async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
-const LABEL = 'text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]'
-const FIELD = 'w-full text-[14px] rounded-xl border border-[#e4dcf7] px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30'
-
-/** One committed figure. Digits line up, so a column of them can be compared at a glance. */
-function Figure({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="min-w-0">
-      <div className={LABEL}>{label}</div>
-      <div className="text-[17px] font-extrabold text-[#1f1235] tabular-nums leading-tight mt-0.5">{value}</div>
-      {hint && <div className="text-[11.5px] text-[#9b8ec4] mt-0.5 leading-snug">{hint}</div>}
-    </div>
-  )
-}
-
 /**
  * 🛑 ⚑ 23 Sep (R136 ⑥) — WHAT THE POOL CARRIES, READ ONCE.
  *
@@ -83,15 +71,23 @@ function Figure({ label, value, hint }: { label: string; value: string; hint?: s
  * the control is then left uncapped rather than capping a paying client at nothing because a
  * vendor was slow.
  */
-type Capacity = { committed: number; known: boolean }
+type Capacity = { committed: number; known: boolean; workable?: number }
 
 /** The ceiling the control stops at, or `null` when we have no trustworthy answer. */
 function capOf(c: Capacity | null): number | null {
   return c && c.known && c.committed > 0 ? c.committed : null
 }
 
-export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
-  const [meetings, setMeetings] = useState(10)
+export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepted }: {
+  onChosen?: () => void
+  /** ⚑ 24 Sep (R145 step 4) — a programme already chosen opens the slider at its own target. */
+  startAt?: number | null
+  /** ⚑ 24 Sep (R145 step 4 · #75) — "Widen targeting": Milla takes it from here, in the one chat. */
+  onWiden?: () => void
+  /** ⚑ 24 Sep — already accepted at `startAt`: pressing again goes straight to the payment. */
+  alreadyAccepted?: boolean
+}) {
+  const [meetings, setMeetings] = useState(startAt && startAt > 0 ? startAt : 10)
   const [capacity, setCapacity] = useState<Capacity | null>(null)
   const [leadsPerMeeting, setLeadsPerMeeting] = useState<number | ''>('')
   const [value, setValue] = useState<number | ''>('')
@@ -156,150 +152,184 @@ export function ProgrammeCalculator({ onChosen }: { onChosen?: () => void }) {
 
   const atCeiling = cap !== null && meetings >= cap
 
-  const choose = useCallback(async () => {
+  // ── 🛑 ⚑ 24 Sep (R145 step 4 · #27) — ONE BUTTON: "ACCEPT N MEETINGS · PAY P1" ─────────────
+  //
+  // Founder: *"from one screen to one choice to the next."* ⛓️ WAS three screens in a row —
+  // "Build my programme", then "Accept this recommendation", then "Pay the first half and start" —
+  // each re-reading the page before the next appeared. The three server steps are unchanged and
+  // still happen IN THIS ORDER, each its own guarded write: choose (creates or re-prices; refuses
+  // over capacity), accept (the ONE writer of `recommendation_accepted_at`, B1 13 Sep — persisted
+  // BEFORE any checkout exists), then the P1 checkout. The press is the explicit acceptance, and
+  // the button says the price it starts. If any step refuses, nothing after it runs and the
+  // server's own sentence is shown; nothing has been charged.
+  const acceptAndPay = useCallback(async () => {
     setBusy(true); setErr(null)
     try {
-      await api.post('/my/programme/choose', {
+      const tk = await token()
+      // Already accepted at this size: nothing to re-choose or re-accept, only the payment to open.
+      const unchanged = alreadyAccepted === true && startAt === meetings
+      if (!unchanged) await api.post('/my/programme/choose', {
         meetings,
         ...(leadsPerMeeting !== '' ? { leadsPerMeeting } : {}),
         ...(value !== '' ? { averageClientValue: value } : {}),
         ...(pct !== '' ? { meetingToClientPct: pct } : {}),
-      }, await token())
+      }, tk)
+      if (!unchanged) {
+        const accepted = await postAcceptance((path, body) =>
+          api.post<AcceptResponse>(path, body, tk) as Promise<AcceptResponse>)
+        if (!accepted.ok) throw new Error(accepted.message)
+      }
       setChosen(true)
       onChosen?.()
+      const r = await api.post<{ data: { url: string } }>('/my/programme/checkout/first', {
+        // ⚑ #30 — back to the ONE screen, told the payment arrived (see `paidReturn`).
+        successUrl: `${window.location.origin}/milla?paid=first`,
+        cancelUrl: window.location.href,
+      }, tk)
+      if (!r.data?.url) throw new Error('We could not start the payment. Nothing was charged.')
+      window.location.href = r.data.url
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'That did not save — try once more.')
-    } finally { setBusy(false) }
-  }, [meetings, leadsPerMeeting, value, pct, onChosen])
+      setErr(e instanceof Error && e.message && e.message.length < 300
+        ? e.message : 'That did not go through. Nothing was charged — please try again.')
+      setBusy(false)
+    }
+  }, [meetings, leadsPerMeeting, value, pct, onChosen, alreadyAccepted, startAt])
 
   const d = calc?.data ?? null
 
+  // ⚑ 24 Sep (R145 step 4 · #31) — "Accept N" in the chat runs THIS button's handler, offered only
+  // while the button itself could be pressed.
+  const conversation = useMillaConversation()
+  const setDeskActions = conversation.setDeskActions
+  // ⚑ 24 Sep (R145 step 4) — Milla opens the stage in the one chat, as the redesign does (D5 words).
+  const announceOnce = conversation.announceOnce
+  useEffect(() => {
+    announceOnce('programme-intro', ['You buy qualified meetings, not leads. Move the slider to however many you want and everything else follows.'])
+  }, [announceOnce])
+  const payRef = useRef(acceptAndPay); payRef.current = acceptAndPay
+  const canPay = !!d && !noCapacity && !busy && !chosen
+  const payLabel = `Accept ${d?.meetings ?? meetings}`
+  useEffect(() => {
+    setDeskActions(canPay ? { accept: () => void payRef.current(), acceptLabel: payLabel } : null)
+    return () => setDeskActions(null)
+  }, [canPay, payLabel, setDeskActions])
+
+  // ── ⚑ 24 Sep (R145 step 4 · #28 #29 #59 #76) — THE PROGRAMME PANEL, AS THE REDESIGN DRAWS IT ──
+  // Hero with the slider, a Capacity card and a Payment card, then one main button and one
+  // secondary. Kept from the screen it replaces: the target framing and the best-efforts line are
+  // the SERVER's sentences (R136 ②); the slider stops where the pool does (R136 ⑥); the client's
+  // own value and conversion are labelled an illustration; the 400 never appears (D4 — Vida only).
+  // D5: "target" and "qualified meetings", never "the commitment".
   return (
-    <section className="rounded-2xl border border-[#e4dcf7] bg-white p-4 sm:p-5">
-      <div className={LABEL}>Your programme</div>
-      <h2 className="text-[18px] font-extrabold text-[#1f1235] mt-0.5">How many meetings should this book?</h2>
-      {/* 🛑 THE FOUNDER'S FRAMING, AND IT COMES FROM THE SERVER so a screen cannot soften it. */}
-      <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">{calc?.target_note}</p>
-
-      {/* ── WHAT THEY CHOOSE ───────────────────────────────────────────────────────────── */}
-      <div className="mt-4">
-        <label htmlFor="calc-meetings" className={LABEL}>Targeted booked meetings</label>
-        {/* ── 🛑 ⚑ 23 Sep (R136 ⑥) — THE CONTROL STOPS WHERE THE POOL DOES ─────────────────
-             ⛓️ WAS: ~~`max={50}` on the slider and `max={500}` on the box~~ — two hard-coded
-             literals with no connection to whether this client's targeting contains enough
-             people to carry any of it. A client could buy twenty meetings out of a pool that
-             carries three, and every screen afterwards would keep agreeing with them.
-
-             🛑 FOUNDER-LOCKED: *"if we can only produce 10 but they want more. they need to
-             widen their own ICP."* So the control stops, and the sentence below hands them the
-             fields that move it. We do not widen it for them.
-
-             ⚠️ THE FALLBACK IS THE OLD CEILING, NOT ZERO. When capacity is unknown — no
-             targeting yet, or the provider could not be reached — `cap` is null and the control
-             behaves exactly as it did before. Capping a paying client at nothing because a
-             vendor was slow would be a worse failure than the one this fixes. */}
-        <div className="flex items-center gap-3 mt-1">
-          <input id="calc-meetings" type="range" min={1} max={cap ?? 50} step={1} value={meetings}
-            onChange={e => setMeetings(Number(e.target.value))}
-            className="flex-1 accent-[#7C3AED]" />
-          <input aria-label="Targeted booked meetings" type="number" min={1} max={cap ?? 500} value={meetings}
-            onChange={e => setMeetings(
-              Math.min(cap ?? Number.MAX_SAFE_INTEGER, Math.max(1, Number(e.target.value) || 1)))}
-            className="w-20 text-[15px] font-extrabold tabular-nums rounded-xl border border-[#e4dcf7] px-2.5 py-2 text-center" />
+    <div className="flex flex-col gap-4">
+      <div className="mv-hero-card">
+        <div className="mv-eyebrow">Your programme</div>
+        <div className="mv-hero-row">
+          <div>
+            <div className="mv-hero-number tabular-nums">{d?.meetings ?? meetings}</div>
+            <div className="mv-hero-caption">qualified meetings — your target</div>
+          </div>
+          {d && (
+            <div>
+              <strong className="text-[20px] tabular-nums">{programmeMoney(d.totalCents)} total</strong>
+              <div className="mv-hero-caption">{programmeMoney(d.effectiveCostPerMeetingCents)} per meeting · split 50 / 50</div>
+            </div>
+          )}
         </div>
-        {/* 🛑 AND WHEN THEY REACH IT, THEY ARE POINTED AT THEIR OWN TARGETING — never at a
-            suggestion of ours. The sentence is the server's, so this screen cannot soften it,
-            and it names no pool size and no rate. */}
-        {(atCeiling || noCapacity) && calc?.widen_note && (
-          <p className="text-[11.5px] text-[#9b8ec4] mt-1.5 leading-relaxed">{calc.widen_note}</p>
-        )}
+        {/* ── 🛑 ⚑ 23 Sep (R136 ⑥) — THE CONTROL STOPS WHERE THE POOL DOES. When capacity is
+             unknown the old ceiling stands: capping a paying client at nothing because a vendor
+             was slow would be worse than the defect this fixes. */}
+        <div className="mt-4">
+          <div className="flex items-center gap-3">
+            <input id="calc-meetings" aria-label="Targeted qualified meetings" type="range" min={1} max={cap ?? 50} step={1} value={meetings}
+              onChange={e => setMeetings(Number(e.target.value))}
+              className="flex-1 accent-[#6f3df4]" />
+            {/* `max` on a number box is advisory, so a typed value is CLAMPED to the ceiling too. */}
+            <input aria-label="Targeted qualified meetings (number)" type="number" min={1} max={cap ?? 500} value={meetings}
+              onChange={e => setMeetings(Math.min(cap ?? Number.MAX_SAFE_INTEGER, Math.max(1, Number(e.target.value) || 1)))}
+              className="w-16 text-[13px] font-extrabold tabular-nums rounded-lg border border-[color:var(--mv-line2)] px-2 py-1 text-center bg-white" />
+          </div>
+          <div className="flex justify-between mt-1.5 text-[8px] text-[#8e8595]">
+            <span>1 meeting</span>
+            <span>{cap !== null ? `Pool ceiling · ${cap}` : 'Move to choose'}</span>
+          </div>
+        </div>
+        {/* 🛑 THE FOUNDER'S FRAMING, AND IT COMES FROM THE SERVER so a screen cannot soften it. */}
+        {calc?.target_note && <p className="mt-3">{calc?.target_note}</p>}
+        {/* And at the ceiling they are pointed at their OWN targeting — never at a suggestion of ours. */}
+        {(atCeiling || noCapacity) && calc?.widen_note && <p className="mt-2">{calc.widen_note}</p>}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-        <div>
-          <label htmlFor="calc-lpm" className={LABEL}>Leads per meeting</label>
-          <input id="calc-lpm" type="number" className={`${FIELD} mt-1`}
-            min={calc?.benchmark.minLeadsPerMeeting ?? 25} max={calc?.benchmark.leadsPerMeeting ?? 250}
-            placeholder={String(calc?.benchmark.leadsPerMeeting ?? 250)}
-            value={leadsPerMeeting}
-            onChange={e => setLeadsPerMeeting(e.target.value === '' ? '' : Number(e.target.value))} />
-          <div className="text-[11.5px] text-[#9b8ec4] mt-1">Our benchmark is {calc?.benchmark.leadsPerMeeting ?? 250}.</div>
-        </div>
-        <div>
-          <label htmlFor="calc-value" className={LABEL}>A client is worth</label>
-          <input id="calc-value" type="number" min={0} className={`${FIELD} mt-1`} placeholder="e.g. 25000"
-            value={value} onChange={e => setValue(e.target.value === '' ? '' : Number(e.target.value))} />
-          <div className="text-[11.5px] text-[#9b8ec4] mt-1">Your figure.</div>
-        </div>
-        <div>
-          <label htmlFor="calc-pct" className={LABEL}>Meetings that become clients</label>
-          <input id="calc-pct" type="number" min={0} max={100} className={`${FIELD} mt-1`} placeholder="e.g. 25"
-            value={pct} onChange={e => setPct(e.target.value === '' ? '' : Number(e.target.value))} />
-          <div className="text-[11.5px] text-[#9b8ec4] mt-1">Your figure, as a %.</div>
-        </div>
-      </div>
-
-      {/* ── COMMITTED: OURS ────────────────────────────────────────────────────────────── */}
       {d && (
-        <div className="mt-5 rounded-2xl border border-[#d9c4fb] bg-[#fcfaff] p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Figure label="People we source" value={d.recommendedVolume.toLocaleString('en-US')} />
-            <Figure label="Programme cost" value={programmeMoney(d.totalCents)} />
-            <Figure label="Per meeting" value={programmeMoney(d.effectiveCostPerMeetingCents)} hint="at this size" />
-            <Figure label="Target" value={`${d.meetings} meetings`} />
+        <div className="mv-programme">
+          <div className="mv-programme-card">
+            <div className="mv-eyebrow">Capacity</div>
+            <div className="mv-big tabular-nums">{capacity?.known && typeof capacity.workable === 'number' ? capacity.workable.toLocaleString('en-US') : '—'}</div>
+            <div className="mv-sub">
+              workable pool behind the programme.{cap !== null ? ` ${cap} is the most we will take on at this targeting.` : ''}
+            </div>
+            <div className="mv-kv-list">
+              <div className="mv-kv-row"><span>People we plan to work</span><strong>{d.recommendedVolume.toLocaleString('en-US')}</strong></div>
+              <div className="mv-kv-row"><span>Planning benchmark</span><strong>{calc?.benchmark.leadsPerMeeting ?? 250} / meeting</strong></div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#ece5fb]">
-            <Figure label="Payment 1 — now" value={programmeMoney(d.firstPaymentCents)} hint="starts the sourcing and preparation" />
-            <Figure label="Payment 2 — later" value={programmeMoney(d.secondPaymentCents)} hint="after you approve the prepared programme" />
+          <div className="mv-programme-card">
+            <div className="mv-eyebrow">Payment</div>
+            <div className="mv-kv-list">
+              <div className="mv-kv-row"><span>P1 · starts preparation</span><strong>{programmeMoney(d.firstPaymentCents)}</strong></div>
+              <div className="mv-kv-row"><span>P2 · on approval</span><strong>{programmeMoney(d.secondPaymentCents)}</strong></div>
+              <div className="mv-kv-row"><span>What you buy</span><strong>{d.meetings} qualified meetings</strong></div>
+            </div>
+            {/* 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE POINT OF COMMITMENT. The server's
+                sentence, naming no number (founder: *"i said 400 internally. we dont disclose this."*). */}
+            {calc?.best_efforts_note && (
+              <div className="mt-3 p-2.5 rounded-[9px] bg-[#fff8e8] text-[8.5px] leading-[1.5] text-[#7b5a1d]">{calc.best_efforts_note}</div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── ILLUSTRATIVE: THEIRS, AND LABELLED ─────────────────────────────────────────── */}
-      {d && d.revenueMultiple !== null && (
-        <div className="mt-3 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] p-4">
-          <div className={LABEL}>If your own figures hold</div>
-          <div className="grid grid-cols-3 gap-4 mt-1.5">
-            <Figure label="Clients" value={d.estimatedClients.toLocaleString('en-US', { maximumFractionDigits: 1 })} />
-            <Figure label="Revenue" value={programmeMoney(d.estimatedRevenueCents)} />
-            <Figure label="Against cost" value={`${d.revenueMultiple.toLocaleString('en-US', { maximumFractionDigits: 1 })}×`} />
+      {err && <p role="alert" className="text-[11px] text-red-700">{err}</p>}
+
+      <div className="mv-cta-row flex-wrap">
+        <button onClick={() => void acceptAndPay()} disabled={busy || chosen || !d || noCapacity}
+          className="mv-btn primary disabled:opacity-50">
+          {busy ? 'Opening payment…' : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
+        </button>
+        {onWiden ? <button onClick={onWiden} disabled={busy} className="mv-btn">Widen targeting</button> : null}
+        {/* ⚠️ IT SAYS WHAT THE PRESS DOES: it accepts this programme and opens the first payment.
+            Nothing is sent to anyone until the prepared programme is approved (P2). */}
+        <span className="mv-muted-note">Accepting opens the first payment. Nothing is sent until you approve the prepared programme.</span>
+      </div>
+
+      {/* ── ⚑ 24 Sep (#76) — THEIR NUMBERS, AS SLIDERS, AND LABELLED AN ILLUSTRATION ─────────── */}
+      <div className="mv-section">
+        <div className="mv-section-head"><b>If your own figures hold</b><span>an illustration, not a forecast</span></div>
+        <div className="mv-section-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="calc-value" className="mv-muted-note block">A client is worth <b>{value === '' ? '—' : programmeMoney(Number(value) * 100)}</b></label>
+            <input id="calc-value" type="range" min={0} max={100000} step={500} value={value === '' ? 0 : value}
+              onChange={e => setValue(Number(e.target.value) || '')} className="w-full accent-[#6f3df4]" />
           </div>
-          {/* 🛑 THE LABEL IS THE SERVER'S SENTENCE. A revenue figure beside a real price reads
-              as a promise unless something says plainly that it is not one. */}
-          <p className="text-[11.5px] text-[#9b8ec4] mt-2.5 leading-relaxed">{calc?.illustrative_note}</p>
+          <div>
+            <label htmlFor="calc-pct" className="mv-muted-note block">Meetings that become clients <b>{pct === '' ? '—' : `${pct}%`}</b></label>
+            <input id="calc-pct" type="range" min={0} max={100} step={1} value={pct === '' ? 0 : pct}
+              onChange={e => setPct(Number(e.target.value) || '')} className="w-full accent-[#6f3df4]" />
+          </div>
+          {d && d.revenueMultiple !== null && (
+            <div className="sm:col-span-2 mv-kv-list">
+              <div className="mv-kv-row"><span>Clients</span><strong>{d.estimatedClients.toLocaleString('en-US', { maximumFractionDigits: 1 })}</strong></div>
+              <div className="mv-kv-row"><span>Revenue</span><strong>{programmeMoney(d.estimatedRevenueCents)}</strong></div>
+              <div className="mv-kv-row"><span>Against cost</span><strong>{`${d.revenueMultiple.toLocaleString('en-US', { maximumFractionDigits: 1 })}×`}</strong></div>
+            </div>
+          )}
+          {/* 🛑 THE LABEL IS THE SERVER'S SENTENCE — a revenue figure beside a price reads as a
+              promise unless something says plainly that it is not one. */}
+          {calc?.illustrative_note && <p className="sm:col-span-2 mv-muted-note">{calc?.illustrative_note}</p>}
         </div>
-      )}
+      </div>
 
-      {err && <p className="text-[12.5px] text-red-700 mt-3">{err}</p>}
-
-      {/* ── 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE POINT OF COMMITMENT ─────────────
-           🛑 FOUNDER-LOCKED: *"we have to add a disclaimer to the client we do our best. this
-           is not a guarentee."*
-
-           ⚠️ IT IS NOT THE SAME SENTENCE AS THE ONE AT THE TOP, AND THE DIFFERENCE IS THE
-           POINT. `target_note` frames the number while they are still playing with it;
-           this says the part that one does not — that there is a point at which we STOP. A
-           client who reads only "target, not a guarantee" can still reasonably believe we keep
-           going until the number lands, which was true until 23 Sep.
-
-           ⚠️ AND IT NAMES NO NUMBER. Founder, same day: *"i said 400 internally. we dont
-           disclose this."* The sentence is interpolated from the server, never typed here, so
-           a screen cannot soften it and a second copy cannot drift from it. */}
-      {calc?.best_efforts_note && (
-        <p className="text-[11.5px] text-[#5c5279] mt-4 leading-relaxed rounded-xl bg-[#faf8ff] border border-[#ece5fb] px-3 py-2.5">
-          {calc.best_efforts_note}
-        </p>
-      )}
-
-      <button onClick={() => void choose()} disabled={busy || chosen || !d || noCapacity}
-        className="w-full mt-4 text-[14px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-        {busy ? 'Saving…' : chosen ? 'Saved — your recommendation is below' : `Build my programme for ${d?.meetings ?? meetings} meetings`}
-      </button>
-      {/* ⚠️ IT SAYS WHAT THE PRESS DOES, AND WHAT IT DOES NOT. Choosing is free; the first
-          payment is a separate, later step, and a button that felt like a checkout would be
-          the "accepting WAS paying" shape this whole change removes. */}
-      <p className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">Nothing is charged by this — you will see the recommendation first.</p>
-    </section>
+    </div>
   )
 }
 

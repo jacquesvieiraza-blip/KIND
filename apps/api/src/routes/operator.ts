@@ -141,7 +141,9 @@ operatorRouter.get('/brief-drafts/:id/facts', async (req: Request, res: Response
     const sent = buildSearchBody({
       job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
       company_sizes: list('company_sizes'), geographies: list('geographies'),
-      industries: [], tech_stack: [], keywords: [], apollo_only_consented: true,
+      // ⛓️ 24 Sep (R145 step 7 · #43) — WAS `industries: []`. A picked Apollo industry is SENT now
+      // (step 3a, D1), so the operator's "what will be sent" must be the real request, industry included.
+      industries: list('industries'), tech_stack: [], keywords: [], apollo_only_consented: true,
     }, 1)
     const body = sent as unknown as Record<string, unknown>
     const at = (k: string): string[] => (Array.isArray(body[k]) ? (body[k] as string[]) : [])
@@ -168,9 +170,11 @@ operatorRouter.get('/brief-drafts/:id/facts', async (req: Request, res: Response
           { field: 'person_seniorities', values: at('person_seniorities') },
           { field: 'organization_num_employees_ranges', values: at('organization_num_employees_ranges') },
           { field: 'person_locations', values: at('person_locations') },
-          { field: 'ranking signal (not sent as a filter)', values: list('industries').length
-            ? list('industries')
-            : (typeof icp.name === 'string' && icp.name && icp.name !== 'Core ICP' ? [icp.name] : []) },
+          // ⚑ 24 Sep (#43) — the industry the client picked from Apollo's list, as Apollo receives it.
+          { field: 'q_organization_keyword_tags', values: at('q_organization_keyword_tags') },
+          // Their own words for the kind of company — never sent, used to rank.
+          { field: 'ranking signal (not sent as a filter)', values:
+            typeof icp.name === 'string' && icp.name && icp.name !== 'Core ICP' ? [icp.name] : [] },
           { field: 'client exclusions', values: typeof icp.exclusions === 'string' && icp.exclusions
             ? [icp.exclusions] : [] },
         ],
@@ -877,6 +881,16 @@ operatorRouter.get('/clients/:id/capacity', async (req: Request, res: Response) 
       .eq('client_id', client.id).eq('icp_id', icp.id)
       .not('set_aside_reason', 'is', null)
 
+    // ⚑ 24 Sep (R145 step 7 · #84) — HOW MANY OF THIS CLIENT'S PEOPLE CAME FROM RECORDS WE
+    // ALREADY OWN. The same rule the client's desk prints "From our pool" by (`leads.ts`): no
+    // acquisition source, and no provider id other than a legacy `pdl_` one. A failed count is
+    // `null` — the card then says nothing rather than "0 already ours".
+    const { count: fromPool, error: poolErr } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).eq('icp_id', icp.id)
+      .is('source', null)
+      .or('apollo_id.is.null,apollo_id.like.pdl_%')
+
     const preview = await previewCount(icp as Parameters<typeof previewCount>[0], 'house')
     const matched = typeof preview?.count === 'number' ? preview.count : 0
     const cap = poolCapacity(matched, excluded ?? 0, worked ?? 0)
@@ -889,6 +903,7 @@ operatorRouter.get('/clients/:id/capacity', async (req: Request, res: Response) 
         already_worked: worked ?? 0,
         set_aside: Math.max(0, (setAside ?? 0) - (excluded ?? 0)),
         workable: cap.workable,
+        from_pool: poolErr ? null : (fromPool ?? null),
         // 🛑 THE OPERATOR HALF. Never returned by the client's route.
         committed: cap.committed,
         benchmark: cap.benchmark,

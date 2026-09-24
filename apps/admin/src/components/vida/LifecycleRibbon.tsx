@@ -67,33 +67,26 @@ export function LifecycleRibbon({ stage }: { stage: string | null }) {
     ? mvp1VidaStage(stage as EngineLifecycleStage)
     : null
   const at = current ? MVP1_VIDA_STAGES.indexOf(current) : -1
+  // ⛓️ 24 Sep (R145 step 7 · #85 · #45) — THE REDESIGN'S STAGE BAR. WAS a dark strip of numbered
+  // circles in which a finished stage looked much like a future one. Founder: *"match everything.
+  // colors everything."* Finished stages now show ✓ (#85), the current one is the accent, and the
+  // bar is drawn during the Brief too (the console passes 'brief' for a signed-up draft, #45).
+  // ⚠️ `role="list"` AND NOTHING INTERACTIVE — a progress statement, not six controls.
   return (
-    <div
-      // ⚠️ `role="list"` AND NOTHING INTERACTIVE. Announced as what it is — a progress
-      // statement — so a screen reader is not told there are six controls here.
-      role="list"
-      aria-label="Client lifecycle"
-      className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2.5 bg-[#1f1235]"
-    >
-      <span className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-[#8d7fb8] mr-2 shrink-0">Flow</span>
-      {MVP1_VIDA_STAGES.map((label, i) => {
-        const n = i + 1
-        const now = at >= 0 && i === at
-        const done = at >= 0 && i < at
-        return (
-          <span key={label} role="listitem" className="flex items-center gap-1.5 shrink-0">
-            <span className={`w-[19px] h-[19px] rounded-full text-[11px] font-extrabold flex items-center justify-center ${
-              now ? 'bg-[#EC4899] text-white'
-              : done ? 'bg-white/90 text-[#1f1235]'
-              : 'bg-white/15 text-[#8d7fb8]'}`}>{n}</span>
-            <span className={`text-[13px] whitespace-nowrap ${
-              now ? 'font-extrabold text-white'
-              : done ? 'font-bold text-white/85'
-              : 'font-bold text-[#8d7fb8]'}`}>{label}</span>
-            {i < MVP1_VIDA_STAGES.length - 1 && <span className="text-[#5b4d80] px-0.5">&rsaquo;</span>}
-          </span>
-        )
-      })}
+    <div role="list" aria-label="Client lifecycle" className="mv-stagebar shrink-0 h-[42px] overflow-x-auto">
+      <div className="mv-label">FLOW</div>
+      <div className="mv-steps">
+        {MVP1_VIDA_STAGES.map((label, i) => {
+          const now = at >= 0 && i === at
+          const done = at >= 0 && i < at
+          return (
+            <span key={label} role="listitem" className="flex items-center gap-1.5 shrink-0">
+              <span className={`mv-step ${now ? 'on' : done ? 'done' : ''}`}><i>{done ? '✓' : i + 1}</i>{label}</span>
+              {i < MVP1_VIDA_STAGES.length - 1 && <span className="mv-sep" />}
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }

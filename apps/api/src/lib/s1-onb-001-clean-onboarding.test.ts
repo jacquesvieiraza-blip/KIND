@@ -519,7 +519,12 @@ describe('Ⓓ there is ONE readiness definition, and everything calls it', () =>
 describe('Ⓔ the portal gates on the server’s state, not on `proposed`', () => {
   it('the plan and the CTA require serverReady AND the plan content', () => {
     expect(PORTAL, 'the old gate is gone').not.toContain('{!proposed ? (')
-    expect(PORTAL).toContain('{!(serverReady && proposed) ? (')
+    // ⛓️ 24 Sep (R145 step 2) — WAS `{!(serverReady && proposed) ? (`, which swapped the workspace for the plan
+    // card. Founder: *"i cant add more informaiton when the purple part comes up"*. There is one
+    // panel now, and the SAME authority gates the one button: `blocker` is null only when the
+    // server says ready AND the plan content exists — never on `proposed` alone.
+    expect(PORTAL).toContain('disabled={saving || blocker !== null}')
+    expect(PORTAL).toMatch(/: !serverReady \? \(briefNext[\s\S]{0,600}: !proposed \? /)
     // ⛓️ 22 Sep — WAS: *"and the step dots follow the same authority"*, pinning
     // ~~`stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')`~~.
     //

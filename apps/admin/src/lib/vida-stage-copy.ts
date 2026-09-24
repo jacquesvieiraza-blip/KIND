@@ -42,10 +42,39 @@ export type StageChip = { text: string; tone: 'plain' | 'ok' | 'warn' | 'stop' }
  * "Sequence" — they are the mailbox and the copy, which is work that happens to them rather
  * than work they do.
  */
+//
+// ⛓️ 24 Sep (R148) — THE TRIM IS REVERSED, BY THE FOUNDER. Asked "9, like the redesign, or keep
+// 6?", the founder chose *"9, like the redesign"*. The 22 Sep option-A reasoning above is kept as the
+// history it is; the rail now draws the redesign's nine, with the client's first three steps.
 export const OPERATOR_RAIL = [
+  'Signed up', 'Brief', 'Programme',
   'Inbox + people', 'Sequence', 'Run', 'Replies', 'Book', 'Live',
 ] as const
 export type OperatorRailStep = (typeof OPERATOR_RAIL)[number]
+
+/**
+ * ⚑ 24 Sep (R145 step 7 · #64) — WHERE ON OUR WORK RAIL A CLIENT IS, FROM THE ENGINE STAGE.
+ *
+ * ⚠️ ONLY WHAT THE STAGE ITSELF SAYS. Preparation (sourcing) is the people and the inbox; the
+ * frozen package at approval is the sequence; delivery is Run; a completed programme is Live
+ * and closed. Replies and Book are work INSIDE delivery that no stage separates, so they are
+ * never lit from here rather than lit by a guess.
+ */
+export function operatorRailAt(stage: string | null | undefined): OperatorRailStep | null {
+  switch (stage) {
+    // ⛓️ 24 Sep (R148) — the nine-step rail: a client row at `signup` has confirmed its Brief;
+    // Proof and the recommendation are both the road to the Programme.
+    case 'signup':         return 'Brief'
+    case 'proof':
+    case 'recommendation': return 'Programme'
+    case 'sourcing':   return 'Inbox + people'
+    case 'approval':   return 'Sequence'
+    case 'live':
+    case 'review':     return 'Run'
+    case 'completion': return 'Live'
+    default:           return null
+  }
+}
 
 export type StageFacts = {
   /** Brief facts held, and the denominator. `null` when the read failed. */
@@ -117,7 +146,10 @@ export function nextActionCard(
     ? 'New client landed — no action needed'
     : stage === 'brief'
       ? 'Healthy Brief — no action needed'
-      : 'Proof confirmed by the client — no action needed'
+      // ⛓️ 24 Sep (R145 step 7 · #44) — was "Proof confirmed by the client", printed beside the
+      // lifecycle card's "Client: Reviewing" on the same panel. At this stage the client has NOT
+      // confirmed ("These are my people" is what moves them on), so the headline was the false half.
+      : 'Proof with the client — no action needed'
   return { kind: 'note', label: 'NEXT ACTION · NONE', body: `${headline}\n\n${body}` }
 }
 

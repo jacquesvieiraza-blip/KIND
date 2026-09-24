@@ -1026,8 +1026,17 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // ruling — *"if Milla cant answer we then say to the client please use drop down boxes on
     // right mannually"* — so the dead end becomes a route the client can take themselves.
     expect(d, 'the two-pass wall came back').not.toContain('used both proof passes')
-    expect(oneLine(d), 'the client is no longer pointed at the fields they can set themselves')
-      .toContain('set the targeting yourself in the fields on your Brief')
+    // ⛓️ 24 Sep (R145 step 3b · #82) — WAS 'set the targeting yourself in the fields on your Brief'
+    // and a link to /milla/welcome. Both were false by then: the Brief is SEALED once confirmed
+    // (PUT /milla/brief-draft answers 409), and the Brief page sends a client whose Proof is ready
+    // straight back to the desk — the "Open my Brief" loop the founder hit. At Proof the targeting
+    // changes through Milla: she reflects back the exact targeting before anything runs (25 Aug),
+    // and the client decides — no guess (22 Sep). Whether the drop-downs themselves should also
+    // sit on the Proof screen is put to the founder in the step-3b report.
+    expect(oneLine(d), 'the client is no longer told how to change the targeting')
+      .toContain('tell her what to change')
+    // The Brief's own redirects (no ICP yet; Proof not ready) stay — only the LINK is gone.
+    expect(d).not.toContain('href="/milla/welcome"')
   })
 
   it('the wording is the founder\'s, verbatim', () => {
@@ -1264,10 +1273,14 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     expect(d).not.toContain('refineDraft')
   })
 
-  it('the confirmation sentence and the two-passes warning are unchanged', () => {
+  it('the confirmation sentence is unchanged, and it no longer promises a last set', () => {
     const d = desk()
     expect(d).toContain('Use this refinement and find another set?')
-    expect(d).toContain('This is your second and last free set — after it, we talk it through together.')
+    // ⛓️ 24 Sep (R149) — WAS 'This is your second and last free set — after it, we talk it
+    // through together.' Refinement has no ceiling (founder-locked 22 Sep, *"2. unlimited now."*),
+    // so the warning described a wall that no longer exists.
+    expect(d).not.toContain('second and last free set')
+    expect(d).toContain('Looking again is free — nothing is bought, and you can change it again after.')
   })
 
   // ── BATCH SEPARATION ────────────────────────────────────────────────────────────────
@@ -1339,7 +1352,9 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     expect(d).toContain('batchKey(b).localeCompare(batchKey(a)) || Number(b.score ?? 0) - Number(a.score ?? 0)')
     expect(d).toContain("const batchKey = (l: MaskedLead) => l.surfaced_for_approval_at ?? ''")
     // Exactly one heading per batch, at the boundary.
-    expect(d).toContain('const newBatch = showBatchLabels && (i === 0 || batchKey(pending[i - 1]) !== batchKey(l))')
+    // ⛓️ 24 Sep (R145 step 3b) — the sample list excludes the featured person, so the boundary is
+    // read on that list (`rest`). Still exactly one heading per batch, at the boundary.
+    expect(d).toContain('{showBatchLabels && (i === 0 || batchKey(rest[i - 1]) !== batchKey(l)) && (')
     expect(d).toContain("{batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}")
     // Labels appear only when there is genuinely more than one set to tell apart.
     expect(d).toContain('const showBatchLabels = proofBatches.length > 1')
@@ -1360,11 +1375,15 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     // is now the locked batch controls plus the panel they open, and both still render
     // against the LATEST set only — the duty here (a control under an "Earlier set" heading
     // would refine a batch the client is no longer looking at).
-    expect(d).toContain('{i === lastLatestIdx && <>{calibrationControl}{refineOpen && refinePanel}</>}')
+    // ⛓️ 24 Sep (R145 step 3b · R143) — the controls are the panel's ONE closing row, drawn once,
+    // below the sample (newest set first). WAS rendered under the last card of the latest set.
+    // The duty — never a control per set, never one that refines an earlier set — is kept: it
+    // renders once, and every handler acts on the latest set as before.
+    expect(d).toContain('{calibrationControl}\n      {refineOpen && refinePanel}')
     expect(d).toContain("const lastLatestIdx = proofMode\n    ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')\n    : -1")
     // It renders ONCE — a control that appeared under both sets would offer to refine pass 1.
     // ⛓️ 10 Sep — counted on the new node name; `refineControl` no longer exists.
-    expect((d.match(/&& <>\{calibrationControl\}/g) ?? []), 'one placement').toHaveLength(1)
+    expect((d.match(/\{calibrationControl\}/g) ?? []), 'one placement').toHaveLength(1)
     // …and it is still proof-only and still needs a batch to refine.
     // ⛓️ RENAMED 10 Sep — `refineControl` → `refinePanel`. The gate is the SAME expression
     // and that is the duty: the panel exists only while `canRefine` (pass 1) and only while
@@ -1431,8 +1450,15 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     const d = desk()
     const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     expect(d, 'the two-pass wall came back').not.toContain('used both proof passes')
-    expect(oneLine(d), 'the client is not pointed at the fields')
-      .toContain('set the targeting yourself in the fields on your Brief')
+    // ⛓️ 24 Sep (R145 step 3b · #82) — WAS 'set the targeting yourself in the fields on your Brief'
+    // and a link to /milla/welcome. Both were false by then: the Brief is SEALED once confirmed
+    // (PUT /milla/brief-draft answers 409), and the Brief page sends a client whose Proof is ready
+    // straight back to the desk — the "Open my Brief" loop the founder hit. At Proof the targeting
+    // changes through Milla: she reflects back the exact targeting before anything runs (25 Aug),
+    // and the client decides — no guess (22 Sep). Whether the drop-downs themselves should also
+    // sit on the Proof screen is put to the founder in the step-3b report.
+    expect(oneLine(d), 'the client is not told how to change the targeting')
+      .toContain('tell her what to change')
     // ⚠️ AND A PERSON IS AN OFFER, NEVER A STAGE THEY ARE PUT INTO.
     expect(oneLine(d)).toContain('If you&rsquo;d rather a person looked at it with you, just say so.')
     // The server still owns the authority — the desk grants nothing.

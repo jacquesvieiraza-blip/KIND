@@ -57,7 +57,8 @@ function VidaOuterColumn() {
     c.publish({ blockers: null, outreachEnabled: null, boardError: null, programmeSourcing: null, lifecycle: null }, {})
   }, [c])
   return (
-    <section className="w-[540px] shrink-0 flex flex-col border-r border-[#eee7f7] bg-white min-h-0">
+    // ⛓️ 24 Sep (R145 step 7 · #55) — ON THE RIGHT, 430px, as the redesign draws Vida. WAS 540px on the left.
+    <section className="mv-vida-chat w-[430px] shrink-0 flex flex-col min-h-0">
       <div className="flex-1 min-h-0 flex flex-col" ref={c.setSlot} />
     </section>
   )
@@ -247,13 +248,18 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   )
 
   return (
-    <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
+    // ⛓️ 24 Sep (R145 step 7 · #53 #55) — THE REDESIGN'S FRAME: the rounded app shell, a 64px top bar,
+    // the menu, the operator truth and Vida on the right. Founder: *"match everything. colors
+    // everything."* Every control that was here is still here — workspace switch, kill-switch
+    // state, operator menu — restyled, not replaced.
+    <div className="mv-root h-screen overflow-hidden">
+    <div className="mv-app-shell !grid-rows-[64px_minmax(0,1fr)] text-[color:var(--mv-ink)]">
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
-      <header className="h-[52px] shrink-0 flex items-center gap-3 px-4 border-b border-[#eee7f7] bg-white">
+      <header className="mv-topbar">
         {/* A1 — the brand is the way home. Wherever you are in Vida, clicking it lands you
             back on the clients console. It was static text, so a sub-page was a dead end. */}
         <Link href="/vida" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to the clients console">
-          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">V</span>
+          <span className="mv-mark">V</span>
           {/* ⚑ 9 Sep — THE APPROVED HEADER: the brand, then a pill naming WHICH WORKSPACE you
               are in. "· operator" said who you were, which the chip on the right already says;
               the thing an operator cannot otherwise tell at a glance is whether this rail is
@@ -377,8 +383,8 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           group IS the client switcher now, so it calls `setSelected` — outside the provider it
           would read the inert context and every click would be a silent no-op. */}
       <VidaConversationProvider>
-      <div className="flex-1 flex overflow-hidden">
-        <nav className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col overflow-hidden">
+      <div className="flex min-h-0 overflow-hidden">
+        <nav className="mv-leftnav w-[180px] shrink-0 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-2 py-3">
             {/* ── ⚑ 9 Sep — ONE RAIL, WHICHEVER WORKSPACE IS OPEN ─────────────────────────
                 🛑 THE TWO ARE NEVER MIXED. That is the whole architecture: a rail that shows
@@ -414,10 +420,11 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
               GETS THE COLUMN FROM HERE. `/vida` places the conversation itself, between the
               client context it draws and its eleven-tab workspace. Anywhere else, the shell
               paints it — same provider, same transcript, same composer. */}
+          <main className="mv-ops-main flex-1 min-w-0 overflow-hidden">{children}</main>
           {!isConsole && <VidaOuterColumn />}
-          <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
         </div>
       </VidaConversationProvider>
+    </div>
     </div>
   )
 }

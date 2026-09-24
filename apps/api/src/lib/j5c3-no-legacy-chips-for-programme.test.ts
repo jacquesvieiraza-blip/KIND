@@ -228,7 +228,11 @@ describe('J5-C3 · the pack chip', () => {
 
   it('and the money rail does not tick a payment a programme client never made', () => {
     // #619/C2 — `Paid $299` is the retired onboarding pack; a programme client buys a
-    // programme at P1 and P2. The rail asks `modelView` rather than printing it blind.
-    expect(PAGE).toMatch(/flowStepLabel\(n, label, selectedWork\.funded_via, modelView\)/)
+    // programme at P1 and P2.
+    // ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS: the rail asks `modelView` before labelling its
+    // "Paid" step. That strip is removed; the operator rail that replaced it has no payment step,
+    // so it cannot tick one for anybody.
+    expect(PAGE).not.toMatch(/flowStepLabel\(/)
+    expect(PAGE).not.toMatch(/Paid \$\$\{PACK_PRICE_USD\}/)
   })
 })

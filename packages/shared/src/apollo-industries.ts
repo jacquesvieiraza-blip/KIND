@@ -77,3 +77,13 @@ export function apolloIndustriesOnly(xs: readonly unknown[] | null | undefined):
 /** What Milla says when the client has not picked an industry yet — the founder's own instruction. */
 export const PICK_INDUSTRY_COPY =
   'Please look to the right — open the Industry drop-down and choose the industries you sell to. I won’t guess this one: Apollo only finds the right companies when the industry comes from its own list.'
+
+/**
+ * ⚑ 24 Sep (R145 step 2 · #73) — the two "Never contact" lists only the client holds. Ticking
+ * one tells Milla to ask for it; neither is a provider filter, and both only ever remove people.
+ */
+export const NEVER_CONTACT_KINDS = ['Existing customers', 'Open opportunities'] as const
+
+/** What Milla says, once, when one of those is ticked: only the client has the list, so she asks for it. */
+export const NEVER_CONTACT_ASK_COPY =
+  'Good. Put their company names under Never contact on the right, or paste them here, and I’ll keep every one of them out.'

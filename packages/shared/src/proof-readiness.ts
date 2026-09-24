@@ -43,12 +43,39 @@ export interface ProofReadinessFacts {
   workState: string | null
   /** The targeting is waiting on an operator's translation. */
   needsReview: boolean
+  /**
+   * ⚑ 24 Sep (R145 step 3a · #21) — Proof people on the desk still waiting for their score.
+   * Optional: absent or `null` waits for nothing (an older payload, an unreadable count).
+   */
+  scoringPending?: number | null
+  /** When the run finished, so a score that never arrives cannot hold the client forever. */
+  runFinishedAt?: string | null
+  /** Now, in ms — passed in so the rule stays pure and testable. */
+  nowMs?: number
 }
+
+/** How long a finished run may wait on its scores before the client is shown the set anyway. */
+export const PROOF_SCORING_WAIT_MS = 10 * 60 * 1000
 
 /** Outcomes that mean the SEARCH itself found nobody — the client's targeting, not our failure. */
 const FOUND_NOBODY = new Set(['no_match', 'audience_exhausted'])
 
 export function proofReadiness(f: ProofReadinessFacts): ProofReadiness {
+  const r = proofReadinessBeforeScores(f)
+  // ── ⚑ 24 Sep (R145 step 3a · #21) — "READY" MEANS SCORED ──────────────────────────────
+  // Founder's screenshot: twenty cards, every one reading "Not scored". Scoring runs after the
+  // insert, so a set can be on the desk before its scores are. The client waits in the Brief a
+  // little longer instead — bounded, so a score that never comes cannot hold them for ever
+  // (after PROOF_SCORING_WAIT_MS the set is shown, and those cards say "Not scored" honestly).
+  if (r === 'ready' && typeof f.scoringPending === 'number' && f.scoringPending > 0) {
+    const finished = f.runFinishedAt ? Date.parse(f.runFinishedAt) : NaN
+    const now = f.nowMs ?? Date.now()
+    if (!Number.isFinite(finished) || now - finished < PROOF_SCORING_WAIT_MS) return 'preparing'
+  }
+  return r
+}
+
+function proofReadinessBeforeScores(f: ProofReadinessFacts): ProofReadiness {
   if (!f.claimed) return 'not_started'
   // An unreadable desk is not an empty one — keep them where they are, assert nothing.
   if (f.onDesk === null) return 'preparing'
@@ -81,9 +108,10 @@ export interface ProofSummaryFacts {
   proof_passes_done?: number
   proof_started_at?: string | null
   leads_awaiting?: number | null
-  proof_run?: { status: string; total_inserted: number } | null
+  proof_run?: { status: string; total_inserted: number; finished_at?: string | null } | null
   proof_work_state?: string | null
   needs_icp_review?: boolean
+  proof_scoring_pending?: number | null
 }
 
 /**
@@ -104,5 +132,7 @@ export function firstProofReadiness(s: ProofSummaryFacts | null | undefined): Pr
     runInserted: s.proof_run?.total_inserted ?? null,
     workState: s.proof_work_state ?? null,
     needsReview: s.needs_icp_review === true,
+    scoringPending: s.proof_scoring_pending ?? null,
+    runFinishedAt: s.proof_run?.finished_at ?? null,
   })
 }

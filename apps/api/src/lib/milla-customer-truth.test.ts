@@ -249,7 +249,12 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // carries both, and `STAGE_QUICK_ACTION.Proof` ("Show me stronger examples") is inside
     // the same gate because it names examples too.
     expect(CHAT).toContain("...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : [])")
-    expect(CHAT).toContain("...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]])")
+    // ⛓️ 24 Sep (R145 step 3b · #26) — the Proof quick action ("Show me stronger examples") is no
+    // longer offered as TEXT at all: sent to Milla it asked a chat that cannot source. Its place is
+    // the redesign's "Show me another twenty", which runs the panel's own server-gated action and
+    // is offered only with a set on the desk AND while the server offers that action.
+    expect(CHAT).toContain("...(prog.stage === 'Proof' ? [] : [STAGE_QUICK_ACTION[prog.stage]])")
+    expect(CHAT).toContain("...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.anotherSample ? [CHIP_ANOTHER] : [])")
     expect(CHAT).toContain("'Which of these look strongest?'")
     // 🛑 AND THE DESK FACT IS THE SERVER'S, not a guess from a stage or a spinner.
     expect(CHAT).toContain('summary?.calibration_set_on_desk')
@@ -259,7 +264,9 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // Zero honest chips is the right answer for a desk with nothing on it; a bordered strip
     // with no buttons in it is not, and would read as a broken layout on the one screen whose
     // job is to look calm.
-    expect(CHAT).toContain('{chips.length > 0 && (')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): the chip row is now the redesign's quickbar, still rendered only when there
+    // are chips (and, as before, not in ICP context).
+    expect(CHAT).toContain('chips.length > 0 && (')
   })
 
   it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {

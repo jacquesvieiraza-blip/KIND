@@ -355,7 +355,11 @@ describe('④ Milla Home no longer claims a programme that does not exist', () =
   const visible = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
 
   it('🛑 the panel branches on hasProgramme, NOT on the stage', () => {
-    expect(visible).toContain("prog.hasProgramme !== false ?")
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): WAS `prog.hasProgramme !== false ?`. The branch now ALSO sends a client who
+    // has just confirmed their Proof (no programme row yet, stage Recommendation) to the
+    // Programme screen — the dead end the founder hit. The question is still "does a programme
+    // exist", never a bare stage test.
+    expect(visible).toContain("(prog.hasProgramme !== false || prog.stage === 'Recommendation') ?")
     expect(visible, 'the stage can no longer decide this').not.toContain("prog.stage !== 'Proof' ?")
   })
 
@@ -372,9 +376,13 @@ describe('④ Milla Home no longer claims a programme that does not exist', () =
     expect(visible).toContain('/leads/for-approval')
   })
 
-  it('the programme review still renders at the Approval stage, unchanged', () => {
-    expect(visible).toContain("prog.stage === 'Approval' && (")
-    expect(visible).toContain('<ProgrammeReview token={token} />')
+  it('the programme approval still renders — now on the Programme screen Home shows', () => {
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): WAS `prog.stage === 'Approval' && (` + `<ProgrammeReview token={token} />` on
+    // Home. Home renders the Programme screen in place; the approval surface lives there.
+    expect(visible).toContain('<ProgrammeScreen />')
+    const programme = readFileSync(
+      join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
+    expect(programme).toContain('<ProgrammeApproval')
   })
 })
 

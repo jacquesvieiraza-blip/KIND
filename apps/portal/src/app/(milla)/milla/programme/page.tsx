@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useState } from 'react'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
@@ -32,12 +33,16 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
-import ProgrammeAcceptance from '@/components/milla/ProgrammeAcceptance'
-import { acceptanceGate, paymentUnlocked } from '@/lib/programme-acceptance'
+import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
+import { acceptanceGate } from '@/lib/programme-acceptance'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
   const [review, setReview] = useState<ApprovalPayload | null>(null)
+  // ⚑ 24 Sep (R145 step 6) — replies for the Results panel; a non-fatal read, like the review.
+  const [summary, setSummary] = useState<OutcomeSummary | null>(null)
+  // ⚑ 24 Sep (#39) — the next programme is priced on this same screen, from Complete.
+  const [pricingNext, setPricingNext] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -57,6 +62,10 @@ export default function ProgrammePage() {
           const rev = await api.get<{ data: ApprovalPayload }>('/my/programme/review', session?.access_token)
           setReview(rev.data)
         } catch { setReview(null) }
+        try {
+          const sm = await api.get<{ data: OutcomeSummary }>('/leads/milla-summary', session?.access_token)
+          setSummary(sm.data ?? null)
+        } catch { setSummary(null) }
       } catch (e) {
         // ⚠️ THE SERVER'S SENTENCE WINS. It sends the locked copy; this only falls back to the
         // same constant when the request never reached a response at all.
@@ -67,6 +76,65 @@ export default function ProgrammePage() {
   }, [])
 
   useEffect(() => { void load() }, [load])
+
+  // ── ⚑ 24 Sep (R145 step 4 · #30 #77) — BACK FROM STRIPE, ON THE SAME SCREEN ─────────────────
+  // The first payment returns to `/milla?paid=first`. Stripe confirms to us separately (the
+  // webhook), and that can lag the client's return by seconds or more — during which
+  // `firstPaidAt` is still empty and the Accept · Pay P1 button would have come straight back,
+  // inviting a second payment. So while the return flag stands and the payment is not yet on
+  // record, the panel says the payment arrived and is being confirmed, offers no button, and
+  // re-reads the programme until it is. Bounded: after two minutes it stops asking and says so.
+  const [paidReturn, setPaidReturn] = useState<'first' | 'second' | null>(null)
+  const [confirmSlow, setConfirmSlow] = useState(false)
+  useEffect(() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get('paid')
+      setPaidReturn(v === 'first' || v === 'second' ? v : null)
+    } catch { /* no URL */ }
+  }, [])
+  const awaitingFirst = paidReturn === 'first' && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+  // ⚑ 24 Sep (R145 step 5) — the same wait after the SECOND payment (Approve vN and pay P2).
+  const awaitingSecond = paidReturn === 'second' && !!p && !p.money.secondPaidAt && !p.money.secondAuthorisedAt
+  const awaiting = awaitingFirst || awaitingSecond
+  useEffect(() => {
+    if (!awaiting) return
+    let n = 0
+    const t = setInterval(() => {
+      n += 1
+      if (n > 30) { clearInterval(t); setConfirmSlow(true); return }
+      void load()
+    }, 4000)
+    return () => clearInterval(t)
+  }, [awaiting, load])
+
+  // ⚑ 24 Sep (R145 step 5 · #34) — an approval updates the review at once AND re-reads the
+  // programme, so the P2 card (which reads `approvedAt` from the programme) appears without a reload.
+  const onApproved = useCallback((at: string | null) => setReview(r => (r && r.programme
+    ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
+    : r)), [])
+  // ⚑ 24 Sep (R145 step 5 · #32) — "Approve vN and pay P2": once the approval is STORED, the second
+  // payment opens in the same press. If it cannot open, the approval stands and the P2 card shows
+  // at once (#34) from the re-read — the client is never asked to approve twice.
+  const payAfterApproval = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const c = await api.post<{ data: { url: string } }>('/my/programme/checkout/second', {
+        successUrl: `${window.location.origin}/milla?paid=second`,
+        cancelUrl: window.location.href,
+      }, session?.access_token)
+      if (c.data?.url) { window.location.href = c.data.url; return }
+    } catch { /* the P2 card below carries the payment and its own error */ }
+    void load()
+  }, [load])
+
+  // ⚑ 24 Sep (#75) — "Widen targeting" hands the question to Milla, in the one chat, and puts the
+  // cursor in her composer. She re-counts free; the slider's ceiling moves with the targeting.
+  const conversation = useMillaConversation()
+  const widen = useCallback(() => {
+    conversation.announce('Tell me where to widen — the location, the company size or the job titles — and I’ll re-count it free and show you the new ceiling.')
+    conversation.focus()
+  }, [conversation])
 
   if (loading) {
     return (
@@ -88,61 +156,58 @@ export default function ProgrammePage() {
 
   if (!p) return null
 
+  // ⚑ 24 Sep (R145 step 4) — BEFORE P1, THE WHOLE RIGHT SIDE IS THE PROGRAMME PANEL: one slider,
+  // one button. It covers the three states that used to be three cards — no programme yet,
+  // chosen but not accepted, accepted but not paid.
+  const choosing = p.stage === 'Recommendation' && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+
   // ⚠️ ONE IMPLEMENTATION, TWO SURFACES. The Milla home renders this same component with the
   // same payload, so the two screens cannot show different numbers for one programme.
   return (
-    <div className="h-full overflow-y-auto p-5 sm:p-6">
+    <div className="mv-workspace-body h-full overflow-y-auto [&>*]:shrink-0">
+      {awaiting ? (
+        <div className="mv-hero-card">
+          <div className="mv-eyebrow">Payment received</div>
+          <h2 className="!text-[17px]">{awaitingFirst
+            ? 'Thank you — we’re confirming your first payment and preparing your programme.'
+            : 'Thank you — we’re confirming your second payment. Your approved programme is next in line to go live.'}</h2>
+          <p>
+            {confirmSlow
+              ? 'Stripe is taking longer than usual to confirm it to us. You don’t need to pay again — this page will show it as soon as it lands, and Milla can check for you.'
+              : 'This usually takes a few seconds. You don’t need to do anything.'}
+          </p>
+        </div>
+      ) : choosing ? (
+        <ProgrammeCalculator
+          startAt={p.outcome.target}
+          alreadyAccepted={acceptanceGate(p) === 'accepted'}
+          onChosen={() => { void load() }}
+          onWiden={widen} />
+      ) : review?.programme && review.canApprove && !review.programme.approved_at ? (
+        /* ⚑ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE RIGHT SIDE IS THE APPROVAL PANEL, ALONE. */
+        <ProgrammeApproval
+          data={review}
+          secondPaymentCents={p.money.secondPaymentCents ?? null}
+          secondDue={!p.money.secondPaidAt && !p.money.secondAuthorisedAt && !p.money.internalBilling}
+          onApproved={at => {
+            onApproved(at)
+            if (!p.money.secondPaidAt && !p.money.secondAuthorisedAt && !p.money.internalBilling) void payAfterApproval()
+            else void load()
+          }} />
+      ) : p.stage === 'Completion' && pricingNext ? (
+        /* #39 — a next programme can start: the same calculator, the same one button. */
+        <ProgrammeCalculator onChosen={() => { setPricingNext(false); void load() }} onWiden={widen} />
+      ) : (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') ? (
+        /* ⚑ 24 Sep (R145 step 6 · #61 #62) — Results while it runs, Complete when it ends. */
+        <ProgrammeOutcome p={p} summary={summary} onPriceNext={p.stage === 'Completion' ? () => setPricingNext(true) : undefined} />
+      ) : (
       <ProgrammeWorkspace p={p} />
-      {/* ── 🛑 10 Sep (B/C) — THE CALCULATOR, WHERE THE CLIENT ALREADY IS ────────────────
-          It renders at Recommendation BEFORE a programme exists — the state a client reaches
-          the moment they accept their Proof set. Until now that state had no screen at all:
-          the meeting target was typed by an operator in Vida while the client was still at
-          Proof, and the client never chose anything or saw the lead volume.
-
-          ⚠️ ONCE A PROGRAMME EXISTS IT STEPS ASIDE. The recommendation and the payment card
-          below are then the truth, and a second place to re-choose a size the client has
-          already accepted would be two screens disagreeing about one programme. */}
-      {!p.hasProgramme && p.stage === 'Recommendation' && (
-        <div className="mt-3">
-          <ProgrammeCalculator onChosen={() => { void load() }} />
-        </div>
       )}
-      {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
-          programme awaiting their decision, or one they have already given; at every other
-          stage this is silent. The server decides which of those it is. */}
-      {/* ── ⚑ 9 Sep · THE TWO MOMENTS THE CLIENT IS ASKED FOR MONEY ──────────────────────
-          🛑 A CLIENT COULD NOT PAY AT ALL. The checkout rails exist behind the admin key, so
-          the only way to take a programme payment was for an operator to mint a link by hand.
-          These render only when that half is genuinely due — never for an internally
-          authorised programme, which owes nothing and must never be shown a price to pay. */}
-      {/* ── 🛑 13 Sep (B1) — ACCEPTANCE, AND IT COMES BEFORE THE PRICE ─────────────────
-          `POST /my/programme/accept` is the ONE writer of `recommendation_accepted_at`, and
-          nothing in Milla called it — so `checkout/first` answered `409 not_accepted` for
-          every client and P1 was unreachable. The client is asked here, explicitly, and the
-          answer is persisted server-side before any price is put in front of them. */}
-      {acceptanceGate(p) === 'accept_required' && (
-        <div className="mt-3">
-          <ProgrammeAcceptance
-            meetingTarget={p.outcome.target}
-            totalCents={p.money.totalCents}
-            firstPaymentCents={p.money.firstPaymentCents ?? 0}
-            onAccepted={() => { void load() }}
-          />
-        </div>
-      )}
-      {/* ⚠️ `paymentUnlocked` READS THE PERSISTED COLUMN, never a local flag. A failed
-          acceptance leaves it null, so this card stays shut without any extra handling. */}
-      {p.hasProgramme && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
-        && (p.stage === 'Recommendation') && paymentUnlocked(p) && (
-        <div className="mt-3">
-          <ProgrammePayment
-            stage="first"
-            totalCents={p.money.totalCents}
-            halfCents={p.money.firstPaymentCents ?? 0}
-            meetingTarget={p.outcome.target}
-          />
-        </div>
-      )}
+      {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
+          `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`
+          ("Pay the first half and start"). They are ONE panel above now, with ONE button that
+          runs the same three server steps in the same order. B1 (13 Sep) stands: acceptance is
+          persisted server-side before any checkout is created. */}
       {p.hasProgramme && p.approvedAt && !p.wentLiveAt
         && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
         <div className="mt-3">
@@ -154,15 +219,9 @@ export default function ProgrammePage() {
           />
         </div>
       )}
-      {review?.programme && (review.canApprove || review.programme.approved_at) && (
-        <div className="mt-3">
-          <ProgrammeApproval
-            data={review}
-            onApproved={at => setReview(r => (r && r.programme
-              ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
-              : r))}
-          />
-        </div>
+      {/* After approval the panel's approved state stays with the programme's status. */}
+      {review?.programme && review.programme.approved_at && (
+        <ProgrammeApproval data={review} onApproved={onApproved} />
       )}
     </div>
   )

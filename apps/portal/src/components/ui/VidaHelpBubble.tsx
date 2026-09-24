@@ -66,7 +66,10 @@ export function VidaHelpBubble() {
       )
       setMsgs(m => [...m, { role: 'assistant', content: res.data.reply }])
     } catch {
-      setMsgs(m => [...m, { role: 'assistant', content: "I hit a snag reaching the server. Please try again, or email hello@get-kind.com." }])
+      // ⛓️ 24 Sep (R145 tracker #95) — WAS "I hit a snag reaching the server…". The founder,
+      // 23 Sep: *"the i hit a snag is bulsshit. it is so customer unfriendly."* Milla's own
+      // copies were replaced that day; this bubble on the old dashboard was missed.
+      setMsgs(m => [...m, { role: 'assistant', content: "I couldn’t reach the server just now. Please try again, or email hello@get-kind.com." }])
     }
     setSending(false)
   }

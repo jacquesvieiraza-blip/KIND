@@ -43,7 +43,7 @@
 // treating it as `yes` is exactly the false confidence the founder caught.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { canonicalLaunchCountry, seniorityMatchesApollo } from '@kind/shared'
+import { canonicalLaunchCountry, seniorityMatchesApollo, apolloIndustriesOnly } from '@kind/shared'
 import { bandIndex, headcountBandIndex, headcountBandBounds } from './lead-feedback'
 
 /**
@@ -120,6 +120,12 @@ export interface FitCandidate {
   company?: string | null
   /** Any longer description a provider returned. Optional; usually absent. */
   company_description?: string | null
+  /**
+   * ⚑ 24 Sep (R145 step 3a · #72) — the Apollo person id, when APOLLO's search returned this
+   * person. It is how the judgement knows which criteria Apollo's own filters already applied.
+   * `pdl_…` ids and pool rows carry none, and are judged exactly as before.
+   */
+  apollo_id?: string | null
   /**
    * ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE MODEL'S RECORDED VERDICT ON THE CATEGORY ───────
    *
@@ -611,6 +617,22 @@ function companyTypeVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
  * "Chief Executive Officer" plainly satisfies "CEO"; requiring both fields would refuse the
  * clearest match in the set.
  */
+/**
+ * ⚑ 24 Sep (R145 step 3a · #72) — the job-title shorthands every title list uses, spelled out, so
+ * "CEO" and "Chief Executive Officer" are the same title on both sides. Founder: *"CEO is one
+ * thing"*. A comparison vocabulary like `ORG_FORMS` — it never rewrites what the client stored.
+ */
+const TITLE_SHORTHANDS: Record<string, string> = {
+  ceo: 'chief executive officer', coo: 'chief operating officer', cfo: 'chief financial officer',
+  cto: 'chief technology officer', cmo: 'chief marketing officer', cro: 'chief revenue officer',
+  cio: 'chief information officer', cpo: 'chief product officer', chro: 'chief human resources officer',
+  md: 'managing director', gm: 'general manager', vp: 'vice president',
+  svp: 'senior vice president', evp: 'executive vice president',
+}
+function titleTokens(s: string): string[] {
+  return tokens(s.split(/[^a-z0-9]+/i).map(w => TITLE_SHORTHANDS[clean(w)] ?? w).join(' '))
+}
+
 function seniorityVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   const wantTitles = present(icp.job_titles)
   const wantLevels = present(icp.seniority_levels)
@@ -620,9 +642,10 @@ function seniorityVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   const level = clean(c.seniority)
   if (!title && !level) return 'unknown'
 
-  const titleWords = new Set(tokens(title))
+  // ⛓️ 24 Sep — `titleTokens`, WAS `tokens`: "CEO" never matched "Chief Executive Officer".
+  const titleWords = new Set(titleTokens(title))
   const titleHit = wantTitles.some(r => {
-    const want = tokens(r)
+    const want = titleTokens(r)
     return want.length > 0 && want.every(w => titleWords.has(w))
   })
   // ⛓️ 23 Sep (R142) — AND IN APOLLO'S OWN TERMS. WAS only the line below, which compared the
@@ -638,9 +661,14 @@ function seniorityVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   return 'no'
 }
 
+/** Did APOLLO's search return this person? A real Apollo id — never a `pdl_…` one, never a pool row. */
+function apolloMatched(c: FitCandidate): boolean {
+  return typeof c.apollo_id === 'string' && c.apollo_id.trim() !== '' && !c.apollo_id.startsWith('pdl_')
+}
+
 /** THE ONE DERIVATION of structural fit. Pure, total, and the only thing that decides it. */
 export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
-  return {
+  const f: HardFit = {
     geography: geographyVerdict(icp, candidate),
     size: sizeVerdict(icp, candidate),
     industry: industryVerdict(icp, candidate),
@@ -649,6 +677,31 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
     company_type: companyTypeVerdict(icp, candidate),
     seniority: seniorityVerdict(icp, candidate),
   }
+  // ── 🛑 ⚑ 24 Sep (R145 step 3a · #72 · #46) — WHAT APOLLO MATCHED IS NOT RE-JUDGED ─────────
+  //
+  // Founder: *"CEO is one thing. we need to look at how Apollo asks for an ICP match and follow
+  // this."* · *"You set filters. Apollo returns the people who match. It does not then go back
+  // through its own results and throw people out."* Apollo's People Search returns FLAGS
+  // (`has_country`, `has_employee_count`, `has_industry`), never the values — verified live
+  // 24 Sep — so every Apollo row reached this judgement as `unknown` on size and industry and
+  // was banded "Worth a look", never "Start here", however exact the match. And a title Apollo
+  // matched as similar ("Chairman and CEO" for "CEO") was captioned "not the seniority you asked
+  // for" — the Blackburne "CEO is excluded" card.
+  //
+  // So for a person APOLLO returned: a criterion its search filtered on is a pass where the row
+  // simply lacks the value. A value that CONTRADICTS the filter (a revealed country elsewhere)
+  // is still a `no` — that is a fact, not a re-judgement. Industry counts as filtered only when
+  // every required industry is Apollo's own, because only those are sent (`buildSearchBody`).
+  if (apolloMatched(candidate)) {
+    if (f.geography === 'unknown') f.geography = 'yes'
+    if (f.size === 'unknown') f.size = 'yes'
+    f.seniority = 'yes'
+    const inds = present(icp.industries)
+    if (f.industry === 'unknown' && inds.length > 0 && apolloIndustriesOnly(icp.industries ?? []).length === inds.length) {
+      f.industry = 'yes'
+    }
+  }
+  return f
 }
 
 // ── 🛑 ⚑ 22 Sep — TWO CRITERIA ORDER THE RESULTS. THEY NEVER REMOVE ANYBODY ─────────────
@@ -712,8 +765,12 @@ export const REMOVING_CRITERIA: readonly HardCriterion[] =
  * was never searched, so those three are its selection — plus the client's exclusions. A
  * definite `no` refuses; `unknown` never does (owned records carry thin data by nature).
  */
+// ⛓️ 24 Sep (R145 step 3a · #23) — `industry` JOINS THEM. Apollo now filters on an industry the
+// client picked from its list (`buildSearchBody`), so the pool — "treat our Pool as Apollo way
+// always" — selects on the same one. The pool judges ONLY Apollo's own industries
+// (`pool-sourcing.ts`), so a legacy ICP's derived word never becomes a pool filter.
 export const POOL_SELECTION_CRITERIA: readonly HardCriterion[] =
-  ['geography', 'size', 'seniority', 'excluded'] as const
+  ['geography', 'size', 'industry', 'seniority', 'excluded'] as const
 
 /**
  * The first criterion the candidate actually FAILS, or null. Order is the founder's list.

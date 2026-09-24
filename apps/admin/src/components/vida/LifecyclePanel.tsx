@@ -18,6 +18,15 @@
 // silent, and a control offered at a moment it cannot succeed teaches an operator to distrust
 // every control beside it.
 //
+// ── ⚑ 24 Sep (R145 step 7 · #42 #63 #64) — THE REDESIGN'S OPERATOR PATTERN ────────────────
+//
+// Founder: *"match everything. colors everything."* Every stage now reads the same way the
+// redesign draws it: a STATUS BANNER (green "Vida status", or red "Needs you"), the facts as
+// TILES in a three-column grid, each checklist as a TIMELINE section, then the one action.
+// ⚠️ PRESENTATION ONLY. The banner, tiles and checklist are the SAME cards `lifecycleCopy` and
+// `vida-stage-copy` already emit — nothing here computes a number or decides a state. The red
+// banner is the server's `needsYou`, or a card the copy itself marked as an exception.
+//
 // ⚠️ RUN IS THE ONE CONTROL WITH A REQUIRED FIELD. A run must carry a maximum the operator
 // typed. It is never pre-filled — a defaulted ceiling is a number nobody chose — and the
 // button stays disabled until it is a whole number of 1 or more.
@@ -28,10 +37,15 @@ import { OPERATOR_RAIL, type OperatorRailStep, type StageChip } from '@/lib/vida
 import type { PanelCard, PanelAction } from '@/lib/vida-lifecycle-copy'
 
 export function LifecyclePanel({
-  clientName, subtitle, chips, rail, cards, actions, busy, message, onAction,
+  clientName, subtitle, chips, rail, cards, actions, busy, message, onAction, needsYou,
 }: {
   clientName: string
   subtitle: string
+  /**
+   * ⚑ 24 Sep (R145 step 7 · #63) — the SERVER's verdict, which turns the banner red. Omitted
+   * (a draft, which never needs an operator) leaves it to the cards' own exception tone.
+   */
+  needsYou?: boolean
   /**
    * ⚑ 22 Sep — the header chips: where the brief is, whether anything is owed, what has been
    * spent. Built by `stageChips`, never here — they are claims about a client and belong
@@ -61,101 +75,121 @@ export function LifecyclePanel({
   const n = Number(ceiling.trim())
   const ceilingValid = Number.isInteger(n) && n >= 1
 
+  // ── THE BANNER. The "NEXT ACTION" note is the redesign's banner text where the copy has one
+  // (Signed up · Brief · Proof); otherwise the subtitle, with the Vida card's own words.
+  const nextNote = cards.find((c): c is Extract<PanelCard, { kind: 'note' }> =>
+    c.kind === 'note' && c.label.startsWith('NEXT ACTION'))
+  const vidaFact = cards.find((c): c is Extract<PanelCard, { kind: 'fact' }> =>
+    c.kind === 'fact' && c.label === 'Vida')
+  const attn = needsYou === true || cards.some(c => 'tone' in c && c.tone === 'exception')
+  const [bannerTitle, ...bannerRest] = (nextNote?.body ?? '').split('\n\n')
+  const banner = {
+    kicker: attn ? 'Needs you' : 'Vida status',
+    title: nextNote ? bannerTitle : vidaFact ? `${subtitle} — ${vidaFact.value.toLowerCase()}` : subtitle,
+    body: nextNote ? bannerRest.join(' ') : vidaFact?.caption ?? '',
+  }
+  // The banner already says them; drawing them again as cards would be the same fact twice.
+  const rest = cards.filter(c => c !== nextNote && c !== vidaFact)
+  const tiles = rest.filter((c): c is Extract<PanelCard, { kind: 'fact' }> => c.kind === 'fact')
+  const sections = rest.filter(c => c.kind !== 'fact')
+
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
-      <h1 className="text-[22px] font-extrabold text-[#1f1235] leading-tight">{clientName}</h1>
-      <p className="text-[13px] text-[#9b8ec4] mb-3">{subtitle}</p>
-
-      {chips && chips.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {chips.map((c, i) => (
-            <span key={i} className={`text-[10.5px] font-bold rounded-full px-2.5 py-1 border ${
-              c.tone === 'ok'   ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : c.tone === 'warn' ? 'bg-amber-50 border-amber-300 text-amber-800'
-              : c.tone === 'stop' ? 'bg-red-50 border-red-200 text-red-700'
-              : 'bg-white border-[#ded8e8] text-[#4c4459]'}`}>{c.text}</span>
-          ))}
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="mv-ops-head">
+        <div className="mv-ops-title min-w-0">
+          <b className="truncate">{clientName}</b>
+          <span>{subtitle} · operator truth</span>
         </div>
-      )}
-
+        {!attn && <div className="mv-automation">AI running · no action needed</div>}
+      </div>
+      <div className="flex flex-col gap-3.5 px-[22px] py-5">
+      {/* ⚑ #64 — the operator rail, in the redesign's own style.
+          ⛓️ 24 Sep (R148) — WAS trimmed to six (22 Sep option A); the founder chose the
+          redesign's nine. `at: null` lights nothing — a stage we cannot place. */}
       {rail && (
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-4 text-[10.5px] text-[#9b8ec4]">
+        <div className="mv-rail-flow">
           {OPERATOR_RAIL.map((step, i) => (
-            <span key={step} className="inline-flex items-center gap-1.5">
-              {i > 0 && <span className="text-[#ded8e8]">›</span>}
-              <span className={step === rail.at ? 'font-extrabold text-[#5b21b6]' : ''}>{step}</span>
+            <span key={step}>
+              {i > 0 && ' › '}
+              {step === rail.at ? <b>{i + 1} {step}</b> : `${i + 1} ${step}`}
             </span>
           ))}
         </div>
       )}
 
-      <div className="space-y-2.5">
-        {cards.map((card, i) => {
-          const exception = 'tone' in card && card.tone === 'exception'
-          const shell = `rounded-xl px-3.5 py-3 border ${
-            exception ? 'border-amber-300 bg-amber-50/70' : 'border-[#eee7f7] bg-white'}`
-          const label = (
-            <div className={`text-[11px] uppercase tracking-wide font-extrabold mb-1 ${
-              exception ? 'text-amber-800' : 'text-[#9b8ec4]'}`}>{card.label}</div>
-          )
-          if (card.kind === 'fact') {
-            return (
-              <div key={i} className={shell}>
-                {label}
-                <div className="text-[15px] font-extrabold text-[#1f1235] leading-snug">{card.value}</div>
-                {card.caption && <div className="text-[12.5px] text-[#9b8ec4] mt-0.5 leading-snug">{card.caption}</div>}
-              </div>
-            )
-          }
-          if (card.kind === 'note') {
-            return (
-              <div key={i} className={shell}>
-                {label}
-                <p className={`text-[13px] leading-relaxed ${exception ? 'text-amber-900' : 'text-[#5c5279]'}`}>{card.body}</p>
-              </div>
-            )
-          }
-          if (card.kind === 'stats') {
-            return (
-              <div key={i} className={shell}>
-                {label}
-                <div className="flex flex-wrap gap-x-7 gap-y-2">
+      <div className={`mv-attention ${attn ? 'attn' : ''}`}>
+        <div className="mv-kicker">{banner.kicker}</div>
+        <h2>{banner.title}</h2>
+        {banner.body && <p>{banner.body}</p>}
+      </div>
+
+      {chips && chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map((c, i) => (
+            <span key={i} className={`mv-pill ${c.tone === 'ok' ? 'good' : c.tone === 'warn' ? 'warn' : c.tone === 'stop' ? 'red' : ''}`}>{c.text}</span>
+          ))}
+        </div>
+      )}
+
+      {tiles.length > 0 && (
+        <div className="mv-ops-grid">
+          {tiles.map((card, i) => (
+            <div key={i} className={`mv-ops-card ${card.tone === 'exception' ? '!border-[#f1d2d6] !bg-[#fff7f8]' : ''}`}>
+              <label>{card.label}</label>
+              <strong>{card.value}</strong>
+              {card.caption && <small>{card.caption}</small>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {sections.map((card, i) => {
+        const exception = 'tone' in card && card.tone === 'exception'
+        return (
+          <div key={i} className={`mv-section ${exception ? '!border-[#f1d2d6]' : ''}`}>
+            <div className="mv-section-head">
+              <b>{card.label}</b>
+              {card.kind === 'ticks' && <span>one canonical source</span>}
+            </div>
+            <div className="mv-section-body">
+              {card.kind === 'note' && (
+                <p className={`text-[11px] leading-relaxed whitespace-pre-line ${exception ? 'text-[var(--mv-red)]' : 'text-[var(--mv-muted)]'}`}>{card.body}</p>
+              )}
+              {card.kind === 'stats' && (
+                <div className="mv-ops-grid">
                   {card.stats.map((s, k) => (
-                    <div key={k}>
+                    <div key={k} className="mv-ops-card">
                       {/* Tabular numerals so a column of counts lines up rather than dancing. */}
-                      <div className="text-[15px] font-extrabold text-[#1f1235] tabular-nums leading-none">{s.value}</div>
-                      <div className="text-[12px] text-[#9b8ec4] mt-1">{s.label}</div>
+                      <strong className="tabular-nums !mt-0">{s.value}</strong>
+                      <small>{s.label}</small>
                     </div>
                   ))}
                 </div>
-              </div>
-            )
-          }
-          return (
-            <div key={i} className={shell}>
-              {label}
-              <ul className="space-y-1">
-                {card.ticks.map((t, k) => (
-                  <li key={k} className="flex items-center gap-2 text-[13px]">
-                    <span className={`w-[17px] h-[17px] rounded-full text-[10px] font-bold flex items-center justify-center ${
-                      t.done ? 'bg-emerald-100 text-emerald-700' : 'bg-[#f1eefa] text-[#b3a9cc]'}`}>{t.done ? '✓' : '·'}</span>
-                    <span className={t.done ? 'text-[#1f1235] font-semibold' : 'text-[#9b8ec4] font-semibold'}>{t.label}</span>
-                  </li>
-                ))}
-              </ul>
+              )}
+              {card.kind === 'ticks' && (
+                <div className="mv-timeline">
+                  {card.ticks.map((t, k) => (
+                    <div key={k} className="mv-timeline-row">
+                      <div className={`mv-state-dot ${t.done ? '' : 'wait'}`}>{t.done ? '✓' : k + 1}</div>
+                      <div><b>{t.label}</b></div>
+                      <span>{t.done ? 'done' : 'not yet'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
 
       {message && (
-        <p className={`text-[12.5px] font-semibold mt-3 ${
+        <p className={`text-[12.5px] font-semibold ${
           message.tone === 'ok' ? 'text-emerald-800'
           : message.tone === 'warn' ? 'text-amber-800' : 'text-red-700'}`}>{message.text}</p>
       )}
 
       {actions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mt-4">
+        <div className="mv-cta-row flex-wrap">
           {actions.map(a => {
             if (a.needsCeiling) {
               return (
@@ -174,7 +208,7 @@ export function LifecyclePanel({
                   <button
                     onClick={() => onAction(a.key, n)}
                     disabled={!!busy || !ceilingValid}
-                    className="text-[13px] font-extrabold text-white bg-gradient-to-r from-[#7C3AED] to-[#EC4899] rounded-xl px-4 py-2 disabled:opacity-40">
+                    className="mv-btn primary disabled:opacity-40">
                     {busy === a.key ? '…' : a.label}
                   </button>
                 </span>
@@ -197,7 +231,7 @@ export function LifecyclePanel({
                   <button
                     onClick={() => onAction(a.key, undefined, note.trim())}
                     disabled={!!busy || note.trim().length === 0}
-                    className="text-[13px] font-extrabold text-white bg-gradient-to-r from-[#7C3AED] to-[#EC4899] rounded-xl px-4 py-2 disabled:opacity-40">
+                    className="mv-btn primary disabled:opacity-40">
                     {busy === a.key ? '…' : a.label}
                   </button>
                 </span>
@@ -209,14 +243,15 @@ export function LifecyclePanel({
                 onClick={() => onAction(a.key)}
                 disabled={!!busy}
                 className={a.kind === 'primary'
-                  ? 'text-[13px] font-extrabold text-white bg-gradient-to-r from-[#7C3AED] to-[#EC4899] rounded-xl px-4 py-2 disabled:opacity-40'
-                  : 'text-[13px] font-bold text-[#5c5279] border border-[#e3daf7] bg-white rounded-xl px-4 py-2 disabled:opacity-40'}>
+                  ? 'mv-btn primary disabled:opacity-40'
+                  : 'mv-btn disabled:opacity-40'}>
                 {busy === a.key ? '…' : a.label}
               </button>
             )
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

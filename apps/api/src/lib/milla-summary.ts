@@ -78,6 +78,8 @@ export interface MillaSummaryData {
    * the one a client reads as "this is not working".
    */
   leads_awaiting: number | null
+  /** ⚑ 24 Sep (R145 step 3a · #21) — Proof cards still waiting for a score; `null` = unreadable. */
+  proof_scoring_pending: number | null
   meetings_booked: number | null
   leads_approved_total: number | null
   replies_total: number | null
@@ -433,6 +435,23 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   // to disagree about whether an unreadable desk is an empty one.
   const awaitingCount: number | null = awaiting.error ? null : awaiting.count ?? 0
 
+  // ── ⚑ 24 Sep (R145 step 3a · #21) — PROOF PEOPLE STILL WAITING FOR THEIR SCORE ───────────
+  //
+  // Scoring runs AFTER the Proof insert, in the background, so the desk could be "ready" while
+  // every card read "Not scored" — the founder's screenshot. This counts the Proof cards whose
+  // scoring has neither finished nor FAILED (a failure carries our marker and is final for the
+  // client: the card says so). `null` when unreadable — never a zero. Proof scope only.
+  let proofScoringPending: number | null = 0
+  if (summaryScope.kind === 'proof' && awaitingCount !== null && awaitingCount > 0) {
+    const r = await db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('delivered_at', 'is', null)
+      .not('surfaced_for_approval_at', 'is', null)
+      .is('revealed_at', null).neq('status', 'passed')
+      .not('proof_pass', 'is', null)
+      .is('score', null).is('score_reasoning', null) as unknown as { count: number | null; error?: unknown }
+    proofScoringPending = r.error ? null : (r.count ?? 0)
+  }
+
   const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
   const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
   const icp_versions = icpRows.map((r, i) => ({
@@ -551,6 +570,7 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // THE PACK — included approvals counted rather than faked into the wallet.
     pack,
     leads_awaiting:  awaitingCount,
+    proof_scoring_pending: proofScoringPending,
     // ⚑ 3 Sep — DERIVED FROM THE SAME BOUNDED COUNT THE CARDS USE, so what Milla says about
     // the desk and what the desk shows cannot disagree. See the field's note above for why it
     // is a boolean rather than the number.

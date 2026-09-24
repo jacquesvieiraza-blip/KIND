@@ -338,7 +338,9 @@ describe('🛑 ⑦ the category orders the results — it never removes anybody'
     // ⚠️ AND THE ONE THAT STILL REMOVES IS THE INSTRUCTION THE CLIENT GAVE US.
     expect([...REMOVING_CRITERIA]).toEqual(['excluded'])
     // ⚠️ OUR POOL STILL SELECTS on the three filters Apollo applies — it has no provider filter.
-    expect([...POOL_SELECTION_CRITERIA].sort()).toEqual(['excluded', 'geography', 'seniority', 'size'])
+    // ⛓️ 24 Sep (R145 step 3a · #23) — `industry` joins: Apollo now filters on a picked Apollo
+    // industry, so the pool selects on the same one (and only on Apollo's own industries).
+    expect([...POOL_SELECTION_CRITERIA].sort()).toEqual(['excluded', 'geography', 'industry', 'seniority', 'size'])
   })
 
   it('🛑 the C05 card is STILL "Not a fit", still capped at 30, still never starred', () => {

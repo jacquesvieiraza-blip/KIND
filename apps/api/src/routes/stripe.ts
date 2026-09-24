@@ -462,6 +462,26 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
             ])
             return
           }
+          // ── 🛑 ⚑ 24 Sep (R145 tracker #86 · R137) — AND NOBODY ELSE STARTS WORK FROM ONE EITHER ──
+          //
+          // The check above refuses a client with an OPEN programme. It let everybody else
+          // through: a late Stripe event for a top-up session created before R137 — or bought by
+          // a client who has not opened a programme yet (Brief, Proof), or whose programme has
+          // ended — still reached `startWorkForClient` and began retired per-lead sourcing and
+          // campaign activation. R137: *"the 299/4 is retired/ this must go."* The money is still
+          // recorded above (a real payment is never dropped); the WORK asks the same one question
+          // every retired door asks, and the answer is no.
+          const { legacyDoorVerdict } = await import('../lib/commercial-model')
+          const door = await legacyDoorVerdict(clientId)
+          if (!door.allowed) {
+            console.log(`[stripe] client ${clientId}: late legacy top-up of $${amountUsd} recorded — work NOT started (R137).`)
+            void sendFounderAlert('new_signup', 'Late legacy top-up received — work NOT started (R137)', [
+              `Client ${clientId} paid $${amountUsd} through a retired wallet top-up (session ${session.id}).`,
+              'The payment is recorded. No sourcing and no campaign were started: the $299/$4 model is retired and every account is on the programme.',
+              'Decide whether to refund it or credit it towards a programme.',
+            ])
+            return
+          }
           const { startWorkForClient } = await import('../lib/start-work')
           const r = await startWorkForClient(clientId)
           console.log('[stripe] payment started work for', clientId, JSON.stringify(r))

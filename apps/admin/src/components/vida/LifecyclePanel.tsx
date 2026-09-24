@@ -32,12 +32,12 @@
 // button stays disabled until it is a whole number of 1 or more.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { OPERATOR_RAIL, type OperatorRailStep, type StageChip } from '@/lib/vida-stage-copy'
 import type { PanelCard, PanelAction } from '@/lib/vida-lifecycle-copy'
 
 export function LifecyclePanel({
-  clientName, subtitle, chips, rail, cards, actions, busy, message, onAction, needsYou,
+  clientName, subtitle, chips, rail, cards, actions, busy, message, onAction, needsYou, context,
 }: {
   clientName: string
   subtitle: string
@@ -46,6 +46,12 @@ export function LifecyclePanel({
    * (a draft, which never needs an operator) leaves it to the cards' own exception tone.
    */
   needsYou?: boolean
+  /**
+   * ⚑ 24 Sep (R145 · "a screen in a screen") — the client's own context (header chips, alerts,
+   * what they still owe us, the pipeline), drawn as one section of THIS panel rather than as a
+   * second screen above Vida's chat. Built by the console, which owns its state and handlers.
+   */
+  context?: ReactNode
   /**
    * ⚑ 22 Sep — the header chips: where the brief is, whether anything is owed, what has been
    * spent. Built by `stageChips`, never here — they are claims about a client and belong
@@ -140,6 +146,13 @@ export function LifecyclePanel({
               {card.caption && <small>{card.caption}</small>}
             </div>
           ))}
+        </div>
+      )}
+
+      {context && (
+        <div className="mv-section">
+          <div className="mv-section-head"><b>This client</b><span>scoped to this client only</span></div>
+          <div>{context}</div>
         </div>
       )}
 

@@ -6,10 +6,11 @@
    browser; these keep the founder-approved phone behaviour (UI-008: the rail is a drawer, the
    section COVERS the chat and never hides it) and the dynamic viewport (the phone keyboard never
    pushes the composer out of sight). Everything above 930px is the redesign, untouched. */
-.mv-root .mv-app-shell { height: calc(100dvh - 32px); }
-@media (max-width: 1250px) { .mv-root .mv-app-shell { height: calc(100dvh - 20px); } }
+/* ⛓️ 24 Sep ("a screen in a screen") — WAS `calc(100dvh - 32px)` / `- 20px`: the height of the
+   framed card. The app now fills the window, so it is the full dynamic viewport at every size. */
+.mv-root .mv-app-shell { height: 100dvh; }
 @media (min-width: 768px) and (max-width: 930px) {
-  .mv-root .mv-app-shell { height: calc(100dvh - 20px); min-height: 0; }
+  .mv-root .mv-app-shell { height: 100dvh; min-height: 0; }
   .mv-root .mv-portal-milla { grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr); }
   .mv-root .mv-workspace { display: flex; }
 }

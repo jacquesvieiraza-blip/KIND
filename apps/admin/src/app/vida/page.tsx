@@ -3022,6 +3022,265 @@ export default function VidaConsolePage() {
     }
   }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, completeProgramme, selected, calib, resolveCalibration, grantCalibratedRestart])
 
+
+  // ── ⛓️ 24 Sep (R145 · founder: *"you have done a screen in a screen"*) — THE CLIENT'S CONTEXT
+  // MOVED OUT OF VIDA'S CHAT COLUMN. It was a second screen stacked above the conversation — the
+  // client header and its chips, "you're working X", the Needs-you alerts, what they still owe
+  // us, and the pipeline — so the right column read as a console with a chat squeezed under it.
+  // The redesign draws that column as Vida's conversation alone, and every fact in the middle.
+  // Nothing was removed: the same blocks, the same handlers, now inside the operator panel.
+  const clientContext = (
+    <>
+              <div className="shrink-0 flex items-center gap-2.5 px-[22px] py-2.5 border-b border-[#eee7f7] bg-white">
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[12px] font-bold flex items-center justify-center">
+                  {initials(selectedClient?.company_name ?? null)}
+                </span>
+                <div className="min-w-0">
+                  <b className="text-[14.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
+                  <span className="text-[12px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
+                </div>
+                {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
+                {cockpit && (
+                  <span className={`ml-auto shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
+                    title={cockpit.onboarding.missing.length
+                      ? `They still have not told us: ${cockpit.onboarding.missing.join(', ')}`
+                      : 'They have told us everything'}>
+                    {/* ⚑ 14 Sep (R121, Build 4) — THE CLIENT'S BRIEF, COUNTED THE ONE WAY.
+                        It read 88% from our own eight checks while the SIGNING UP rail beside
+                        it read "11 of 11 collected" from the Brief — two answers, one client,
+                        neither saying which question it was answering. This is what the CLIENT
+                        has told us; what WE still owe them is `go_live` below. */}
+                    {/* ⛓️ 16 Sep (MVP1 · F3) — AND THE FALLBACK WAS THE DEFECT SURVIVING.
+                        ~~`: `${cockpit.onboarding.percent}%``~~ — under the label "Brief",
+                        that renders OUR eight go-live checks as the CLIENT's eleven-fact
+                        count. It is the exact competing answer R121 Build 4 closed, still
+                        live in the branch nobody looks at.
+                        ⚠️ AN UNREADABLE COUNT NOW SAYS SO. Borrowing a different question's
+                        number is worse than admitting we could not read this one. */}
+                    Brief {cockpit.onboarding.brief
+                      ? `${cockpit.onboarding.brief.count}/${cockpit.onboarding.brief.total}`
+                      : '—'}
+                  </span>
+                )}
+                {/* ── ⚑ 16 Sep (MVP1 · F3) — AND OUR OWN CHECKS, UNDER THEIR OWN NAME ──────
+                    🛑 THEY WERE COMPUTED, SHIPPED AND TYPED, AND NEVER RENDERED. `go_live` has
+                    been in this payload since R121 Build 4, and the comment above it says
+                    *"what WE still owe them is `go_live` below"* — there was no below. The
+                    only place our eight checks ever surfaced was as the FALLBACK inside the
+                    Brief chip, i.e. wearing the client's label.
+
+                    The founder's boundary, verbatim: *"Keep go-live checks where they
+                    legitimately belong under their own name."* This is that name. Two chips,
+                    two questions, neither borrowing the other's number. */}
+                {cockpit && (
+                  <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.go_live.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
+                    title={cockpit.onboarding.go_live.missing.length
+                      ? `We still owe them: ${cockpit.onboarding.go_live.missing.join(', ')}`
+                      : 'Everything on our side is ready'}>
+                    Go-live {cockpit.onboarding.go_live.percent}%
+                  </span>
+                )}
+                {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
+                    This chip stated a balance in the same weight and colour for every client,
+                    on a header the operator reads before every action — so for a programme
+                    client it silently answered "how does this account pay?" with the legacy
+                    answer. The number stays (it is a real stored balance, and a programme
+                    client can still hold one from before); what it no longer does is stand
+                    unqualified beside an account the wallet does not govern. */}
+                {(() => {
+                  // ⚠️ THE CHIP IS QUALIFIED FOR EVERY MODEL THAT IS NOT LEGACY, and that
+                  // includes UNRESOLVED. The first cut qualified only `programme` and
+                  // `compat_programme`, so a client whose model could not be resolved — the
+                  // declared-legacy-with-an-open-programme conflict — was shown an ordinary
+                  // purple balance beside a red panel saying nothing is authorised. An
+                  // unqualified balance IS a claim that it is spendable, and "we could not
+                  // tell" must never render as that claim.
+                  // ⛓️ CORRECTED 3 Sep — ~~"$1,200 wallet · not used".~~ FOUNDER-RULED STILL
+                  // AMBIGUOUS: "not used" reads as a temporary state of a live wallet, not as a
+                  // closed one. The balance is HISTORY on a programme account — a real number
+                  // from the model they are no longer on — and the label now says exactly that.
+                  // The word "wallet" moves behind "historical" so the first thing read is what
+                  // kind of number it is.
+                  //
+                  // ⚠️ NOTHING IS DELETED OR ZEROED. The balance is rendered in full; the ledger
+                  // is untouched. What changed is one word of framing.
+                  // ⛓️ NOW READ FROM `modelView`, not from a second copy of the same question.
+                  // The chip derived its own `r === 'unreadable'` while the rest of the console
+                  // used `modelView`, so the two could disagree — and they DID: a loading or
+                  // field-missing response left the chip fully active while every other sentence
+                  // had already gone neutral. One derivation, one answer.
+                  const programmeWallet  = modelView === 'programme'
+                  const unresolvedWallet = modelView === 'unresolved'
+                  const loadingWallet    = modelView === 'loading'
+                  const muted = programmeWallet || unresolvedWallet || loadingWallet
+                  return (
+                    <span
+                      title={programmeWallet
+                        ? 'Historical. This client is on the programme model, so the wallet gates nothing — not sourcing, not sending, not enrolment. The balance is shown because it is real, not because it applies.'
+                        : unresolvedWallet
+                          ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
+                          : loadingWallet
+                            ? 'Still reading this client’s commercial model. Until it is known, no claim is made about whether this balance applies.'
+                            : 'Wallet balance'}
+                      className={`shrink-0 text-[12.5px] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
+                        muted ? 'font-semibold text-[#a9a2bd] bg-[#f5f4f8] border border-[#e8e5ef]' : 'font-bold text-[#7C3AED] bg-[#f3ecff]'}`}>
+                      {programmeWallet
+                        ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} historical wallet · inactive`
+                        : unresolvedWallet
+                          ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · model unresolved`
+                          : loadingWallet
+                            ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · checking…`
+                            : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
+                    </span>
+                  )
+                })()}
+              </div>
+
+              <div className="shrink-0 px-[22px] py-1.5 text-[12px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
+                You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
+              </div>
+
+              {/* V17 — what changed for THIS client that needs us. */}
+              {myAlerts.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fdf2f8] border-b border-[#fbcfe8]">
+                  <span className="text-[12.5px] font-bold text-[#9d174d]">Needs you:</span>
+                  {myAlerts.map((a, i) => (
+                    <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
+                      <button
+                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                        className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
+                        {a.label} &rarr;
+                      </button>
+                      {/* PR2 — the only way to say "this prospect is no longer waiting on us".
+                          Same chip language as the alert beside it; no modal, no new surface. */}
+                      {a.kind === 'proof_review' && (
+                        <button
+                          onClick={() => resolveProofReview(a.client_id)}
+                          disabled={proofBusy === a.client_id}
+                          className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                          {proofBusy === a.client_id ? 'Marking…' : 'Mark reviewed'}
+                        </button>
+                      )}
+                      {/* ⚑ 17 Sep — the two ways an unattributable reply becomes decided.
+                          Same chip language as every alert beside it; no modal, no new
+                          section. The destructive one is visually separate and says
+                          "Discard reply" rather than "Not ours" — with several candidate
+                          clients, "not ours" is ambiguous in exactly the way the alert is. */}
+                      {a.kind === 'reply_unattributed' && (
+                        <>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'resolve')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Attribute to this client'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'discard')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
+                            Discard reply
+                          </button>
+                        </>
+                      )}
+                      {/* ⚑ 18 Sep (J22-C2 · PV 11 C) — THE SAME TWO DECISIONS FOR A HOLD THAT
+                          NAMES NO CANDIDATE. The reply is real and somebody is waiting on it;
+                          what is missing is a client to offer, so the operator's own selection
+                          is the answer and the button says so. Attributing with nothing
+                          selected would be an action with no subject, and it is refused in the
+                          handler as well as disabled here. */}
+                      {a.kind === 'reply_unattributed_unknown' && (
+                        <>
+                          {/* 🛑 RE-CHECK FIRST, AND IT IS THE ONLY ONE THAT CAN FILL THE GAP.
+                              This hold has no candidates because the lead lookup FAILED while
+                              the reply was arriving, and the attribution route refuses any
+                              client outside the stored candidates — correctly. Asking the
+                              question again is evidence; naming a client by hand would be the
+                              guess that guard exists to stop. */}
+                          <button
+                            onClick={() => recheckUnattributedReply(a)}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            title="Re-run the lead lookup that failed when this reply arrived"
+                            className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Re-check who it belongs to'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'resolve')}
+                            disabled={proofBusy === a.unattributed_reply_id || !selected}
+                            title={selected
+                              ? 'Attribute this reply to the client selected on the left — only possible once a re-check has found candidates'
+                              : 'Select the client this reply belongs to first'}
+                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id
+                              ? 'Working…'
+                              : selected ? 'Attribute to the selected client' : 'Select a client to attribute'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'discard')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
+                            Discard reply
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  ))}
+                  {proofMsg && <span className="text-[11.5px] text-[#9d174d]">{proofMsg}</span>}
+                </div>
+              )}
+
+              {/* V1 — the onboarding checklist IS the setup guide: click a gap, land on the
+                  surface that closes it. "Ask them for these" now reaches their Milla thread. */}
+              {cockpit && cockpit.onboarding.missing.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
+                  <span className="text-[12.5px] font-bold text-[#b45309]">They still owe us:</span>
+                  {cockpit.onboarding.missing.map(m => {
+                    const go = GAP_TAB[m] ?? null
+                    return go ? (
+                      <button key={m} onClick={() => setTab(go)}
+                        className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5 hover:border-[#b45309]">{m} &rarr;</button>
+                    ) : (
+                      <span key={m} className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
+                    )
+                  })}
+                  {/* ── ⚑ 14 Sep (R121, Build 4) — VIDA WRITES IT; THE OPERATOR SENDS IT ──────
+                      ⛓️ THIS USED TO POST OUR FIELD LABELS AT THE CLIENT. The message was
+                      built by joining `cockpit.onboarding.missing` into a sentence, so what
+                      landed in their Milla thread was "could you send us: Target company type,
+                      Desired outcome?" — internal column names, in a conversation, from an
+                      agent who is supposed to already know them. It is the checklist leaking
+                      through the one channel that was meant to be human.
+                      🛑 VIDA DRAFTS IT INSTEAD, with the client's own words in front of her,
+                      and the operator reads it before it goes. The channel (`/operator/ask`),
+                      the thread and the confirm are all unchanged — only the words are hers. */}
+                  <button
+                    onClick={() => conversation.run(
+                      `Draft a short message asking ${selectedClient?.company_name ?? 'this client'} for what they have not told us yet: ${cockpit.onboarding.missing.join(', ')}. Their words, not our field names.`)}
+                    disabled={cockpitBusy || conversation.busy}
+                    className="ml-auto text-[12.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask Vida to write it</button>
+                </div>
+              )}
+
+              {/* Pipeline at a glance — every stage, click through to the tab that works it. */}
+              <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
+                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
+                {([
+                  ['Sourced', cols?.sourced.count ?? 0, 'People'],
+                  ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
+                  ['Sending', cols?.sending.count ?? 0, 'Campaign'],
+                  ['Replied', cols?.replied.count ?? 0, 'Inbox'],
+                  ['Qualified', cols?.qualified.count ?? 0, null],
+                  ['Booked', cols?.booked.count ?? 0, 'Bookings'],
+                ] as [string, number, CockpitTab | null][]).map(([label, n, goTo]) => (
+                  <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
+                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
+                    {n} {label}
+                  </button>
+                ))}
+              </div>
+
+    </>
+  )
+
   return (
     <div className="flex h-full min-h-0">
       {/* ── ⚑ 4 Sep (UI-009) — THE DEDICATED CLIENTS COLUMN IS GONE ─────────────────────
@@ -3078,7 +3337,14 @@ export default function VidaConsolePage() {
               {/* ── WHERE THEY ARE + THE ONE NEXT ACTION ──────────────────────────────
                   Vida's front door. Eight tabs for a five-action job meant every screen
                   asked you to work out where you were; this answers it. */}
-              {selectedWork && (
+              {/* ⛓️ 24 Sep (R145 · "a screen in a screen") — WAS always drawn, above the lifecycle
+                  panel: a second header ("Waiting on the client · Proof") and a second scroll area
+                  over the panel's own. It is the retired flow's card (its counts are per-lead
+                  approvals and $ in); under R137 every client is on the programme and the panel's
+                  banner and actions say the same thing. It now renders only as the fallback when
+                  the lifecycle verdict could not be read and the panel is absent. */}
+              {!lcCopy && <div className="shrink-0">{clientContext}</div>}
+              {selectedWork && !lcCopy && (
                 <div className="shrink-0 px-4 pt-3">
                   <div className={`rounded-2xl border-[1.5px] overflow-hidden mb-3 ${selectedWork.next.actor === 'you' ? 'border-[#7C3AED]' : 'border-[#ece5fb]'}`}>
                     <div className={`flex items-center gap-3 flex-wrap px-4 py-3 border-b ${selectedWork.next.actor === 'you' ? 'bg-gradient-to-br from-[#f3ecff] to-[#fdf2f8] border-[#eee7f7]' : 'bg-[#faf8ff] border-[#f2ecfb]'}`}>
@@ -3289,6 +3555,7 @@ export default function VidaConsolePage() {
                   needsYou={lc?.verdict.needsYou === true}
                   rail={{ at: operatorRailAt(lc?.verdict.stage) }}
                   cards={[...lcCopy.cards, ...lcProofCards, ...(accountCard ? [accountCard] : [])]}
+                  context={clientContext}
                   actions={lcCopy.actions}
                   busy={lcBusy ?? calBusy ?? (runBusy ? 'run' : null)}
                   message={runMsg
@@ -4789,253 +5056,6 @@ export default function VidaConsolePage() {
             {/* ⛓️ 24 Sep (R145 step 7 · #55) — THE CONVERSATION IS ON THE RIGHT NOW, 430px, as the redesign
                 draws Vida: menu | operator truth | Vida. WAS the left column at 540px. */}
             <section className="mv-vida-chat w-[430px] shrink-0 flex flex-col min-h-0">
-              <div className="shrink-0 flex items-center gap-2.5 px-[22px] py-2.5 border-b border-[#eee7f7] bg-white">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[12px] font-bold flex items-center justify-center">
-                  {initials(selectedClient?.company_name ?? null)}
-                </span>
-                <div className="min-w-0">
-                  <b className="text-[14.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
-                  <span className="text-[12px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
-                </div>
-                {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
-                {cockpit && (
-                  <span className={`ml-auto shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
-                    title={cockpit.onboarding.missing.length
-                      ? `They still have not told us: ${cockpit.onboarding.missing.join(', ')}`
-                      : 'They have told us everything'}>
-                    {/* ⚑ 14 Sep (R121, Build 4) — THE CLIENT'S BRIEF, COUNTED THE ONE WAY.
-                        It read 88% from our own eight checks while the SIGNING UP rail beside
-                        it read "11 of 11 collected" from the Brief — two answers, one client,
-                        neither saying which question it was answering. This is what the CLIENT
-                        has told us; what WE still owe them is `go_live` below. */}
-                    {/* ⛓️ 16 Sep (MVP1 · F3) — AND THE FALLBACK WAS THE DEFECT SURVIVING.
-                        ~~`: `${cockpit.onboarding.percent}%``~~ — under the label "Brief",
-                        that renders OUR eight go-live checks as the CLIENT's eleven-fact
-                        count. It is the exact competing answer R121 Build 4 closed, still
-                        live in the branch nobody looks at.
-                        ⚠️ AN UNREADABLE COUNT NOW SAYS SO. Borrowing a different question's
-                        number is worse than admitting we could not read this one. */}
-                    Brief {cockpit.onboarding.brief
-                      ? `${cockpit.onboarding.brief.count}/${cockpit.onboarding.brief.total}`
-                      : '—'}
-                  </span>
-                )}
-                {/* ── ⚑ 16 Sep (MVP1 · F3) — AND OUR OWN CHECKS, UNDER THEIR OWN NAME ──────
-                    🛑 THEY WERE COMPUTED, SHIPPED AND TYPED, AND NEVER RENDERED. `go_live` has
-                    been in this payload since R121 Build 4, and the comment above it says
-                    *"what WE still owe them is `go_live` below"* — there was no below. The
-                    only place our eight checks ever surfaced was as the FALLBACK inside the
-                    Brief chip, i.e. wearing the client's label.
-
-                    The founder's boundary, verbatim: *"Keep go-live checks where they
-                    legitimately belong under their own name."* This is that name. Two chips,
-                    two questions, neither borrowing the other's number. */}
-                {cockpit && (
-                  <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.go_live.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
-                    title={cockpit.onboarding.go_live.missing.length
-                      ? `We still owe them: ${cockpit.onboarding.go_live.missing.join(', ')}`
-                      : 'Everything on our side is ready'}>
-                    Go-live {cockpit.onboarding.go_live.percent}%
-                  </span>
-                )}
-                {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
-                    This chip stated a balance in the same weight and colour for every client,
-                    on a header the operator reads before every action — so for a programme
-                    client it silently answered "how does this account pay?" with the legacy
-                    answer. The number stays (it is a real stored balance, and a programme
-                    client can still hold one from before); what it no longer does is stand
-                    unqualified beside an account the wallet does not govern. */}
-                {(() => {
-                  // ⚠️ THE CHIP IS QUALIFIED FOR EVERY MODEL THAT IS NOT LEGACY, and that
-                  // includes UNRESOLVED. The first cut qualified only `programme` and
-                  // `compat_programme`, so a client whose model could not be resolved — the
-                  // declared-legacy-with-an-open-programme conflict — was shown an ordinary
-                  // purple balance beside a red panel saying nothing is authorised. An
-                  // unqualified balance IS a claim that it is spendable, and "we could not
-                  // tell" must never render as that claim.
-                  // ⛓️ CORRECTED 3 Sep — ~~"$1,200 wallet · not used".~~ FOUNDER-RULED STILL
-                  // AMBIGUOUS: "not used" reads as a temporary state of a live wallet, not as a
-                  // closed one. The balance is HISTORY on a programme account — a real number
-                  // from the model they are no longer on — and the label now says exactly that.
-                  // The word "wallet" moves behind "historical" so the first thing read is what
-                  // kind of number it is.
-                  //
-                  // ⚠️ NOTHING IS DELETED OR ZEROED. The balance is rendered in full; the ledger
-                  // is untouched. What changed is one word of framing.
-                  // ⛓️ NOW READ FROM `modelView`, not from a second copy of the same question.
-                  // The chip derived its own `r === 'unreadable'` while the rest of the console
-                  // used `modelView`, so the two could disagree — and they DID: a loading or
-                  // field-missing response left the chip fully active while every other sentence
-                  // had already gone neutral. One derivation, one answer.
-                  const programmeWallet  = modelView === 'programme'
-                  const unresolvedWallet = modelView === 'unresolved'
-                  const loadingWallet    = modelView === 'loading'
-                  const muted = programmeWallet || unresolvedWallet || loadingWallet
-                  return (
-                    <span
-                      title={programmeWallet
-                        ? 'Historical. This client is on the programme model, so the wallet gates nothing — not sourcing, not sending, not enrolment. The balance is shown because it is real, not because it applies.'
-                        : unresolvedWallet
-                          ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
-                          : loadingWallet
-                            ? 'Still reading this client’s commercial model. Until it is known, no claim is made about whether this balance applies.'
-                            : 'Wallet balance'}
-                      className={`shrink-0 text-[12.5px] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
-                        muted ? 'font-semibold text-[#a9a2bd] bg-[#f5f4f8] border border-[#e8e5ef]' : 'font-bold text-[#7C3AED] bg-[#f3ecff]'}`}>
-                      {programmeWallet
-                        ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} historical wallet · inactive`
-                        : unresolvedWallet
-                          ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · model unresolved`
-                          : loadingWallet
-                            ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · checking…`
-                            : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
-                    </span>
-                  )
-                })()}
-              </div>
-
-              <div className="shrink-0 px-[22px] py-1.5 text-[12px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
-                You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
-              </div>
-
-              {/* V17 — what changed for THIS client that needs us. */}
-              {myAlerts.length > 0 && (
-                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fdf2f8] border-b border-[#fbcfe8]">
-                  <span className="text-[12.5px] font-bold text-[#9d174d]">Needs you:</span>
-                  {myAlerts.map((a, i) => (
-                    <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
-                      <button
-                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
-                        className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
-                        {a.label} &rarr;
-                      </button>
-                      {/* PR2 — the only way to say "this prospect is no longer waiting on us".
-                          Same chip language as the alert beside it; no modal, no new surface. */}
-                      {a.kind === 'proof_review' && (
-                        <button
-                          onClick={() => resolveProofReview(a.client_id)}
-                          disabled={proofBusy === a.client_id}
-                          className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
-                          {proofBusy === a.client_id ? 'Marking…' : 'Mark reviewed'}
-                        </button>
-                      )}
-                      {/* ⚑ 17 Sep — the two ways an unattributable reply becomes decided.
-                          Same chip language as every alert beside it; no modal, no new
-                          section. The destructive one is visually separate and says
-                          "Discard reply" rather than "Not ours" — with several candidate
-                          clients, "not ours" is ambiguous in exactly the way the alert is. */}
-                      {a.kind === 'reply_unattributed' && (
-                        <>
-                          <button
-                            onClick={() => actOnUnattributedReply(a, 'resolve')}
-                            disabled={proofBusy === a.unattributed_reply_id}
-                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
-                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Attribute to this client'}
-                          </button>
-                          <button
-                            onClick={() => actOnUnattributedReply(a, 'discard')}
-                            disabled={proofBusy === a.unattributed_reply_id}
-                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
-                            Discard reply
-                          </button>
-                        </>
-                      )}
-                      {/* ⚑ 18 Sep (J22-C2 · PV 11 C) — THE SAME TWO DECISIONS FOR A HOLD THAT
-                          NAMES NO CANDIDATE. The reply is real and somebody is waiting on it;
-                          what is missing is a client to offer, so the operator's own selection
-                          is the answer and the button says so. Attributing with nothing
-                          selected would be an action with no subject, and it is refused in the
-                          handler as well as disabled here. */}
-                      {a.kind === 'reply_unattributed_unknown' && (
-                        <>
-                          {/* 🛑 RE-CHECK FIRST, AND IT IS THE ONLY ONE THAT CAN FILL THE GAP.
-                              This hold has no candidates because the lead lookup FAILED while
-                              the reply was arriving, and the attribution route refuses any
-                              client outside the stored candidates — correctly. Asking the
-                              question again is evidence; naming a client by hand would be the
-                              guess that guard exists to stop. */}
-                          <button
-                            onClick={() => recheckUnattributedReply(a)}
-                            disabled={proofBusy === a.unattributed_reply_id}
-                            title="Re-run the lead lookup that failed when this reply arrived"
-                            className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899] disabled:opacity-50">
-                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Re-check who it belongs to'}
-                          </button>
-                          <button
-                            onClick={() => actOnUnattributedReply(a, 'resolve')}
-                            disabled={proofBusy === a.unattributed_reply_id || !selected}
-                            title={selected
-                              ? 'Attribute this reply to the client selected on the left — only possible once a re-check has found candidates'
-                              : 'Select the client this reply belongs to first'}
-                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
-                            {proofBusy === a.unattributed_reply_id
-                              ? 'Working…'
-                              : selected ? 'Attribute to the selected client' : 'Select a client to attribute'}
-                          </button>
-                          <button
-                            onClick={() => actOnUnattributedReply(a, 'discard')}
-                            disabled={proofBusy === a.unattributed_reply_id}
-                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
-                            Discard reply
-                          </button>
-                        </>
-                      )}
-                    </span>
-                  ))}
-                  {proofMsg && <span className="text-[11.5px] text-[#9d174d]">{proofMsg}</span>}
-                </div>
-              )}
-
-              {/* V1 — the onboarding checklist IS the setup guide: click a gap, land on the
-                  surface that closes it. "Ask them for these" now reaches their Milla thread. */}
-              {cockpit && cockpit.onboarding.missing.length > 0 && (
-                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
-                  <span className="text-[12.5px] font-bold text-[#b45309]">They still owe us:</span>
-                  {cockpit.onboarding.missing.map(m => {
-                    const go = GAP_TAB[m] ?? null
-                    return go ? (
-                      <button key={m} onClick={() => setTab(go)}
-                        className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5 hover:border-[#b45309]">{m} &rarr;</button>
-                    ) : (
-                      <span key={m} className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
-                    )
-                  })}
-                  {/* ── ⚑ 14 Sep (R121, Build 4) — VIDA WRITES IT; THE OPERATOR SENDS IT ──────
-                      ⛓️ THIS USED TO POST OUR FIELD LABELS AT THE CLIENT. The message was
-                      built by joining `cockpit.onboarding.missing` into a sentence, so what
-                      landed in their Milla thread was "could you send us: Target company type,
-                      Desired outcome?" — internal column names, in a conversation, from an
-                      agent who is supposed to already know them. It is the checklist leaking
-                      through the one channel that was meant to be human.
-                      🛑 VIDA DRAFTS IT INSTEAD, with the client's own words in front of her,
-                      and the operator reads it before it goes. The channel (`/operator/ask`),
-                      the thread and the confirm are all unchanged — only the words are hers. */}
-                  <button
-                    onClick={() => conversation.run(
-                      `Draft a short message asking ${selectedClient?.company_name ?? 'this client'} for what they have not told us yet: ${cockpit.onboarding.missing.join(', ')}. Their words, not our field names.`)}
-                    disabled={cockpitBusy || conversation.busy}
-                    className="ml-auto text-[12.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask Vida to write it</button>
-                </div>
-              )}
-
-              {/* Pipeline at a glance — every stage, click through to the tab that works it. */}
-              <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
-                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
-                {([
-                  ['Sourced', cols?.sourced.count ?? 0, 'People'],
-                  ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
-                  ['Sending', cols?.sending.count ?? 0, 'Campaign'],
-                  ['Replied', cols?.replied.count ?? 0, 'Inbox'],
-                  ['Qualified', cols?.qualified.count ?? 0, null],
-                  ['Booked', cols?.booked.count ?? 0, 'Bookings'],
-                ] as [string, number, CockpitTab | null][]).map(([label, n, goTo]) => (
-                  <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
-                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
-                    {n} {label}
-                  </button>
-                ))}
-              </div>
-
               {/* ── ⚑ 4 Sep — THE SHELL'S CONVERSATION PAINTS HERE ─────────────────────────
                   🛑 THE ASSISTANT WAS DECLARED IN THIS FILE: the blocker chips, the
                   transcript, the shortcuts, the composer and the Run button, plus the sourcing

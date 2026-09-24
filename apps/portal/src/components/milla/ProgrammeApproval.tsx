@@ -34,7 +34,7 @@ import { useEffect, useState } from 'react'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 import {
   APPROVAL_CONCERN_LABEL, APPROVAL_CONCERN_PROMPT, APPROVAL_CONCERN_ACKNOWLEDGED,
-  PROGRAMME_BEST_EFFORTS,
+  PROGRAMME_BEST_EFFORTS, laterBatchesLine,
 } from '@kind/shared'
 import { programmeMoney } from '@/lib/programme-money'
 
@@ -199,6 +199,7 @@ export default function ProgrammeApproval({
   // ⚠️ THE FROZEN COUNT IS THE ONE BEING APPROVED. The live list is what we can show; the
   // snapshot is what was fixed. When they differ, the frozen number is the honest one.
   const population = frozen?.prospects ?? data.total
+  const laterBatches = laterBatchesLine(population, frozen?.meeting_target ?? data.programme?.meeting_target ?? null)
   const schedule = scheduleInWords(frozen?.send_schedule)
 
   async function approve() {
@@ -301,6 +302,8 @@ export default function ProgrammeApproval({
             <div className="mv-field">
               <label>People</label>
               <strong>{population.toLocaleString()}{!data.complete && !frozen ? '+' : ''} people we will write to</strong>
+              {/* ⚑ 24 Sep — this package is the FIRST batch; say that more follow, up to the plan. */}
+              {laterBatches && <small data-testid="later-batches">{laterBatches}</small>}
               {/* ⚑ 18 Sep (J16-C1 · FD-5) — how many we may actually write to; omitted, never zeroed. */}
               {typeof frozen?.sendable === 'number' && (
                 <small data-testid="frozen-sendable">

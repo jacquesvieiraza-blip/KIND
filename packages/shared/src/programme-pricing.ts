@@ -36,6 +36,33 @@
 /** Leads recommended per targeted booked meeting (FD-01 · R77). A PLANNING BENCHMARK, NEVER A GUARANTEE. */
 export const LEADS_PER_TARGETED_MEETING = 250
 
+/**
+ * Controlled execution batch size (founder lock 4) — "approximately 250".
+ *
+ * ⛓️ 24 Sep — MOVED HERE FROM `apps/api/src/lib/programme.ts`, which re-exports it unchanged, so
+ * the client's Approval screen can say the same number the sourcing engine uses.
+ */
+export const PROGRAMME_BATCH_SIZE = 250
+
+/**
+ * ⚑ 24 Sep — THE APPROVAL SCREEN'S "AND MORE AFTER THIS" LINE.
+ *
+ * The founder, looking at a House package of 234: *"but why 234. we need to show them way more.
+ * they approved way more"*. The package holds the FIRST batch; later batches are found and
+ * prepared after approval under the same approved words, timing and sender, up to the plan.
+ * The screen said none of that, so 234 read as the whole deal.
+ *
+ * ⚠️ THE PLAN, NEVER THE LIMIT. The planned number is meetings × LEADS_PER_TARGETED_MEETING —
+ * what the client was shown when they chose the programme. The sourcing ceiling is internal and
+ * never appears here. `null` when there is no target, or when this batch already covers the plan.
+ */
+export function laterBatchesLine(readyNow: number, meetingTarget: number | null | undefined): string | null {
+  if (typeof meetingTarget !== 'number' || !(meetingTarget > 0) || !(readyNow >= 0)) return null
+  const planned = meetingTarget * LEADS_PER_TARGETED_MEETING
+  if (planned <= readyNow) return null
+  return `These are the first ${readyNow.toLocaleString('en-US')}. As the programme runs, more are found in batches of about ${PROGRAMME_BATCH_SIZE.toLocaleString('en-US')}, about ${planned.toLocaleString('en-US')} planned in all, and they get the same messages, timing and sender as this version.`
+}
+
 /** Partner commission as a percentage of PROGRAMME CONTRIBUTION (FD-02 · R78) — never of revenue. */
 export const PROGRAMME_PARTNER_COMMISSION_PCT = 25
 

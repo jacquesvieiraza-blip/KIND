@@ -2770,9 +2770,15 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
 describe('the boundaries this build was told not to cross', () => {
-  it('#700 is still 🟡 — no dot was flipped', () => {
+  // ⛓️ 23 Sep (founder GO): ~~'#700 is still 🟡 — no dot was flipped'~~ pinned the row to 🟡.
+  // That was the 22 Aug build's boundary — it must not flip its own dot. The build has since
+  // merged (49ea3ee3, 0703a649) and is live, and the 🟡 pin became the ONLY thing holding the
+  // row below 🩷. The spirit is kept, not the letter: a build never SELF-CERTIFIES its item,
+  // so #700 may be 🟡/🟣/🩷 but never 🟢 — 🟢 is founder-only, on his own walk.
+  it('#700 was never self-verified — the row exists and is not 🟢', () => {
     const inv = read(join(REPO, 'docs/PRODUCT-INVENTORY.md'))
-    expect(inv).toMatch(/^\| 700 \| 🟡 \|/m)
+    expect(inv).toMatch(/^\| 700 \| (🔴|🟡|🟣|🩷|⏸) \|/m)
+    expect(inv).not.toMatch(/^\| 700 \| 🟢 \|/m)
   })
 
   it('no migration was written or edited by this build', () => {

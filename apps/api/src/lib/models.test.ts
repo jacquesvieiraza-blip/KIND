@@ -87,7 +87,9 @@ const NOT_MILLA_NOT_VIDA: Array<[string, string]> = [
   ['apps/api/src/lib/scrape.ts',            'website reading'],
   ['apps/api/src/lib/linkedin.ts',          'LinkedIn processing'],
   ['apps/api/src/lib/whatsapp.ts',          'WhatsApp processing'],
-  ['apps/api/src/lib/figsy.ts',             'FIGSY sequence/email writers — OPEN QUESTION, unruled'],
+  // ⛓️ 24 Sep (R159) — figsy.ts still never names the conversational model; the programme writer
+  // passes it in, and `programme-sequence-model.test.ts` pins that exception and its limits.
+  ['apps/api/src/lib/figsy.ts',             'FIGSY sequence/email writers — Haiku by default; only the programme writer passes Sonnet in (R159)'],
   ['apps/api/src/lib/denise.ts',            'Denise follow-up/proposal drafts — OPEN QUESTION, unruled'],
   ['apps/api/src/routes/founder.ts',        'founder cockpit / Nora'],
   ['apps/api/src/routes/internal.ts',       'internal tooling'],

@@ -31,6 +31,11 @@
 // stays on `BACKGROUND_MODEL` and is an OPEN QUESTION for the founder. A prospect reads that
 // text too, so it is a reasonable candidate; nobody has ruled on it, and quietly moving it
 // would be deciding a product question on his behalf.
+//
+// ⛓️ 24 Sep (R159) — ONE NAMED EXCEPTION, FOUNDER-RULED: the PROGRAMME sequence writer
+// (`programme-sequence-generation.ts`) asks `generateSequence` for `CONVERSATION_MODEL` — one
+// call per programme or per Rewrite. `figsy.ts` itself still defaults to `BACKGROUND_MODEL`, and
+// every per-person writer, Denise and the rest stay exactly where R122a put them.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 /**

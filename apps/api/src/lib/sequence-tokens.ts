@@ -30,19 +30,64 @@ const LEAD_TOKENS: [keyof TokenLead, string][] = [
   ['last_name', '{{last_name}}'],
 ]
 
+// ⛓️ 24 Sep — the legal tail a model drops when it writes a company name naturally. The House
+// walk's sample was "Rock Strategic LLC"; the copy said "Rock Strategic", which an exact match
+// never saw, so every prospect would have been told they run somebody else's company.
+// Kept to unambiguous legal forms: "Co" or "Company" can be part of the name people use.
+const LEGAL_SUFFIX = /[\s,]+(?:l\.?l\.?c|ltd|limited|inc|incorporated|corp|corporation|plc|llp|gmbh|ag|pty(?:\s+ltd)?|pte(?:\s+ltd)?|s\.a|b\.v|n\.v|s\.r\.l)\.?$/i
+
+/** A company name without its legal tail — "Rock Strategic, LLC" → "Rock Strategic". */
+export function companyCore(name: string): string {
+  let out = name.trim()
+  for (let prev = ''; prev !== out;) { prev = out; out = out.replace(LEGAL_SUFFIX, '').trim() }
+  return out
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** The value as a whole word, any case — "Chris" matches "chris" but never "Christmas". */
+const wordRe = (value: string) => new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(value)}(?![\\p{L}\\p{N}])`, 'giu')
+
+/** Every spelling of this lead's details that the copy must not carry, longest first. */
+function identityValues(lead: TokenLead): [string, string][] {
+  const pairs: [string, string][] = []
+  for (const [field, token] of LEAD_TOKENS) {
+    const value = String(lead[field] ?? '').trim()
+    if (value.length > 1) pairs.push([value, token])
+    if (field === 'company' && value) {
+      const core = companyCore(value)
+      if (core.length > 1 && core !== value) pairs.push([core, token])
+    }
+  }
+  return pairs.sort((a, b) => b[0].length - a[0].length)
+}
+
 /**
  * Replace a specific lead's real details with merge tokens, turning one person's email back
  * into a template. Values of 1 character or less are skipped — swapping every "A" in the
  * body for {{first_name}} would shred the copy.
+ *
+ * ⛓️ 24 Sep — WAS an exact, case-sensitive substring swap. The founder's House walk showed the
+ * copy it let through: "christopher, ceo lead gen question" (lower case) and "running Rock
+ * Strategic as CEO" (no "LLC"). Now any case, the company with or without its legal tail, and
+ * whole words only — so a first name of "Chris" no longer eats the middle of "Christmas".
  */
 export function detokenise(text: string, lead: TokenLead): string {
   let out = text
-  const byLength = LEAD_TOKENS
-    .map(([field, token]) => [String(lead[field] ?? ''), token] as [string, string])
-    .filter(([value]) => value.length > 1)
-    .sort((a, b) => b[0].length - a[0].length)
-  for (const [value, token] of byLength) out = out.split(value).join(token)
+  for (const [value, token] of identityValues(lead)) out = out.replace(wordRe(value), token)
   return out
+}
+
+/**
+ * 🛑 WHAT OF THIS LEAD'S IDENTITY IS STILL IN THE COPY. Empty means the template is clean.
+ *
+ * The generator refuses to save a sequence while this returns anything: one person's name or
+ * company in a template goes to every prospect on the programme. Only who they ARE is checked —
+ * first name, last name, company — never the job title, which is a common noun in prose.
+ */
+export function leakedIdentity(text: string, lead: TokenLead): string[] {
+  return identityValues({ first_name: lead.first_name, last_name: lead.last_name, company: lead.company })
+    .map(([value]) => value)
+    .filter(value => wordRe(value).test(text))
 }
 
 /**

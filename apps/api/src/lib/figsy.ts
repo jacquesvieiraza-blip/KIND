@@ -253,6 +253,23 @@ export type SequenceOptions = {
   briefContext?: string | null
 }
 
+/**
+ * The sign-off instruction for a drafted sequence.
+ *
+ * ⛓️ 24 Sep — WITH NO SIGNER THIS USED TO SAY "pick a name that fits the sender's company", and
+ * the model did: the founder's House walk was signed "Michael", sent from a mailbox that is not
+ * Michael's. A prospect who replies to "Michael" and gets somebody else is being lied to. With no
+ * signer on file the email now signs with the company, and never with a person nobody named.
+ */
+export function signOffRule(senderName: string | null | undefined, senderCompanyName: string): string {
+  const signer = (senderName ?? '').trim()
+  if (signer) return `- Sign off as exactly "${signer}". Do NOT invent, shorten, or use any other name.`
+  const company = senderCompanyName.trim()
+  return company
+    ? `- Sign off as "${company}" only. Do NOT sign with, invent or guess any person's name.`
+    : '- Sign off without a name. Do NOT sign with, invent or guess any person\'s name.'
+}
+
 export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
@@ -330,7 +347,7 @@ Hard rules (violating any of these makes the email useless):
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompanyName}.
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a name that fits the sender\'s company)'}
+${signOffRule(senderName, senderCompanyName)}
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}

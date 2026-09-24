@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>K.I.N.D Money Control Room v2 — Full Upfront + Wallet Credit</title><style>
+:root{--bg:#0d0a14;--panel:#17121f;--panel2:#1d1728;--line:#352b46;--ink:#f3eff8;--muted:#aaa0bb;--purple:#8b5cf6;--purple2:#6d35ea;--green:#52e0ae;--red:#ff8d8d;--amber:#ffd65c;--blue:#7cc7ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}.wrap{max-width:1320px;margin:auto;padding:18px}.hero{padding:20px 4px 12px;border-bottom:1px solid var(--line)}.hero h1{margin:0;font-family:Georgia,serif;font-size:32px;letter-spacing:-.3px}.sub{color:var(--muted);font-size:12px;line-height:1.5;margin-top:7px;max-width:1000px}.rule{margin-top:11px;padding:10px 12px;background:#171120;border:1px solid #3a2d51;border-radius:10px;color:#c9bed8;font-size:10.5px;line-height:1.45}
+.tabs{display:flex;gap:6px;overflow:auto;padding:13px 0 4px;position:sticky;top:0;background:rgba(13,10,20,.95);backdrop-filter:blur(12px);z-index:10}.tabbtn{background:#17121f;color:#bcb2ca;border:1px solid #332944;border-radius:9px;padding:9px 12px;font-size:10.5px;font-weight:900;cursor:pointer;white-space:nowrap}.tabbtn.active{background:var(--purple);color:white;border-color:var(--purple)}.tab{display:none}.tab.active{display:block}.q{font-family:Georgia,serif;font-size:22px;margin:18px 0 6px}.qsub{color:var(--muted);font-size:10.5px;line-height:1.45;margin-bottom:10px}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0}.control{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px}.chead{display:flex;justify-content:space-between;gap:8px;align-items:center}.cl{font-size:10px;font-weight:900;color:#d8d1e2}.cv{font-size:17px;font-weight:950;color:#a88cff}input[type=range]{width:100%;accent-color:var(--purple)}select,input[type=number]{width:100%;padding:8px;background:#130f1a;color:var(--ink);border:1px solid #392e49;border-radius:8px;font-weight:850}.hint{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0}.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:104px}.metric.accent{background:linear-gradient(145deg,#6d35ea,#8b5cf6);border:0}.ml{font-size:9px;text-transform:uppercase;letter-spacing:.55px;font-weight:950;color:#9f95af}.accent .ml{color:#ded4ff}.mv{font-size:29px;font-weight:950;margin-top:7px;font-variant-numeric:tabular-nums}.ms{font-size:9.5px;color:var(--muted);line-height:1.35;margin-top:6px}.accent .ms{color:#eee7ff}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}.ct{font-family:Georgia,serif;font-size:16px;margin-bottom:5px}.cs{font-size:10px;color:var(--muted);line-height:1.45;margin-bottom:8px}.rows{display:grid}.row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-bottom:1px solid #2a2236;align-items:center}.row:last-child{border-bottom:0}.rn{font-size:10.5px;color:#cfc6da}.rv{font-size:11.5px;font-weight:900;font-variant-numeric:tabular-nums}.row.total{border-top:2px solid #7862a4;margin-top:3px;padding-top:10px}.row.total .rn,.row.total .rv{font-weight:950;color:#f2ecfb}.good{color:var(--green)!important}.bad{color:var(--red)!important}.amber{color:var(--amber)!important}
+.callout{background:#10291f;border:1px solid #176841;border-radius:10px;padding:10px 11px;color:#96f1c8;font-size:10.5px;line-height:1.5}.warn{background:#352706;border-color:#795b0f;color:#ffe07a}.info{background:#111d2a;border-color:#234c72;color:#a9d8ff}.tablewrap{overflow:auto;border:1px solid #30263d;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#211a2b;color:#b9aec9;padding:8px;text-align:right;text-transform:uppercase;font-size:8.5px;letter-spacing:.5px}th:first-child,td:first-child{text-align:left}td{padding:8px;border-bottom:1px solid #2b2337;text-align:right;font-variant-numeric:tabular-nums}
+details{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:0 12px;margin-top:9px}summary{padding:12px 0;font-weight:950;cursor:pointer;color:#e7e0f1}.assgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:12px}.field{background:#130f1a;border:1px solid #332944;border-radius:8px;padding:9px}.field label{display:block;font-size:9px;font-weight:850;color:#aaa0bb;margin-bottom:5px}.badge{font-size:7.5px;border-radius:999px;padding:2px 5px;background:#123a2a;color:#5ce1ad;font-weight:950}.badge.work{background:#3d300a;color:#ffd75e}.badge.tax{background:#102c43;color:#7cc7ff}.footer{text-align:center;color:#6e6579;font-size:8.5px;padding:18px 0}
+@media(max-width:950px){.flow,.controls,.assgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.flow,.controls,.grid2,.assgrid{grid-template-columns:1fr}.wrap{padding:9px}.mv{font-size:25px}}
+</style></head>
+<body><div class="wrap">
+<div class="hero"><h1>K.I.N.D Money Control Room — v2 · the brainstorm model</h1>
+<div class="sub">Rebuilt around the new commercial truth: targeted <b>qualified</b> meetings → recommended people to find → automatic volume price → 50% before sourcing → 50% before Make Live. No $4-per-lead engine and no 7:1 sourcing fiction.</div>
+<div class="rule"><b>Hard planning rules:</b> $450 per <b>qualified</b> meeting on the R81 curve, paid 50/50 (R141) · 250 people per meeting is the PLAN, 400 is the LIMIT (R136) · a qualified meeting we do not deliver is credited (R136) · <b>Apollo is the only data provider</b> (R146 — PDL and Hunter retired) · partners FROZEN (R139) — partner maths kept for later · target ~70% contribution margin · client actuals replace the 250 plan over time.</div><div class="rule" style="border-color:#8b5cf6;background:#1c1430;color:#d9ccff"><b>v2 — an IDEA being explored, not the live rules.</b> Client pays <b>in full before we run</b> (live rule R141: 50/50) · we stop at a <b>cap of people per meeting</b> (live rule R136: 400) · if the cap is hit the client <b>widens their target or we stop</b> · missed qualified meetings become <b>wallet credit, never a refund</b> · credit is given <b>once only</b> and <b>expires after 90 days</b> · a meeting counts under the 7-point Qualified Meeting rules (attendance not guaranteed). The v1 file is kept unchanged.</div><div class="rule" style="border-color:#795b0f;background:#241b06;color:#ffe07a"><b>Updated 24 Sep to match the live rules and code:</b> provider switched from PDL ($0.28/record) to Apollo · "booked" → "qualified" meeting · the 400 limit and the shortfall credit added · sending mailboxes costed · partner clients default to 0 (frozen) · Hunter removed from CAC · company floor lines the code carries but this file lacked (Zoho, domains, failover) added. New: <b>Play with the numbers</b> at the top of the Assumptions tab — price, meetings, people per meeting and missed meetings drive every tab. Every number is still editable.</div></div>
+
+<div class="tabs">
+<button class="tabbtn active" onclick="showTab('overview',this)">Overview</button>
+<button class="tabbtn" onclick="showTab('programme',this)">Client Cost · Milla View</button>
+<button class="tabbtn" onclick="showTab('partner',this)">Partner</button>
+<button class="tabbtn" onclick="showTab('scale',this)">Scale</button>
+<button class="tabbtn" onclick="showTab('floor',this)">Company Floor</button>
+<button class="tabbtn" onclick="showTab('tax',this)">Tax & VAT</button>
+<button class="tabbtn" onclick="showTab('cash',this)">Cash</button>
+<button class="tabbtn" onclick="showTab('founder-cac',this)">Founder CAC · Apollo (PDL = history)</button>
+<button class="tabbtn" onclick="showTab('locked-cac',this)">CAC · 250 → Meeting → Client</button>
+<button class="tabbtn" onclick="showTab('assumptions',this)">Assumptions</button>
+</div>
+
+<div id="overview" class="tab active">
+<div class="q">What does the company actually make under the new programme model?</div>
+<div class="qsub">Steady-state monthly programmes. Client programme assumptions come from the Client Cost · Milla View tab; fixed company floor is subtracted once at company level.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Direct clients</span><span id="ovDirectV" class="cv"></span></div><input id="directClients" type="range" min="0" max="100" value="5" step="1" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Partner clients · frozen (R139)</span><span id="ovPartnerV" class="cv"></span></div><input id="partnerClients" type="range" min="0" max="100" value="0" step="1" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Scenario from Client Cost tab</span><span id="ovScenarioV" class="cv"></span></div><div class="hint">Target meetings, benchmark, client value and conversion are controlled once in the Client Cost · Milla View tab and feed every commercial tab.</div></div>
+<div class="control"><div class="chead"><span class="cl">Recommended leads / client</span><span id="ovLeadsV" class="cv"></span></div><div class="hint">Calculated from the shared target-meeting scenario.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Monthly programme revenue</div><div id="ovRevenue" class="mv"></div></div>
+<div class="metric"><div class="ml">Variable delivery + partner</div><div id="ovVariable" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Operating profit</div><div id="ovOpProfit" class="mv"></div><div class="ms">After company floor, before corporation tax.</div></div>
+<div class="metric"><div class="ml">After-tax profit / month</div><div id="ovAfterTax" class="mv"></div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="ct">Monthly waterfall</div><div class="rows">
+<div class="row"><span class="rn">Programme revenue</span><span id="owRevenue" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo data cost</span><span id="owPdl" class="rv"></span></div><div class="row"><span class="rn">Sending mailboxes</span><span id="owSend" class="rv"></span></div>
+<div class="row"><span class="rn">Work / AI</span><span id="owWork" class="rv"></span></div>
+<div class="row"><span class="rn">Payment costs</span><span id="owStripe" class="rv"></span></div>
+<div class="row"><span class="rn">Client delivery floor</span><span id="owClientFloor" class="rv"></span></div>
+<div class="row"><span class="rn">Refunds for meetings not delivered (refund mode only)</span><span id="owCredit" class="rv"></span></div><div class="row"><span class="rn">Partner commissions</span><span id="owPartner" class="rv"></span></div>
+<div class="row"><span class="rn">Company fixed floor</span><span id="owFloor" class="rv"></span></div>
+<div class="row"><span class="rn">Corporation-tax reserve</span><span id="owTax" class="rv"></span></div>
+<div class="row total"><span class="rn">After-tax profit</span><span id="owNet" class="rv"></span></div>
+</div></div>
+<div class="card"><div class="ct">Company health</div><div id="ovMessage" class="callout"></div><div class="cs" style="margin-top:9px">The calculator deliberately exposes when the 250:1 benchmark stops being profitable. It never invents a 7:1 provider multiplier.</div></div>
+</div></div>
+
+<div id="programme" class="tab">
+<div class="q">What will this cost the client — and what could it return?</div>
+<div class="qsub">This is the master scenario for the whole control room. Change it here once; Overview, Partner, Scale and Cash all update from the same client programme.</div>
+
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Targeted qualified meetings</span><span id="masterMeetV" class="cv"></span></div><input id="masterMeetings" type="range" min="1" max="50" value="10" step="1" oninput="update()"><div class="hint">The outcome target. A qualified meeting we do not deliver is credited (R136).</div></div>
+<div class="control"><div class="chead"><span class="cl">Cap: people per meeting (we stop here)</span><span id="masterBenchV" class="cv"></span></div><input id="masterBenchmark" type="range" min="25" max="1000" value="300" step="5" oninput="update()"><div class="hint">v2 idea: stop at the cap; the client widens or we stop. Live rule is 400 (R136).</div></div>
+<div class="control"><div class="chead"><span class="cl">Average value of one client</span><span id="masterValueV" class="cv"></span></div><input id="masterClientValue" type="range" min="500" max="100000" value="25000" step="500" oninput="update()"><div class="hint">Client's own commercial value assumption.</div></div>
+<div class="control"><div class="chead"><span class="cl">Meetings that become clients</span><span id="masterConvV" class="cv"></span></div><input id="masterConversion" type="range" min="5" max="60" value="20" step="5" oninput="update()"><div class="hint">Used only for estimated revenue / ROI.</div></div>
+</div>
+
+<div class="flow">
+<div class="metric"><div class="ml">Recommended leads</div><div id="prLeads" class="mv"></div><div class="ms">Target meetings × current benchmark.</div></div>
+<div class="metric"><div class="ml">Client price / qualified meeting</div><div id="prPpm" class="mv"></div><div class="ms">Automatic volume price.</div></div>
+<div class="metric accent"><div class="ml">Total client programme cost</div><div id="prPrice" class="mv"></div><div class="ms">What the client sees before buying.</div></div>
+<div class="metric"><div class="ml">Estimated revenue / programme cost</div><div id="prRoi" class="mv"></div><div class="ms">Revenue multiple from the client's own assumptions.</div></div>
+</div>
+
+<div class="grid2">
+<div class="card"><div class="ct">What the client pays</div><div class="rows">
+<div class="row"><span class="rn">Targeted qualified meetings</span><span id="prTargetMeetings" class="rv"></span></div>
+<div class="row"><span class="rn">Recommended leads</span><span id="prTargetLeads" class="rv"></span></div>
+<div class="row"><span class="rn" id="prFirstL">Paid before we start</span><span id="prFirst" class="rv"></span></div>
+<div class="row"><span class="rn" id="prSecondL">Paid later</span><span id="prSecond" class="rv"></span></div>
+<div class="row total"><span class="rn">Total programme cost</span><span id="prTotal" class="rv"></span></div>
+</div></div>
+
+<div class="card"><div class="ct">What the client could get back</div><div class="rows">
+<div class="row"><span class="rn">Average value of one client</span><span id="prClientValue" class="rv"></span></div>
+<div class="row"><span class="rn">Meeting → client conversion</span><span id="prConversion" class="rv"></span></div>
+<div class="row"><span class="rn">Estimated new clients</span><span id="prNewClients" class="rv"></span></div>
+<div class="row"><span class="rn">Estimated revenue added</span><span id="prRevenueAdded" class="rv"></span></div>
+<div class="row total"><span class="rn">Revenue / programme cost</span><span id="prRevenueMultiple" class="rv"></span></div>
+</div></div>
+</div>
+
+<div class="grid2">
+<div class="card"><div class="ct">Internal delivery economics</div><div class="rows">
+<div class="row"><span class="rn">Apollo data (people found)</span><span id="prPdl" class="rv"></span></div><div class="row"><span class="rn">Sending mailboxes</span><span id="prSend" class="rv"></span></div>
+<div class="row"><span class="rn">Work / AI</span><span id="prWork" class="rv"></span></div>
+<div class="row"><span class="rn">Payment</span><span id="prStripe" class="rv"></span></div>
+<div class="row"><span class="rn">Client delivery floor</span><span id="prClientFloor" class="rv"></span></div>
+<div class="row total"><span class="rn">Total variable delivery</span><span id="prDelivery" class="rv"></span></div>
+</div></div>
+<div class="card"><div class="ct">Margin guard</div><div id="prMessage" class="callout"></div><div class="cs" style="margin-top:8px">The client-facing ROI is an estimate based on their own value and conversion assumptions. The targeted booked-meeting number is not a guarantee.</div></div>
+</div>
+</div>
+
+<div id="partner" class="tab">
+<div class="q">What does a partner programme leave K.I.N.D?</div>
+<div class="qsub">Partner gets 25% of programme contribution — never 25% of gross revenue. ⏸ <b>Partners are frozen (R139, 23 Sep)</b> — this tab is kept for when they return.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Shared client scenario</span><span id="paScenarioV" class="cv"></span></div><div class="hint">This tab uses the Client Cost · Milla View inputs. Change the scenario there once; partner economics update here automatically.</div></div>
+<div class="control"><div class="chead"><span class="cl">Recommended leads / client</span><span id="paLeadsV" class="cv"></span></div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Programme revenue</div><div id="paRevenue" class="mv"></div></div>
+<div class="metric"><div class="ml">Contribution before partner</div><div id="paPre" class="mv"></div></div>
+<div class="metric"><div class="ml">Partner earns</div><div id="paComm" class="mv"></div></div>
+<div class="metric accent"><div class="ml">K.I.N.D retains</div><div id="paRetained" class="mv"></div><div id="paRetMargin" class="ms"></div></div>
+</div></div>
+
+<div id="scale" class="tab">
+<div class="q">What happens as the client book scales?</div>
+<div class="qsub">Steady-state monthly programmes using the shared Client Cost scenario and the partner-share setting below.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Shared client scenario</span><span id="scScenarioV" class="cv"></span></div><div class="hint">Meeting target and benchmark come from Client Cost · Milla View.</div></div>
+<div class="control"><div class="chead"><span class="cl">Partner share of clients</span><span id="scPartnerV" class="cv"></span></div><input id="scalePartnerShare" type="range" min="0" max="100" value="0" step="5" oninput="update()"></div>
+</div>
+<div class="tablewrap"><table><thead><tr><th>Clients</th><th>Programme revenue</th><th>Delivery</th><th>Partner commission</th><th>Company floor</th><th>Operating profit</th><th>Operating margin</th><th>After-tax / yr</th></tr></thead><tbody id="scaleTable"></tbody></table></div>
+</div>
+
+<div id="floor" class="tab">
+<div class="q">What does K.I.N.D cost before programme delivery?</div><div class="qsub">Fixed company floor is kept separate from programme economics.</div>
+<div class="flow">
+<div class="metric"><div class="ml">Core company floor</div><div id="floorCore" class="mv"></div></div>
+<div class="metric"><div class="ml">Sending platform floor</div><div id="floorSending" class="mv"></div></div>
+<div class="metric"><div class="ml">Compliance/admin reserve</div><div id="floorAdmin" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Total fixed floor</div><div id="floorTotal" class="mv"></div></div>
+</div></div>
+
+<div id="tax" class="tab">
+<div class="q">Tax & VAT planning</div><div class="qsub">Kept from the prior control-room structure. Planning only; accountant remains filing authority.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">VAT registered?</span><span id="vatRegV" class="cv"></span></div><select id="vatRegistered" onchange="update()"><option value="no" selected>No</option><option value="yes">Yes</option></select></div>
+<div class="control"><div class="chead"><span class="cl">UK share of client revenue</span><span id="ukShareV" class="cv"></span></div><input id="ukRevenueShare" type="range" min="0" max="100" value="0" step="5" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Qualifying overseas services / month £</span><span id="overseasV" class="cv"></span></div><input id="overseasServicesMonthly" type="range" min="0" max="5000" value="150" step="10" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Recoverable input VAT / month £</span><span id="inputVatV" class="cv"></span></div><input id="recoverableInputVat" type="range" min="0" max="2000" value="0" step="10" oninput="update()"></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">VAT threshold run-rate</div><div id="vatRunRate" class="mv"></div></div>
+<div class="metric"><div class="ml">Distance to £90k</div><div id="vatDistance" class="mv"></div></div>
+<div class="metric"><div class="ml">VAT held / month</div><div id="vatHeld" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Corp tax reserve / year</div><div id="corpTaxYear" class="mv"></div></div>
+</div><div id="taxMessage" class="callout warn"></div></div>
+
+<div id="cash" class="tab">
+<div class="q">How much cash is actually available?</div><div class="qsub">Revenue, cash and reserves are kept separate. 50/50 programme payment is shown explicitly.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Opening company cash</span><span id="openingCashV" class="cv"></span></div><input id="openingCash" type="range" min="0" max="20000" value="0" step="100" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Founder cash added this month</span><span id="founderCashV" class="cv"></span></div><input id="founderCash" type="range" min="0" max="5000" value="400" step="50" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">% programmes reaching Go Live this month</span><span id="goLiveV" class="cv"></span></div><input id="goLivePct" type="range" min="0" max="100" value="100" step="5" oninput="update()"></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Receipts before we start</div><div id="cashFirst" class="mv"></div></div>
+<div class="metric"><div class="ml">Receipts later</div><div id="cashSecond" class="mv"></div></div>
+<div class="metric"><div class="ml">Cash costs + reserves</div><div id="cashOut" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Cash left</div><div id="cashLeft" class="mv"></div></div>
+</div><div id="cashMessage" class="callout"></div></div>
+
+
+<div id="founder-cac" class="tab">
+<div class="q">What does it cost K.I.N.D to acquire one client?</div>
+<div class="qsub">⚠️ PDL was retired 23 Sep (R146) — its column is kept only as history. Standalone founder acquisition calculator. It is intentionally NOT linked to the client programme, partner, scale, cash or company-profit maths above.</div>
+
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">People contacted</span><span id="cacContactsV" class="cv"></span></div><input id="cacContacts" type="range" min="100" max="5000" value="1050" step="50" oninput="updateFounderCAC()"><div class="hint">The acquisition campaign size.</div></div>
+<div class="control"><div class="chead"><span class="cl">Booked meetings</span><span id="cacMeetingsV" class="cv"></span></div><input id="cacMeetings" type="range" min="1" max="100" value="7" step="1" oninput="updateFounderCAC()"><div class="hint">Meetings generated from those contacts.</div></div>
+<div class="control"><div class="chead"><span class="cl">Clients won</span><span id="cacClientsV" class="cv"></span></div><input id="cacClients" type="range" min="1" max="25" value="2" step="1" oninput="updateFounderCAC()"><div class="hint">Paying clients acquired from the campaign.</div></div>
+<div class="control"><div class="chead"><span class="cl">PDL $ / contacted person</span><span id="cacPdlUnitV" class="cv"></span></div><input id="cacPdlUnit" type="range" min=".10" max=".60" value=".28" step=".01" oninput="updateFounderCAC()"><div class="hint">1:1 sourcing assumption. No 3× / 7× multiplier.</div></div>
+</div>
+
+<div class="flow">
+<div class="metric"><div class="ml">PDL acquisition spend</div><div id="cacPdlSpend" class="mv"></div><div class="ms">Contacts × PDL cost/contact.</div></div>
+<div class="metric accent"><div class="ml">PDL data CAC / client</div><div id="cacPdlClient" class="mv"></div><div class="ms">Default case reproduces the earlier ~$147/client.</div></div>
+<div class="metric"><div class="ml">Apollo acquisition-cycle cost</div><div id="cacApolloSpend" class="mv"></div><div class="ms">Editable below. Kept separate from the company model.</div></div>
+<div class="metric accent"><div class="ml">Apollo data CAC / client</div><div id="cacApolloClient" class="mv"></div><div class="ms">Default case reproduces the earlier ~$34/client.</div></div>
+</div>
+
+<div class="grid2">
+<div class="card"><div class="ct">Acquisition funnel</div><div class="rows">
+<div class="row"><span class="rn">People contacted</span><span id="cacFContacts" class="rv"></span></div>
+<div class="row"><span class="rn">Booked meetings</span><span id="cacFMeetings" class="rv"></span></div>
+<div class="row"><span class="rn">Contact → meeting rate</span><span id="cacMeetingRate" class="rv"></span></div>
+<div class="row"><span class="rn">Clients won</span><span id="cacFClients" class="rv"></span></div>
+<div class="row"><span class="rn">Meeting → client rate</span><span id="cacCloseRate" class="rv"></span></div>
+<div class="row total"><span class="rn">Contacts needed / client</span><span id="cacContactsPerClient" class="rv"></span></div>
+</div></div>
+
+<div class="card"><div class="ct">PDL vs Apollo</div><div class="rows">
+<div class="row"><span class="rn">PDL cost / booked meeting</span><span id="cacPdlMeeting" class="rv"></span></div>
+<div class="row"><span class="rn">PDL cost / acquired client</span><span id="cacPdlClient2" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo cost / booked meeting</span><span id="cacApolloMeeting" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo cost / acquired client</span><span id="cacApolloClient2" class="rv"></span></div>
+<div class="row total"><span class="rn">PDL CAC premium vs Apollo</span><span id="cacPremium" class="rv"></span></div>
+</div></div>
+</div>
+
+<div class="grid2">
+<div class="card"><div class="ct">Provider assumptions</div><div class="rows">
+<div class="row"><span class="rn">PDL cost per contacted person</span><span id="cacPdlUnitRow" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo acquisition-cycle spend</span><span id="cacApolloSpendRow" class="rv"></span></div>
+</div>
+<div style="margin-top:10px">
+<label class="cl" for="cacApolloCycle">Apollo acquisition-cycle cost $</label>
+<input id="cacApolloCycle" type="number" value="68" min="0" step="1" oninput="updateFounderCAC()">
+<div class="hint">This is intentionally independent. Set it to the actual Apollo cost allocated to one acquisition cycle/month. $68 ÷ 2 clients = $34/client.</div>
+</div></div>
+
+<div class="card"><div class="ct">Interpretation</div>
+<div id="cacMessage" class="callout info"></div>
+<div class="cs" style="margin-top:8px">This is <b>data acquisition CAC only</b>. It does not include founder time, sales calls, payroll, software overhead, or delivery cost after the client is won.</div>
+</div></div>
+
+<div class="callout warn" style="margin-top:10px"><b>Standalone by design:</b> changing this tab does not alter programme pricing, client ROI, company profit, partner commission, scale, tax or cash. It is a founder-only acquisition planning lens.</div>
+</div>
+
+
+<div id="locked-cac" class="tab">
+<div class="q">Founder acquisition CAC — locked planning framework</div>
+<div class="qsub">The 250 benchmark is for one qualified meeting, not one paying client. This tab derives prospects per paying client from an explicit meeting → client close rate. It is standalone and does not alter programme pricing, partner economics, company profit or cash.</div>
+
+<div class="callout info" style="margin-top:10px"><b>Canonical rule:</b> Prospects per paying client = leads per booked meeting ÷ meeting-to-client close rate. Example: 250 ÷ 20% = 1,250 prospects → 5 booked meetings → 1 paying client.</div>
+
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Prospects / qualified meeting</span><span id="lcBenchV" class="cv"></span></div><input id="lcBenchmark" type="range" min="25" max="1000" value="250" step="5" oninput="updateLockedCAC()"><div class="hint">250 is the current launch benchmark.</div></div>
+<div class="control"><div class="chead"><span class="cl">Meeting → paying client close rate</span><span id="lcCloseV" class="cv"></span></div><input id="lcCloseRate" type="range" min="5" max="50" value="20" step="1" oninput="updateLockedCAC()"><div class="hint">Explicit sales conversion assumption. Replace with observed K.I.N.D actuals over time.</div></div>
+<div class="control"><div class="chead"><span class="cl">Eligible Pool reuse</span><span id="lcPoolV" class="cv"></span></div><input id="lcPoolReuse" type="range" min="0" max="75" value="0" step="5" oninput="updateLockedCAC()"><div class="hint">Scenario only. Do not assume reuse until observed.</div></div>
+<div class="control"><div class="chead"><span class="cl">Net-new external prospects</span><span id="lcNetNewV" class="cv"></span></div><div class="hint">Only this remainder needs a paid external data provider.</div></div>
+</div>
+
+<div class="flow">
+<div class="metric"><div class="ml">Booked meetings needed / client</div><div id="lcMeetingsNeeded" class="mv"></div><div class="ms">1 ÷ close rate.</div></div>
+<div class="metric"><div class="ml">Prospects needed / client</div><div id="lcProspectsNeeded" class="mv"></div><div class="ms">Benchmark × meetings required.</div></div>
+<div class="metric"><div class="ml">PDL variable CAC / client</div><div id="lcPdlCAC" class="mv"></div><div class="ms">Net-new data + AI/work across all prospects.</div></div>
+<div class="metric accent"><div class="ml">Apollo working variable CAC / client</div><div id="lcApolloCAC" class="mv"></div><div class="ms">Net-new Apollo data + AI/work.</div></div>
+</div>
+
+<div class="grid2">
+<div class="card"><div class="ct">Cost assumptions</div><div class="rows">
+<div class="row"><span class="rn">PDL data / net-new prospect</span><span id="lcPdlDataRow" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo data / net-new prospect</span><span id="lcApolloDataRow" class="rv"></span></div>
+<div class="row"><span class="rn">AI / work / prospect</span><span id="lcWorkRow" class="rv"></span></div>
+<div class="row"><span class="rn">Pool reuse</span><span id="lcPoolRow" class="rv"></span></div>
+<div class="row total"><span class="rn">Apollo saving vs PDL / client</span><span id="lcSavingRow" class="rv good"></span></div>
+</div>
+<div style="margin-top:10px" class="assgrid">
+<div class="field"><label>PDL data $ / net-new prospect</label><input id="lcPdlData" type="number" value=".28" min="0" step=".01" oninput="updateLockedCAC()"></div>
+<div class="field"><label>Apollo data $ / net-new prospect (Hunter retired, R146)</label><input id="lcApolloData" type="number" value=".026" min="0" step=".001" oninput="updateLockedCAC()"></div>
+<div class="field"><label>AI / work $ / prospect</label><input id="lcWorkCost" type="number" value=".07" min="0" step=".01" oninput="updateLockedCAC()"></div>
+</div>
+</div>
+
+<div class="card"><div class="ct">What the old 3,000 assumption actually means</div><div id="lcInterpretation" class="callout warn"></div>
+<div class="cs" style="margin-top:9px">3,000 prospects is not a separate acquisition benchmark. At 250 prospects per booked meeting it means 12 meetings are required to win one client — an 8.33% meeting-to-client close rate.</div></div>
+</div>
+
+<div class="q" style="font-size:18px">CAC sensitivity by close rate</div>
+<div class="qsub">This table keeps the current benchmark and cost inputs above, then changes only the meeting → client close rate. Pool reuse is applied to external data spend only; AI/work remains on all prospects worked.</div>
+<div class="tablewrap"><table>
+<thead><tr><th>Meeting → client close</th><th>Meetings / client</th><th>Prospects / client</th><th>Net-new after Pool</th><th>PDL variable CAC</th><th>Apollo variable CAC</th><th>Apollo saving</th></tr></thead>
+<tbody id="lcSensitivityTable"></tbody>
+</table></div>
+
+<div class="callout" style="margin-top:10px"><b>Locked planning method:</b> 250 prospects → 1 targeted booked meeting → explicit meeting-to-client close rate → derived prospects per paying client → provider + AI/work cost → CAC. Replace the close-rate and Pool assumptions with observed K.I.N.D actuals as data accumulates.</div>
+</div>
+
+<div id="assumptions" class="tab">
+<div class="q">Assumptions & editable controls</div><div class="qsub">New pricing is the structure. These values remain editable so the calculator can follow real provider and tax bills.</div>
+<div class="card" style="margin:10px 0;border:2px solid #8b5cf6">
+<div class="ct" style="font-size:20px">🎛️ Play with the idea — every tab follows</div>
+<div class="cs">Paid in full · capped people · wallet credit once only, expires in 90 days. These sliders ARE the model: move one and every tab changes; change the same number on another tab and it shows here.</div>
+<div class="controls">
+<div class="control" style="border-color:#8b5cf6"><div class="chead"><span class="cl">💵 Price for 1 meeting</span><span id="pgPriceV" class="cv"></span></div><input id="pgPrice" type="range" min="25" max="500" value="450" step="1" oninput="pgSet()"><div class="hint" id="pgPriceHint"></div></div>
+<div class="control"><div class="chead"><span class="cl">📅 Meetings bought</span><span id="pgMeetV" class="cv"></span></div><input id="pgMeet" type="range" min="1" max="50" value="10" step="1" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">🛑 Cap: people per meeting</span><span id="pgCapV" class="cv"></span></div><input id="pgCap" type="range" min="25" max="1000" value="300" step="5" oninput="pgSet()"><div class="hint">We stop here. Client widens their target, or we stop.</div></div>
+<div class="control"><div class="chead"><span class="cl">❓ People it REALLY takes per meeting</span><span id="pgNeedV" class="cv"></span></div><input id="pgNeed" type="range" min="25" max="2000" value="250" step="5" oninput="pgSet()"><div class="hint">Nobody knows this yet. Slide it up to see bad luck.</div></div>
+</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Payment</span></div><select id="pgPay" onchange="pgSet()"><option value="full">Full upfront, before we run</option><option value="split">50/50 (live rule today)</option></select></div>
+<div class="control"><div class="chead"><span class="cl">Missed meetings</span></div><select id="pgCreditMode" onchange="pgSet()"><option value="wallet">Wallet credit — once only, 90 days</option><option value="refund">Refund in cash</option></select></div>
+<div class="control"><div class="chead"><span class="cl">Credit used within 90 days</span><span id="pgUsedV" class="cv"></span></div><input id="pgUsed" type="range" min="0" max="100" value="100" step="5" oninput="pgSet()"><div class="hint">Unused credit expires — we keep it.</div></div>
+<div class="control"><div class="chead"><span class="cl">Rules in this idea</span></div><div class="hint" style="font-size:10px;line-height:1.6">✔ credit given once only<br>✔ expires after 90 days<br>✔ counts under the 7 Qualified Meeting rules<br>✔ attendance not guaranteed</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Client pays</div><div id="pgRev" class="mv"></div><div id="pgRevS" class="ms"></div></div>
+<div class="metric"><div class="ml">Our cost</div><div id="pgCost" class="mv"></div><div id="pgCostS" class="ms"></div></div>
+<div class="metric"><div class="ml">Paid back in cash</div><div id="pgRefund" class="mv"></div><div id="pgRefundS" class="ms"></div></div>
+<div class="metric accent"><div class="ml">We keep</div><div id="pgProfit" class="mv"></div><div id="pgProfitS" class="ms"></div></div>
+</div>
+<div class="card" style="margin-top:9px"><div class="ct">What happened to the 10 meetings</div><div class="rows" id="pgStory"></div></div>
+<div id="pgVerdict" class="callout" style="font-size:12px;margin-top:9px"></div>
+<details style="margin-top:10px"><summary>⚙️ Our costs per person (optional — change only if your bills say different)</summary>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Apollo $ / person</span><span id="pgApolloV" class="cv"></span></div><input id="pgApollo" type="range" min="0" max="0.30" value="0.026" step="0.002" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">AI $ / person</span><span id="pgAiV" class="cv"></span></div><input id="pgAi" type="range" min="0" max="0.30" value="0.07" step="0.005" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">Emails / person</span><span id="pgEmailsV" class="cv"></span></div><input id="pgEmails" type="range" min="1" max="7" value="4" step="1" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">Sends / mailbox / day</span><span id="pgSendsV" class="cv"></span></div><input id="pgSends" type="range" min="10" max="100" value="30" step="5" oninput="pgSet()"></div>
+</div></details>
+<div class="q" style="font-size:16px">Same programme at different prices</div>
+<div class="qsub">Everything above stays the same — only the price for 1 meeting changes.</div>
+<div class="tablewrap"><table><thead><tr><th>Price for 1 meeting</th><th>Price each at this volume</th><th>Client pays</th><th>Our cost</th><th>Paid back</th><th>We keep</th><th>Margin</th></tr></thead><tbody id="pgTable"></tbody></table></div>
+<div class="q" style="font-size:16px">What if it really takes more people?</div>
+<div class="qsub">Same price and cap — only the real number of people per meeting changes. This is the risk the cap and the wallet credit protect.</div>
+<div class="tablewrap"><table><thead><tr><th>People it really takes</th><th>Delivered first</th><th>Credited</th><th>Delivered on rerun</th><th>Our cost</th><th>Paid back</th><th>We keep</th><th>Margin</th></tr></thead><tbody id="pgRisk"></tbody></table></div>
+</div>
+<details open><summary>Programme pricing & direct delivery</summary><div class="assgrid">
+<div class="field"><label>Anchor $ / qualified meeting <span class="badge">LOCKED PRINCIPLE</span></label><input id="anchor" type="number" value="450" step=".5" oninput="update()"></div>
+<div class="field"><label>10-meeting $ / meeting <span class="badge">CURRENT EXAMPLE</span></label><input id="at10" type="number" value="437.5" step=".5" oninput="update()"></div>
+<div class="field"><label>50+ meeting floor $ / meeting <span class="badge work">WORKING</span></label><input id="floorPrice" type="number" value="400" step=".5" oninput="update()"></div>
+<div class="field"><label>Starting leads / targeted meeting <span class="badge">LOCKED</span></label><input id="startBenchmark" type="number" value="250" oninput="update()"></div>
+<div class="field"><label>Apollo $ / person found <span class="badge work">CHECK PLAN</span></label><input id="pdlCost" type="number" value=".026" step=".001" oninput="update()"><div class="hint">$65 Basic ÷ 2,500 credits = $0.026 (17 Sep reading). Card #2073: confirm the plan.</div></div>
+<div class="field"><label>Work / AI $ / person</label><input id="workCost" type="number" value=".07" step=".01" oninput="update()"></div>
+<div class="field"><label>Payment all-in %</label><input id="stripePct" type="number" value="5" step=".1" oninput="update()"></div>
+<div class="field"><label>Emails / person (sequence steps)</label><input id="emailsPerPerson" type="number" value="4" step="1" oninput="update()"></div>
+<div class="field"><label>Sends / mailbox / day</label><input id="sendsPerDay" type="number" value="30" step="1" oninput="update()"></div>
+<div class="field"><label>Programme sending days</label><input id="sendDays" type="number" value="30" step="1" oninput="update()"></div>
+<div class="field"><label>$ / sending mailbox / month</label><input id="mailboxCost" type="number" value="7" step=".5" oninput="update()"><div class="hint">Google Workspace: $28 for 4 boxes (cost-floor.ts).</div></div>
+<div class="field"><label>People it REALLY takes per meeting <span class="badge work">UNKNOWN</span></label><input id="actualNeed" type="number" value="250" step="5" oninput="update()"></div>
+<div class="field"><label>Payment</label><select id="payMode" onchange="update()"><option value="full" selected>Full upfront, before we run</option><option value="split">50/50 (live rule R141)</option></select></div>
+<div class="field"><label>Missed qualified meetings</label><select id="creditMode" onchange="update()"><option value="wallet" selected>Wallet credit (once only, 90 days)</option><option value="refund">Refund in cash</option></select></div>
+<div class="field"><label>% of wallet credit used within 90 days</label><input id="creditUsedPct" type="number" value="100" step="5" oninput="update()"></div>
+<div class="field"><label>Client delivery floor $ / month</label><input id="clientFloor" type="number" value="8" step="1" oninput="update()"></div>
+<div class="field"><label>Partner share of programme contribution % <span class="badge">LOCKED</span></label><input id="partnerPct" type="number" value="25" oninput="update()"></div>
+<div class="field"><label>Target pre-partner contribution margin % <span class="badge">LOCKED PRINCIPLE</span></label><input id="targetMargin" type="number" value="70" oninput="update()"></div>
+</div></details>
+
+<details><summary>Core company floor — USD / month</summary><div class="assgrid">
+<div class="field"><label>Railway</label><input id="railway" type="number" value="10.59" step=".01" oninput="update()"></div>
+<div class="field"><label>Supabase</label><input id="supabase" type="number" value="35" oninput="update()"></div>
+<div class="field"><label>Claude / AI subscription</label><input id="claude" type="number" value="119" oninput="update()"></div>
+<div class="field"><label>ChatGPT</label><input id="chatgpt" type="number" value="20" oninput="update()"></div>
+<div class="field"><label>Google Workspace</label><input id="google" type="number" value="28" oninput="update()"></div>
+<div class="field"><label>Apollo</label><input id="apollo" type="number" value="65" oninput="update()"></div>
+<div class="field"><label>Instantly</label><input id="instantly" type="number" value="47" oninput="update()"></div>
+<div class="field"><label>Smartlead sending platform</label><input id="smartlead" type="number" value="39" oninput="update()"></div>
+<div class="field"><label>Zoho — human mailbox <span class="badge work">FROM CODE</span></label><input id="zoho" type="number" value="3" oninput="update()"></div>
+<div class="field"><label>Domains (4 ÷ 12) <span class="badge work">FROM CODE</span></label><input id="domains" type="number" value="5" oninput="update()"></div>
+<div class="field"><label>Failover standby <span class="badge work">FROM CODE</span></label><input id="failover" type="number" value="12" oninput="update()"></div>
+<div class="field"><label>Other fixed USD / month</label><input id="otherFixed" type="number" value="0" oninput="update()"></div>
+</div></details>
+
+<details><summary>Compliance/admin reserves — GBP</summary><div class="assgrid">
+<div class="field"><label>ICO £ / year</label><input id="icoAnnualGbp" type="number" value="47" step=".01" oninput="update()"></div>
+<div class="field"><label>Companies House £ / year</label><input id="companiesHouseAnnualGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Accountant/bookkeeping £ / month</label><input id="accountantMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Accounting software £ / month</label><input id="accountingSoftwareMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Insurance £ / month</label><input id="insuranceMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>£1 in USD</label><input id="gbpUsd" type="number" value="1.34" step=".01" oninput="update()"></div>
+</div></details>
+
+<details><summary>Tax assumptions</summary><div class="assgrid">
+<div class="field"><label>UK VAT rate %</label><input id="vatRate" type="number" value="20" step=".1" oninput="update()"></div>
+<div class="field"><label>VAT threshold £</label><input id="vatThresholdGbp" type="number" value="90000" step="1000" oninput="update()"></div>
+<div class="field"><label>Corp tax lower limit £</label><input id="corpLowerGbp" type="number" value="50000" step="1000" oninput="update()"></div>
+<div class="field"><label>Corp tax upper limit £</label><input id="corpUpperGbp" type="number" value="250000" step="1000" oninput="update()"></div>
+<div class="field"><label>Small profits rate %</label><input id="corpSmallRate" type="number" value="19" step=".1" oninput="update()"></div>
+<div class="field"><label>Main rate %</label><input id="corpMainRate" type="number" value="25" step=".1" oninput="update()"></div>
+<div class="field"><label>Marginal-relief fraction</label><input id="marginalFraction" type="number" value=".015" step=".001" oninput="update()"></div>
+</div></details>
+</div>
+
+<div class="footer">K.I.N.D Company Money Control Room · programme model · management planning, not tax advice</div></div>
+
+<script>
+const $=id=>document.getElementById(id), N=id=>Number($(id)?.value||0);
+const money=x=>{if(!isFinite(x))return '—';let s=x<0?'-':'';return s+'$'+Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})};
+const gbp=x=>{if(!isFinite(x))return '—';let s=x<0?'-':'';return s+'£'+Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})};
+const num=(x,d=0)=>isFinite(x)?Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const pct=x=>isFinite(x)?(x*100).toFixed(1)+'%':'—';
+function showTab(id,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');btn.classList.add('active')}
+function pricePerMeeting(m){const a=N('anchor'),p10=N('at10'),fl=N('floorPrice');if(m<=1)return a;if(m<=10)return a-(m-1)*(a-p10)/9;if(m<=50)return p10-(m-10)*(p10-fl)/40;return fl}
+function programme(m,b,partner=false){
+ const ppm=pricePerMeeting(m), revenue=m*ppm, A=Math.max(1,N('actualNeed')), C=b, wallet=$('creditMode').value==='wallet';
+ const budget1=m*C, delivered1=Math.min(m,Math.floor(budget1/A)), people1=Math.min(m*A,budget1), missed=m-delivered1;
+ let refund=0, creditValue=0, used=0, expired=0, people2=0, delivered2=0, lost2=0;
+ if(missed>0){ if(wallet){creditValue=missed*ppm; used=Math.round(missed*N('creditUsedPct')/100*10)/10; expired=(missed-used)*ppm;
+   const budget2=used*C; delivered2=Math.min(used,Math.floor(budget2/A)); people2=Math.min(used*A,budget2); lost2=used-delivered2;}
+   else refund=missed*ppm; }
+ const leads=people1+people2, s1=sendingCost(people1), s2=sendingCost(people2);
+ const pdl=leads*N('pdlCost'), work=leads*N('workCost'), stripe=revenue*N('stripePct')/100, clientFloor=N('clientFloor'), send=s1.cost+s2.cost;
+ const delivery=pdl+work+stripe+clientFloor+send, credit=refund, pre=revenue-delivery-refund, commission=partner?Math.max(0,pre)*N('partnerPct')/100:0, retained=pre-commission;
+ const cashFirst=$('payMode').value==='full'?revenue:revenue/2;
+ return {m,b,ppm,revenue,leads,people1,people2,delivered1,delivered2,missed,used,lost2,creditValue,expired,refund,credit,missedDisplay:missed,cashFirst,pdl,work,stripe,clientFloor,send,mailboxes:s1.boxes,emails:s1.emails+s2.emails,delivery,pre,commission,retained,preMargin:revenue?pre/revenue:0,retainedMargin:revenue?retained/revenue:0};
+}
+function sendingCost(people){const emails=people*N('emailsPerPerson'), perBox=Math.max(1,N('sendsPerDay')*N('sendDays')), boxes=Math.ceil(emails/perBox), months=Math.max(1,N('sendDays')/30);return {emails,boxes,cost:boxes*N('mailboxCost')*months}}
+function coreFloor(){return N('railway')+N('supabase')+N('claude')+N('chatgpt')+N('google')+N('apollo')+N('instantly')+N('zoho')+N('domains')+N('failover')+N('otherFixed')}
+function adminFloorUsd(){return (N('icoAnnualGbp')/12+N('companiesHouseAnnualGbp')/12+N('accountantMonthlyGbp')+N('accountingSoftwareMonthlyGbp')+N('insuranceMonthlyGbp'))*N('gbpUsd')}
+function floorTotal(){return coreFloor()+N('smartlead')+adminFloorUsd()}
+function corpTaxGbp(profitGbp){if(profitGbp<=0)return 0;const low=N('corpLowerGbp'),high=N('corpUpperGbp'),small=N('corpSmallRate')/100,main=N('corpMainRate')/100,frac=N('marginalFraction');if(profitGbp<=low)return profitGbp*small;if(profitGbp>=high)return profitGbp*main;return profitGbp*main-frac*(high-profitGbp)}
+function companyEconomics(dc,pc,m,b){
+ const d=programme(m,b,false), p=programme(m,b,true);
+ const revenue=dc*d.revenue+pc*p.revenue;
+ const credit=dc*d.credit+pc*p.credit, send=dc*d.send+pc*p.send, pdl=dc*d.pdl+pc*p.pdl, work=dc*d.work+pc*p.work, stripe=dc*d.stripe+pc*p.stripe, clientFloor=dc*d.clientFloor+pc*p.clientFloor, partner=pc*p.commission;
+ const variable=pdl+work+stripe+clientFloor+partner+send;
+ const op=revenue-variable-credit-floorTotal();
+ const annualGbp=op*12/N('gbpUsd'), taxGbp=corpTaxGbp(annualGbp), taxUsd=taxGbp*N('gbpUsd'), afterMonth=op-taxUsd/12;
+ return {d,p,revenue,pdl,work,stripe,clientFloor,partner,send,credit,variable,op,taxGbp,taxUsd,afterMonth};
+}
+
+function updateFounderCAC(){
+ const contacts=N('cacContacts'), meetings=N('cacMeetings'), clients=N('cacClients'), pdlUnit=N('cacPdlUnit'), apolloSpend=N('cacApolloCycle');
+ const pdlSpend=contacts*pdlUnit;
+ const pdlPerClient=clients?pdlSpend/clients:0;
+ const pdlPerMeeting=meetings?pdlSpend/meetings:0;
+ const apolloPerClient=clients?apolloSpend/clients:0;
+ const apolloPerMeeting=meetings?apolloSpend/meetings:0;
+ const meetingRate=contacts?meetings/contacts:0;
+ const closeRate=meetings?clients/meetings:0;
+ const contactsPerClient=clients?contacts/clients:0;
+ const premium=apolloPerClient>0?pdlPerClient/apolloPerClient:0;
+
+ $('cacContactsV').textContent=num(contacts);
+ $('cacMeetingsV').textContent=num(meetings);
+ $('cacClientsV').textContent=num(clients);
+ $('cacPdlUnitV').textContent=money(pdlUnit);
+
+ $('cacPdlSpend').textContent=money(pdlSpend);
+ $('cacPdlClient').textContent=money(pdlPerClient);
+ $('cacApolloSpend').textContent=money(apolloSpend);
+ $('cacApolloClient').textContent=money(apolloPerClient);
+
+ $('cacFContacts').textContent=num(contacts);
+ $('cacFMeetings').textContent=num(meetings);
+ $('cacMeetingRate').textContent=pct(meetingRate);
+ $('cacFClients').textContent=num(clients);
+ $('cacCloseRate').textContent=pct(closeRate);
+ $('cacContactsPerClient').textContent=num(contactsPerClient,1);
+
+ $('cacPdlMeeting').textContent=money(pdlPerMeeting);
+ $('cacPdlClient2').textContent=money(pdlPerClient);
+ $('cacApolloMeeting').textContent=money(apolloPerMeeting);
+ $('cacApolloClient2').textContent=money(apolloPerClient);
+ $('cacPremium').textContent=num(premium,1)+'×';
+
+ $('cacPdlUnitRow').textContent=money(pdlUnit);
+ $('cacApolloSpendRow').textContent=money(apolloSpend);
+
+ $('cacMessage').innerHTML=`At <b>${num(contacts)}</b> contacts → <b>${num(meetings)}</b> booked meetings → <b>${num(clients)}</b> clients, PDL costs <b>${money(pdlPerClient)}</b> in data per acquired client. Apollo costs <b>${money(apolloPerClient)}</b> per acquired client on the current ${money(apolloSpend)} cycle-cost assumption.`;
+}
+
+
+function updateLockedCAC(){
+ const bench=N('lcBenchmark'), closePct=N('lcCloseRate'), close=closePct/100, poolPct=N('lcPoolReuse'), pool=poolPct/100;
+ const pdlData=N('lcPdlData'), apolloData=N('lcApolloData'), work=N('lcWorkCost');
+ const meetings=close>0?1/close:0;
+ const prospects=bench*meetings;
+ const netNew=prospects*(1-pool);
+ const pdlCAC=netNew*pdlData+prospects*work;
+ const apolloCAC=netNew*apolloData+prospects*work;
+ const saving=pdlCAC-apolloCAC;
+
+ $('lcBenchV').textContent=num(bench);
+ $('lcCloseV').textContent=num(closePct)+'%';
+ $('lcPoolV').textContent=num(poolPct)+'%';
+ $('lcNetNewV').textContent=num(netNew,0);
+ $('lcMeetingsNeeded').textContent=num(meetings,2);
+ $('lcProspectsNeeded').textContent=num(prospects,0);
+ $('lcPdlCAC').textContent=money(pdlCAC);
+ $('lcApolloCAC').textContent=money(apolloCAC);
+ $('lcPdlDataRow').textContent=money(pdlData);
+ $('lcApolloDataRow').textContent=money(apolloData);
+ $('lcWorkRow').textContent=money(work);
+ $('lcPoolRow').textContent=num(poolPct)+'%';
+ $('lcSavingRow').textContent=money(saving);
+
+ const implied3000Meetings=3000/bench;
+ const implied3000Close=implied3000Meetings?1/implied3000Meetings:0;
+ $('lcInterpretation').innerHTML=`At the current <b>${num(bench)}</b> prospects per booked meeting, <b>3,000 prospects</b> means <b>${num(implied3000Meetings,2)} booked meetings</b> to win one client — only a <b>${pct(implied3000Close)}</b> meeting-to-client close rate.`;
+
+ const rates=[50,33.333333,25,20,15,10,8.333333];
+ let rows='';
+ rates.forEach(r=>{
+   const cr=r/100, m=1/cr, p=bench*m, nn=p*(1-pool);
+   const pdl=nn*pdlData+p*work, ap=nn*apolloData+p*work, sv=pdl-ap;
+   const label=Math.abs(r-33.333333)<0.001?'33.3':Math.abs(r-8.333333)<0.001?'8.33':num(r,0);
+   rows+=`<tr><td>${label}%</td><td>${num(m,2)}</td><td>${num(p,0)}</td><td>${num(nn,0)}</td><td>${money(pdl)}</td><td>${money(ap)}</td><td class="good">${money(sv)}</td></tr>`;
+ });
+ $('lcSensitivityTable').innerHTML=rows;
+}
+
+
+// ── v2 playground: the sliders write into the master inputs every tab reads.
+const PG_LINKS=[['pgMeet','masterMeetings'],['pgCap','masterBenchmark'],['pgNeed','actualNeed'],['pgUsed','creditUsedPct'],['pgPay','payMode'],['pgCreditMode','creditMode'],['pgApollo','pdlCost'],['pgAi','workCost'],['pgEmails','emailsPerPerson'],['pgSends','sendsPerDay']];
+function setPrice1(p){$('anchor').value=p;$('at10').value=+(p*437.5/450).toFixed(2);$('floorPrice').value=+(p*400/450).toFixed(2)}
+function pgSet(){PG_LINKS.forEach(([a,b])=>{$(b).value=$(a).value});setPrice1(N('pgPrice'));update()}
+function cls(x,t){return x.pre<=0?'bad':x.preMargin<t?'amber':'good'}
+function pg(){
+ PG_LINKS.forEach(([a,b])=>{if(document.activeElement!==$(a))$(a).value=$(b).value});
+ if(document.activeElement!==$('pgPrice'))$('pgPrice').value=N('anchor');
+ const m=N('masterMeetings'),C=N('masterBenchmark'),x=programme(m,C,false),t=N('targetMargin')/100,wallet=$('creditMode').value==='wallet';
+ $('pgPriceV').textContent=money(N('anchor')).replace('.00','');$('pgMeetV').textContent=num(m);$('pgCapV').textContent=num(C);$('pgNeedV').textContent=num(N('actualNeed'));$('pgUsedV').textContent=num(N('creditUsedPct'))+'%';
+ $('pgApolloV').textContent='$'+N('pdlCost').toFixed(3);$('pgAiV').textContent=money(N('workCost'));$('pgEmailsV').textContent=num(N('emailsPerPerson'));$('pgSendsV').textContent=num(N('sendsPerDay'));
+ $('pgPriceHint').textContent=`At ${num(m)} meetings the client pays ${money(x.ppm)} each.`;
+ $('pgRev').textContent=money(x.revenue);$('pgRevS').textContent=$('payMode').value==='full'?`All of it before we run`:`${money(x.revenue/2)} now · ${money(x.revenue/2)} before Make Live`;
+ $('pgCost').textContent=money(x.delivery);$('pgCostS').textContent=`${num(x.leads)} people${x.people2?' (incl. '+num(x.people2)+' on the rerun)':''} · ${money(x.delivery/m)} per meeting`;
+ $('pgRefund').textContent=money(x.refund);$('pgRefundS').textContent=wallet?'Wallet credit — no cash goes back':`${num(x.missed)} meetings refunded`;
+ $('pgProfit').textContent=money(x.pre);$('pgProfitS').textContent=`${pct(x.preMargin)} margin · target ${pct(t)}`;
+ $('pgStory').innerHTML=`
+<div class="row"><span class="rn">Meetings delivered on the first run</span><span class="rv">${num(x.delivered1)} of ${num(m)}</span></div>
+<div class="row"><span class="rn">Missed → ${wallet?'wallet credit (once only)':'refunded in cash'}</span><span class="rv">${num(x.missed)}${wallet&&x.missed?' · '+money(x.creditValue):''}</span></div>
+${wallet?`<div class="row"><span class="rn">Credit used within 90 days → rerun (target widened)</span><span class="rv">${num(x.used,1)} meetings</span></div>
+<div class="row"><span class="rn">Delivered on the rerun</span><span class="rv">${num(x.delivered2)}</span></div>
+<div class="row"><span class="rn">Missed again — no second credit (Qualified Meeting rules)</span><span class="rv">${num(x.lost2,1)}</span></div>
+<div class="row"><span class="rn">Credit expired after 90 days — we keep it</span><span class="rv">${money(x.expired)}</span></div>`:''}`;
+ $('pgVerdict').className='callout'+(x.pre<=0||x.preMargin<t?' warn':'');
+ $('pgVerdict').innerHTML=x.pre<=0?`🔴 <b>This loses money.</b> We spend ${money(x.delivery)}${x.refund?' and pay back '+money(x.refund):''} against ${money(x.revenue)} in.`
+ :x.preMargin<t?`🟡 <b>Makes money, but under your ${pct(t)} target.</b> We keep ${money(x.pre)} of ${money(x.revenue)} (${pct(x.preMargin)}).`
+ :`🟢 <b>Healthy.</b> We keep ${money(x.pre)} of ${money(x.revenue)} (${pct(x.preMargin)}).`;
+ const keep=N('anchor');let rows='';
+ [500,450,399,299,199,149,99,75,50,25].forEach(p=>{setPrice1(p);const y=programme(m,C,false);rows+=`<tr${p===Math.round(keep)?' style="background:#241b3a"':''}><td>${money(p).replace('.00','')}${p===Math.round(keep)?' ← now':''}</td><td>${money(y.ppm)}</td><td>${money(y.revenue)}</td><td>${money(y.delivery)}</td><td>${money(y.refund)}</td><td class="${cls(y,t)}">${money(y.pre)}</td><td class="${cls(y,t)}">${pct(y.preMargin)}</td></tr>`});
+ setPrice1(keep);$('pgTable').innerHTML=rows;
+ const need=N('actualNeed');let r2='';
+ [150,200,250,300,400,500,750,1000,1500,2000].forEach(a=>{$('actualNeed').value=a;const y=programme(m,C,false);r2+=`<tr${a===need?' style="background:#241b3a"':''}><td>${num(a)}${a===need?' ← now':''}</td><td>${num(y.delivered1)}</td><td>${num(y.missed)}</td><td>${num(y.delivered2)}</td><td>${money(y.delivery)}</td><td>${money(y.refund)}</td><td class="${cls(y,t)}">${money(y.pre)}</td><td class="${cls(y,t)}">${pct(y.preMargin)}</td></tr>`});
+ $('actualNeed').value=need;$('pgRisk').innerHTML=r2;
+}
+
+function update(){
+ $('lcBenchmark').value=$('actualNeed').value;$('lcApolloData').value=$('pdlCost').value;$('lcWorkCost').value=$('workCost').value;
+ const dc=N('directClients'),pc=N('partnerClients');
+ const m=N('masterMeetings'),b=N('masterBenchmark'),clientValue=N('masterClientValue'),conversion=N('masterConversion')/100;
+ const c=companyEconomics(dc,pc,m,b);
+ $('ovDirectV').textContent=num(dc);$('ovPartnerV').textContent=num(pc);
+ $('ovScenarioV').textContent=num(m)+' meetings @ '+num(b)+':1';
+ $('ovLeadsV').textContent=num(m*b);
+ $('ovRevenue').textContent=money(c.revenue);$('ovVariable').textContent=money(c.variable);$('ovOpProfit').textContent=money(c.op);$('ovAfterTax').textContent=money(c.afterMonth);
+ $('owRevenue').textContent=money(c.revenue);$('owPdl').textContent=money(c.pdl);$('owSend').textContent=money(c.send);$('owCredit').textContent=money(c.credit);$('owWork').textContent=money(c.work);$('owStripe').textContent=money(c.stripe);$('owClientFloor').textContent=money(c.clientFloor);$('owPartner').textContent=money(c.partner);$('owFloor').textContent=money(floorTotal());$('owTax').textContent=money(c.taxUsd/12);$('owNet').textContent=money(c.afterMonth);
+ const blendedPreRevenue=(dc*c.d.revenue+pc*c.p.revenue), blendedPre=(dc*c.d.pre+pc*c.p.pre), preMargin=blendedPreRevenue?blendedPre/blendedPreRevenue:0, target=N('targetMargin')/100;
+ $('ovMessage').innerHTML=preMargin>=target?`Programme contribution before partner is <b>${pct(preMargin)}</b>, above the ${pct(target)} target. After partner commission and the company floor, monthly operating profit is <b>${money(c.op)}</b>.`:`<b>Margin warning:</b> programme contribution before partner is ${pct(preMargin)}, below the ${pct(target)} target at ${num(b)} leads per targeted meeting. Review price, benchmark or delivery costs before scaling.`;
+
+ const e=programme(m,b,false);
+ const estimatedNewClients=m*conversion;
+ const estimatedRevenue=estimatedNewClients*clientValue;
+ const revenueMultiple=e.revenue?estimatedRevenue/e.revenue:0;
+ $('masterMeetV').textContent=num(m);$('masterBenchV').textContent=num(b);$('masterValueV').textContent=money(clientValue);$('masterConvV').textContent=num(conversion*100)+'%';
+ $('prLeads').textContent=num(e.leads);$('prPpm').textContent=money(e.ppm);$('prPrice').textContent=money(e.revenue);$('prRoi').textContent=num(revenueMultiple,1)+'×';
+ $('prTargetMeetings').textContent=num(m);$('prTargetLeads').textContent=num(e.leads);
+ $('prFirst').textContent=money(e.cashFirst);$('prSecond').textContent=money(e.revenue-e.cashFirst);$('prFirstL').textContent=$('payMode').value==='full'?'Paid in full before we run':'50% before sourcing';$('prSecondL').textContent=$('payMode').value==='full'?'Nothing later':'50% before Make Live';$('prTotal').textContent=money(e.revenue);
+ $('prClientValue').textContent=money(clientValue);$('prConversion').textContent=num(conversion*100)+'%';$('prNewClients').textContent=num(estimatedNewClients,1);$('prRevenueAdded').textContent=money(estimatedRevenue);$('prRevenueMultiple').textContent=num(revenueMultiple,1)+'×';
+ $('prPdl').textContent=money(e.pdl);$('prSend').textContent=money(e.send)+' · '+num(e.mailboxes)+' box'+(e.mailboxes===1?'':'es');$('prWork').textContent=money(e.work);$('prStripe').textContent=money(e.stripe);$('prClientFloor').textContent=money(e.clientFloor);$('prDelivery').textContent=money(e.delivery);
+ $('prMessage').innerHTML=e.preMargin>=target?`<b>Healthy:</b> this programme contributes ${money(e.pre)} before partner/company floor, a ${pct(e.preMargin)} margin.`:`<b>Warning:</b> this programme contributes only ${pct(e.preMargin)} before partner/company floor. The calculator is exposing the issue rather than hiding it with a sourcing multiplier.`;
+
+ const pe=programme(m,b,true);
+ $('paScenarioV').textContent=num(m)+' meetings @ '+num(b)+':1';$('paLeadsV').textContent=num(pe.leads);
+ $('paRevenue').textContent=money(pe.revenue);$('paPre').textContent=money(pe.pre);$('paComm').textContent=money(pe.commission);$('paRetained').textContent=money(pe.retained);$('paRetMargin').textContent='Retained margin '+pct(pe.retainedMargin);
+
+ $('floorCore').textContent=money(coreFloor());$('floorSending').textContent=money(N('smartlead'));$('floorAdmin').textContent=money(adminFloorUsd());$('floorTotal').textContent=money(floorTotal());
+
+ const share=N('scalePartnerShare')/100;
+ $('scScenarioV').textContent=num(m)+' meetings @ '+num(b)+':1';$('scPartnerV').textContent=num(share*100)+'%';
+ const counts=[1,5,10,25,50,100,250,500]; let rows='';
+ counts.forEach(cl=>{const p=Math.round(cl*share),d=cl-p,x=companyEconomics(d,p,m,b),margin=x.revenue?x.op/x.revenue:0,afterYr=x.afterMonth*12;rows+=`<tr><td>${num(cl)} (${num(p)}P/${num(d)}D)</td><td>${money(x.revenue)}</td><td>${money(x.pdl+x.work+x.stripe+x.clientFloor+x.send)}</td><td>${money(x.partner)}</td><td>${money(floorTotal())}</td><td>${money(x.op)}</td><td>${pct(margin)}</td><td>${money(afterYr)}</td></tr>`});$('scaleTable').innerHTML=rows;
+
+ $('vatRegV').textContent=$('vatRegistered').value==='yes'?'YES':'NO';$('ukShareV').textContent=num(N('ukRevenueShare'))+'%';$('overseasV').textContent=gbp(N('overseasServicesMonthly'));$('inputVatV').textContent=gbp(N('recoverableInputVat'));
+ const fx=N('gbpUsd'), ukSalesMonthlyGbp=(c.revenue*(N('ukRevenueShare')/100))/fx, annualUk=ukSalesMonthlyGbp*12, annualOver=N('overseasServicesMonthly')*12, measure=annualUk+annualOver, distance=N('vatThresholdGbp')-measure;
+ $('vatRunRate').textContent=gbp(measure);$('vatDistance').textContent=gbp(distance);
+ const vatRate=N('vatRate')/100, output=$('vatRegistered').value==='yes'?ukSalesMonthlyGbp*vatRate:0, held=Math.max(0,output-N('recoverableInputVat'));
+ $('vatHeld').textContent=gbp(held);$('corpTaxYear').textContent=gbp(c.taxGbp);
+ $('taxMessage').innerHTML=distance>0?`Current annualised threshold measure is <b>${gbp(measure)}</b>, leaving <b>${gbp(distance)}</b> before the £90k planning threshold.`:`Annualised threshold measure is above £90k. Confirm the VAT position with the accountant.`;
+
+ $('openingCashV').textContent=money(N('openingCash'));$('founderCashV').textContent=money(N('founderCash'));$('goLiveV').textContent=num(N('goLivePct'))+'%';
+ const full=$('payMode').value==='full', first=full?c.revenue:c.revenue*.5, second=full?0:c.revenue*.5*(N('goLivePct')/100), vatHeldUsd=held*fx, taxMonth=c.taxUsd/12, cashOut=(c.pdl+c.work+c.stripe+c.clientFloor+c.send+c.partner+floorTotal())+vatHeldUsd+taxMonth;
+ const cashLeft=N('openingCash')+N('founderCash')+first+second-cashOut;
+ $('cashFirst').textContent=money(first);$('cashSecond').textContent=money(second);$('cashOut').textContent=money(cashOut);$('cashLeft').textContent=money(cashLeft);
+ $('cashMessage').innerHTML=`At ${num(N('goLivePct'))}% Go Live completion, cash receipts are <b>${money(first+second)}</b>. ${full?'Paid in full before we run — all cash is in before we spend.':'The first 50% arrives before sourcing; the second 50% arrives before Make Live.'} Wallet credit is a promise to deliver later (90 days, once only), not cash out.`;
+ updateFounderCAC();
+ updateLockedCAC();
+ pg();
+}
+update();
+</script></body></html>

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M&amp;V Pricing Idea — Founders vs Enterprise</title>
+<style>
+:root{--bg:#0d0a14;--panel:#17121f;--panel2:#1f1830;--line:#352b46;--ink:#f3eff8;--muted:#aaa0bb;--purple:#8b5cf6;--pink:#ec4899;--green:#52e0ae;--red:#ff8d8d;--amber:#ffd65c;--blue:#7cc7ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;line-height:1.45}
+.wrap{max-width:1180px;margin:auto;padding:22px 16px 40px}
+h1{font-family:Georgia,serif;font-size:34px;margin:0 0 6px;letter-spacing:-.3px}
+h2{font-family:Georgia,serif;font-size:24px;margin:34px 0 4px}
+.kicker{font-size:11px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#a88cff}
+.sub{color:var(--muted);font-size:14px;max-width:880px}
+.tag{display:inline-block;font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:#352706;color:var(--amber);border:1px solid #795b0f;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h3{margin:0 0 6px;font-size:17px}
+.muted{color:var(--muted);font-size:13px}
+.big{font-size:40px;font-weight:950;letter-spacing:-1px}
+.pill{display:inline-block;font-size:11px;font-weight:900;padding:3px 9px;border-radius:999px;margin:2px 4px 2px 0}
+.p-green{background:#123a2a;color:var(--green)}.p-purple{background:#2a1d4d;color:#c4b0ff}.p-amber{background:#3d300a;color:var(--amber)}.p-red{background:#3d1414;color:var(--red)}.p-blue{background:#102c43;color:var(--blue)}
+/* pricing page mock */
+.mock{background:#fff;color:#1b1530;border-radius:16px;padding:18px;margin-top:14px}
+.mock .nav{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.logo{font-weight:950;font-size:26px;background:linear-gradient(90deg,#ec4899,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.navlinks{display:flex;gap:16px;font-size:13px;color:#555;flex-wrap:wrap}.navlinks b{color:#1b1530}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.plan{border:1px solid #e3def0;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.plan .ribbon{font-size:11px;font-weight:900;text-align:center;padding:6px;background:#f3eefe;color:#5b3bd6;letter-spacing:.6px}
+.plan .ribbon.ent{background:linear-gradient(90deg,#fde7f3,#ece6ff);color:#8a2e6b}
+.plan .body{padding:16px;flex:1}
+.plan h4{font-size:22px;margin:0 0 2px;font-family:Georgia,serif}
+.plan .who{font-size:12px;color:#6b6480;margin-bottom:10px}
+.plan .price{font-size:42px;font-weight:950;color:#1b1530}.plan .price small{font-size:13px;font-weight:700;color:#6b6480}
+.plan .btn{display:inline-block;margin:12px 0 4px;padding:10px 16px;border-radius:9px;font-weight:900;font-size:13px}
+.btn.o{border:1.5px solid #5b3bd6;color:#5b3bd6}.btn.f{background:#5b3bd6;color:#fff}
+.plan .foot{background:#f7f5fc;padding:14px 16px;font-size:13px;color:#2f2845}
+.plan .foot b{display:block;margin-bottom:6px}
+.plan ul{margin:0;padding-left:18px}.plan li{margin:4px 0}
+.soon{font-size:10px;font-weight:900;background:#fff4d6;color:#8a6200;border-radius:999px;padding:1px 6px;margin-left:4px}
+/* flow */
+.flow{display:flex;flex-direction:column;gap:0;margin-top:14px}
+.step{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:start}
+.num{width:54px;height:54px;border-radius:14px;background:linear-gradient(145deg,#6d35ea,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:950;font-size:20px}
+.num.gate{background:linear-gradient(145deg,#b45309,#f59e0b)}.num.money{background:linear-gradient(145deg,#047857,#10b981)}.num.end{background:linear-gradient(145deg,#be185d,#ec4899)}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.sbox h4{margin:0 0 3px;font-size:15px}
+.arrow{margin-left:26px;height:18px;border-left:2px dashed #5b4a7a}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.branch{border-radius:10px;padding:10px 12px;font-size:13px}
+.b-yes{background:#10291f;border:1px solid #176841;color:#96f1c8}.b-no{background:#2c1212;border:1px solid #6b2424;color:#ffc2c2}
+.shield{font-size:12px;color:var(--amber);margin-top:6px}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#211a2b;color:#b9aec9;padding:9px;text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+td{padding:9px;border-bottom:1px solid #2b2337;vertical-align:top}
+.tw{overflow:auto;border:1px solid #30263d;border-radius:12px;margin-top:12px}
+.good{color:var(--green);font-weight:900}.bad{color:var(--red);font-weight:900}.amber{color:var(--amber);font-weight:900}
+.callout{background:#111d2a;border:1px solid #234c72;color:#a9d8ff;border-radius:12px;padding:12px 14px;font-size:13px;margin-top:12px}
+.warn{background:#352706;border-color:#795b0f;color:#ffe07a}
+.q{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid #2b2337}
+.q:last-child{border-bottom:0}.qn{width:30px;height:30px;border-radius:9px;background:#2a1d4d;color:#c4b0ff;font-weight:950;display:flex;align-items:center;justify-content:center}
+.footer{text-align:center;color:#6e6579;font-size:11px;margin-top:30px}
+@media(max-width:820px){.grid2,.grid3,.plans,.split{grid-template-columns:1fr}h1{font-size:27px}.big{font-size:32px}}
+</style></head>
+<body><div class="wrap">
+
+<div class="kicker">Brain · brainstorm · 24 Sep 2026</div>
+<h1>Two prices, one product: Founders vs Enterprise</h1>
+<div class="sub">A new founder will never pay $450 a meeting. An enterprise will doubt anything at $99. So each audience gets its own price. Enterprise gets <b>more</b>, not just a higher price, and the whole programme is protected so it can never lose money.</div>
+<span class="tag">💡 IDEA — nothing here is decided or live. Today's live rules: $450 on the site (R141), paid 50/50 (R141), limit 400 people per meeting (R136).</span>
+
+<!-- 1 WHO -->
+<h2>1 · Who pays what</h2>
+<div class="sub">The category is set automatically from Apollo's company size. The client never picks it, so a 500-person company can't tick "small".</div>
+<div class="grid2">
+ <div class="card" style="border-color:#6d35ea">
+  <span class="pill p-purple">FOR FOUNDERS</span><h3>Small business · 0–200 people</h3>
+  <div class="big">$99 <span class="muted" style="font-size:14px;font-weight:700">per qualified meeting · less at volume</span></div>
+  <div class="muted">Price shown on the site <b>before</b> signup. Meetings, Milla, reporting.</div>
+ </div>
+ <div class="card" style="border-color:#be185d">
+  <span class="pill" style="background:#3d1330;color:#ffb3dd">FOR ENTERPRISE</span><h3>200+ people</h3>
+  <div class="big">Custom <span class="muted" style="font-size:14px;font-weight:700">from $450 per qualified meeting</span></div>
+  <div class="muted">"Talk to us". Everything Founders get, <b>plus Coaching</b> and enterprise extras.</div>
+ </div>
+</div>
+
+<!-- 2 PRICING PAGE -->
+<h2>2 · What the pricing page could look like</h2>
+<div class="sub">Smartsheet-style: a clear price where people buy on their own, and "Contact us" where they need a conversation. The exact quote comes from Milla's calculator after the Free Proof.</div>
+<div class="mock">
+ <div class="nav"><span class="logo">M&amp;V</span><div class="navlinks"><span>For Founders</span><span>For Enterprise</span><b>Pricing</b><span>About Us</span></div></div>
+ <div style="font-size:14px;color:#4b4463;margin-bottom:14px">You pay for one thing: a <b>Qualified Meeting</b>. Free Proof comes first — see 20 real people before you pay anything.</div>
+ <div class="plans">
+  <div class="plan"><div class="ribbon">FOR FOUNDERS · 0–200 PEOPLE</div><div class="body">
+   <h4>Founders</h4><div class="who">For founders who need pipeline now.</div>
+   <div class="price">$99 <small>per qualified meeting</small></div>
+   <div class="who">Bigger programmes cost less per meeting. Paid once, before we start.</div>
+   <span class="btn o">Start with a Free Proof</span></div>
+   <div class="foot"><b>Includes:</b><ul><li>Free Proof — 20 real people first</li><li>Milla builds and runs your programme</li><li>Qualified meetings in your calendar</li><li>Results and reporting</li><li>Missed meeting? Credit, not a lost payment</li></ul></div>
+  </div>
+  <div class="plan"><div class="ribbon ent">FOR ENTERPRISE · 200+ PEOPLE</div><div class="body">
+   <h4>Enterprise</h4><div class="who">For sales teams who need meetings — and need to win them.</div>
+   <div class="price" style="font-size:32px">Custom pricing</div>
+   <div class="who">Built around your team, volume and process.</div>
+   <span class="btn f">Talk to us</span></div>
+   <div class="foot"><b>Everything in Founders, plus:</b><ul>
+    <li><b>Milla Coaching</b> — turn meetings into deals <span class="soon">CHECK BUILT</span></li>
+    <li>Team seats — every rep, one view <span class="soon">COMING</span></li>
+    <li>Your own sending domain and mailboxes <span class="soon">COMING</span></li>
+    <li>A named person and white-glove setup</li>
+   </ul></div>
+  </div>
+ </div>
+</div>
+<div class="callout warn">Only list what is built. Anything else carries "coming soon". Milla already has a Coaching area in her menu. How much it does today needs checking before it is promised.</div>
+
+<!-- 3 JOURNEY -->
+<h2>3 · The journey, with the protections built in</h2>
+<div class="sub">🛡 = where we protect ourselves.</div>
+<div class="flow">
+ <div class="step"><div class="num">1</div><div class="sbox"><h4>Visitor lands — For Founders or For Enterprise</h4><div class="muted">Founders see $99 on the pricing page. Enterprise sees "Talk to us".</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num">2</div><div class="sbox"><h4>Sign up — the category is set automatically</h4><div class="muted">Apollo tells us company size: 0–200 → Founders · 200+ → Enterprise.</div><div class="shield">🛡 The client can't choose their own price band.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num">3</div><div class="sbox"><h4>Free Proof — "These are my people"</h4><div class="muted">20 real people, free. This is where trust is earned before we ask for money.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num">4</div><div class="sbox"><h4>Milla's calculator — the exact quote</h4><div class="muted">Meetings wanted × their band's price, with the volume discount applied automatically.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num money">5</div><div class="sbox"><h4>Paid in full, before we run</h4><div class="muted">One payment. No 50/50.</div><div class="shield">🛡 All the cash is in before we spend anything.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num">6</div><div class="sbox"><h4>We find people — up to the cap</h4><div class="muted">Cap: 250–300 people per meeting.</div><div class="shield">🛡 Our cost can never run away.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num gate">?</div><div class="sbox"><h4>Stage gate: cap reached, meetings still short?</h4>
+  <div class="split"><div class="branch b-yes"><b>Client widens their target</b><br>Job titles, seniority, company size, location. They approve it. We continue.</div><div class="branch b-no"><b>Client doesn't widen</b><br>We stop. Nothing moves forward without approval.</div></div>
+  <div class="shield">🛡 No more people without the client's approval.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num">7</div><div class="sbox"><h4>Meetings are booked — counted by the 7 Qualified Meeting rules</h4><div class="muted">In their ICP · right role · agreed to meet · date and time set · genuinely relevant · not an existing customer · acceptance evidenced. Attendance is not guaranteed.</div><div class="shield">🛡 A clear definition ends arguments. Rule 07 needs the product to save the proof for every meeting.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num money">8</div><div class="sbox"><h4>Missed meetings → wallet credit, never a refund</h4><div class="muted">Credit goes into their wallet for a rerun on the wider target.</div><div class="shield">🛡 Given once only · expires after 90 days · a credit costs us the delivery cost, not the price.</div></div></div>
+ <div class="arrow"></div>
+ <div class="step"><div class="num end">9</div><div class="sbox"><h4>Complete → the next programme</h4><div class="muted">Results shown. Repeat or expand. Enterprise gets Coaching to win the meetings.</div></div></div>
+</div>
+
+<!-- 4 PROTECTIONS -->
+<h2>4 · Every risk, and what protects it</h2>
+<div class="tw"><table><thead><tr><th>Risk</th><th>Protection</th></tr></thead><tbody>
+<tr><td>We spend before we're paid</td><td>Paid in full, before we run</td></tr>
+<tr><td>Finding people runs away with our cost</td><td>Cap of 250–300 people per meeting</td></tr>
+<tr><td>The client's target is too narrow</td><td>Stage gate: they widen and approve, or we stop</td></tr>
+<tr><td>Missed meetings cost us cash</td><td>Wallet credit, never a refund</td></tr>
+<tr><td>Credit piles up forever</td><td>Once only · expires after 90 days</td></tr>
+<tr><td>Arguments about what counts</td><td>The 7 Qualified Meeting rules · attendance not guaranteed</td></tr>
+<tr><td>A big company claims to be small</td><td>Category set by Apollo company size, not by the client</td></tr>
+<tr><td>Too cheap to survive bad luck</td><td>Price floor: Founders at about $99, never $50 or below</td></tr>
+</tbody></table></div>
+
+<!-- 5 NUMBERS -->
+<h2>5 · The numbers (from the v2 Money Control Room)</h2>
+<div class="sub">10 meetings · cap 300 · paid in full · wallet credit used in full. Our cost ≈ 15¢ per person (Apollo + AI + mailboxes — working estimates).</div>
+<div class="grid2">
+ <div class="card"><span class="pill p-purple">FOUNDERS · $99</span><h3>Client pays $962.50</h3>
+  <div class="tw" style="margin-top:8px"><table><thead><tr><th>People it really takes per meeting</th><th>Meetings first time</th><th>We keep</th></tr></thead><tbody>
+  <tr><td>250 (plan)</td><td>10 of 10</td><td class="good">$582 · 60%</td></tr>
+  <tr><td>1,000 (bad luck)</td><td>3 of 10 · 7 credited</td><td class="amber">$249 · 26%</td></tr>
+  <tr><td>2,000 (very bad luck)</td><td>1 of 10 · 9 credited</td><td class="amber">$177 · 18%</td></tr>
+  </tbody></table></div>
+  <div class="muted" style="margin-top:8px">Never a loss at $99. With a cash refund instead, the 1,000 row would lose $153.</div></div>
+ <div class="card"><span class="pill" style="background:#3d1330;color:#ffb3dd">ENTERPRISE · from $450</span><h3>Client pays $4,375</h3>
+  <div class="tw" style="margin-top:8px"><table><thead><tr><th>People it really takes per meeting</th><th>We keep</th></tr></thead><tbody>
+  <tr><td>250 (plan)</td><td class="good">$3,824 · 87%</td></tr>
+  <tr><td>1,000 (bad luck)</td><td class="good">$3,491 · 80%</td></tr>
+  </tbody></table></div>
+  <div class="muted" style="margin-top:8px">Plenty of room to pay for Coaching, team seats and a named person.</div></div>
+</div>
+<div class="callout">Worth checking against real programmes: how many people it really takes per meeting, what Apollo, AI and mailboxes actually cost, and how many programmes a month we can run. At $99, one 10-meeting programme uses a whole month of Apollo Basic credits.</div>
+
+<!-- 6 OPEN -->
+<h2>6 · Still to decide</h2>
+<div class="card" style="margin-top:12px">
+ <div class="q"><div class="qn">1</div><div><b>Two bands or three?</b><div class="muted">Founders (0–200) + Enterprise (200+) — or Apollo-style 1–50 · 51–200 · 200+.</div></div></div>
+ <div class="q"><div class="qn">2</div><div><b>The exact Founders price.</b><div class="muted">$99 is the idea. The model says about $99 or more stays safe. $149 or $199 leaves more room.</div></div></div>
+ <div class="q"><div class="qn">3</div><div><b>The 3–4 Enterprise extras.</b><div class="muted">Coaching (lead) · team seats · own sending domain · named person · CRM connection · board-ready reports · security paperwork.</div></div></div>
+ <div class="q"><div class="qn">4</div><div><b>Cap: 250 or 300 people per meeting?</b><div class="muted">And when a client widens, do the new people come from the same cap?</div></div></div>
+ <div class="q"><div class="qn">5</div><div><b>Is Coaching built enough to sell?</b><div class="muted">Milla has a Coaching area. What it does today needs checking.</div></div></div>
+ <div class="q"><div class="qn">6</div><div><b>Rules this would change, only on your word.</b><div class="muted">$450 on the site (R141) · 50/50 payment (R141) · 400 limit (R136) · "unused value never expires" (#1522) → 90 days · client terms updated for credit, once only, 90 days.</div></div></div>
+</div>
+
+<div class="footer">M&amp;V · pricing idea · Brain brainstorm 24 Sep 2026 · not decided, not live</div>
+</div></body></html>

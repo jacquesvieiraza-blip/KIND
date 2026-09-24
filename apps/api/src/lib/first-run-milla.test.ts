@@ -522,7 +522,13 @@ describe('Milla wears her own face, and FIGSY is nowhere in her first run', () =
     // `milla-vida-shell.test.ts` pins to absent. Her face on the first screen is the
     // requirement; which file draws it is not.
     const shellCode = readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8')
-    expect(shellCode, "the shell lost Milla's canonical face").toContain('/agents/milla.png')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): WAS `expect(shellCode).toContain('/agents/milla.png')`.
+    // The founder's redesign draws the brand as the M&V mark and Milla as her gradient "M"
+    // avatar with her name — no photograph — and he ordered it matched exactly. The 24-Aug
+    // duty this guarded is kept word for word below: nothing on her first run may show another
+    // agent's face (FIGSY), and onboarding may not bypass the portal chrome.
+    expect(shellCode, "the shell lost the M&V brand mark").toContain('<div className="mv-mark">M</div>')
+    expect(shellCode, 'another agent\'s face is on Milla\'s screen').not.toMatch(/figsy\.(png|jpg|webp)/i)
     // ⚠️ ANCHORED TO A STATEMENT, NOT TO THE TEXT. The shell's own tombstone comment quotes
     // the removed line verbatim — a plain `toContain` matches the history and reports the
     // fix as the defect.

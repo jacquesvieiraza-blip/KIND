@@ -724,9 +724,17 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
       join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
     // The workspace is unconditional for every non-Proof stage, exactly as before; the review
     // is a sibling beneath it, gated on the Approval stage alone.
-    expect(page).toContain('<ProgrammeWorkspace p={prog} />')
-    expect(page).toContain("prog.stage === 'Approval' && (")
-    expect(page).toContain('<ProgrammeReview token={token} />')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*), and the founder's *"we never leave one chat to go to another… the only change
+    // is the right screen"*: WAS `<ProgrammeWorkspace p={prog} />` + `prog.stage === 'Approval'`
+    // + `<ProgrammeReview token={token} />` on Home. Home's right side is now the Programme
+    // screen itself, so the SAME duty is asserted where it now lives: the workspace renders
+    // unconditionally and the approval surface is added beneath it, never in its place.
+    expect(page).toContain('<ProgrammeScreen />')
+    const programme = readFileSync(
+      join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
+    expect(programme).toContain('<ProgrammeWorkspace p={p} />')
+    expect(programme).toContain('<ProgrammeApproval')
+    expect(programme.indexOf('<ProgrammeWorkspace p={p} />')).toBeLessThan(programme.indexOf('<ProgrammeApproval'))
   })
 })
 

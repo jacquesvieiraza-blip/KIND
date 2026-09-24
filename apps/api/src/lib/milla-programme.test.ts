@@ -259,18 +259,21 @@ describe('TENANCY AND SAFETY OF THE CUSTOMER ROUTE', () => {
 
 describe('THE APPROVED SHELL CHANGES, AND ONLY THOSE', () => {
   it('"New leads" is now Home, and its per-lead badge is gone', () => {
-    expect(SHELL).toContain("link('/milla', 'Home'")
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): the rail is the redesign's two groups, built from one RAIL list.
+    expect(SHELL).toContain("['Workspace', '/milla', 'Home', '⌂', undefined]")
     expect(SHELL_CODE, 'the per-lead approval badge survived — the programme model has no per-lead approval')
       .not.toContain("isLeads, s?.leads_awaiting")
   })
 
   it('"My campaign" is now Programme and points at the new route', () => {
-    expect(SHELL).toContain("link('/milla/programme', 'Programme'")
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): re-pointed to the redesign's RAIL list; same route, same label.
+    expect(SHELL).toContain("['Workspace', '/milla/programme', 'Programme', '◇', undefined]")
     expect(SHELL_CODE).not.toContain("'My campaign'")
   })
 
   it('the rail footer is the founder\'s exact words', () => {
-    expect(SHELL).toContain('Tell Milla the outcome. We’ll do the work.')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): same words, set on two lines as the redesign's rail foot draws them.
+    expect(SHELL).toContain('Tell Milla the outcome.<br />We’ll do the work.')
     expect(SHELL_CODE, 'the old per-lead-approval footer survived')
       .not.toContain('You just approve the leads worth pursuing')
   })
@@ -396,7 +399,10 @@ describe('THE MILLA HOME IS THE PROGRAMME HOME', () => {
   })
 
   it('③ the home renders the SHARED ProgrammeWorkspace', () => {
-    expect(HOME_CODE).toContain('<ProgrammeWorkspace')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): Home renders the Programme screen in place, and that screen renders the
+    // SHARED workspace — still one implementation, now one screen, so the two cannot disagree.
+    expect(HOME_CODE).toContain('<ProgrammeScreen />')
+    expect(HOME_CODE).toContain("import ProgrammeScreen from './programme/page'")
     expect(HOME_CODE).toContain("from '@/components/milla/ProgrammeWorkspace'")
   })
 
@@ -660,18 +666,18 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
         .toMatch(/if \(pr\.status === 'fulfilled'\) setStage\(pr\.value\.data\.stage\)/)
     })
 
-    it('⑩ the ribbon keeps its design and placement — this was not a redesign', () => {
-      // Same container, same numbering, same chevrons, same FLOW label, same position:
-      // directly after the top bar's </header> and before the rail.
-      expect(SHELL_CODE).toContain('bg-[#2a1747] text-white')
-      expect(SHELL_CODE).toContain('text-[#b9a6e6] mr-2.5">FLOW<')
-      expect(SHELL_CODE).toContain('{i + 1}')
-      expect(SHELL_CODE).toContain('text-[#5b4785] px-0.5">›<')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): INVERTED. WAS '⑩ the ribbon keeps its design and placement — this was
+    // not a redesign' (the dark `bg-[#2a1747]` strip, `›` chevrons, pink current dot). It now IS
+    // the founder-ordered redesign: the redesign's FLOW bar — ✓ on finished stages, the accent
+    // ring on the current one. The placement duty is unchanged and still asserted: directly
+    // after the top bar and before the rail, numbered, derived from the shared constant.
+    it('⑩ the ribbon is the redesign\'s FLOW bar, in the same place', () => {
+      expect(SHELL_CODE).toContain('<div className="mv-stagebar hidden md:flex">')
+      expect(SHELL_CODE).toContain('<div className="mv-label">FLOW</div>')
+      expect(SHELL_CODE).toContain("{isDone ? '✓' : i + 1}")
+      expect(SHELL_CODE).toContain("mv-step ${isCurrent ? 'on' : isDone ? 'done' : ''}")
       expect(SHELL_CODE.indexOf('</header>')).toBeLessThan(SHELL_CODE.indexOf('MILLA_STAGES.map'))
       expect(SHELL_CODE.indexOf('MILLA_STAGES.map')).toBeLessThan(SHELL_CODE.indexOf('<aside'))
-      // The current marker reuses the ribbon's OWN existing accent — no new colour entered
-      // the design to satisfy "show the current stage".
-      expect(SHELL_CODE).toContain("isCurrent ? 'bg-[#EC4899]' : 'bg-[#3d2a63]'")
     })
   })
 
@@ -682,7 +688,11 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
       expect(SHELL_CODE.toLowerCase(), `invented top-bar copy: ${invented}`).not.toContain(invented)
     }
     // The Account dropdown keeps its position and its contents.
-    expect(SHELL_CODE).toContain('Account <ChevronDown')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): the corner is the redesign's — the client's initials and company name,
+    // or "Account" before there is one — and the drop-down behind it is unchanged (founder:
+    // *"dont forget in Milla you need to keep top right drop down"*).
+    expect(SHELL_CODE).toContain("const who = companyName ?? 'Account'")
+    expect(SHELL_CODE).toContain('{who} <ChevronDown')
     expect(SHELL_CODE).toContain("['/milla/settings', 'Settings', User]")
   })
 })

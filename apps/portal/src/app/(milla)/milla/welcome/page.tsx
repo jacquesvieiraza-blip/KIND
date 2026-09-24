@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 // ⚑ 22 Sep — THE CAPACITY MODEL, IMPORTED RATHER THAN RE-DERIVED. Method rule 7 applied to
@@ -400,6 +402,11 @@ function resumeGreeting(count: number, total: number, nextLabel: string | null):
 
 export default function MillaWelcomePage() {
   const router = useRouter()
+  // ⚑ 24 Sep — THE ONE CHAT. This page runs the Brief's conversation engine, but it draws it in
+  // the shell's column — claimed on arrival, handed back on leaving (see the portal below).
+  const conversation = useMillaConversation()
+  const claimChatSlot = conversation.claimChatSlot
+  useEffect(() => claimChatSlot(), [claimChatSlot])
   const [messages, setMessages] = useState<Msg[]>(GREETING_LINES.map(content => ({ role: 'assistant', content })))
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
@@ -1418,35 +1425,32 @@ export default function MillaWelcomePage() {
              ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT — byte-identical to
              `MillaConversation`'s own column, so the first run and every later screen are the
              same object at every width rather than two things that resemble each other. */}
-        <section className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
-          {/* ⚑ 22 Sep — HER HEADER, RESTORED WHERE IT BELONGS. The page's own 54px header went
-              when the shell's account bar took over, and it took this with it: the client was
-              left talking to an unlabelled box. This is the conversation's header, not the
-              page's — the same one `MillaConversation` draws, so she is introduced the same
-              way on the first screen as on the other nine. */}
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
-            <img src="/agents/milla.png" alt="" className="w-7 h-7 rounded-lg object-cover object-top" />
-            <div className="min-w-0 truncate">
-              <b className="text-[15px]">Milla</b>
-              <span className="text-[#9b8ec4] text-[12.5px]"> · conversational &amp; strategic</span>
-            </div>
-            <span className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] inline-flex items-center gap-1.5 whitespace-nowrap">
-              <span className="w-2 h-2 rounded-full bg-[#c9bee6]" /> Outreach hasn&rsquo;t started
-            </span>
-          </div>
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-3">
+        {/* ── 🛑 ⚑ 24 Sep — THE BRIEF SPEAKS IN THE ONE CHAT, NOT A SECOND ONE ─────────────────
+             Founder, verbatim: *"we never leave one chat to go to another. not how it workss. evern
+             the first part. the only change is the right screen."*
+             ⛓️ WAS: ~~`<section className="w-full md:w-[600px] shrink-0 …">`~~ — this page drew its
+             OWN conversation column (header, transcript, composer) while the shell's stood down,
+             so moving on to Proof replaced one chat with another and the Brief vanished.
+             Now the shell's column is the only one: this page CLAIMS its body (`claimChatSlot`)
+             and renders the Brief's transcript and composer into it through a portal. Every word,
+             rule and control below is unchanged — only where it is drawn moved. Releasing the
+             claim (leaving this page) hands the column back, and the shell shows the Brief first. */}
+        {conversation.chatSlot ? createPortal(
+          <>
+          <div ref={bodyRef} className="mv-chat">
+            <>
               {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`mv-msg ${m.role === 'user' ? 'client' : 'agent'}`}>
+                  <div className="mv-who">{m.role === 'user' ? 'You' : 'Milla'}</div>
                   {/* ⚑ 22 Sep — `whitespace-pre-line`, because the locked opening's third
                       message carries a real paragraph break before "Looking costs nothing"
                       and the default collapse ran the commercial promise onto the end of the
                       sentence above it. Applies to every bubble: Milla's own replies already
                       contained blank lines that were being flattened the same way. */}
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7]'}`}>{m.content}</div>
+                  <div className="mv-bubble whitespace-pre-line">{m.content}</div>
                 </div>
               ))}
-              {thinking && <div className="flex justify-start"><div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[13px]">Milla is thinking…</div></div>}
+              {thinking && <div className="mv-msg agent"><div className="mv-who">Milla</div><div className="mv-bubble text-[#a29aa9]">Milla is thinking…</div></div>}
               {error && (
                 <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-3">
                   <span className="flex-1">{error}</span>
@@ -1494,9 +1498,9 @@ export default function MillaWelcomePage() {
                   )}
                 </div>
               )}
-            </div>
+            </>
           </div>
-          <div className="shrink-0 px-6 pb-5 pt-2 border-t border-[#eee7f7] bg-white">
+          <div className="shrink-0">
             {/* The composer is closed until we know whether this person already has an
                 account — see the `status` comment above. A failed lookup offers a retry
                 rather than a guess, because both guesses are wrong for somebody. */}
@@ -1508,7 +1512,7 @@ export default function MillaWelcomePage() {
                  The composer below stays exactly as enabled as it was: the client answers in
                  their own words, and the next turn is an ordinary Milla turn. */}
             {outstanding && status === 'ready' && (
-              <div role="status" className="max-w-2xl mx-auto mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
+              <div role="status" className="mx-[18px] mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
                 <span aria-hidden className="text-[13px] leading-none mt-0.5">📝</span>
                 <span className="text-[12.5px] text-[#5c5279] leading-relaxed">
                   {/* ── 🛑 ⚑ 16 Sep (S1-ONB-002) — THE NUMBER IS THE ELEVEN, OR THERE IS NO NUMBER.
@@ -1538,31 +1542,32 @@ export default function MillaWelcomePage() {
                  longer the untouched opening, Milla is asking her own questions and a row of
                  generic openers beneath them would be competing with her. */}
             {isUntouchedGreeting(messages) && status === 'ready' && !thinking && (
-              <div className="max-w-2xl mx-auto mb-2 flex flex-wrap gap-1.5">
+              <div className="mv-quickbar">
                 {STARTERS.map(s => (
-                  <button key={s} type="button" onClick={() => send(s)}
-                    className="text-[11.5px] text-[#4c4459] bg-white border border-[#ded8e8] rounded-full px-3 py-1.5 hover:border-[#7C3AED] hover:text-[#5b21b6]">
+                  <button key={s} type="button" onClick={() => send(s)} className="mv-quick">
                     {s}
                   </button>
                 ))}
               </div>
             )}
             {status === 'error' ? (
-              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="mx-[18px] mb-[18px] flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <span className="text-[12.5px] text-[#7a6a3a]">I couldn&rsquo;t load your account just now, so I&rsquo;d rather not start until I can.</span>
                 <button type="button" onClick={() => { void loadStatus() }}
                   className="text-[12.5px] font-bold text-white rounded-xl px-4 py-2 bg-[#7C3AED] shrink-0">Try again</button>
               </div>
             ) : (
-              <form onSubmit={e => { e.preventDefault(); send(input) }} className="max-w-2xl mx-auto flex gap-2">
+              <form onSubmit={e => { e.preventDefault(); send(input) }} className="mv-composer">
                 <input value={input} onChange={e => setInput(e.target.value)} disabled={status !== 'ready'}
                   placeholder={status === 'ready' ? 'e.g. Heads of Ops at UK logistics firms, 50–500 staff…' : 'One moment — getting your account ready…'}
-                  className="flex-1 text-[13.5px] rounded-xl border border-[#e4dcf7] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 disabled:opacity-50" />
-                <button type="submit" disabled={status !== 'ready' || thinking || !input.trim()} className="text-[13px] font-bold text-white rounded-xl px-6 bg-[#7C3AED] disabled:opacity-50">Send</button>
+                  className="disabled:opacity-50" />
+                <button type="submit" disabled={status !== 'ready' || thinking || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
               </form>
             )}
           </div>
-        </section>
+          </>,
+          conversation.chatSlot,
+        ) : null}
 
         {/* proposal */}
         {/* ⚑ 22 Sep — THE WORKSPACE IS THE SCREEN, not a 420px strip beside a conversation

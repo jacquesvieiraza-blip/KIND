@@ -400,23 +400,6 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   // above the element this panel is painted into. What moved is the conversation: the
   // blockers it is scoped by, the transcript, the shortcuts and the composer.
   const panel = (<>
-        {/* live gate counts for THIS client.
-            ⚑ 4 Sep (UI-010) — GUARDED ON THE FACTS, NOT ON THE OBJECT. `{surface && …}` drew
-            "0 Send gate · 0 Money gate · 0 Unsent sourced · 0 To triage" for any published
-            surface at all, so a workspace that cleared its contribution still left a row of
-            confident zeros nobody had read. No blockers, no strip. */}
-        {surface?.blockers && (
-          <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
-            {([['Send gate', surface.blockers?.send_gate], ['Money gate', surface.blockers?.money_gate], ['Unsent sourced', surface.blockers?.unsent_sourced], ['To triage', surface.blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
-              <span key={label} className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
-            ))}
-            {surface.outreachEnabled === false && (
-              <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
-            )}
-          </div>
-        )}
-
         {/* ── ⚑ 9 Sep — VIDA'S HEADER, AND THE ONE WORD FOR HER POSTURE ──────────────────
             🛑 FOUR MODES AND NO OTHERS: No action needed · Working · Watching · Needs you.
             The pill is the fastest thing on the screen to read, so it must never say anything
@@ -439,6 +422,25 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
             </span>
           </div>
         )}
+        {/* ⛓️ 24 Sep (R145 · "a screen in a screen") — the blocker strip moved BELOW Vida's header:
+            the redesign's column opens with Vida, and a row of counts above her read as another screen. */}
+        {/* live gate counts for THIS client.
+            ⚑ 4 Sep (UI-010) — GUARDED ON THE FACTS, NOT ON THE OBJECT. `{surface && …}` drew
+            "0 Send gate · 0 Money gate · 0 Unsent sourced · 0 To triage" for any published
+            surface at all, so a workspace that cleared its contribution still left a row of
+            confident zeros nobody had read. No blockers, no strip. */}
+        {surface?.blockers && (
+          <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
+            {([['Send gate', surface.blockers?.send_gate], ['Money gate', surface.blockers?.money_gate], ['Unsent sourced', surface.blockers?.unsent_sourced], ['To triage', surface.blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
+              <span key={label} className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
+            ))}
+            {surface.outreachEnabled === false && (
+              <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
+            )}
+          </div>
+        )}
+
 
         <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2">
           {surface?.boardError && <div className="text-[13px] font-semibold text-red-600">{surface.boardError}</div>}

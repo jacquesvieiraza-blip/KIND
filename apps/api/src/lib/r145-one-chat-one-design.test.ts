@@ -91,9 +91,22 @@ describe('R145 · the redesign, matched from its own stylesheet', () => {
   it('🛑 it holds the redesign\'s own values — colours, frame, bars, columns', () => {
     for (const v of ['--mv-accent:#6f3df4', '--mv-accent2:#d84ca5', '--mv-ink:#17141c', '--mv-page:#f6f4f8',
       'grid-template-rows:64px 42px 1fr', 'grid-template-columns:180px minmax(470px,560px) minmax(430px,1fr)',
-      'grid-template-columns:180px minmax(560px,1fr) 430px', 'border-radius:20px']) {
+      'grid-template-columns:180px minmax(560px,1fr) 430px']) {
       expect(CSS, v).toContain(v)
     }
+  })
+
+  it('🛑 the app FILLS the window — no frame drawn around it (a screen in a screen)', () => {
+    // ⛓️ 24 Sep — WAS `'border-radius:20px'` in the list above: the redesign's picture-frame
+    // (1540px card, margin, border, radius, shadow) copied onto the real app. Founder: *"you
+    // have done a screen in a screen. thats not right."* The frame is how the design files
+    // PICTURE a screen; the product is the screen.
+    const shell = CSS.slice(CSS.indexOf('.mv-app-shell{'), CSS.indexOf('}', CSS.indexOf('.mv-app-shell{')))
+    expect(shell).toContain('width:100%')
+    expect(shell).toContain('height:100vh')
+    expect(shell).toContain('margin:0')
+    expect(shell).toContain('border-radius:0')
+    expect(shell).not.toMatch(/min\(1540px|box-shadow:var|border:1px/)
   })
 
   it('🛑 the Milla shell is built from those classes', () => {

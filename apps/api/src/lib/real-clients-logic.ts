@@ -10,8 +10,9 @@
 // real-clients.ts; this file holds only the pure set computation it leans on.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** The founder's own testing account — never revenue. Lower-cased for compares. */
-export const HOUSE_ACCOUNT_EMAIL = 'hello@get-kind.com'
+/** The founder's own testing account — never revenue. ⛓️ 24 Sep (R152) — WAS a local
+ *  `'hello@get-kind.com'`; the House is now a list in `@kind/shared`, read by both apps. */
+export { HOUSE_ACCOUNT_EMAIL, HOUSE_ACCOUNT_EMAILS, isHouseEmail } from '@kind/shared'
 
 export interface MinClient {
   id: string

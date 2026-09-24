@@ -78,7 +78,7 @@ function capOf(c: Capacity | null): number | null {
   return c && c.known && c.committed > 0 ? c.committed : null
 }
 
-export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepted }: {
+export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepted, internalBilling }: {
   onChosen?: () => void
   /** ⚑ 24 Sep (R145 step 4) — a programme already chosen opens the slider at its own target. */
   startAt?: number | null
@@ -86,6 +86,12 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
   onWiden?: () => void
   /** ⚑ 24 Sep — already accepted at `startAt`: pressing again goes straight to the payment. */
   alreadyAccepted?: boolean
+  /**
+   * ⚑ 24 Sep (R152) — THE HOUSE ACCOUNT. The server's `money.internalBilling` (true only for a
+   * House login). House never pays: its P1 is authorised in Vida ("Authorise P1 internally"), so
+   * accepting here records the choice and the acceptance and opens NO payment page.
+   */
+  internalBilling?: boolean
 }) {
   const [meetings, setMeetings] = useState(startAt && startAt > 0 ? startAt : 10)
   const [capacity, setCapacity] = useState<Capacity | null>(null)
@@ -181,6 +187,8 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
       }
       setChosen(true)
       onChosen?.()
+      // ⚑ 24 Sep (R152) — House: accepted, and nothing to pay. Vida authorises P1 internally.
+      if (internalBilling) { setBusy(false); return }
       const r = await api.post<{ data: { url: string } }>('/my/programme/checkout/first', {
         // ⚑ #30 — back to the ONE screen, told the payment arrived (see `paidReturn`).
         successUrl: `${window.location.origin}/milla?paid=first`,
@@ -193,7 +201,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
         ? e.message : 'That did not go through. Nothing was charged — please try again.')
       setBusy(false)
     }
-  }, [meetings, leadsPerMeeting, value, pct, onChosen, alreadyAccepted, startAt])
+  }, [meetings, leadsPerMeeting, value, pct, onChosen, alreadyAccepted, startAt, internalBilling])
 
   const d = calc?.data ?? null
 
@@ -290,11 +298,16 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
       )}
 
       {err && <p role="alert" className="text-[11px] text-red-700">{err}</p>}
+      {internalBilling && (chosen || alreadyAccepted) && (
+        <p className="mv-muted-note">Accepted. This is the House account, so there is nothing to pay — P1 is authorised in Vida.</p>
+      )}
 
       <div className="mv-cta-row flex-wrap">
         <button onClick={() => void acceptAndPay()} disabled={busy || chosen || !d || noCapacity}
           className="mv-btn primary disabled:opacity-50">
-          {busy ? 'Opening payment…' : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
+          {internalBilling
+            ? (busy ? 'Accepting…' : `Accept ${d?.meetings ?? meetings} meetings · no payment (House)`)
+            : busy ? 'Opening payment…' : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
         </button>
         {onWiden ? <button onClick={onWiden} disabled={busy} className="mv-btn">Widen targeting</button> : null}
         {/* ⚠️ IT SAYS WHAT THE PRESS DOES: it accepts this programme and opens the first payment.

@@ -1,6 +1,7 @@
 export * from './types/index'
 export * from './constants/index'
 export * from './launch-countries'
+export * from './house-account'
 // ⚑ 23 Sep — partners are frozen: one switch for the API, the portal and Vida.
 export * from './partners-frozen'
 // ⚑ 14 Sep (S1-RT-006) — where we can commercially work, decided once. Distinct from the

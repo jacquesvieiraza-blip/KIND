@@ -749,7 +749,8 @@ describe('⑧ the four money states', () => {
     const code = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
     const fn = code.slice(code.indexOf('export async function isHouseClient'))
     expect(fn).toContain('getUserById')
-    expect(fn).toContain('HOUSE_ACCOUNT_EMAIL')
+    // ⛓️ 24 Sep (R152) — WAS 'HOUSE_ACCOUNT_EMAIL'; the email is checked against the House LIST.
+    expect(fn).toContain('isHouseEmail(')
     // #593: identity is the auth user. #584/#582 were both caused by matching on a name.
     expect(fn, 'must not match on a company name').not.toContain('company_name')
     expect(fn, 'must not match on the display label').not.toContain('HOUSE_CLIENT_NAME')

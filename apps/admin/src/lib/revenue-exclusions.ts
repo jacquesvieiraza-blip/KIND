@@ -9,8 +9,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-/** The founder's own testing account — never revenue. Lower-cased for compares. */
-export const HOUSE_ACCOUNT_EMAIL = 'hello@get-kind.com'
+/** The founder's own testing account — never revenue. ⛓️ 24 Sep (R152) — WAS a second typed
+ *  copy of `'hello@get-kind.com'`; both apps now read the one House list in `@kind/shared`. */
+import { isHouseEmail } from '@kind/shared'
+export { HOUSE_ACCOUNT_EMAIL, HOUSE_ACCOUNT_EMAILS, isHouseEmail } from '@kind/shared'
 
 export interface AdminExclusions {
   /** demo ∪ house — drop from any revenue roll-up. */
@@ -36,7 +38,7 @@ export async function getRevenueExclusions(supabase: SupabaseClient): Promise<Ad
       const users = data?.users ?? []
       if (error || users.length === 0) break
       for (const u of users) {
-        if ((u.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL) houseUserIds.add(u.id)
+        if (isHouseEmail(u.email)) houseUserIds.add(u.id)
       }
     }
   } catch {

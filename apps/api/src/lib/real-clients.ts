@@ -10,6 +10,7 @@ import { db } from '@kind/db'
 import {
   computeExcludedClientIds,
   HOUSE_ACCOUNT_EMAIL,
+  isHouseEmail,
   type MinClient,
   type ClientExclusions,
 } from './real-clients-logic'
@@ -32,7 +33,7 @@ export async function resolveHouseUserIds(): Promise<Set<string>> {
       const users = data?.users ?? []
       if (error || users.length === 0) break
       for (const u of users) {
-        if ((u.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL) ids.add(u.id)
+        if (isHouseEmail(u.email)) ids.add(u.id)
       }
     }
   } catch (err) {

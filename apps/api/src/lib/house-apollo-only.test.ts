@@ -308,8 +308,10 @@ describe('② identity is POSITIVELY proved, or the sourcing run stops', () => {
       .not.toMatch(/\.has\(/)
     expect(body, 'the strict path is back to resolving the HOUSE SET instead of THIS user')
       .not.toMatch(/resolveHouseUserIds/)
+    // ⛓️ 24 Sep (R152) — WAS /HOUSE_ACCOUNT_EMAIL/: the identity's own email is now checked
+    // against the House LIST. The property — decided on THIS user's email — is unchanged.
     expect(body, 'the House decision is no longer made on the identity\'s own email')
-      .toMatch(/HOUSE_ACCOUNT_EMAIL/)
+      .toMatch(/isHouseEmail\(email\)/)
   })
 
   it('G2 · and the only two ways out of the strict path are a PROVED audience or a throw', () => {
@@ -321,7 +323,9 @@ describe('② identity is POSITIVELY proved, or the sourcing run stops', () => {
     const clientReturns = [...body.matchAll(/return\s+'client'/g)].length
     expect(clientReturns, 'a new unproved path now answers "client" — that is the hole reopening').toBe(1)
     expect(body, 'the House/non-House answer is no longer a single decided expression')
-      .toMatch(/return email === HOUSE_ACCOUNT_EMAIL \? 'house' : 'client'/)
+      // ⛓️ 24 Sep (R152) — WAS `email === HOUSE_ACCOUNT_EMAIL`; the House is a list now, and the
+      // answer is still ONE decided expression.
+      .toMatch(/return isHouseEmail\(email\) \? 'house' : 'client'/)
   })
 
   // ── L — ORDERING: identity is settled BEFORE money and BEFORE any provider ───────────

@@ -128,7 +128,8 @@ describe('🛑 ② the disclaimer is present, and it gives nothing away', () => 
 
   it('the disclaimer sits with the commitment, not lost among the illustrative figures', () => {
     const at = CALC.indexOf('best_efforts_note')
-    const button = CALC.indexOf('void choose()')
+    // ⛓️ 24 Sep (R145 step 4) — the button is the one "Accept · Pay P1" now.
+    const button = CALC.indexOf('void acceptAndPay()')
     expect(at, 'the disclaimer is not rendered at all').toBeGreaterThan(-1)
     expect(at, 'the disclaimer renders after the button rather than before it').toBeLessThan(button)
   })
@@ -223,7 +224,11 @@ describe('🛑 the client route still gives away neither rate', () => {
     expect(body).toContain('known')
     expect(body, 'the client route leaked the benchmark view').not.toContain('benchmark')
     expect(body, 'the client route leaked the headroom').not.toContain('headroom')
-    expect(body, 'the client route leaked the pool size').not.toContain('workable')
+    // ⛓️ 24 Sep (R145 step 4 · #29) — THE WORKABLE POOL IS SENT, AND ONLY IT. Tracker #29, approved
+    // 24 Sep: *"Workable pool and ceiling shown"* — and the Proof desk has shown the same figure
+    // from `/icps/:id/capacity` since 22 Sep. The pool is the client's own market; what stays ours
+    // is the RATES behind the ceiling (the benchmark view and the headroom, refused above).
+    expect(body).toContain('workable: cap.workable')
   })
 
   it('🛑 AND AN UNREADABLE CAPACITY ANSWERS known:false RATHER THAN THROWING A CAP OF ZERO', () => {

@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useState } from 'react'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
@@ -32,8 +33,7 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
-import ProgrammeAcceptance from '@/components/milla/ProgrammeAcceptance'
-import { acceptanceGate, paymentUnlocked } from '@/lib/programme-acceptance'
+import { acceptanceGate } from '@/lib/programme-acceptance'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
@@ -68,6 +68,38 @@ export default function ProgrammePage() {
 
   useEffect(() => { void load() }, [load])
 
+  // ── ⚑ 24 Sep (R145 step 4 · #30 #77) — BACK FROM STRIPE, ON THE SAME SCREEN ─────────────────
+  // The first payment returns to `/milla?paid=first`. Stripe confirms to us separately (the
+  // webhook), and that can lag the client's return by seconds or more — during which
+  // `firstPaidAt` is still empty and the Accept · Pay P1 button would have come straight back,
+  // inviting a second payment. So while the return flag stands and the payment is not yet on
+  // record, the panel says the payment arrived and is being confirmed, offers no button, and
+  // re-reads the programme until it is. Bounded: after two minutes it stops asking and says so.
+  const [paidReturn, setPaidReturn] = useState(false)
+  const [confirmSlow, setConfirmSlow] = useState(false)
+  useEffect(() => {
+    try { setPaidReturn(new URLSearchParams(window.location.search).get('paid') === 'first') } catch { /* no URL */ }
+  }, [])
+  const awaitingFirst = paidReturn && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+  useEffect(() => {
+    if (!awaitingFirst) return
+    let n = 0
+    const t = setInterval(() => {
+      n += 1
+      if (n > 30) { clearInterval(t); setConfirmSlow(true); return }
+      void load()
+    }, 4000)
+    return () => clearInterval(t)
+  }, [awaitingFirst, load])
+
+  // ⚑ 24 Sep (#75) — "Widen targeting" hands the question to Milla, in the one chat, and puts the
+  // cursor in her composer. She re-counts free; the slider's ceiling moves with the targeting.
+  const conversation = useMillaConversation()
+  const widen = useCallback(() => {
+    conversation.announce('Tell me where to widen — the location, the company size or the job titles — and I’ll re-count it free and show you the new ceiling.')
+    conversation.focus()
+  }, [conversation])
+
   if (loading) {
     return (
       <div className="h-full overflow-y-auto p-5 sm:p-6">
@@ -88,61 +120,39 @@ export default function ProgrammePage() {
 
   if (!p) return null
 
+  // ⚑ 24 Sep (R145 step 4) — BEFORE P1, THE WHOLE RIGHT SIDE IS THE PROGRAMME PANEL: one slider,
+  // one button. It covers the three states that used to be three cards — no programme yet,
+  // chosen but not accepted, accepted but not paid.
+  const choosing = p.stage === 'Recommendation' && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+
   // ⚠️ ONE IMPLEMENTATION, TWO SURFACES. The Milla home renders this same component with the
   // same payload, so the two screens cannot show different numbers for one programme.
   return (
-    <div className="h-full overflow-y-auto p-5 sm:p-6">
+    <div className="mv-workspace-body h-full overflow-y-auto [&>*]:shrink-0">
+      {awaitingFirst ? (
+        <div className="mv-hero-card">
+          <div className="mv-eyebrow">Payment received</div>
+          <h2 className="!text-[17px]">Thank you — we’re confirming your first payment and preparing your programme.</h2>
+          <p>
+            {confirmSlow
+              ? 'Stripe is taking longer than usual to confirm it to us. You don’t need to pay again — this page will show it as soon as it lands, and Milla can check for you.'
+              : 'This usually takes a few seconds. You don’t need to do anything.'}
+          </p>
+        </div>
+      ) : choosing ? (
+        <ProgrammeCalculator
+          startAt={p.outcome.target}
+          alreadyAccepted={acceptanceGate(p) === 'accepted'}
+          onChosen={() => { void load() }}
+          onWiden={widen} />
+      ) : (
       <ProgrammeWorkspace p={p} />
-      {/* ── 🛑 10 Sep (B/C) — THE CALCULATOR, WHERE THE CLIENT ALREADY IS ────────────────
-          It renders at Recommendation BEFORE a programme exists — the state a client reaches
-          the moment they accept their Proof set. Until now that state had no screen at all:
-          the meeting target was typed by an operator in Vida while the client was still at
-          Proof, and the client never chose anything or saw the lead volume.
-
-          ⚠️ ONCE A PROGRAMME EXISTS IT STEPS ASIDE. The recommendation and the payment card
-          below are then the truth, and a second place to re-choose a size the client has
-          already accepted would be two screens disagreeing about one programme. */}
-      {!p.hasProgramme && p.stage === 'Recommendation' && (
-        <div className="mt-3">
-          <ProgrammeCalculator onChosen={() => { void load() }} />
-        </div>
       )}
-      {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
-          programme awaiting their decision, or one they have already given; at every other
-          stage this is silent. The server decides which of those it is. */}
-      {/* ── ⚑ 9 Sep · THE TWO MOMENTS THE CLIENT IS ASKED FOR MONEY ──────────────────────
-          🛑 A CLIENT COULD NOT PAY AT ALL. The checkout rails exist behind the admin key, so
-          the only way to take a programme payment was for an operator to mint a link by hand.
-          These render only when that half is genuinely due — never for an internally
-          authorised programme, which owes nothing and must never be shown a price to pay. */}
-      {/* ── 🛑 13 Sep (B1) — ACCEPTANCE, AND IT COMES BEFORE THE PRICE ─────────────────
-          `POST /my/programme/accept` is the ONE writer of `recommendation_accepted_at`, and
-          nothing in Milla called it — so `checkout/first` answered `409 not_accepted` for
-          every client and P1 was unreachable. The client is asked here, explicitly, and the
-          answer is persisted server-side before any price is put in front of them. */}
-      {acceptanceGate(p) === 'accept_required' && (
-        <div className="mt-3">
-          <ProgrammeAcceptance
-            meetingTarget={p.outcome.target}
-            totalCents={p.money.totalCents}
-            firstPaymentCents={p.money.firstPaymentCents ?? 0}
-            onAccepted={() => { void load() }}
-          />
-        </div>
-      )}
-      {/* ⚠️ `paymentUnlocked` READS THE PERSISTED COLUMN, never a local flag. A failed
-          acceptance leaves it null, so this card stays shut without any extra handling. */}
-      {p.hasProgramme && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
-        && (p.stage === 'Recommendation') && paymentUnlocked(p) && (
-        <div className="mt-3">
-          <ProgrammePayment
-            stage="first"
-            totalCents={p.money.totalCents}
-            halfCents={p.money.firstPaymentCents ?? 0}
-            meetingTarget={p.outcome.target}
-          />
-        </div>
-      )}
+      {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
+          `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`
+          ("Pay the first half and start"). They are ONE panel above now, with ONE button that
+          runs the same three server steps in the same order. B1 (13 Sep) stands: acceptance is
+          persisted server-side before any checkout is created. */}
       {p.hasProgramme && p.approvedAt && !p.wentLiveAt
         && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
         <div className="mt-3">

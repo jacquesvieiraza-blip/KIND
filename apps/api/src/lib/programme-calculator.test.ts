@@ -259,8 +259,12 @@ describe('🛑 ④ the $0 payment card', () => {
 describe('🛑 ⑤ the calculator is where the client already is, and Vida stops offering to type a target', () => {
   it('it renders at Recommendation, before a programme exists', () => {
     const c = code(PROG_PAGE)
-    expect(c).toContain("{!p.hasProgramme && p.stage === 'Recommendation' && (")
-    expect(c).toContain('<ProgrammeCalculator onChosen={() => { void load() }} />')
+    // ⛓️ 24 Sep (R145 step 4 · #27) — WAS `{!p.hasProgramme && p.stage === 'Recommendation' && (`: the calculator
+    // stepped aside once a programme existed, for separate Accept and Pay cards. It is now the
+    // whole panel until P1 lands — before a programme exists, and after, until it is paid.
+    expect(c).toContain("const choosing = p.stage === 'Recommendation' && !p.money.firstPaidAt && !p.money.firstAuthorisedAt")
+    expect(c).toContain('<ProgrammeCalculator')
+    expect(c).toContain('onChosen={() => { void load() }}')
   })
 
   it('🛑 Vida no longer draws programme creation while the client is in Proof', () => {

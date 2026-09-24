@@ -205,25 +205,32 @@ describe('🛑 B1 wiring — the product actually reaches the canonical route', 
     expect(read(COMPONENT)).not.toMatch(/accepted_at:\s|new Date\(\)\.toISOString\(\)/)
   })
 
-  it('🛑 the page renders the acceptance control when acceptance is required', () => {
-    const src = read(PAGE)
-    expect(src).toMatch(/import ProgrammeAcceptance from '@\/components\/milla\/ProgrammeAcceptance'/)
-    expect(src).toMatch(/acceptanceGate\(p\) === 'accept_required'/)
-    expect(src).toMatch(/<ProgrammeAcceptance/)
+  // ⛓️ 24 Sep (R145 step 4 · #27) — THE ACCEPTANCE IS NOW PART OF THE ONE BUTTON. Founder: *"from one screen to
+  // one choice to the next"*; tracker #27, approved 24 Sep: one "Accept and pay P1". The separate
+  // "Accept this recommendation" card is gone from the page, and the SAME canonical writer
+  // (`postAcceptance` → `/my/programme/accept`) is called by the Programme panel's button, before
+  // the checkout — B1's duty, that acceptance is persisted server-side first, is what is pinned now.
+  it('🛑 the panel records the acceptance through the canonical writer, before any checkout', () => {
+    const calc = read('apps/portal/src/components/milla/ProgrammeCalculator.tsx')
+    expect(calc).toContain("import { postAcceptance, type AcceptResponse } from '@/lib/programme-acceptance'")
+    const accept = calc.indexOf('await postAcceptance(')
+    const checkout = calc.indexOf("'/my/programme/checkout/first'")
+    expect(accept).toBeGreaterThan(-1)
+    expect(accept, 'the checkout can be created before the acceptance is stored').toBeLessThan(checkout)
+    expect(calc).toContain('if (!accepted.ok) throw new Error(accepted.message)')
   })
 
-  it('🛑 THE TOOTH: the P1 payment card is gated on `paymentUnlocked`', () => {
+  // ⛓️ 24 Sep (R145 step 4 · #27) — THE TOOTH MOVED WITH THE CARD. There is no separate P1 card to gate: the only
+  // path to the first checkout is the panel's button, and it cannot reach the checkout unless the
+  // acceptance succeeded (asserted above). A skipped re-accept is allowed ONLY when the server
+  // already records acceptance at the same size.
+  it('🛑 THE TOOTH: an already-accepted programme skips only when the SERVER says it is accepted', () => {
     const src = read(PAGE)
-    // Remove this and a client who has not accepted is shown a price they cannot pay.
-    expect(src, 'the payment card is no longer gated on persisted acceptance')
-      .toMatch(/&& paymentUnlocked\(p\) &&/)
-    const gate = src.indexOf('paymentUnlocked(p)')
-    const card = src.indexOf('<ProgrammePayment')
-    expect(gate).toBeGreaterThan(-1)
-    expect(gate).toBeLessThan(card)
+    expect(src).toContain("alreadyAccepted={acceptanceGate(p) === 'accepted'}")
+    expect(src, 'a second P1 card came back beside the panel').not.toMatch(/stage="first"/)
   })
 
   it('the re-read after acceptance is the page’s own canonical load', () => {
-    expect(read(PAGE)).toMatch(/onAccepted=\{\(\) => \{ void load\(\) \}\}/)
+    expect(read(PAGE)).toMatch(/onChosen=\{\(\) => \{ void load\(\) \}\}/)
   })
 })

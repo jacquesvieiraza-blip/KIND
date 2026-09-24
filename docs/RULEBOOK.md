@@ -173,6 +173,8 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 
 ### 15.1 ROLES
 
+> ⛓️ **24 Sep (R154) — THE GPT-5.6 STEPS BELOW ARE RETIRED.** Founder: *"nothing goes to gpt anymore. i already said this."* There is no GPT-5.6 scoping before a build and no GPT-5.6 review before a merge: Claude produces the PR, tests and evidence and stops, and the founder merges. The GPT-5.6 rows and steps in §15.1/§15.2 are kept as the 21-Aug record, not current method.
+
 | Who | Does |
 |---|---|
 | **FOUNDER** | States intent in plain English. Gives **GO / MERGE / HOLD**. The only merge authority. |

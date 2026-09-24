@@ -234,7 +234,9 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
         )}
         {!approved && (
           <div className="text-[12.5px] text-[#6b6288] mt-1.5">
-            One approval covers the whole programme. There is nothing to pay and nothing to approve individually.
+            {/* ⛓️ 24 Sep (R145 step 5 · #35) — WAS "There is nothing to pay and nothing to approve
+                individually": false since P2 exists — the second payment IS due at approval. */}
+            One approval covers the whole programme. There is nothing to approve individually.
           </div>
         )}
       </div>

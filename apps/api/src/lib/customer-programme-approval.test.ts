@@ -732,9 +732,13 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
     expect(page).toContain('<ProgrammeScreen />')
     const programme = readFileSync(
       join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
+    // ⛓️ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE PANEL IS THE RIGHT SIDE, ALONE. The redesign
+    // draws Approval as one panel (frozen package → version card → second payment → one button);
+    // the status workspace above it said the same things a second time. The workspace still
+    // renders at every OTHER stage, and after approval, exactly as before.
     expect(programme).toContain('<ProgrammeWorkspace p={p} />')
     expect(programme).toContain('<ProgrammeApproval')
-    expect(programme.indexOf('<ProgrammeWorkspace p={p} />')).toBeLessThan(programme.indexOf('<ProgrammeApproval'))
+    expect(programme).toContain('review?.programme && review.canApprove && !review.programme.approved_at ? (')
   })
 })
 

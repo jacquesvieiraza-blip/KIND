@@ -30,11 +30,13 @@
 // satisfy. The route re-proves everything again anyway.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 import {
   APPROVAL_CONCERN_LABEL, APPROVAL_CONCERN_PROMPT, APPROVAL_CONCERN_ACKNOWLEDGED,
   PROGRAMME_BEST_EFFORTS,
 } from '@kind/shared'
+import { programmeMoney } from '@/lib/programme-money'
 
 export type ApprovalProspect = {
   id: string
@@ -162,11 +164,26 @@ export function whenLabel(messages: FrozenWork['messages'], i: number): string {
 }
 
 export default function ProgrammeApproval({
-  data, onApproved,
+  data, onApproved, secondPaymentCents, secondDue,
 }: {
   data: ApprovalPayload
   onApproved: (approvedAt: string | null) => void
+  /** ⚑ 24 Sep (R145 step 5 · #32 #33) — the second payment, from the programme the page read. */
+  secondPaymentCents?: number | null
+  /** The second half is still owed — neither paid nor authorised internally. The page opens it. */
+  secondDue?: boolean
 }) {
+  const [showAll, setShowAll] = useState(false)
+  // ⚑ 24 Sep (R145 step 5) — Milla opens the stage in the one chat, as the redesign does.
+  const announceOnce = useMillaConversation().announceOnce
+  const canApproveNow = data.canApprove && !data.programme?.approved_at
+  useEffect(() => {
+    if (!canApproveNow) return
+    announceOnce('approval-intro', [
+      'Everything is ready and frozen. This is the exact thing that will go out — the people, the words, the timing and who it comes from.',
+      'Read it properly. If you change anything, it becomes a new version and I’ll ask you to approve it again — I won’t send a version you didn’t see.',
+    ])
+  }, [canApproveNow, announceOnce])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<number | null>(0)
@@ -196,13 +213,18 @@ export default function ProgrammeApproval({
       // it never silently approves something the client has not read.
       const r = await api.post<{ data: { approved_at: string | null } }>(
         '/my/programme/approve', { version: data.frozen?.version ?? null }, session?.access_token)
+      // ── ⚑ 24 Sep (R145 step 5 · #32) — "APPROVE vN AND PAY P2" IS ONE PRESS, IN TWO ACTS ──────
+      // This screen records the DECISION and nothing else (④: approving spends nothing). The page
+      // that holds it opens the second payment in `onApproved`, after the approval is stored — so
+      // the client presses once, and approval and payment stay separate, ordered acts.
       onApproved(r.data?.approved_at ?? null)
     } catch (e) {
       // ⚠️ THE SERVER'S SENTENCE, NOT A CHEERFUL ONE OF OURS. It is the thing that knows why.
       setError(e instanceof Error && e.message && e.message.length < 240
         ? e.message
         : 'That did not go through. Nothing was approved — please try again.')
-    } finally { setBusy(false) }
+    }
+    setBusy(false)
   }
 
   /**
@@ -230,14 +252,25 @@ export default function ProgrammeApproval({
     } finally { setBusy(false) }
   }
 
+  // ── ⚑ 24 Sep (R145 step 5 · #33 #60) — THE APPROVAL PANEL, AS THE REDESIGN DRAWS IT ────────────
+  // A frozen-package hero, the version card (people · messages · cadence & window · sender), the
+  // second payment, then ONE main button and "Review full sequence". Every fact is still read from
+  // the FREEZE, never the live row; every locked sentence travels with it (target-not-guarantee,
+  // the best-efforts line, the pooled-sender line, the sendable count, the way to say no).
+  const vLabel = frozen?.version_number ? `v${frozen.version_number}` : 'this version'
+  const cadence = frozen && frozen.messages.length > 0
+    ? `${frozen.messages.length}-step sequence`
+    : null
+  const days = frozen ? frozen.messages.slice(0, -1).reduce((n, m) => n + (m.wait_days || 0), 0) : 0
+
   if (p.approved_at) {
     return (
-      <div data-testid="programme-approved" className="border border-emerald-200 bg-emerald-50/60 rounded-2xl px-4 py-3.5">
-        <div className="text-[11.5px] uppercase tracking-wide text-emerald-800 font-bold mb-1">Approved</div>
-        {/* ⛓️ 18 Sep (J16-C1) — ~~"You approved this programme."~~ was this screen's own wording.
-            The founder's locked sentence is `APPROVED_COPY`, and it travels with the button. */}
-        <p className="text-[13.5px] font-semibold text-emerald-900">
-          {APPROVED_COPY} {p.second_settled
+      <div data-testid="programme-approved" className="mv-hero-card">
+        <div className="mv-eyebrow">Approved</div>
+        {/* ⛓️ 18 Sep (J16-C1) — the founder's locked sentence is `APPROVED_COPY`, and it travels with the button. */}
+        <h2 className="!text-[17px]">{APPROVED_COPY}</h2>
+        <p>
+          {p.second_settled
             ? 'Nothing else is needed from you — we will let you know as meetings come in.'
             : 'The second half is due next, and outreach starts after that.'}
         </p>
@@ -246,253 +279,171 @@ export default function ProgrammeApproval({
   }
 
   return (
-    <div className="border border-[#eee7f7] rounded-2xl px-4 py-4">
-      <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1">
-        Your approval
-      </div>
-      <p className="text-[13.5px] text-[#6b5f8c] mb-3">
-        This is what we have prepared for you. Nothing has been sent, and nothing will be sent
-        until you approve it.
-      </p>
-
-      {/* ── THE PEOPLE ─────────────────────────────────────────────────────────────────
-          Masked: role, company, industry, country. Never a name, never an address — those
-          are what the programme delivers, not what it is approved on. */}
-      <div className="border border-[#eee7f7] rounded-xl px-3.5 py-3 mb-3">
-        <div className="text-[12px] font-bold text-[#5c5279] mb-1.5">
-          {population.toLocaleString()}{!data.complete && !frozen ? '+' : ''} people we will write to
-        </div>
-        {data.prospects.length === 0
-          ? <p className="text-[12.5px] text-[#9b8ec4]">We could not load the list right now.</p>
-          : (
-            <ul className="text-[12.5px] text-[#6b5f8c] space-y-1">
-              {data.prospects.slice(0, 8).map(x => (
-                <li key={x.id}>
-                  <span className="font-semibold">{x.role}</span> at {x.company}
-                  {x.industry ? ` · ${x.industry}` : ''}{x.country ? ` · ${x.country}` : ''}
-                </li>
-              ))}
-            </ul>
-          )}
-        {population > 8 && (
-          <p className="text-[12px] text-[#9b8ec4] mt-1.5">
-            …and {(population - 8).toLocaleString()} more like these.
-          </p>
-        )}
-        {/* ── ⚑ 18 Sep (J16-C1) — HOW MANY WE CAN ACTUALLY WRITE TO (FD-5) ───────────────
-            🛑 THE NUMBER THAT WAS NOT ON THIS SCREEN. The package said how many people were in
-            it and never how many were reachable, so "40 prospects" could mean eighteen emails.
-
-            ⚠️ OMITTED, NEVER ZEROED, when the package does not state it — a freeze taken
-            before the field existed, or a count that could not be read. "0 reachable" is a
-            claim about a number nobody took.
-
-            ⚠️ AND IT IS NOT A SHORTFALL NOTICE. It sits beside the population as a fact, with
-            no arithmetic and no explanation invented for the difference: we do not know why any
-            particular person has no verified address yet, and saying would be a fabrication
-            about real people. */}
-        {typeof frozen?.sendable === 'number' && (
-          <p data-testid="frozen-sendable" className="text-[12px] text-[#6b5f8c] mt-1.5">
-            <b className="font-semibold">{frozen.sendable.toLocaleString()}</b> of them have a
-            verified work email address today. We keep checking the rest, and we only write to
-            the ones we can reach.
-          </p>
-        )}
+    <div className="flex flex-col gap-4">
+      <div className="mv-hero-card">
+        <div className="mv-eyebrow">Frozen package · {vLabel}</div>
+        <h2>Approve exactly what will go out.</h2>
+        <p>
+          People, messages, cadence and sender are pinned to this version. Nothing has been sent,
+          and nothing will be sent until you approve it. If anything changes, we will ask you again
+          with a new version.
+        </p>
       </div>
 
-      {/* ── THE WORDS ──────────────────────────────────────────────────────────────────
-          🛑 THE FROZEN SEQUENCE. Read from the snapshot, never re-resolved. */}
-      <div className="border border-[#eee7f7] rounded-xl px-3.5 py-3 mb-3">
-        <div className="text-[12px] font-bold text-[#5c5279] mb-1.5">
-          What we will send{frozen ? ` · ${frozen.messages.length} message${frozen.messages.length === 1 ? '' : 's'}` : ''}
+      <div className="mv-section">
+        <div className="mv-section-head">
+          <b>{frozen?.version_number ? `Version ${frozen.version_number}` : 'This version'}{frozen?.version ? ` · ${frozen.version.slice(0, 10)}` : ''}</b>
+          <span>{frozen?.at ? `prepared ${new Date(frozen.at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}` : 'exact snapshot'}</span>
         </div>
-        {!frozen || frozen.messages.length === 0
-          ? (
-            <p className="text-[12.5px] text-[#9b8ec4]">
-              We could not load the messages right now. Please don&apos;t approve until you can read
-              them — refresh, or ask Milla.
-            </p>
-          )
-          : (
-            <div className="space-y-1.5">
-              {frozen.messages.map((m, i) => (
-                <div key={m.step} className="border border-[#f0eaf9] rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(open === i ? null : i)}
-                    className="w-full text-left px-3 py-2 flex items-baseline justify-between gap-3"
-                  >
-                    <span className="text-[12.5px] font-semibold text-[#5c5279] truncate">
-                      {m.subject || '(no subject)'}
-                    </span>
-                    <span className="text-[11.5px] text-[#9b8ec4] shrink-0">{whenLabel(frozen.messages, i)}</span>
-                  </button>
-                  {open === i && (
-                    <p className="px-3 pb-2.5 text-[12.5px] text-[#6b5f8c] whitespace-pre-wrap">{m.body}</p>
+        <div className="mv-section-body">
+          <div className="mv-field-grid">
+            {/* ── THE PEOPLE — masked: role, company, industry, country. Never a name. */}
+            <div className="mv-field">
+              <label>People</label>
+              <strong>{population.toLocaleString()}{!data.complete && !frozen ? '+' : ''} people we will write to</strong>
+              {/* ⚑ 18 Sep (J16-C1 · FD-5) — how many we may actually write to; omitted, never zeroed. */}
+              {typeof frozen?.sendable === 'number' && (
+                <small data-testid="frozen-sendable">
+                  <b className="font-semibold">{frozen.sendable.toLocaleString()}</b> of them have a
+                  verified work email address today. We keep checking the rest, and we only write to
+                  the ones we can reach.
+                </small>
+              )}
+            </div>
+            <div className="mv-field">
+              <label>What we will send</label>
+              <strong>{cadence ?? 'Not loaded'}</strong>
+              {cadence
+                ? <small>Read every one before you approve — “Review full sequence”.</small>
+                : <small>We could not load the messages right now. Please don&apos;t approve until you can read them — refresh, or ask Milla.</small>}
+            </div>
+            <div className="mv-field">
+              <label>Cadence &amp; window</label>
+              <strong>{schedule ?? 'Not stated'}</strong>
+              <small>{frozen && frozen.messages.length > 1 ? `${frozen.messages.length} steps over ${days} day${days === 1 ? '' : 's'}, in the recipient’s own time.` : 'In the recipient’s own time.'}</small>
+            </div>
+            <div className="mv-field">
+              <label>Sender</label>
+              {frozen && frozen.sender_email ? (
+                <p className="text-[11px] break-all">
+                  <span className="sr-only">Sent from </span>
+                  <strong>{frozen.sender_email}</strong>
+                  {/* ⚑ 18 Sep (J14-C3 · R129) — and whose mailbox that is, in the SAME paragraph as
+                      the address; an unread kind says nothing. */}
+                  {frozen.sender_kind === 'pooled' && (
+                    <small data-testid="sender-pooled" className="block">
+                      A sending address we provide and keep for you while your programme runs, not your own mailbox.
+                      Replies come back to us and appear in Milla.
+                    </small>
                   )}
+                  {frozen.sender_kind === 'branded' && <small className="block">— your own sending address.</small>}
+                </p>
+              ) : <strong>Not stated</strong>}
+            </div>
+          </div>
+          {frozen?.at && (
+            <p className="mv-muted-note mt-3">
+              This is{frozen.version_number ? ` version ${frozen.version_number}, ` : ' the version '}
+              prepared for you on{' '}
+              {new Date(frozen.at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}.
+              If anything changes, we will ask you again.
+            </p>
+          )}
+          {frozen?.meeting_target != null && (
+            <p className="mv-muted-note mt-1">
+              Targeting <b>{frozen.meeting_target} meeting{frozen.meeting_target === 1 ? '' : 's'}</b>
+              {/* 🛑 TARGET, NEVER GUARANTEE — founder-locked, and it travels WITH the number. */}
+              <span> — a target, not a guarantee</span>
+            </p>
+          )}
+          {/* ── #78 · REVIEW FULL SEQUENCE — the frozen words, read from the snapshot. */}
+          {showAll && frozen && frozen.messages.length > 0 && (
+            <div className="mt-3 flex flex-col gap-1.5">
+              {frozen.messages.map((m, i) => (
+                <div key={m.step} className="border border-[color:var(--mv-line)] rounded-[10px]">
+                  <button type="button" onClick={() => setOpen(open === i ? null : i)}
+                    className="w-full text-left px-3 py-2 flex items-baseline justify-between gap-3">
+                    <span className="text-[10.5px] font-bold truncate">{m.subject || '(no subject)'}</span>
+                    <span className="mv-muted-note shrink-0">{whenLabel(frozen.messages, i)}</span>
+                  </button>
+                  {open === i && <p className="px-3 pb-2.5 text-[10.5px] text-[color:var(--mv-muted)] whitespace-pre-wrap">{m.body}</p>}
                 </div>
               ))}
             </div>
           )}
-        {schedule && (
-          <p className="text-[12px] text-[#9b8ec4] mt-2">Sent {schedule}, in the recipient&apos;s own time.</p>
-        )}
+          {/* A sample of the people, masked — what the programme will write to. */}
+          {showAll && data.prospects.length > 0 && (
+            <ul className="mt-3 mv-muted-note">
+              {data.prospects.slice(0, 8).map(x => (
+                <li key={x.id}><b>{x.role}</b> at {x.company}{x.industry ? ` · ${x.industry}` : ''}{x.country ? ` · ${x.country}` : ''}</li>
+              ))}
+              {population > 8 && <li>…and {(population - 8).toLocaleString()} more like these.</li>}
+            </ul>
+          )}
+        </div>
       </div>
 
-      {/* 🛑 THE FROZEN STATEMENT. The client must know that what they read is what they get —
-          that is the difference between an approval and a snapshot of an opinion. */}
-      {/* ── ⚑ 11 Sep (DAY 3) — THE REST OF THE PACKAGE, IN WORDS ──────────────────────
-          🛑 THE SENDER AND THE TARGET WERE NOT ON THIS SCREEN. A client was asked to approve
-          outreach without being told which address it would come from, and against a target
-          they could only see on a different screen where it could have changed since. Both are
-          read from the FREEZE, so what is shown is what is pinned. */}
-      {(frozen?.sender_email || frozen?.meeting_target != null) && (
-        <div className="border border-[#ece5fb] bg-[#faf8ff] rounded-xl px-3.5 py-2.5 mb-3 grid gap-1">
-          {frozen?.sender_email && (
-            <p className="text-[12.5px] text-[#4c4368]">
-              <span className="text-[#9b8ec4]">Sent from</span>{' '}
-              <b className="font-semibold">{frozen.sender_email}</b>
-              {/* ── ⚑ 18 Sep (J14-C3 · R129) — AND WHOSE MAILBOX THAT IS ─────────────────
-                  🛑 THE ADDRESS ALONE READS AS THEIRS. Under R129 the MVP1 sender comes from
-                  an env-backed POOLED inventory: we own it and assign it to them while their
-                  programme runs. A client who believes it is their own mailbox will go looking
-                  for the replies in it, and will read a warm-up limit as their own domain
-                  being throttled.
-
-                  ⚠️ `branded` IS THEIR OWN DOMAIN and says so — the same sentence for both
-                  would be the same untruth pointing the other way.
-
-                  ⚠️ AND AN UNREAD KIND SAYS NOTHING. The address still shows; the claim about
-                  whose it is only appears when it was actually read. */}
-              {frozen.sender_kind === 'pooled' && (
-                <span data-testid="sender-pooled" className="text-[#9b8ec4]">
-                  {' '}— a sending address we provide and keep for you while your programme
-                  runs, not your own mailbox. Replies come back to us and appear in Milla.
-                </span>
-              )}
-              {frozen.sender_kind === 'branded' && (
-                <span className="text-[#9b8ec4]"> — your own sending address.</span>
-              )}
-            </p>
-          )}
-          {frozen?.meeting_target != null && (
-            <p className="text-[12.5px] text-[#4c4368]">
-              <span className="text-[#9b8ec4]">Targeting</span>{' '}
-              <b className="font-semibold">{frozen.meeting_target} meeting{frozen.meeting_target === 1 ? '' : 's'}</b>
-              {/* 🛑 TARGET, NEVER GUARANTEE — founder-locked, and it travels WITH the number so
-                  a screen cannot render the figure and leave the caveat behind. */}
-              <span className="text-[#9b8ec4]"> — a target, not a guarantee</span>
-            </p>
-          )}
-        </div>
+      {secondDue && typeof secondPaymentCents === 'number' && (
+        <div className="mv-section"><div className="mv-section-body">
+          <div className="mv-hero-row">
+            <div>
+              <div className="mv-eyebrow">Second payment</div>
+              <strong className="text-[24px] tabular-nums">{programmeMoney(secondPaymentCents)}</strong>
+            </div>
+            <div className="mv-muted-note flex-1 min-w-[180px]">
+              Approving and paying the second half does not start sending by itself. It makes this
+              exact version ready, and outreach starts when we make it live.
+            </div>
+          </div>
+        </div></div>
       )}
 
-      {frozen?.at && (
-        <p className="text-[12px] text-[#9b8ec4] mb-3">
-          This is{frozen.version_number ? ` version ${frozen.version_number}, ` : ' the version '}
-          prepared for you on{' '}
-          {new Date(frozen.at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}.
-          If anything changes, we will ask you again.
-        </p>
-      )}
+      {error && <p role="alert" className="text-[11px] text-red-700">{error}</p>}
 
-      {error && (
-        <div className="border border-red-200 bg-red-50/60 rounded-xl px-3.5 py-2.5 mb-3">
-          <p className="text-[12.5px] font-semibold text-red-800">{error}</p>
-        </div>
-      )}
-
-      {/* ── THE DECISION ───────────────────────────────────────────────────────────────
-          ⚠️ THE SERVER'S BOOLEAN DECIDES WHETHER THIS IS OFFERED. Paused, not yet ready, or
-          nothing to review — all of them arrive here as `canApprove === false`, and the reason
-          is shown rather than left to a disabled button nobody can explain. */}
+      {/* ── THE DECISION — the server's boolean decides whether it is offered. */}
       {data.canApprove ? (
         <>
-          <button
-            type="button"
-            data-testid="approve-programme"
-            onClick={approve}
-            disabled={busy}
-            className="w-full sm:w-auto bg-[#7C3AED] text-white font-bold text-[13.5px] rounded-xl px-5 py-2.5 disabled:opacity-50"
-          >
-            {/* ⛓️ 18 Sep (J16-C1) — ~~'Approve programme'~~ was this screen's own label, beside a
-                second button elsewhere that carried the founder's. One surface, his words. */}
-            {busy ? 'Approving…' : APPROVE_LABEL}
-          </button>
-          <p className="text-[12px] text-[#9b8ec4] mt-2">
-            {p.second_settled
-              ? 'Approving starts your programme. Nothing has been sent yet.'
-              : 'Approving confirms this work. The second half is due afterwards, and outreach starts after that.'}
-          </p>
+          <div className="mv-cta-row flex-wrap">
+            <button type="button" data-testid="approve-programme" onClick={approve} disabled={busy}
+              className="mv-btn primary disabled:opacity-50">
+              {/* ⛓️ 24 Sep (R145 step 5 · #32) — WAS `APPROVE_LABEL` alone; the founder's one
+                  "Approve and pay P2" names the version and, when it is due, the payment. */}
+              {busy ? 'Approving…' : secondDue ? `Approve ${vLabel} and pay P2` : APPROVE_LABEL}
+            </button>
+            <button type="button" onClick={() => setShowAll(v => !v)} className="mv-btn">
+              {showAll ? 'Hide the full sequence' : 'Review full sequence'}
+            </button>
+          </div>
+          {/* ── 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE SECOND PLACE THEY COMMIT. */}
+          <p className="mv-muted-note rounded-[9px] bg-[#fff8e8] text-[#7b5a1d] px-3 py-2.5">{PROGRAMME_BEST_EFFORTS}</p>
 
-          {/* ── 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE SECOND PLACE THEY COMMIT ────
-              The screen already says "a target, not a guarantee" beside the number. This says
-              the half that does not: that there is a point at which we STOP. Founder-locked:
-              *"we have to add a disclaimer to the client we do our best. this is not a
-              guarentee."* Interpolated, never typed here, and it names no number. */}
-          <p className="text-[11.5px] text-[#5c5279] mt-3 leading-relaxed rounded-xl bg-[#faf8ff] border border-[#ece5fb] px-3 py-2.5">
-            {PROGRAMME_BEST_EFFORTS}
-          </p>
-
-          {/* ── 🛑 ⚑ 23 Sep (Section 4 #18) — AND THE WAY TO SAY NO ──────────────────────
-              🛑 THIS SCREEN HAD ONE CONTROL AND IT WAS APPROVE. If the people were wrong or the
-              emails were wrong there was nothing to press — on the one screen where a client
-              approves real outreach to real people.
-
-              ⚠️ IT IS DELIBERATELY QUIETER THAN THE APPROVE BUTTON. Two equal buttons would
-              read as a fork in the road; this is the exception, and it should look like one.
-
-              ⚠️ AND IT IS NOT A REJECTION. The programme is HELD — nothing is cancelled and
-              nothing is lost. The acknowledgement says only what the server actually did. */}
+          {/* ── 🛑 ⚑ 23 Sep (Section 4 #18) — AND THE WAY TO SAY NO. Quieter than approve, and
+              not a rejection: the programme is HELD and a person picks it up. */}
           {held ? (
-            <div className="mt-4 rounded-xl border border-[#d9c4fb] bg-[#fcfaff] px-3.5 py-3">
-              <p className="text-[12.5px] text-[#4c4368] leading-relaxed">{held}</p>
-            </div>
+            <div className="mv-section"><div className="mv-section-body"><p className="mv-muted-note">{held}</p></div></div>
           ) : concernOpen ? (
-            <div className="mt-4 rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3.5 py-3">
-              <label htmlFor="approval-concern" className="text-[12.5px] text-[#5c5279] leading-relaxed block">
-                {APPROVAL_CONCERN_PROMPT}
-              </label>
-              <textarea
-                id="approval-concern"
-                value={concern}
-                onChange={e => setConcern(e.target.value)}
-                rows={3}
-                className="w-full mt-2 text-[13px] rounded-xl border border-[#e4dcf7] px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30"
-                placeholder="In your own words…"
-              />
-              <div className="flex items-center gap-3 mt-2">
-                <button
-                  type="button"
-                  data-testid="raise-concern"
-                  onClick={raiseConcern}
-                  disabled={busy || concern.trim() === ''}
-                  className="text-[13px] font-bold rounded-xl px-4 py-2 bg-[#4c4368] text-white disabled:opacity-40"
-                >
+            <div className="mv-section"><div className="mv-section-body">
+              <label htmlFor="approval-concern" className="mv-muted-note block">{APPROVAL_CONCERN_PROMPT}</label>
+              <textarea id="approval-concern" value={concern} onChange={e => setConcern(e.target.value)} rows={3}
+                className="w-full mt-2 text-[11px] rounded-[9px] border border-[color:var(--mv-line2)] px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#6f3df4]/25"
+                placeholder="In your own words…" />
+              <div className="mv-cta-row mt-2">
+                <button type="button" data-testid="raise-concern" onClick={raiseConcern}
+                  disabled={busy || concern.trim() === ''} className="mv-btn dark disabled:opacity-40">
                   {busy ? 'Sending…' : 'Send this and hold the programme'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setConcernOpen(false); setConcern('') }}
-                  className="text-[12.5px] text-[#9b8ec4] underline underline-offset-2"
-                >
-                  Never mind
-                </button>
+                <button type="button" onClick={() => { setConcernOpen(false); setConcern('') }} className="mv-btn ghost">Never mind</button>
               </div>
-            </div>
+            </div></div>
           ) : (
-            <button
-              type="button"
-              data-testid="open-concern"
-              onClick={() => setConcernOpen(true)}
-              className="mt-3 text-[12.5px] text-[#5c5279] underline underline-offset-2"
-            >
+            <button type="button" data-testid="open-concern" onClick={() => setConcernOpen(true)}
+              className="mv-muted-note underline underline-offset-2 self-start">
               {APPROVAL_CONCERN_LABEL}
             </button>
           )}
         </>
       ) : (
-        <p className="text-[12.5px] text-[#9b8ec4]">
+        <p className="mv-muted-note">
           {p.paused
             ? 'Your programme is paused, so there is nothing to approve right now.'
             : 'This is not ready for your approval yet. We will let you know the moment it is.'}

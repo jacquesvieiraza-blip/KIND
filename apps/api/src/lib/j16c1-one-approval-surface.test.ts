@@ -106,7 +106,10 @@ describe('J16-C1 · there is exactly one place a client can approve', () => {
     expect(raw).toContain(
       "export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
     // And the surface SAYS them — a constant nothing renders is not a label.
-    expect(SURFACE).toContain('{busy ? \'Approving…\' : APPROVE_LABEL}')
+    // ⛓️ 24 Sep (R145 step 5 · #32) — WAS `{busy ? 'Approving…' : APPROVE_LABEL}` alone. Tracker
+    // #32, approved by the founder 24 Sep: ONE button, "Approve and pay P2". When the second half
+    // is due the button names the version and the payment; otherwise it is still his 3-Sep words.
+    expect(SURFACE).toContain("{busy ? 'Approving…' : secondDue ? `Approve ${vLabel} and pay P2` : APPROVE_LABEL}")
     expect(SURFACE).toContain('{APPROVED_COPY}')
     // The phrasing the founder rejected reaches no screen.
     for (const rejected of ["we'll confirm before anything is sent", 'we’ll confirm before anything is sent']) {

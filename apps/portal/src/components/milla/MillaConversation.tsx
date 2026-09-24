@@ -706,6 +706,9 @@ export function MillaConversationProvider(
     // ⚑ 24 Sep (R145 step 4 · #31) — the redesign's Programme chips: a question about the 250, and
     // "Accept N", which runs the panel's own Accept · Pay P1 (so it cannot skip what the button does).
     ...(prog.stage === 'Recommendation' ? [CHIP_EXPLAIN_250] : []),
+    // ⚑ 24 Sep (R145 step 5 · #78) — the redesign's Approval chips: questions for Milla. A change she
+    // agrees makes a NEW version to approve; nothing here edits the frozen one.
+    ...(prog.stage === 'Approval' ? ['Show me the full sequence', 'Change the sending window'] : []),
     ...(prog.stage === 'Recommendation' && deskActions?.accept ? [deskActions.acceptLabel ?? CHIP_ACCEPT] : []),
     ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),

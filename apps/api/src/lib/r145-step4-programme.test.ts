@@ -71,8 +71,8 @@ describe('#30 #77 · back from Stripe, on the same screen, and never asked twice
   })
 
   it('🛑 while the payment is not yet on record, the panel says so and offers NO button', () => {
-    expect(PAGE).toContain("const awaitingFirst = paidReturn && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt")
-    const at = PAGE.indexOf('{awaitingFirst ? (')
+    expect(PAGE).toContain("const awaitingFirst = paidReturn === 'first' && !!p && !p.money.firstPaidAt && !p.money.firstAuthorisedAt")
+    const at = PAGE.indexOf('{awaiting ? (')
     const calc = PAGE.indexOf('<ProgrammeCalculator')
     expect(at).toBeGreaterThan(-1)
     expect(at, 'the calculator can render while the payment is being confirmed').toBeLessThan(calc)

@@ -224,7 +224,14 @@ export async function generateProgrammeSequence(programmeId: string): Promise<Ge
   // copy arriving "from the system" carries an authority a hand-typed draft does not — and this
   // copy has no operator between it and a customer's approval. A HARD failure refuses.
   const { lintSequence } = await import('./sequence-quality')
-  const quality = lintSequence(steps as never)
+  const { gapsBeforeEachStep } = await import('./sequence-templates')
+  // ⛓️ 24 Sep — THE LINTER READS A STEP'S `wait_days` AS THE GAP *BEFORE* IT; THESE STEPS STORE
+  // THE GAP *AFTER* IT (the send engine's convention, `sequence-templates.ts`). Handed over raw,
+  // the last step's 0 — "nothing follows" — read as "sent the same day as the one before", so
+  // EVERY generated 5-step programme sequence ([4, 5, 5, 7, 0]) was refused: the founder's House
+  // walk, 24 Sep. Translated here, exactly: step 1 has no gap before it; step n's gap is step
+  // n−1's gap after. A real zero between two steps still fails, as it must.
+  const quality = lintSequence(gapsBeforeEachStep(steps) as never)
   if (!quality.ok) {
     const why = quality.hardFails.slice(0, 3).map(v => v.why).join(' ')
     return {
@@ -247,3 +254,4 @@ export async function generateProgrammeSequence(programmeId: string): Promise<Ge
     drafted_against: [sample.job_title, sample.company].filter(Boolean).join(' at ') || 'a qualified prospect',
   }
 }
+

@@ -337,3 +337,12 @@ export function sequencePlan(opts: {
 
   return { purpose, depth, template, gaps, dayOffsets, event }
 }
+
+/**
+ * ⚑ 24 Sep — the programme's steps in the LINTER's cadence convention. Stored steps carry the
+ * gap AFTER each step (the last one is never read); `lintSequence` reads the gap BEFORE each step
+ * (step 1's is 0). Same subjects and bodies, only `wait_days` re-expressed. Used by `programme-sequence-generation.ts` at its lint call.
+ */
+export function gapsBeforeEachStep<T extends { wait_days: number }>(steps: T[]): T[] {
+  return steps.map((s, i) => ({ ...s, wait_days: i === 0 ? 0 : steps[i - 1].wait_days }))
+}

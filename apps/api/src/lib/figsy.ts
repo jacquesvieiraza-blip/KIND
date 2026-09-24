@@ -124,6 +124,31 @@ function stripJson(text: string): string {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
 }
 
+/**
+ * ⚑ 24 Sep — READ A DRAFTED SEQUENCE, TOLERATING WORDS AROUND THE JSON.
+ *
+ * The House walk's rewrite failed with "Claude returned invalid JSON": the model is told to
+ * return only JSON and sometimes wraps it in a sentence or a code fence anyway. This takes the
+ * outermost {...} when the whole reply does not parse. It returns null — never a guess — when
+ * no object can be read, and the caller decides what that means.
+ */
+export function parseSequenceJson(raw: string): SequenceDraft | null {
+  const text = stripJson(raw)
+  const tryParse = (t: string): SequenceDraft | null => {
+    try {
+      const v = JSON.parse(t) as unknown
+      return v && typeof v === 'object' && !Array.isArray(v) ? v as SequenceDraft : null
+    } catch { return null }
+  }
+  const whole = tryParse(text)
+  if (whole) return whole
+  const from = text.indexOf('{'), to = text.lastIndexOf('}')
+  return from >= 0 && to > from ? tryParse(text.slice(from, to + 1)) : null
+}
+
+/** How many times a sequence draft is requested before the caller is told it failed. */
+export const SEQUENCE_DRAFT_ATTEMPTS = 2
+
 export interface Lead {
   id: string
   client_id?: string | null
@@ -349,6 +374,7 @@ Hard rules (violating any of these makes the email useless):
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompanyName}.
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
+- Never put a double quote character inside a subject or a body. If you must quote something, use single quotes. A double quote breaks the JSON and the whole sequence is lost.
 ${signOffRule(senderName, senderCompanyName)}
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
@@ -356,23 +382,24 @@ Use this to personalise the angle, pain point references, and geography signals 
 Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
 {${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}": {"subject": "...", "body": "..."}`).join(', ')}}`
 
-  const message = await anthropic.messages.create({
-    model: BACKGROUND_MODEL,
-    // 5 emails + JSON overhead no longer fit the old 1024 — a truncated response
-    // here silently becomes a parse failure and a thrown enrolment.
-    max_tokens: 2048,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  let draft: SequenceDraft
-  try {
-    draft = JSON.parse(stripJson(raw)) as SequenceDraft
-  } catch {
-    console.error('[figsy] generateSequence JSON parse failed, raw:', raw.slice(0, 200))
-    throw new Error('Failed to generate email sequence — Claude returned invalid JSON')
+  // ⛓️ 24 Sep — ONE BAD REPLY NO LONGER LOSES THE SEQUENCE. The House walk's rewrite failed on a
+  // single unreadable reply after R157 made each email longer. The draft is now requested up to
+  // SEQUENCE_DRAFT_ATTEMPTS times, read tolerantly, and given room for five value-led emails.
+  // Every check downstream (leak guard, quality rules) still judges whatever comes back.
+  for (let attempt = 1; attempt <= SEQUENCE_DRAFT_ATTEMPTS; attempt++) {
+    const message = await anthropic.messages.create({
+      model: BACKGROUND_MODEL,
+      // 5 emails + JSON overhead no longer fit the old 1024, and R157's value spine makes each
+      // email longer again — a truncated response here is a parse failure.
+      max_tokens: 3072,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const raw = ((message.content[0] as { type: string; text?: string } | undefined)?.text ?? '').trim()
+    const draft = parseSequenceJson(raw)
+    if (draft) return threadFollowUps(draft)
+    console.error(`[figsy] generateSequence attempt ${attempt}/${SEQUENCE_DRAFT_ATTEMPTS}: unreadable reply (stop_reason=${(message as { stop_reason?: string }).stop_reason ?? 'unknown'}), raw:`, raw.slice(0, 200))
   }
-  return threadFollowUps(draft)
+  throw new Error('Failed to generate email sequence — Claude returned invalid JSON')
 }
 
 /**
@@ -2181,7 +2208,9 @@ Return ONLY valid JSON:
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
   try {
-    return threadFollowUps(JSON.parse(stripJson(raw)) as SequenceDraft)
+    const draft = parseSequenceJson(raw)
+    if (!draft) throw new Error('unreadable')
+    return threadFollowUps(draft)
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
     return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge, { ...opts, briefContext })

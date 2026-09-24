@@ -218,6 +218,22 @@ export async function generateProgrammeSequence(programmeId: string): Promise<Ge
     return { ok: false, alreadyPresent: false, reason: 'The drafted outreach came back empty, so nothing was written. The programme is unchanged.' }
   }
 
+  // ── 🛑 THE SAMPLE PERSON MUST BE GONE ──────────────────────────────────────────────────
+  //
+  // ⛓️ 24 Sep — the founder's House walk reached the client's Approval screen with the sample
+  // lead's first name and company still in the copy ("christopher, …", "running Rock Strategic
+  // as CEO"), because detokenise missed their spelling. Everything downstream would have sent
+  // one stranger's name to all 234. `detokenise` now catches those spellings; this is the fail-
+  // closed check behind it, for the spelling nobody has thought of yet. Nothing is saved.
+  const { leakedIdentity } = await import('./sequence-tokens')
+  const leaked = [...new Set(steps.flatMap(s => leakedIdentity(`${s.subject}\n${s.body}`, sample)))]
+  if (leaked.length > 0) {
+    return {
+      ok: false, alreadyPresent: false,
+      reason: `The drafted outreach still named the one prospect it was written against (${leaked.length} detail${leaked.length === 1 ? '' : 's'}), so it would have gone to everyone with that person's name or company in it. It was NOT saved. Nothing was written.`,
+    }
+  }
+
   // ── THE SAME GATE AN OPERATOR'S DRAFT PASSES ───────────────────────────────────────────
   //
   // 🛑 FAIL CLOSED. #612's rule is that the AI's own draft goes through the same linter, because

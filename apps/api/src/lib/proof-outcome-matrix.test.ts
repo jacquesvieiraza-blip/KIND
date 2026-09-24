@@ -32,6 +32,21 @@ import {
   APOLLO_PROOF_WORST_CASE_REQUESTS,
 } from '@kind/shared'
 
+// ⛓️ R146 (23 Sep) — `pdlSearchPage` now refuses PDL through the retired-provider lock, WITH A
+// KEY SET, before any request is built. The cases below drive the RETAINED PDL response
+// handling with a mocked `fetch`; that knowledge is kept (retire, don't delete), so the lock
+// is lifted for PDL ONLY, in this file only — Hunter and Clearbit stay refused. The same
+// pattern as `enrichment.test.ts`. No runtime path changes the fence:
+// `one-provider-apollo.test.ts` proves it un-mocked, with the key present.
+vi.mock('./retired-providers', async (orig) => {
+  const actual = (await orig()) as typeof import('./retired-providers')
+  return {
+    ...actual,
+    refuseRetiredProvider: ((name, where) =>
+      name === 'pdl' ? false : actual.refuseRetiredProvider(name, where)) as typeof actual.refuseRetiredProvider,
+  }
+})
+
 const ICP = { job_titles: ['Head of Ops'], seniority_levels: [], company_sizes: [], geographies: ['United Kingdom'], industries: ['Logistics'] }
 
 /** One JSON response, however malformed. */

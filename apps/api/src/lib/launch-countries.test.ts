@@ -4,6 +4,21 @@ import { describe, it, expect, vi } from 'vitest'
 // without SUPABASE_* env vars. Mocked so the TARGETING MAPS can be executed in a unit test —
 // nothing here sends an alert, and nothing here calls PDL.
 vi.mock('./alerts', () => ({ sendFounderAlert: vi.fn() }))
+
+// ⛓️ R146 (23 Sep) — `pdlSearchPage` now refuses PDL through the retired-provider lock, WITH A
+// KEY SET, before any request is built. The cases below drive the RETAINED PDL response
+// handling with a mocked `fetch`; that knowledge is kept (retire, don't delete), so the lock
+// is lifted for PDL ONLY, in this file only — Hunter and Clearbit stay refused. The same
+// pattern as `enrichment.test.ts`. No runtime path changes the fence:
+// `one-provider-apollo.test.ts` proves it un-mocked, with the key present.
+vi.mock('./retired-providers', async (orig) => {
+  const actual = (await orig()) as typeof import('./retired-providers')
+  return {
+    ...actual,
+    refuseRetiredProvider: ((name, where) =>
+      name === 'pdl' ? false : actual.refuseRetiredProvider(name, where)) as typeof actual.refuseRetiredProvider,
+  }
+})
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {

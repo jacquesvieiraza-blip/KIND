@@ -491,7 +491,7 @@ text-shadow:0 1px 10px rgba(33,16,63,.65)}
    never collapses the frame to the browser's default iframe size */
 .mv-videobox{position:relative;display:block;width:100%;aspect-ratio:16/9;background:#21103F;
 line-height:0}
-.mv-videobox iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.mv-videobox iframe,.mv-videobox video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#21103F}
 @media(max-width:720px){.mv-playbtn{width:56px;height:56px}}
 </style>
 <link href="/" rel="canonical"/></head><body>
@@ -501,7 +501,7 @@ line-height:0}
 <a class="header-login" href="https://app.get-kind.com/login">Client login</a><a class="header-cta" href="get-started.html">Get started</a>
 </div></header><main>
 <section class="hero"><div class="wrap"><div class="hero-kicker">Meet Milla · your client control layer</div><h1 class="motion-headline">Your pipeline, handled. You stay in control.</h1><p>Milla turns the qualified meetings you want into one clear programme you can see, review and approve before anything is sent.</p><div class="hero-actions"><a class="btn" href="#start">Get started</a><a class="btn secondary" href="vida.html">Meet Vida</a></div><div class="micro">Free Proof first · one programme approval · no subscription</div></div></section>
-<section class="product"><div class="wrap"><div class="product-shell"><a class="mv-play" href="https://youtu.be/Cx5-PjxjGFI" target="_blank" rel="noopener" aria-label="Play the product demo"><img alt="Milla — the client brief, confirmed before anything runs" loading="lazy" src="mv-milla-portal.webp"/><span class="mv-veil"></span><span class="mv-playbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="#21103F" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span><span class="mv-playlabel">The product demo</span></a></div><div class="product-caption"><strong>Milla</strong><span>Your brief, confirmed by you before anything runs. Demo data.</span></div></div></section>
+<section class="product"><div class="wrap"><div class="product-shell"><a class="mv-play" href="mv-milla-reel.mp4" target="_blank" rel="noopener" aria-label="Play the Milla demo"><img alt="Milla — the client portal, a programme in progress" loading="lazy" src="mv-milla-reel-poster.webp"/><span class="mv-veil"></span><span class="mv-playbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="#21103F" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span><span class="mv-playlabel">The product demo</span></a></div><div class="product-caption"><strong>Milla</strong><span>Results: your programme in progress, and only the replies that need you. Demo data.</span></div></div></section>
 <section class="section alt"><div class="wrap editorial">
 <div class="side"><h2>What Milla does</h2></div>
 <div class="copy"><p class="lead">One calm place to see the programme before the work starts.</p>
@@ -535,21 +535,28 @@ line-height:0}
 </div></footer>
 <script>
 (function(){
-  // Every product shot that is also a play surface. The anchor's href stays live, so if the
-  // swap ever fails the click still opens the video on YouTube rather than doing nothing.
+  // Every product shot that is also a play surface. The picture sits on top; pressing play puts
+  // the reel in the same 16:9 frame. The reels are served from this site — no third party loads,
+  // nothing sets a cookie. The anchor's href IS the video file, so if this swap ever fails the
+  // click still takes the visitor to the video rather than doing nothing.
   document.querySelectorAll('.mv-play').forEach(function(link){
     link.addEventListener('click', function(e){
       e.preventDefault();
       var box = document.createElement('div');
       box.className = 'mv-videobox';
-      var f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/Cx5-PjxjGFI?autoplay=1&rel=0&modestbranding=1';
-      f.title = 'Milla & Vida \u2014 product demo';
-      f.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
-      f.setAttribute('allowfullscreen','');
-      f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-      box.appendChild(f);
+      var v = document.createElement('video');
+      v.src = link.getAttribute('href');
+      var still = link.querySelector('img');
+      if (still) v.poster = still.getAttribute('src');
+      v.controls = true;
+      v.playsInline = true;
+      v.setAttribute('playsinline', '');
+      v.setAttribute('preload', 'auto');
+      v.setAttribute('aria-label', link.getAttribute('aria-label') || 'Product demo');
+      box.appendChild(v);
       link.parentNode.replaceChild(box, link);
+      var p = v.play();
+      if (p && p.catch) p.catch(function(){ /* autoplay refused: the controls are there to press */ });
     });
   });
 })();

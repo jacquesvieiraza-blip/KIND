@@ -108,9 +108,15 @@ describe('HC-6 — privacy.html describes the site that actually exists', () => 
     // retired, so no page a visitor can reach embeds it any more. Leaving the name here would
     // have kept the policy naming a vendor we no longer load — the exact fault the test below
     // was written to catch, in the direction people forget to check.
-    for (const name of ['YouTube', 'Supabase']) {
+    //
+    // ⛓️ 24 Sep — YOUTUBE COMES OFF THE LIST TOO, for the same reason: the founder supplied his own
+    // Milla and Vida demo reels, and they are served from our own site. No page loads YouTube any
+    // more, so the policy now says the opposite of what it said — and says it in so many words.
+    for (const name of ['Supabase']) {
       expect(privacy, `section 9 must disclose ${name}`).toContain(name)
     }
+    expect(privacy).toContain('No page on this site carries an embed from another company')
+    expect(privacy).toContain('Our product videos are served from our own website and set no cookie')
   })
 
   // ⛓️ 20 Sep — "ON THE SITE" NOW MEANS PAGES A VISITOR CAN REACH.
@@ -140,7 +146,11 @@ describe('HC-6 — privacy.html describes the site that actually exists', () => 
     // Both directions. A policy that lists a vendor we dropped is as wrong as one that hides a
     // vendor we use — and it is the failure mode a copy-paste rewrite produces.
     const live = livePages.map(read).join('\n')
-    expect(live.includes('youtube'), 'privacy names YouTube, so it must be on a live page').toBe(true)
+    // ⛓️ 24 Sep — INVERTED. This asserted YouTube WAS on a live page, because the policy named it.
+    // The reels are self-hosted now, so both halves flip: the policy must not name YouTube, and
+    // no live page may load it. Either one alone is the half-fixed state this test exists to stop.
+    expect(privacy.includes('YouTube'), 'privacy still names YouTube — no live page loads it').toBe(false)
+    expect(/youtu\.?be|youtube-nocookie/i.test(live), 'a live page loads YouTube but privacy no longer names it').toBe(false)
     // …and the other direction: a vendor we stopped loading must not still be named.
     expect(privacy.includes('Calendly'), 'Calendly is no longer embedded on any live page').toBe(false)
     expect(live.includes('calendly.com'), 'a live page embeds Calendly but privacy no longer names it').toBe(false)

@@ -19,7 +19,8 @@ import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/com
 // ⚑ 3 Sep (PR B) — THE CUSTOMER'S REVIEW AND THEIR ONE APPROVAL (R39, 15 Aug: "the client
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
 // Approval stage, so every other stage's screen is byte-for-byte what it was.
-import ProgrammeReview from '@/components/milla/ProgrammeReview'
+// ⚑ 24 Sep — the Programme screen itself, so Home's right side can BE it once Proof is confirmed.
+import ProgrammeScreen from './programme/page'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
@@ -1169,6 +1170,14 @@ export default function MillaHomePage() {
         // Proof is closed rather than assuming its own press worked.
         try {
           await api.post('/leads/proof/complete', {}, await token())
+          // ── 🛑 ⚑ 24 Sep — AND THE NEXT STAGE COMES UP, WITH MILLA SAYING SO ───────────────
+          // Founder: *"i clicked looks right to all and nothing happened after this… we need to
+          // get past to get to the next stage"* · *"from one screen to one choice to the next."*
+          // Proof is closed on the server; the right side becomes the Programme below (see the
+          // branch on `prog`), and Milla tells the client, in the ONE chat, what just happened.
+          // Wording from the approved preview's Proof close.
+          conversation.announce('Good. Next, on the right: choose how many meetings you want. The slider won’t let you pick more than your pool can carry.')
+          conversation.refreshStage()
         } catch (e) {
           setError(e instanceof Error ? e.message : 'That did not save — could you try once more?')
         } finally {
@@ -1492,27 +1501,21 @@ export default function MillaHomePage() {
             </div>
           ) : !prog ? (
             <div className="px-3.5 py-3"><p className="text-[14px] text-[#9b8ec4]">Loading your programme…</p></div>
-          ) : prog.hasProgramme !== false ? (
-            /* ⛓️ 3 Sep — THIS BRANCHED ON `stage !== 'Proof'`, AND THAT IS NOT THE QUESTION.
-               `millaStage` maps a DRAFT programme AND no programme at all to 'Proof', so a
-               client WITH a programme fell into the legacy client-scoped desk below and saw
-               their own history presented as current programme work. The question the branch
-               actually asks is "does a programme exist", and `hasProgramme` is that fact. */
-            <div className="px-3.5 py-3 overflow-y-auto">
-              <ProgrammeWorkspace p={prog} />
-              {/* ⚑ 3 Sep (PR B) — REVIEW + THE ONE APPROVAL, AT THE APPROVAL STAGE ONLY.
-                  `millaStage` maps BOTH `READY_FOR_APPROVAL` and `APPROVED` to 'Approval', so
-                  this covers the before and the after of the customer's single act: the
-                  prospects and the button, then the approved state and the same prospects.
-                  ⚠️ THE WORKSPACE ABOVE IS UNTOUCHED. It still renders exactly as it did at
-                  every stage including this one — the review is added beneath it, never in
-                  place of it, because the stage rail and the money facts are still true. */}
-              {prog.stage === 'Approval' && (
-                <div className="mt-4 pt-4 border-t border-[#eee7f7]">
-                  <ProgrammeReview token={token} />
-                </div>
-              )}
-            </div>
+          ) : (prog.hasProgramme !== false || prog.stage === 'Recommendation') ? (
+            /* ── 🛑 ⚑ 24 Sep — AFTER PROOF, THE RIGHT SIDE IS THE PROGRAMME, AND ALL OF IT ─────
+               Founder: *"we never leave one chat to go to another… the only change is the right
+               screen"* · *"from one screen to one choice to the next."*
+               ⛓️ WAS two branches, and both were dead ends: a client who had just confirmed their
+               Proof has no programme row, so they kept the Proof desk and the calculator lived only
+               behind the rail's Programme link; and once a programme existed this showed
+               ~~`<ProgrammeWorkspace p={prog} />` + `<ProgrammeReview />` at Approval~~ — the status,
+               but not the Accept, P1, P2 or Approve cards, which lived only on /milla/programme.
+               The Programme screen itself is now rendered HERE, beside the same conversation: one
+               implementation, so Home and the rail's Programme link cannot show different things.
+               ⚠️ `hasProgramme !== false` IS KEPT AS THE QUESTION (3 Sep): a draft programme maps
+               to 'Proof' too, and asking "does a programme exist" is what keeps a client with one
+               off the Proof desk. */
+            <ProgrammeScreen />
           ) : (
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
             {/* ── 🛑 ⚑ 22 Sep — WHAT THIS POOL CAN CARRY, BEFORE ANYBODY PAYS ─────────────

@@ -58,34 +58,25 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     expect(code).toMatch(/<MillaConversationProvider[\s\S]{0,400}?<main[\s\S]*?\{children\}[\s\S]*?<\/main>\s*<\/MillaConversationProvider>/)
   })
 
-  it('🛑 and the first screen shows ONE Milla — the provider\'s column stands down there', () => {
-    // ── THE DEFECT THIS PINS, AND IT REACHED THE FOUNDER'S SCREEN ────────────────────────
-    //
-    // Bringing the first run inside the shell (22 Sep) left `MillaConversationProvider`
-    // drawing its own 600px conversation BESIDE the onboarding page's own. Two Millas, two
-    // composers, two greetings — "Hi, I'm Milla, tell me what you're trying to achieve" next
-    // to "Welcome back, let's sharpen the same targeting" — and only the second one collecting
-    // the Brief. A client's first screen asked them to choose which Milla to talk to.
-    //
-    // ⚠️ THE COLUMN, NOT THE CONVERSATION. One provider, one session, one transcript — the
-    // assertion above still holds. On this one route the PAGE draws her, because there she is
-    // the screen rather than a companion to it.
+  // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): INVERTED. WAS '🛑 and the first screen shows ONE Milla — the provider's
+  // column stands down there', asserting `{chatHidden ? null : (` and `chatHidden={isOnboarding}`:
+  // the shell's column stood down on the first run and the Brief page drew a SECOND chat of its
+  // own. Founder, verbatim: *"we never leave one chat to go to another. not how it workss. evern
+  // the first part. the only change is the right screen."* The duty — ONE Milla on the first
+  // screen — is now met the stronger way: there is only ever the shell's column, and the Brief
+  // renders INTO it.
+  it('🛑 and the first screen shows ONE Milla — the Brief speaks in the shell\'s own column', () => {
     const conv = strip(readFileSync(
       join(__dirname, '../../../portal/src/components/milla/MillaConversation.tsx'), 'utf8'))
-    // ⚠️ NOT RENDERED, NEVER `hidden`. The sibling test above forbids a hiding attribute on
-    // this column at any width — `hidden` gives it `scrollHeight` 0 and silently breaks the
-    // scroll-to-bottom the transcript depends on. That rule protects a conversation the
-    // client is USING. Here there is nothing to protect: they have never typed into this
-    // column, because the route drew its own. So it is absent, not crippled.
-    expect(conv, 'the provider cannot be told to stand its column down')
-      .toContain('{chatHidden ? null : (')
-    expect(conv, 'the column was given a hiding attribute instead of being left unrendered')
-      .not.toMatch(/<section data-tour="chat"[^>]*\bhidden\b/)
+    expect(conv, 'the column can still be stood down').not.toContain('chatHidden')
+    expect(conv, 'a route can no longer claim the column body').toContain('<div ref={setChatSlot} className="flex-1 min-h-0 flex flex-col" />')
+    expect(conv, 'the column was given a hiding attribute').not.toMatch(/<section data-tour="chat"[^>]*\bhidden\b/)
     const shell = strip(MILLA_SHELL)
-    expect(shell, 'the shell no longer stands the column down on the first run')
-      .toMatch(/chatHidden=\{isOnboarding\}/)
-    expect(shell, 'and it is keyed on the route, not on a guess')
-      .toContain("const isOnboarding = pathname === '/milla/welcome'")
+    expect(shell, 'the shell stands the column down again').not.toContain('chatHidden')
+    const welcome = strip(readFileSync(join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'), 'utf8'))
+    expect(welcome, 'the Brief no longer claims the one column').toContain('useEffect(() => claimChatSlot(), [claimChatSlot])')
+    expect(welcome, 'the Brief draws its own column again').toContain('createPortal(')
+    expect(welcome, 'the Brief draws its own column again').not.toContain('md:w-[600px]')
   })
 
   it('🛑 and the first screen is the PORTAL shape — Milla a column, the workspace the screen', () => {
@@ -103,8 +94,10 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     // later screen stay one object rather than two that resemble each other.
     const welcome = strip(readFileSync(
       join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'), 'utf8'))
-    expect(welcome, 'the first-run conversation is not the portal column')
-      .toContain('w-full md:w-[600px] shrink-0')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): WAS `.toContain('w-full md:w-[600px] shrink-0')` on this page's own column.
+    // There is no own column now; the shape — Milla a column, the workspace the screen — is the
+    // redesign's grid in the shell, and the Brief renders into that column.
+    expect(strip(MILLA_SHELL), 'the portal grid is gone').toContain('<div className="mv-portal-milla relative">')
     expect(welcome, 'the conversation took the working area again')
       .not.toMatch(/<section className="flex-1 min-w-0 flex flex-col">/)
     expect(welcome, 'the working area is a strip beside the conversation again')
@@ -112,7 +105,9 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     // ⚠️ AND SHE IS INTRODUCED. The page's own 54px header went when the shell's account bar
     // took over, and the conversation's header went with it — leaving the client talking to an
     // unlabelled box. This is the conversation's header, the same one MillaConversation draws.
-    expect(welcome, 'the conversation lost its header').toContain('conversational &amp; strategic')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the header is the shell column's own — drawn once for every stage.
+    const conv = strip(MILLA_CHAT)
+    expect(conv, 'the conversation lost its header').toContain('<div className="mv-agent-meta"><b>Milla</b><span>Your pipeline strategist</span></div>')
   })
 
   it('the onboarding screen reaches the shell like every other route — there is no bypass', () => {
@@ -160,7 +155,8 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     const code = strip(MILLA_CHAT)
     expect(code).toContain('Ask Milla, request leads, or give feedback…')
     expect(code).toContain("api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`")
-    expect(code).toContain('conversational &amp; strategic')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): WAS `'conversational &amp; strategic'`; the redesign's header names her role.
+    expect(code).toContain('Your pipeline strategist')
     // ONE composer, ONE Send, in the ONE place.
     expect(code.match(/<form onSubmit/g) ?? [], 'the conversation has more than one composer').toHaveLength(1)
   })
@@ -192,23 +188,31 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
 
   it('🛑 THE TWO FIXED COLUMNS NO LONGER BOTH RENDER ON A PHONE', () => {
     // The rail is the drawer below the breakpoint, and the conversation takes the screen.
-    expect(shell, 'the 260px rail still occupies a phone').toContain("navOpen ? 'absolute inset-y-0 left-0 z-50 shadow-2xl md:static md:shadow-none' : 'hidden md:flex'")
-    expect(chat, 'the conversation is still a fixed 600px on a phone').toContain('w-full md:w-[600px] shrink-0')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the rail and the column carry the redesign's classes; the phone rule is the
+    // same — the rail is the drawer, the conversation takes the screen.
+    expect(shell, 'the rail still occupies a phone').toContain("navOpen ? 'absolute inset-y-0 left-0 z-50 w-[260px] shadow-2xl md:static md:w-auto md:shadow-none' : 'hidden md:flex'")
+    expect(chat, 'the conversation is not full width on a phone').toContain('className="mv-conversation w-full md:w-auto min-h-0"')
     // 🛑 AND THE REGRESSION ITSELF, BY ITS EXACT MARKUP.
     expect(chat, 'the unconditional 600px column is back').not.toContain('className="w-[600px] shrink-0')
   })
 
-  it('DESKTOP IS UNCHANGED — 260 | 600 | flex-1 above the breakpoint', () => {
-    expect(shell).toContain('w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff]')
-    expect(chat).toContain('md:w-[600px]')
-    expect(shell).toContain('flex-1 min-w-0 overflow-hidden')
+  // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): INVERTED. WAS 'DESKTOP IS UNCHANGED — 260 | 600 | flex-1'. Desktop is now the
+  // redesign's grid — 180 | 470–560 | the rest — from the shared stylesheet, not typed here.
+  it('DESKTOP IS THE REDESIGN — 180 | 470–560 | the rest, from the one stylesheet', () => {
+    const css = read(join(PORTAL, '../../../packages/shared/src/design/mv-design.css'))
+    expect(css).toContain('.mv-portal-milla{display:grid;grid-template-columns:180px minmax(470px,560px) minmax(430px,1fr)')
+    expect(shell).toContain('<div className="mv-portal-milla relative">')
+    expect(shell).toContain('mv-workspace flex-1 min-w-0 overflow-hidden')
+    expect(read(join(PORTAL, 'app/globals.css')), 'the portal does not load the shared stylesheet')
+      .toContain("@import '../../../../packages/shared/src/design/mv-design.css'")
   })
 
   it('🛑 THE WORKSPACE COVERS HER — IT DOES NOT HIDE HER, AND THAT IS NOT COSMETIC', () => {
     // A covering LAYER keeps the conversation laid out, so the transcript, the session and
     // anything half-typed survive. `hidden` would give it `scrollHeight` 0 and silently break
     // the scroll-to-bottom the transcript depends on.
-    expect(shell).toContain("covering ? 'absolute inset-0 z-30 bg-[#faf8ff] flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'")
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the same covering LAYER, on the redesign's workspace (its own background).
+    expect(shell).toContain("covering ? 'absolute inset-0 z-30 flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'")
     // The conversation itself is never given a hiding class at any width.
     const section = chat.slice(chat.indexOf('<section data-tour="chat"'), chat.indexOf('<section data-tour="chat"') + 400)
     expect(section, 'the conversation is hidden rather than covered').not.toMatch(/\bhidden\b/)
@@ -227,7 +231,9 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
     // provider; what sits between them now is the close of the one conditional that leaves
     // the column unrendered on the route that draws its own. The structural fact this asserts
     // is unchanged: covering the conversation cannot unmount the workspace, or the reverse.
-    expect(chat).toMatch(/<\/section>\s*\)\}\s*\{children\}/)
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the column is now ALWAYS rendered (no stand-down conditional), so the sibling
+    // is simply the section's close followed by the route's workspace.
+    expect(chat).toMatch(/<\/section>\s*\{children\}/)
   })
 
   it('PROGRAMME AND MY ICP ARE BOTH REACHABLE ON A PHONE', () => {
@@ -255,8 +261,9 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
   })
 
   it('FLOW AND THE ACCOUNT CHIP ARE HIDDEN ON THE PHONE ONLY', () => {
-    expect(shell, 'the FLOW ribbon is not phone-gated').toContain('hidden md:flex shrink-0 items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747]')
-    expect(shell, 'the Account chip is not phone-gated').toContain('ml-auto hidden md:flex items-center gap-3.5')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the same phone gating, on the redesign's FLOW bar and corner.
+    expect(shell, 'the FLOW ribbon is not phone-gated').toContain('<div className="mv-stagebar hidden md:flex">')
+    expect(shell, 'the Account chip is not phone-gated').toContain('<div className="hidden md:flex items-center">')
     // 🛑 AND NEITHER IS HIDDEN ON DESKTOP — the guard above would pass on a deletion, this
     // one would not: both must still carry their desktop markup.
     // ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED. The DUTY is unchanged: prove the ribbon still
@@ -264,7 +271,8 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
     // What moved is the CONSTANT — `MILLA_STAGES` (seven, no Brief) became the canonical
     // `MVP1_MILLA_STAGES` (six), the same module Vida's ribbon now reads.
     expect(shell).toContain('{MVP1_MILLA_STAGES.map((label, i, arr) => {')
-    expect(shell).toContain('Account <ChevronDown')
+    // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): the corner shows the company (or "Account"), then the same drop-down.
+    expect(shell).toContain('{who} <ChevronDown')
   })
 
   it('🛑 NOTHING THE HIDDEN ACCOUNT CHIP HELD BECAME UNREACHABLE', () => {

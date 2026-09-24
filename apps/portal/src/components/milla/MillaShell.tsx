@@ -59,8 +59,8 @@ async function token(): Promise<string | undefined> {
 }
 
 /** The "M · Milla" return chip, drawn once so the button and the link cannot drift apart. */
-const MILLA_CHIP = 'ml-auto flex items-center gap-1.5 h-7 rounded-full border border-[#ece5fb] bg-white pl-1 pr-2.5 text-[12.5px] font-bold text-[#5c5279]'
-const MILLA_CHIP_DOT = 'w-5 h-5 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[10px] font-extrabold flex items-center justify-center'
+const MILLA_CHIP = 'ml-auto flex items-center gap-1.5 h-7 rounded-full border border-[#e8e3ec] bg-white pl-1 pr-2.5 text-[12.5px] font-bold text-[#342e3b]'
+const MILLA_CHIP_DOT = 'w-5 h-5 rounded-full bg-gradient-to-br from-[#6f3df4] to-[#d84ca5] text-white text-[10px] font-extrabold flex items-center justify-center'
 
 const REPLY_TONE: Record<string, string> = {
   hot: 'interested', warm: 'interested', interested: 'interested',
@@ -108,6 +108,18 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
       if (pr.status === 'fulfilled') setStage(pr.value.data.stage)
     })()
   }, [])
+  // ⚑ 24 Sep — WHOSE PORTAL THIS IS, as the redesign draws it in the top-right corner and the
+  // rail's foot. A client still in their Brief has no client row yet, so this is simply absent
+  // and the corner says "Account" — never a guessed name.
+  const [companyName, setCompanyName] = useState<string | null>(null)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const r = await api.get<{ data?: { company_name?: string | null } }>('/clients/me', await token())
+        const n = r?.data?.company_name?.trim(); if (n) setCompanyName(n)
+      } catch { /* no client row yet, or unreadable — the corner says "Account" */ }
+    })()
+  }, [pathname])
 
   useEffect(() => {
     function onDoc(e: MouseEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false) }
@@ -147,15 +159,10 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   const isOnboarding = pathname === '/milla/welcome'
   const isLeads = pathname === '/milla'
   const link = (href: string, label: string, Icon: React.ElementType, active: boolean, badge?: number) => (
-    <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14.5px] font-semibold mb-0.5 transition-colors ${
-      active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
-    }`}>
-      <Icon className="w-4 h-4 shrink-0" /> {label}
-      {badge ? <span className="ml-auto text-[11px] font-bold text-white bg-[#7C3AED] rounded-full px-1.5">{badge}</span> : null}
+    <Link key={label} href={href} className={`mv-nav-item ${active ? 'active' : ''}`}>
+      <Icon className="w-4 h-4 shrink-0 text-[#8d8495]" /> {label}
+      {badge ? <span className="mv-badge">{badge}</span> : null}
     </Link>
-  )
-  const section = (label: string) => (
-    <div className="mt-4 mb-1 px-3 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">{label}</div>
   )
 
   const ACCOUNT: [string, string, React.ElementType][] = [
@@ -195,74 +202,105 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   // cover bar, the layer and the handle cannot disagree about which state we are in.
   const covering = !isLeads || cover
 
+  // ⚑ 24 Sep — WHAT THE CORNER AND THE RAIL'S FOOT SAY. Two letters from the company, or "AC"
+  // (account) until there is one.
+  const who = companyName ?? 'Account'
+  const initials = companyName
+    ? companyName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('')
+    : 'AC'
+  // ⚑ 24 Sep — THE STAGE THE TOP BAR NAMES and the workspace's subtitle, from the same position
+  // the FLOW bar marks. Unknown names nothing, exactly like the bar.
+  const stageAt = isOnboarding ? 0 : stage ? MVP1_MILLA_STAGES.indexOf(mvp1MillaStageFromLegacy(stage)) : -1
+  const stageName = stageAt >= 0 ? MVP1_MILLA_STAGES[stageAt] : null
+  // The redesign's own subtitle for each stage's Live workspace, word for word — IN STAGE ORDER,
+  // indexed by position. ⚠️ No stage label is typed here: the names come only from
+  // `MVP1_MILLA_STAGES`, so a retired journey cannot slip back in through this list.
+  const WORKSPACE_SUB: readonly string[] = [
+    'Your brief updates live as you talk.',
+    'Proof before payment: see the market, calibrate it, then choose.',
+    'Buy the outcome, not lead volume.',
+    'One exact version. Nothing sends against anything else.',
+    'M&V keeps working. You only step in when judgement matters.',
+    'Delivered, closed and preserved — no automatic restart.',
+  ]
+  const onHome = isOnboarding || isLeads
+  const workspaceTitle = onHome ? 'Live workspace' : sectionLabel
+  const workspaceSub = onHome && stageAt >= 0 ? WORKSPACE_SUB[stageAt] ?? '' : ''
+
+  // The redesign's rail: two groups, its own glyphs, the live counts as badges.
+  const RAIL: [string, string, string, string, number | undefined][] = [
+    ['Workspace', '/milla', 'Home', '⌂', undefined],
+    ['Workspace', '/milla/pipeline', 'Pipeline', '↗', undefined],
+    ['Workspace', '/milla/meetings', 'Meetings', '◫', s?.meetings_booked || undefined],
+    ['Workspace', '/milla/programme', 'Programme', '◇', undefined],
+    // #644 — THE REPLY IS THE OUTCOME THE CLIENT IS PAYING FOR, so it keeps a permanent home here,
+    // badged with the same live count the old "Recent replies" list was built from.
+    ['Workspace', '/milla/replies', 'Replies', '✉', s?.recent_replies?.length || undefined],
+    ['Your programme', '/milla/icp', 'My ICP', '◎', undefined],
+    ['Your programme', '/milla/documents', 'Documents', '□', undefined],
+    ['Your programme', '/milla/reports', 'Reports', '↗', undefined],
+    // M9 — we booked the meeting; this is how the client wins it.
+    ['Your programme', '/milla/coaching', 'Coaching', '◌', undefined],
+  ]
+  const railActive = (href: string) => href === '/milla' ? (isLeads || isOnboarding) : pathname.startsWith(href)
+
   return (
     // ⚠️ `h-dvh`, NOT `h-screen`. `100vh` does not shrink when the phone keyboard opens, so
     // the composer at the foot of the conversation was pushed under it. The dynamic viewport
     // unit is the whole fix; on desktop the two are identical.
-    <div className="h-dvh flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
+    // ── ⚑ 24 Sep — THE REDESIGN'S FRAME, CLASS FOR CLASS ─────────────────────────────────────
+    // Founder: *"this is the vision of the product… you need to build every section both in
+    // milla and vida to this"* · *"match everything. colors everything."* The frame, the 64px top
+    // bar, the 42px FLOW bar and the 180 | 470–560 | rest columns are the redesign's own rules
+    // (`@kind/shared/design/mv-design.css`), not a re-typing of them.
+    <div className="mv-root h-dvh flex flex-col overflow-hidden">
+      <div className="mv-app-shell">
       {/* top bar */}
-      <header className="h-[54px] shrink-0 flex items-center gap-3 px-5 border-b border-[#eee7f7] bg-white">
-        {/* A1 — the brand is the way home. Clicking it from any rail page returns the client
-            to their main screen (new leads + Milla). It used to be static text, so deeper
-            pages had no obvious way back. */}
-        <Link href="/milla" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to your leads">
-          {/* ── 🛑 ⚑ 22 Sep — MILLA'S OWN FACE, AND THIS IS A RESTORATION, NOT A FLOURISH ───
-              ⛓️ WAS: ~~a gradient tile with the letter "M"~~.
-
-              🛑 IT WOULD OTHERWISE HAVE BEEN A REGRESSION ON THE ONE SCREEN THAT MATTERS.
-              The first-run page carried `/agents/milla.png` because of the 24-Aug fix: the
-              screen a client reached before it showed FIGSY's photo over copy saying "I'm
-              Milla", and the founder had her canonical identity put on it — the same asset
-              the agent gallery and the marketplace use. Bringing that page inside this shell
-              removed its header, and with it her face; a letter in a box is not the identity
-              that fix established.
-
-              ⚠️ SO IT MOVES HERE, WHERE IT IS ALSO MORE TRUE. One header, her real face, on
-              every route she appears on — rather than her photo on one screen and an initial
-              on the other nine. `first-run-milla.test.ts` asserts the first run carries this
-              asset; it now does so through the shell that wraps it. */}
-          <img src="/agents/milla.png" alt="Milla" className="w-8 h-8 rounded-[10px] object-cover object-top" />
-          <span className="text-[16px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[13.5px]">&amp;Vida</span></span>
+      <header className="mv-topbar">
+        {/* A1 — the brand is the way home. Clicking it from any rail page returns the client to
+            their main screen. */}
+        <Link href="/milla" className="mv-brand" title="Back to Milla">
+          <div className="mv-mark">M</div>
+          <div className="mv-brand-name">Milla<span>&amp;Vida</span></div>
         </Link>
+        {stageName ? (
+          <div className="mv-stage-title"><strong>{stageName}</strong><span>Client portal · Stage {stageAt + 1}</span></div>
+        ) : null}
+        <div className="mv-top-spacer" />
         {/* ⚑ 4 Sep (UI-008) — THE PHONE'S WAY INTO THE NINE SECTIONS, and into the account.
             The Account chip is hidden below the breakpoint (approved), so every destination it
             held — Your ROI, Settings, Billing, Usage, Referral and Sign out — is repeated in
             the drawer this opens. Nothing became unreachable; it moved behind one control. */}
         <button onClick={() => setNavOpen(true)} aria-label="Open menu"
-          className="md:hidden ml-auto -mr-1 p-2 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]">
+          className="md:hidden -mr-1 p-2 rounded-lg text-[#342e3b] hover:bg-[#f6f4f8]">
           <Menu className="w-5 h-5" />
         </button>
-        <div className="ml-auto hidden md:flex items-center gap-3.5">
-          {/* ⛓️ THE WALLET BALANCE STOOD HERE. Removed, not replaced — see the note at the
-              top of this file. */}
-          {/* #406 — A BELL ICON USED TO SIT HERE. It had no onClick, no href, no badge and no
-              menu: a notification bell that could not be clicked and never showed a count, in
-              the top bar of every screen. There is no notification centre behind it — the
-              client's real signals are the rail's "Recent replies" and the FLOW badges above,
-              both of which are live. An icon that looks like a control and is not one is the
-              same defect as a button that lies, so it is removed rather than left decorative. */}
+        {/* ⚑ 24 Sep — THE ACCOUNT DROP-DOWN STAYS. Founder: *"dont forget in Milla you need to keep
+            top right drop down."* Same two groups, same destinations, restyled as the redesign's
+            corner (initials + company ▾). */}
+        <div className="hidden md:flex items-center">
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[14px] font-extrabold hover:bg-[#f7f4fd]">
-              <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-extrabold flex items-center justify-center">AC</span>
-              Account <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+            <button onClick={() => setMenuOpen(o => !o)} className="mv-account">
+              <span className="mv-account-dot">{initials}</span>
+              {who} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[#e9e2f8] bg-white shadow-xl py-2">
-                <div className="px-3 pb-1.5 pt-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Your ROI</div>
+              <div className="absolute right-0 top-9 z-50 w-56 rounded-xl border border-[#e8e3ec] bg-white shadow-[0_18px_60px_rgba(31,18,47,.075),0_2px_10px_rgba(31,18,47,.035)] py-2">
+                <div className="mv-nav-label pt-1">Your ROI</div>
                 {ROI.map(([href, label, Icon]) => (
-                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-[#0e7c86] hover:bg-[#f7f4fd]">
-                    <Icon className="w-4 h-4" /> {label}
+                  <a key={label} href={href} className="mv-nav-item">
+                    <Icon className="w-4 h-4 text-[#8d8495]" /> {label}
                   </a>
                 ))}
-                <div className="my-1.5 border-t border-[#f0eafa]" />
-                <div className="px-3 pb-1.5 pt-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Account</div>
+                <div className="my-1.5 border-t border-[#e8e3ec]" />
+                <div className="mv-nav-label pt-1">Account</div>
                 {ACCOUNT.map(([href, label, Icon]) => (
-                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-[#5c5279] hover:bg-[#f7f4fd]">
-                    <Icon className="w-4 h-4 text-[#9b8ec4]" /> {label}
+                  <a key={label} href={href} className="mv-nav-item">
+                    <Icon className="w-4 h-4 text-[#8d8495]" /> {label}
                   </a>
                 ))}
-                <div className="my-1.5 border-t border-[#f0eafa]" />
-                <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-red-500 hover:bg-red-50">
+                <div className="my-1.5 border-t border-[#e8e3ec]" />
+                <button onClick={signOut} className="mv-nav-item text-[#bb3c48]">
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
               </div>
@@ -271,229 +309,137 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* #501 flow ribbon — the client's journey.
-          ── ⚑ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 1) ────────────────────────
-          🛑 THE RIBBON WAS A HARDCODED ARRAY OF THE RETIRED JOURNEY, and it sat two inches
-          from the Stage card that already showed the approved lifecycle. It read:
-
-            Sign up › Build plan › We reach out › Replies › You approve › Follow-up ›
-            Meeting booked › Results
-
-          Two things were wrong with it. `You approve` is the PER-LEAD approval the programme
-          model removed — badged with `leads_awaiting`, the very count 4A-1 had already
-          deleted from the rail. And the whole list was a SECOND, INDEPENDENT stage vocabulary
-          living beside the approved one, with nothing keeping the two in step.
-
-          THE BAR IS NOW DERIVED, NOT WRITTEN. ⛓️ 16 Sep (B1): the constant is
-          `MVP1_MILLA_STAGES` — the founder's canonical SIX in @kind/shared/mvp1-stage, the
-          same module Vida's ribbon reads — so there is exactly one place a stage name can be
-          added, renamed or reordered, and BOTH CONSOLES move together. It replaces
-          `MILLA_STAGES` (seven, starting at Proof), which gave the client a ribbon with no
-          Brief on it and a numbering that did not match the operator's.
-
-          ⚠️ NOT ONE LABEL IS TYPED HERE. Nothing is mapped, aliased or supplemented: what
-          renders is what the constant holds, in its order. Adding a step that is not a stage
-          is what produced the retired list in the first place.
-
-          ⚠️ AND THE BADGES ARE GONE WITH THE STEPS THEY BELONGED TO. `leads_awaiting` badged
-          `You approve`, which no longer exists; `meetings_booked` badged `Meeting booked`,
-          which is not a stage in the approved lifecycle. Hanging either count on a stage the
-          founder did not map it to would be inventing the mapping — so they are dropped
-          rather than relocated. Both remain live in the rail, which is where they were
-          already read.
-
-          The design, placement, colours, numbering and chevrons are untouched: the current
-          step is marked using the ribbon's own existing accent, which is the only thing the
-          old bar could not do. */}
-      {/* ⚑ 4 Sep (UI-008) — DESKTOP ONLY, founder-approved. Six stages plus chevrons cannot
-          be read on a 390px strip, and on the approved phone screen the conversation is the
-          screen. The ribbon is unchanged at every width where it fits. */}
-      <div className="hidden md:flex shrink-0 items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
-        <span className="text-[11px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
+      {/* #501 flow ribbon — the client's journey, now the redesign's FLOW bar.
+          THE BAR IS DERIVED, NOT WRITTEN: ⛓️ 16 Sep (B1) the constant is `MVP1_MILLA_STAGES` — the
+          founder's canonical SIX in @kind/shared/mvp1-stage, the same module Vida's ribbon reads.
+          ⚠️ NOT ONE LABEL IS TYPED HERE. What renders is what the constant holds, in its order.
+          ⚑ 24 Sep — finished stages carry ✓, the current one the accent ring, as the redesign draws
+          them. ⚠️ DESKTOP ONLY on a phone (founder-approved, UI-008). */}
+      <div className="mv-stagebar hidden md:flex">
+        <div className="mv-label">FLOW</div>
+        <div className="mv-steps">
         {MVP1_MILLA_STAGES.map((label, i, arr) => {
-          // ⚠️ -1 WHEN THE STAGE IS UNKNOWN, and that is a real state, not a default. A
-          // failed or still-loading `/my/programme` marks NOTHING current — the ribbon shows
-          // the journey without claiming where the client is in it.
-          // ⛓️ 16 Sep (B1) — PROJECTED, NOT LOOKED UP. The transport is still the engine's
-          // seven; the position is the canonical six, so this ribbon and Vida's agree.
+          // ⚠️ -1 WHEN THE STAGE IS UNKNOWN, and that is a real state, not a default. A failed or
+          // still-loading `/my/programme` marks NOTHING current.
           // ── 🛑 ⚑ 22 Sep — THE FIRST RUN IS BRIEF, AND IT IS THE ROUTE THAT SAYS SO ──────
-          //
-          // 🛑 FOUNDER-LOCKED 22 Sep, on the question asked directly: *may the ribbon mark
-          // Brief during the first run?* — **yes**. A client who has just arrived would
-          // otherwise see all six stages with none of them marked: the journey, without
-          // where they are in it, on the one screen where they have no other bearings.
-          //
-          // ⚠️ AND IT DOES NOT TOUCH THE RULE UNDERNEATH IT. ⑨'s concern is exact and still
-          // absolute: *"an unknown stage marks nothing current — defaulting to index 0 would
-          // tell every client whose read failed that they are at Brief, a claim about their
-          // programme made from a network error."* That is a FAILED READ. This is a ROUTE on
-          // which there is definitionally no programme to read yet, and onboarding is not
-          // *probably* Brief — collecting the brief is the only thing it does.
-          //
-          // ⚠️ SO THE EXCEPTION IS KEYED ON `isOnboarding`, NEVER ON A NULL STAGE. Off this
-          // route a null `stage` still marks nothing, exactly as before — which is what keeps
-          // a network error from becoming a claim.
+          // ⚠️ SO THE EXCEPTION IS KEYED ON `isOnboarding`, NEVER ON A NULL STAGE.
           const at = isOnboarding ? 0 : stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1
           const isCurrent = at >= 0 && i === at
           const isDone    = at >= 0 && i < at
           return (
-            <span key={label} className="flex items-center shrink-0">
-              <span className={`flex items-center gap-1.5 text-[13px] px-1 ${
-                isCurrent ? 'font-extrabold text-white' : isDone ? 'font-semibold text-[#d9cef2]' : 'font-semibold text-[#9c8ac4]'}`}>
-                <span className={`w-[18px] h-[18px] rounded-full text-white text-[11px] font-extrabold flex items-center justify-center ${
-                  isCurrent ? 'bg-[#EC4899]' : 'bg-[#3d2a63]'}`}>{i + 1}</span>
-                {label}
-              </span>
-              {i < arr.length - 1 && <span className="text-[#5b4785] px-0.5">›</span>}
+            <span key={label} className="flex items-center gap-1.5 shrink-0">
+              <div className={`mv-step ${isCurrent ? 'on' : isDone ? 'done' : ''}`}><i>{isDone ? '✓' : i + 1}</i>{label}</div>
+              {i < arr.length - 1 && <span className="mv-sep" />}
             </span>
           )
         })}
+        </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* ⚑ 4 Sep (UI-008) — ONE RAIL, TWO PRESENTATIONS. Below the breakpoint it is the
-            drawer the burger opens, over the screen; above it, it is the column it has always
-            been. Same links, same order, same component — a phone-only copy of this list is
-            how a destination goes missing from one of them. */}
+      <div className="mv-portal-milla relative">
+        {/* ⚑ 4 Sep (UI-008) — ONE RAIL, TWO PRESENTATIONS. Below the breakpoint it is the drawer
+            the burger opens, over the screen; above it, it is the column it has always been. */}
         {navOpen && (
           <button aria-label="Close menu" onClick={() => setNavOpen(false)}
-            className="md:hidden absolute inset-0 z-40 bg-[#1f1235]/30" />
+            className="md:hidden absolute inset-0 z-40 bg-[#17141c]/30" />
         )}
-        <aside className={`w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto ${
-          navOpen ? 'absolute inset-y-0 left-0 z-50 shadow-2xl md:static md:shadow-none' : 'hidden md:flex'}`}>
+        <aside className={`mv-leftnav ${
+          navOpen ? 'absolute inset-y-0 left-0 z-50 w-[260px] shadow-2xl md:static md:w-auto md:shadow-none' : 'hidden md:flex'}`}>
           <button onClick={() => setNavOpen(false)} aria-label="Close menu"
-            className="md:hidden self-end -mt-1 mb-1 p-1.5 rounded-lg text-[#9b8ec4] hover:bg-[#f3ecff]">
+            className="md:hidden self-end m-2 p-1.5 rounded-lg text-[#a29aa9] hover:bg-[#f0eafd]">
             <X className="w-4.5 h-4.5" />
           </button>
-          <nav>
-            {/* ⚑ 30 Aug (BUILD-004A, founder ruling 1) — "New leads" IS now HOME.
-                It was the per-lead approval desk, badged with `leads_awaiting`, and the
-                programme model has no per-lead approval — so the badge is gone with it. The
-                route is unchanged: /milla was always the landing page, and it is now the
-                conversational programme home. */}
-            {link('/milla', 'Home', Sparkles, isLeads)}
-            {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
-            {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
-            {link('/milla/programme', 'Programme', Target, pathname.startsWith('/milla/programme'))}
-            {/* #644 — THE RAIL HAD NO WAY TO REACH A REPLY. The client could see that a
-                prospect had replied (the Recent replies list below) and could not open it:
-                that list was plain text, and no rail entry led anywhere near the inbox. The
-                reply is the outcome the client is paying for, so it gets a permanent home
-                here, badged with the same live count the list is built from. */}
-            {link('/milla/replies', 'Replies', MessageSquare, pathname.startsWith('/milla/replies'), s?.recent_replies?.length || undefined)}
-            {/* #512 ICP approval + Documents were reachable only from a single link on the
-                home page / the account menu — they are part of the client's actual workspace
-                (approve the plan, keep their material current), so they belong in the rail. */}
-            {link('/milla/icp', 'My ICP', Crosshair, pathname.startsWith('/milla/icp'))}
-            {link('/milla/documents', 'Documents', FileText, pathname.startsWith('/milla/documents'))}
-            {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
-            {/* M9 — we booked the meeting; this is how the client wins it. */}
-            {link('/milla/coaching', 'Coaching', GraduationCap, pathname.startsWith('/milla/coaching'))}
-          </nav>
-          {/* ROI (Performance/Analytics/Your ROI/Command Centre/Teams Hub) moved to the
-              top-right "Your ROI" dropdown — the rail stays the client's workspace only. */}
-          {section('Recent replies')}
-          <div className="px-1">
-            {s && s.recent_replies.length === 0 && <div className="text-[12.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}
-            {/* #644 — THESE WERE <div>s. Not styled-to-look-unclickable — actually inert: no
-                Link, no href, no onClick, no route. A client saw "someone replied · interested"
-                and had nowhere to press. Now every entry opens the reply screen. */}
-            {(s?.recent_replies ?? []).map((r, i) => (
-              <Link
-                key={i}
-                href="/milla/replies"
-                className="flex items-start gap-2 px-2 py-1.5 text-[13px] rounded-lg hover:bg-[#f6f1ff] transition-colors"
-              >
-                <Star className="w-3.5 h-3.5 text-[#EC4899] shrink-0 mt-0.5" />
-                <div className="min-w-0"><b className="font-bold">{r.name}</b> <span className="text-[#9b8ec4]">· {REPLY_TONE[r.classification] ?? r.classification}</span></div>
-              </Link>
+          <nav className="mv-nav-scroll">
+            {(['Workspace', 'Your programme'] as const).map(group => (
+              <div key={group} className="mv-nav-group">
+                <div className="mv-nav-label">{group}</div>
+                {RAIL.filter(r => r[0] === group).map(([, href, label, ico, badge]) => (
+                  <Link key={href} href={href} className={`mv-nav-item ${railActive(href) ? 'active' : ''}`}>
+                    <span className="mv-ico">{ico}</span>{label}
+                    {badge ? <span className="mv-badge">{badge}</span> : null}
+                  </Link>
+                ))}
+              </div>
             ))}
+            {/* ── ⚑ 24 Sep — RECENT REPLIES STAYS (founder ruling 3, 30 Aug) ─────────────────
+                The redesign's rail has no such list; the founder's ruling keeps it, so it is here,
+                in the redesign's rail styling. #644 — every entry opens the reply screen. */}
+            <div className="mv-nav-group">
+              <div className="mv-nav-label">Recent replies</div>
+              {s && s.recent_replies.length === 0 && <div className="px-2.5 text-[9px] text-[#a29aa9]">No replies yet.</div>}
+              {(s?.recent_replies ?? []).map((r, i) => (
+                <Link key={i} href="/milla/replies" className="mv-nav-item">
+                  <Star className="w-3.5 h-3.5 text-[#d84ca5] shrink-0" />
+                  <span className="min-w-0 truncate"><b>{r.name}</b> <span className="text-[#a29aa9]">· {REPLY_TONE[r.classification] ?? r.classification}</span></span>
+                </Link>
+              ))}
+            </div>
+            {/* ⚑ 4 Sep (UI-008) — WHAT THE PHONE'S HIDDEN ACCOUNT CHIP HELD, kept reachable, from
+                the SAME `ROI` and `ACCOUNT` arrays the desktop dropdown uses. */}
+            <div className="md:hidden">
+              <div className="mv-nav-group">
+                <div className="mv-nav-label">Your ROI</div>
+                {ROI.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
+              </div>
+              <div className="mv-nav-group">
+                <div className="mv-nav-label">Account</div>
+                {ACCOUNT.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
+                <button onClick={signOut} className="mv-nav-item text-[#bb3c48]">
+                  <LogOut className="w-4 h-4" /> Sign out
+                </button>
+              </div>
+            </div>
+          </nav>
+          <div className="mv-nav-foot">Tell Milla the outcome.<br />We’ll do the work.
+            <div className="mv-nav-profile"><div className="mv-round">{initials}</div><div><b>{who}</b><div style={{ fontSize: 8, marginTop: 2 }}>Account</div></div></div>
           </div>
-          {/* ⚑ 4 Sep (UI-008) — WHAT THE PHONE'S HIDDEN ACCOUNT CHIP HELD, kept reachable.
-              The founder approved hiding the chip on the phone header; he did not approve
-              losing Settings, Billing, Usage, Referral, the ROI screens or Sign out. They
-              render here, from the SAME `ROI` and `ACCOUNT` arrays the desktop dropdown uses,
-              and only below the breakpoint — the desktop rail is untouched. */}
-          <div className="md:hidden">
-            {section('Your ROI')}
-            {ROI.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
-            {section('Account')}
-            {ACCOUNT.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
-            <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 mt-1 rounded-[10px] text-[14.5px] font-semibold text-red-500 hover:bg-red-50">
-              <LogOut className="w-4 h-4" /> Sign out
-            </button>
-          </div>
-          <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">Tell Milla the outcome. We’ll do the work.</div>
         </aside>
         {/* ── ⚑ 4 Sep — THE CONVERSATION IS THE SHELL'S, NOT THE ROUTE'S ──────────────────
-            🛑 IT USED TO BE A CHILD OF THE HOME PAGE. Every navigation unmounted it, so the
-            transcript, the session id and whatever was half-typed in the composer were thrown
-            away and the next screen had no Milla at all. Nine routes render inside this shell
-            and only one of them had her.
-
-            ⚠️ ONE INSTANCE. Mounted here, once, beside the working area — so Home, Pipeline,
-            Meetings, Programme, Replies, My ICP, Documents, Reports and Coaching are all the
-            SAME conversation, and none of them may build a second one. A route that needs her
-            talking about its subject calls `focus(...)` on the context.
-
-            ⚠️ `/milla/welcome` IS UNAFFECTED — it returns bare, above, before this line. */}
+            ⚠️ ONE INSTANCE. Mounted here, once, beside the working area — so every route is the
+            SAME conversation, and none of them may build a second one.
+            ⚑ 24 Sep — AND THE BRIEF TOO. The first run no longer stands this column down; it
+            renders INTO it (`claimChatSlot`), so it is one chat from sign-up to Complete. */}
         <MillaConversationProvider
           handleOpen={() => setCover(true)}
           handleHidden={covering}
-          // ── 🛑 ⚑ 22 Sep — ONE MILLA ON THE FIRST SCREEN, NOT TWO ────────────────────
-          //
-          // 🛑 THE DEFECT THIS FIXES, AND IT WAS MINE. Bringing the first run inside this
-          // shell left the provider drawing its own 600px conversation beside the onboarding
-          // page's — two Millas, two composers, two greetings, and only one of them actually
-          // collecting the Brief. A client's first screen asked them to choose.
-          //
-          // ⚠️ THE COLUMN STANDS DOWN, THE CONVERSATION DOES NOT. Still one provider, one
-          // session, one transcript; on this route the page is the thing drawing her, because
-          // there she IS the screen rather than a companion to it.
-          chatHidden={isOnboarding}
         >
           {/* ── ⚑ 4 Sep (UI-008) — ON A PHONE THE SECTION COVERS HER ────────────────────
-              🛑 IT USED TO BE A COLUMN AT EVERY WIDTH, so on a 390px screen `flex-1` beside
-              two `shrink-0` columns totalling 860px resolved to ZERO: the workspace did not
-              exist on a phone.
-
               ⚠️ A LAYER, NOT A REPLACEMENT — and deliberately not `hidden`. The conversation
               below stays mounted and LAID OUT, so the transcript, the session and the composer
-              are exactly where the customer left them when they come back, and the
-              scroll-to-bottom (which reads `scrollHeight`) still works. Above the breakpoint
-              this is the same column it has always been. */}
-          {/* ⚠️ A COLUMN AT EVERY WIDTH, so the inner wrapper below can be `flex-1 min-h-0`
-              and every route's `h-full` still resolves against a real height. */}
-          <main className={`flex-1 min-w-0 overflow-hidden ${
-            covering ? 'absolute inset-0 z-30 bg-[#faf8ff] flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'}`}>
-            {/* THE WAY BACK. Both controls the approved preview draws: the back arrow and the
-                "M · Milla" chip, and they do the same thing — reveal the conversation that was
-                never gone. */}
+              are exactly where the customer left them when they come back. */}
+          <main className={`mv-workspace flex-1 min-w-0 overflow-hidden ${
+            covering ? 'absolute inset-0 z-30 flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'}`}>
             {/* THE WAY BACK. Both controls the approved preview draws — the back arrow and
                 the "M · Milla" chip — and they do the same thing: reveal the conversation that
-                was never gone. On Home the cover is Home's own workspace, so returning is a
-                state change; on a section it is the route, so returning is a link and the
-                phone's own back button lands in the same place. */}
-            <div className="md:hidden shrink-0 flex items-center gap-2 px-3 h-[46px] border-b border-[#eee7f7] bg-white">
+                was never gone. */}
+            <div className="md:hidden shrink-0 flex items-center gap-2 px-3 h-[46px] border-b border-[#e8e3ec] bg-white">
               {isLeads ? (<>
                 <button onClick={() => setCover(false)} aria-label="Back to Milla"
-                  className="p-1.5 -ml-1 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]"><ChevronLeft className="w-5 h-5" /></button>
+                  className="p-1.5 -ml-1 rounded-lg text-[#342e3b] hover:bg-[#f6f4f8]"><ChevronLeft className="w-5 h-5" /></button>
                 <b className="text-[15.5px]">{sectionLabel}</b>
                 <button onClick={() => setCover(false)} className={MILLA_CHIP}>
                   <span className={MILLA_CHIP_DOT}>M</span> Milla
                 </button>
               </>) : (<>
                 <Link href="/milla" aria-label="Back to Milla"
-                  className="p-1.5 -ml-1 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]"><ChevronLeft className="w-5 h-5" /></Link>
+                  className="p-1.5 -ml-1 rounded-lg text-[#342e3b] hover:bg-[#f6f4f8]"><ChevronLeft className="w-5 h-5" /></Link>
                 <b className="text-[15.5px]">{sectionLabel}</b>
                 <Link href="/milla" className={MILLA_CHIP}>
                   <span className={MILLA_CHIP_DOT}>M</span> Milla
                 </Link>
               </>)}
             </div>
+            {/* ⚑ 24 Sep — THE REDESIGN'S WORKSPACE HEAD: what this side is, and that it moves with
+                the conversation. On Home it is the Live workspace of the stage; elsewhere it names
+                the section. */}
+            <div className="mv-workspace-head hidden md:flex">
+              <div><b>{workspaceTitle}</b>{workspaceSub ? <span>{workspaceSub}</span> : null}</div>
+              {onHome ? <div className="mv-context">Milla updates this as you talk</div> : null}
+            </div>
             <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
           </main>
         </MillaConversationProvider>
+      </div>
       </div>
     </div>
   )

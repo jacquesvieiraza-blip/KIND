@@ -189,6 +189,27 @@ type MillaConversationApi = {
   publishDeskSet: (count: number | null) => void
   /** Bumped whenever a targeting revision is saved, so the ICP screen re-reads its versions. */
   icpRevision: number
+  /**
+   * ── 🛑 ⚑ 24 Sep — ONE CHAT, FROM SIGN-UP TO COMPLETE ─────────────────────────────────────
+   *
+   * Founder, verbatim: *"we never leave one chat to go to another. not how it workss. evern the
+   * first part. the only change is the right screen."*
+   *
+   * ⛓️ WAS `chatHidden`: the Brief page stood this column DOWN and drew a second, separate chat
+   * of its own — so moving from the Brief to Proof swapped one chat for another, the Brief was
+   * gone from the screen, and the new one opened on "We could not load your earlier
+   * conversation". Now a route that runs its own conversation engine (the Brief's) CLAIMS this
+   * column's body and renders into it (`createPortal` into `chatSlot`); the column, its header
+   * and its place on the screen never change. Releasing the claim hands the body back, and the
+   * thread is re-read with the Brief shown first — one conversation, carried.
+   */
+  claimChatSlot: () => () => void
+  /** The element a claiming route renders its conversation into. `null` until mounted. */
+  chatSlot: HTMLElement | null
+  /** Milla says, in the ONE chat, what just happened — a stage moved, a step completed. */
+  announce: (text: string) => void
+  /** Re-read the stage facts this column's header and chips are built from. */
+  refreshStage: () => void
 }
 
 const Ctx = createContext<MillaConversationApi | null>(null)
@@ -202,36 +223,18 @@ const Ctx = createContext<MillaConversationApi | null>(null)
 export function useMillaConversation(): MillaConversationApi {
   return useContext(Ctx) ?? INERT
 }
-const INERT: MillaConversationApi = { focus: () => {}, publishDeskSet: () => {}, icpRevision: 0 }
+const INERT: MillaConversationApi = {
+  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0,
+  claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
+}
 
 export function MillaConversationProvider(
-  { children, handleOpen, handleHidden, chatHidden }: {
+  { children, handleOpen, handleHidden }: {
     children: React.ReactNode
     /** Phone only — raise Home's own workspace over this conversation. */
     handleOpen?: () => void
     /** Phone only — the workspace is already covering, so the handle has nothing to offer. */
     handleHidden?: boolean
-    /**
-     * ── 🛑 ⚑ 22 Sep — THE ROUTE ALREADY HAS A CONVERSATION, SO THIS ONE STANDS DOWN ──────
-     *
-     * 🛑 TWO MILLAS AND TWO COMPOSERS, ON THE FIRST SCREEN A CLIENT EVER SEES. Bringing the
-     * first run inside the shell put this provider's own 600px column beside the onboarding
-     * page's — one saying "Hi, I'm Milla, tell me what you're trying to achieve", the other
-     * "Welcome back, let's sharpen the same targeting", each with its own Send button, and
-     * only the second one actually collecting the Brief.
-     *
-     * ⚠️ NOT RENDERED, NEVER `hidden`, AND THE DISTINCTION IS LOAD-BEARING.
-     * `milla-vida-shell.test.ts` forbids giving this column a hiding attribute at any width:
-     * a covering LAYER keeps it laid out so the transcript, the session and anything
-     * half-typed survive, whereas `hidden` gives it `scrollHeight` 0 and silently breaks the
-     * scroll-to-bottom the transcript depends on. That rule is about COVERING a conversation
-     * the client is using. Here there is nothing to preserve — the client has never typed
-     * into this column, because the route drew its own and that is the one collecting their
-     * Brief. So it is absent rather than crippled.
-     *
-     * ⚠️ AND THE CONTEXT IS UNAFFECTED: one provider, one session, one transcript.
-     */
-    chatHidden?: boolean
   },
 ) {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -254,6 +257,14 @@ export function MillaConversationProvider(
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
   const [icps, setIcps] = useState<Icp[] | null>(null)
+  // ⚑ 24 Sep — the column body a route may claim (the Brief). A REF for the synchronous read the
+  // restore needs (a child's claim runs before this provider's own mount effect), and state for
+  // the render.
+  const slotClaimedRef = useRef(false)
+  const [slotClaimed, setSlotClaimed] = useState(false)
+  const [chatSlot, setChatSlot] = useState<HTMLElement | null>(null)
+  const [restoreNonce, setRestoreNonce] = useState(0)
+  const [stageNonce, setStageNonce] = useState(0)
   /**
    * 🛑 THE ONE SEND THIS CONVERSATION HAS NOT RESOLVED. Held in a ref, not state: it must
    * be readable by the very next `send()` the customer triggers, and a re-render is not
@@ -281,19 +292,42 @@ export function MillaConversationProvider(
       if (sr.status === 'fulfilled') setSummary(sr.value.data)
       if (ir.status === 'fulfilled') setIcps(ir.value.data ?? [])
     })()
-  }, [])
+  }, [stageNonce])
 
   // M2 — the thread persists, so anything WE asked them (Vida's "Ask them for these" writes
   // straight into this thread) is waiting here when they next open Milla, and their answer
   // lands in the same thread where we read it. Without this the chat started blank every
   // visit and an ask could never be seen, let alone answered.
   useEffect(() => {
+    // ⚑ 24 Sep — WHILE A ROUTE HOLDS THIS COLUMN (the Brief) THERE IS NOTHING HERE TO READ: the
+    // Brief is its own conversation until the client moves on, and before sign-up completes there
+    // is no client row for `/milla/sessions` to answer about. Released → read, now.
+    if (slotClaimedRef.current) return
     (async () => {
       /** The canonical thread as it actually stands — the truth recovery is read from. */
       let restored: Msg[] = []
+      setMessages([]); setRestoreErr(null); setRestoreDone(false)
       try {
         const tok = await token()
+        // ── ⚑ 24 Sep — THE BRIEF COMES FIRST, BECAUSE IT IS THE SAME CONVERSATION ────────────
+        //
+        // Founder: *"information not being carried"* · *"we never leave one chat to go to another."*
+        // The Brief's turns are stored with the draft; the desk's with the session. Shown in that
+        // order they are the one conversation the client actually had. DISPLAY ONLY: nothing is
+        // written, and the model's own context is unchanged. A draft that cannot be read costs the
+        // client nothing here — the thread below still loads.
+        const brief = await api.get<{ data?: { conversation?: { role: 'user' | 'assistant'; content: string }[] } }>(
+          '/milla/brief-draft', tok).catch(() => null)
+        const briefRows: Msg[] = (brief?.data?.conversation ?? [])
+          .filter(t => (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string' && t.content.trim() !== '')
+          .map((t, i) => ({ id: `brief-${i}`, role: t.role, content: t.content }))
+        if (briefRows.length > 0) setMessages(briefRows)
+        // ⚑ 24 Sep — "NO ACCOUNT YET" IS NOT "COULD NOT READ". `/milla/sessions` answers 404
+        // 'Client not found' for a signed-in person still in their Brief; that is a thread that
+        // does not exist yet, not a failure — and treating it as one is what put "We could not load
+        // your earlier conversation" over the first screen after the Brief.
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
+          .catch((e: unknown) => { if (failureOf(e).status === 404) return { data: [] as { id: string }[] }; throw e })
         const sid = list.data?.[0]?.id
         let rows: Msg[] = []
         if (sid) {
@@ -305,8 +339,9 @@ export function MillaConversationProvider(
             setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
           }
         }
-        // 🛑 THE GREETING IS EARNED BY A READ THAT WORKED AND FOUND NOTHING — see below.
-        const view = restoreView({ ok: true, count: rows.length })
+        // 🛑 THE GREETING IS EARNED BY A READ THAT WORKED AND FOUND NOTHING — see below. A client
+        // who has a Brief behind them is mid-conversation, so they are not greeted as new.
+        const view = restoreView({ ok: true, count: rows.length + briefRows.length })
         if (view.greet) setMessages(m => [{ id: 'greet', role: 'assistant', content: MILLA_GREETING }, ...m])
         setRestoreErr(null)
         setRestoreDone(true)
@@ -369,7 +404,10 @@ export function MillaConversationProvider(
       const unanswered = unansweredCustomerTurn(restored)
       if (unanswered) await send(unanswered.text, { handoffId: unanswered.id, alreadyInTranscript: true })
     })()
-  }, [])
+  // ⚠️ `restoreNonce` IS THE ONLY TRIGGER: bumped when a route releases the column, so the thread
+  // is read at the moment it can exist.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreNonce])
 
   // Scroll the CHAT container only — never the page.
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
@@ -380,6 +418,23 @@ export function MillaConversationProvider(
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
   const publishDeskSet = useCallback((count: number | null) => setDeskSet(count), [])
+  const claimChatSlot = useCallback(() => {
+    slotClaimedRef.current = true
+    setSlotClaimed(true)
+    return () => {
+      slotClaimedRef.current = false
+      setSlotClaimed(false)
+      setChatSlot(null)
+      // Handed back: read the thread now that it can exist, and the stage it is at.
+      setRestoreNonce(n => n + 1)
+      setStageNonce(n => n + 1)
+    }
+  }, [])
+  const announce = useCallback((text: string) => {
+    const t = text.trim(); if (!t) return
+    setMessages(m => [...m, { id: `n-${Date.now()}`, role: 'assistant', content: t }])
+  }, [])
+  const refreshStage = useCallback(() => setStageNonce(n => n + 1), [])
 
   /**
    * ⛓️ THE TRANSPORT SWITCHES; THE CONVERSATION DOES NOT.
@@ -601,17 +656,17 @@ export function MillaConversationProvider(
 
   const sendState = (() => {
     // Founder-locked wording, 3 Sep. CUSTOMER-FACING ONLY.
-    const idle = { label: 'Outreach hasn’t started', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    const idle = { label: 'Outreach hasn’t started', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]', cls: '' }
     // Unknown means idle, which is the only honest thing this widget can say.
     if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle
     // 🛑 NO PROGRAMME MEANS NO PROGRAMME STATUS, whatever campaign rows exist.
     if (prog.hasProgramme === false) return idle
-    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500', cls: 'attn' }
     const st = summary?.campaign_status
-    if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
-    if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
-    if (st === 'completed' || st === 'archived') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500', cls: 'good' }
+    if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500', cls: 'attn' }
+    if (st === 'completed' || st === 'archived') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]', cls: 'good' }
+    if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]', cls: '' }
     return idle
   })()
 
@@ -626,10 +681,11 @@ export function MillaConversationProvider(
   const icpWaiting = !!newestIcp && newestIcp.is_active !== true
 
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
-    ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
+    ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision }), [focus, publishDeskSet, icpRevision])
+    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage }),
+    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),
@@ -643,21 +699,27 @@ export function MillaConversationProvider(
       {/* ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT. `w-[600px] shrink-0` at every
           width is what left `<main>` with zero pixels on a 390px screen. The desktop number is
           unchanged: a conversation column past ~600px is 170+ characters a line. */}
-      {chatHidden ? null : (
-      <section data-tour="chat" className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
-          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
-          {/* ⚑ 4 Sep (UI-008) — TRUNCATE, NEVER WRAP. On a 390px screen the subtitle wrapped
-              onto a second line and the send-state pill wrapped INTO it, so the two overlapped
-              on the first thing the customer reads. Nothing is removed at any width: the name
-              and the pill hold their size, and the subtitle gives up the pixels. */}
-          <div className="min-w-0 truncate"><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
-          <span className={`ml-auto shrink-0 text-[12.5px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap ${sendState.tone}`}>
-            <span className={`w-2 h-2 rounded-full ${sendState.dot}`} /> {sendState.label}
-          </span>
+      {/* ── ⚑ 24 Sep — THE REDESIGN'S CONVERSATION COLUMN, ONE OBJECT FOR EVERY STAGE ──────────
+          Founder: *"look at the panel size. the spacing. thw lettering… match everything. colors
+          everything."* The classes are the redesign's own (`mv-` prefixed, from
+          `@kind/shared/design/mv-design.css`), so the column, its header, the bubbles, the chips
+          and the composer are the redesign's, not a resemblance of it.
+          ⚠️ ALWAYS RENDERED, NEVER `hidden`. A route that runs its own engine (the Brief) claims
+          the BODY below the header and renders into `chatSlot`; the column itself never goes
+          away — that is what keeps it one chat from sign-up to Complete.
+          ⚠️ FULL WIDTH ON A PHONE (`w-full`); on desktop the redesign's grid sizes it. */}
+      <section data-tour="chat" className="mv-conversation w-full md:w-auto min-h-0">
+        <div className="mv-conversation-head">
+          <div className="mv-agent-avatar">M</div>
+          <div className="mv-agent-meta"><b>Milla</b><span>Your pipeline strategist</span></div>
+          {/* ⚠️ The send state, in the redesign's status pill. Same founder-locked words. */}
+          <div className={`mv-status ${sendState.cls}`}>{sendState.label}</div>
         </div>
-        <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
-          <div className="max-w-2xl space-y-3">
+        {slotClaimed ? (
+          // The Brief's conversation renders here — same column, same place, same header.
+          <div ref={setChatSlot} className="flex-1 min-h-0 flex flex-col" />
+        ) : (<>
+        <div ref={chatBodyRef} className="mv-chat">
             {/* ⛓️ 18 Sep (J3-C5) — A THREAD WE COULD NOT READ SAYS SO, ABOVE ITS OWN ABSENCE.
                 Rendered first because it is about everything below it: the client is looking at
                 a conversation that is missing, and the one thing they need to know is that it
@@ -678,42 +740,39 @@ export function MillaConversationProvider(
                 : null
             })()}
             {messages.map(m => (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>
+              <div key={m.id} className={`mv-msg ${m.role === 'user' ? 'client' : 'agent'}`}>
+                <div className="mv-who">{m.role === 'user' ? 'You' : 'Milla'}</div>
+                <div className="mv-bubble whitespace-pre-line">{m.role === 'assistant' ? rich(m.content) : m.content}</div>
               </div>
             ))}
-            {sending && <div className="flex justify-start"><div className="bg-[#f3ecff] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[14px]">Milla is thinking…</div></div>}
-          </div>
+            {sending && <div className="mv-msg agent"><div className="mv-who">Milla</div><div className="mv-bubble text-[#a29aa9]">Milla is thinking…</div></div>}
         </div>
-        <div className="px-4 py-3 border-t border-[#eee7f7] shrink-0">
           {/* THE CONTEXT STRIP — what this conversation is talking about right now. It is a
               label on the ONE conversation, not a second one: the transcript above and the
               composer below are the same ones every other screen uses. */}
           {isIcpContext(context) && (
-            <div className="flex items-center gap-2 mb-2 rounded-xl border border-[#e4d4fb] bg-[#faf8ff] px-3 py-2">
-              <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Talking about</span>
-              <b className="text-[12.5px]">{context === 'icp-fresh' ? 'Who we target — a fresh one' : 'Who we target'}</b>
+            <div className="flex items-center gap-2 mx-[18px] mb-2 rounded-xl border border-[#e4d9fb] bg-[#fbf9fd] px-3 py-2">
+              <span className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a29aa9]">Talking about</span>
+              <b className="text-[11px]">{context === 'icp-fresh' ? 'Who we target — a fresh one' : 'Who we target'}</b>
               <button onClick={() => { setContext(null); setIcpDraft(null) }}
-                className="ml-auto text-[12px] font-semibold text-[#9b8ec4] hover:text-[#5c5279]">Done</button>
+                className="ml-auto text-[10px] font-semibold text-[#766f7e] hover:text-[#17141c]">Done</button>
             </div>
           )}
           {/* THE DRAFT AND ITS EXPLICIT SAVE. Nothing goes live until this is pressed. */}
           {isIcpContext(context) && icpDraft && (
-            <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3.5 mb-2">
-              <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Your new targeting</p>
-              <b className="text-[13.5px] block mt-0.5 mb-1.5">{icpDraft.name}</b>
+            <div className="mv-hero-card mx-[18px] mb-2">
+              <div className="mv-eyebrow">Your new targeting</div>
+              <b className="text-[13px] block mb-1.5">{icpDraft.name}</b>
               <div className="flex flex-wrap gap-1.5">
                 {draftChips.map((c, i) => (
-                  <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>
+                  <span key={i} className="mv-chipx">{c}</span>
                 ))}
               </div>
-              <div className="flex gap-2 mt-3">
-                <button disabled={icpSaving} onClick={saveIcpDraft}
-                  className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+              <div className="mv-cta-row mt-3">
+                <button disabled={icpSaving} onClick={saveIcpDraft} className="mv-btn primary disabled:opacity-50">
                   {icpSaving ? 'Saving…' : context === 'icp-fresh' ? 'Save as new targeting' : 'Save — make this live'}
                 </button>
-                <button disabled={icpSaving} onClick={() => setIcpDraft(null)}
-                  className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Keep talking</button>
+                <button disabled={icpSaving} onClick={() => setIcpDraft(null)} className="mv-btn">Keep talking</button>
               </div>
             </div>
           )}
@@ -721,22 +780,18 @@ export function MillaConversationProvider(
               pause my programme", "How is my ROI looking?" — and in ICP context the composer
               is talking to `/icps/chat-build`. Sending one of them there would put a
               programme question into a targeting conversation. */}
-          {context !== 'icp' && (<>
-            {chips.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
-              </div>
-            )}
-          </>)}
-          <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
+          {context !== 'icp' && chips.length > 0 && (
+            <div className="mv-quickbar">
+              {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="mv-quick disabled:opacity-50">{c}</button>)}
+            </div>
+          )}
+          <form onSubmit={e => { e.preventDefault(); send(input) }} className="mv-composer">
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla, request leads, or give feedback…'}
-              className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-            <button type="submit" disabled={sending || icpSaving || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla, request leads, or give feedback…'} />
+            <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
-        </div>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────
             The shortcut to the one section that matters now. The rule is the founder's, and it
             is the whole rule: A PROPOSAL WAITING → MY ICP, OTHERWISE → PROGRAMME.
@@ -755,23 +810,23 @@ export function MillaConversationProvider(
               <span className={HANDLE_GRAB} />
               <span className="flex items-center gap-2">
                 <b className="text-[13.5px]">My ICP</b>
-                <span className="ml-auto text-[11px] font-extrabold text-white bg-[#7C3AED] rounded-full px-2 py-0.5">1</span>
+                <span className="ml-auto text-[11px] font-extrabold text-white bg-[#6f3df4] rounded-full px-2 py-0.5">1</span>
               </span>
-              <span className="block text-[11.5px] text-[#9b8ec4] mt-0.5">A proposal is waiting — open to approve.</span>
+              <span className="block text-[11.5px] text-[#766f7e] mt-0.5">A proposal is waiting — open to approve.</span>
             </Link>
           ) : (
             <button onClick={handleOpen} className={`${HANDLE} text-left`}>
               <span className={HANDLE_GRAB} />
               <span className="flex items-center gap-2">
                 <b className="text-[13.5px]">Programme</b>
-                {prog && <span className="ml-auto text-[11px] font-extrabold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2 py-0.5">{prog.stage}</span>}
+                {prog && <span className="ml-auto text-[11px] font-extrabold text-[#4d22b6] bg-[#f3edff] rounded-full px-2 py-0.5">{prog.stage}</span>}
               </span>
-              <span className="block text-[11.5px] text-[#9b8ec4] mt-0.5">Open for the lifecycle, outcome and progress.</span>
+              <span className="block text-[11.5px] text-[#766f7e] mt-0.5">Open for the lifecycle, outcome and progress.</span>
             </button>
           )
         )}
+        </>)}
       </section>
-      )}
       {children}
     </Ctx.Provider>
   )

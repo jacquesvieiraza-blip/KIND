@@ -1,4 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap');
+/* ⚑ 24 Sep — the ONE M&V design stylesheet, shared with Vida (packages/shared/src/design/mv-design.css). Class-scoped (`mv-`), so it styles only what opts in. */
+@import '../../../../packages/shared/src/design/mv-design.css';
+
+/* ⚑ 24 Sep — THREE LOCAL ADJUSTMENTS TO THE SHARED M&V FRAME. The redesign is drawn for a desktop
+   browser; these keep the founder-approved phone behaviour (UI-008: the rail is a drawer, the
+   section COVERS the chat and never hides it) and the dynamic viewport (the phone keyboard never
+   pushes the composer out of sight). Everything above 930px is the redesign, untouched. */
+.mv-root .mv-app-shell { height: calc(100dvh - 32px); }
+@media (max-width: 1250px) { .mv-root .mv-app-shell { height: calc(100dvh - 20px); } }
+@media (min-width: 768px) and (max-width: 930px) {
+  .mv-root .mv-app-shell { height: calc(100dvh - 20px); min-height: 0; }
+  .mv-root .mv-portal-milla { grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr); }
+  .mv-root .mv-workspace { display: flex; }
+}
+@media (max-width: 767px) {
+  .mv-root .mv-app-shell { height: 100dvh; width: 100%; margin: 0; border-radius: 0; border: 0; grid-template-rows: 64px minmax(0, 1fr); }
+  .mv-root .mv-portal-milla { display: flex; }
+}
 
 @tailwind base;
 @tailwind components;

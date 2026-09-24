@@ -259,7 +259,9 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // Zero honest chips is the right answer for a desk with nothing on it; a bordered strip
     // with no buttons in it is not, and would read as a broken layout on the one screen whose
     // job is to look calm.
-    expect(CHAT).toContain('{chips.length > 0 && (')
+    // ⛓️ 24 Sep (R145 — the redesign, founder: *"match everything. colors everything."*): the chip row is now the redesign's quickbar, still rendered only when there
+    // are chips (and, as before, not in ICP context).
+    expect(CHAT).toContain('chips.length > 0 && (')
   })
 
   it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {

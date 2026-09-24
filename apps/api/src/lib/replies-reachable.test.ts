@@ -55,7 +55,10 @@ describe('#644 — the client can find replies without already knowing where the
   const shell = readFileSync(SHELL, 'utf8')
 
   it('Replies sits in the rail nav alongside the other workspace destinations', () => {
-    const nav = shell.slice(shell.indexOf("link('/milla',"), shell.indexOf("section('Recent replies')"))
+    // ⛓️ 24 Sep (R145 — the redesign's rail): WAS sliced from `link('/milla',` to
+    // `section('Recent replies')`. The rail is now one RAIL list rendered in the redesign's two
+    // groups, with Recent replies after them — so the slice runs from the list to that group.
+    const nav = shell.slice(shell.indexOf('const RAIL:'), shell.indexOf('<div className="mv-nav-label">Recent replies</div>'))
     // ⛓️ 30 Aug (BUILD-004A-1) — TWO LABELS RENAMED BY FOUNDER RULING, NOT BY ME.
     // 'New leads' → 'Home' (ruling 1: it was the per-lead approval desk, and the programme
     // model has no per-lead approval) and 'My campaign' → 'Programme' (approved nav rename).

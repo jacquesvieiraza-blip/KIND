@@ -167,6 +167,31 @@ export type SequenceTemplate = {
   angles: string[]
 }
 
+/**
+ * ⚑ 24 Sep (R157) — THE VALUE SPINE: WHAT EVERY MEETING EMAIL CARRIES, IN THIS ORDER.
+ *
+ * The founder, reading House's version-2 sequence: *"weak outreach is not good. we need to be
+ * effective on this part. from experience i know you need to add value here. what the problem
+ * is. how it impacts. and the return on investment. and then soluition. outreach wording is
+ * key"*. Asked what numbers the return may use, he chose **B — no numbers**: the return is put
+ * in the READER's terms, never ours.
+ *
+ * ⚠️ IT SITS ON TOP OF THE P31 ANGLES, IT DOES NOT REPLACE THEM. The angle decides WHICH problem
+ * an email opens on (why-now, a second commercial problem, proof, the objection…), so no two
+ * emails argue the same thing; the spine is the SHAPE every one of them takes.
+ *
+ * ⚠️ AND IT CHANGES NO SAFETY RULE: no invented numbers or clients (R30), no link in a cold
+ * email (5 Aug · P31), one low-friction question to close.
+ */
+export const VALUE_SPINE = [
+  'EVERY EMAIL CARRIES THE VALUE SPINE, in this order, in plain words (founder-ruled 24 Sep, R157):',
+  '1. THE PROBLEM — one specific problem this person has in their role, said the way they would say it. The step\'s angle decides which problem.',
+  '2. THE IMPACT — what that problem is costing them right now: time, missed deals, a thin pipeline, wasted spend. Describe it; do not quantify it.',
+  '3. THE RETURN — why fixing it pays for itself, put in THEIR terms. Frame it as a question or a conditional, e.g. "what is one more meeting with the right decision-maker worth to your team?" NEVER a number, percentage, price, result, timeframe or customer of our own — none may be invented.',
+  '4. THE SOLUTION — what the sender does about it, only from the grounding block, then the step\'s one low-friction question.',
+  'Keep all four inside the step\'s word limit. Short sentences. No step may skip the problem or the impact.',
+].join('\n')
+
 /** The per-purpose step briefs, written at depth 7 and trimmed to the chosen depth. */
 const PURPOSE_STEPS: Record<SequencePurpose, string[]> = {
   // ── P31 · THE MEETING SEQUENCE SELLS THE RESPONSE ────────────────────────────────────────

@@ -4,7 +4,7 @@ import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { db } from '@kind/db'
 import { BACKGROUND_MODEL } from './models'
 import { normalizeRevealEmail } from './billing-rules'
-import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
+import { sequencePlan, normalisePurpose, normaliseDepth, VALUE_SPINE, type SequencePurpose, type SequenceDepth } from './sequence-templates'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
@@ -303,6 +303,8 @@ export async function generateSequence(
       : '',
     '',
     ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
+    // ⚑ 24 Sep (R157) — the founder's problem → impact → return → solution, on every meeting email.
+    plan.purpose === 'meeting' ? `\n${VALUE_SPINE}` : '',
     // ── P31 · THE BOOKING LINK ENTERS ONLY AFTER POSITIVE INTENT ────────────────────────
     //
     // Founder doctrine, 21 Aug: "the calendar/booking link enters only AFTER positive intent".
@@ -2109,6 +2111,8 @@ export async function generateSequenceWithMemory(
       : '',
     '',
     ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
+    // ⚑ 24 Sep (R157) — the founder's problem → impact → return → solution, on every meeting email.
+    plan.purpose === 'meeting' ? `\n${VALUE_SPINE}` : '',
     // ── P31 · THE BOOKING LINK ENTERS ONLY AFTER POSITIVE INTENT ────────────────────────
     //
     // Founder doctrine, 21 Aug: "the calendar/booking link enters only AFTER positive intent".

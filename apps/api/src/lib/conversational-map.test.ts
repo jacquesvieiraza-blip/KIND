@@ -163,9 +163,18 @@ describe('M1 — every model call is inventoried and on the model the founder ru
         .toMatch(/(?:model:\s*|=\s*)CONVERSATION_MODEL\b/)
     }
 
-    // ③ NOTHING OUTSIDE MILLA AND VIDA REFERENCES IT.
+    // ③ NOTHING OUTSIDE MILLA AND VIDA REFERENCES IT — with ONE named, founder-ruled exception.
+    //
+    // ⛓️ 24 Sep (R159) — *"yes Sonnet"*: the PROGRAMME sequence writer passes the conversational
+    // model to `generateSequence` (one call per programme or per Rewrite). It is a ruling, not a
+    // reinterpretation of R122a, so it is named here and its SHAPE is pinned: the file may use
+    // the constant only as that one option. `figsy.ts` itself stays under this check.
+    const R159_EXCEPTION = 'apps/api/src/lib/programme-sequence-generation.ts'
+    const exception = live(read(R159_EXCEPTION))
+    expect(exception.match(/CONVERSATION_MODEL/g)?.length, 'R159: one import and one use, nothing more').toBe(2)
+    expect(exception).toContain('model: CONVERSATION_MODEL }')
     for (const f of API_FILES) {
-      if (CONVERSATIONAL_FILES.includes(f) || f.endsWith('lib/models.ts')) continue
+      if (CONVERSATIONAL_FILES.includes(f) || f.endsWith('lib/models.ts') || f === R159_EXCEPTION) continue
       expect(live(read(f)), `${f} is not Milla or Vida and reads the conversational model`)
         .not.toContain('CONVERSATION_MODEL')
     }

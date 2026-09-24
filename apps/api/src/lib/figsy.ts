@@ -276,6 +276,14 @@ export type SequenceOptions = {
    * so a brief the client has not confirmed cannot reach a model.
    */
   briefContext?: string | null
+  /**
+   * ⚑ 24 Sep (R159) — WHICH MODEL WRITES THIS SEQUENCE. Absent = `BACKGROUND_MODEL`, so every
+   * per-person caller keeps its model and its cost exactly as before. Only the programme
+   * writer (`programme-sequence-generation.ts`) passes the conversational model — one call per
+   * programme or per Rewrite, founder-ruled as a named exception to R122a. This file never
+   * names that model itself.
+   */
+  model?: string
 }
 
 /**
@@ -388,7 +396,7 @@ Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
   // Every check downstream (leak guard, quality rules) still judges whatever comes back.
   for (let attempt = 1; attempt <= SEQUENCE_DRAFT_ATTEMPTS; attempt++) {
     const message = await anthropic.messages.create({
-      model: BACKGROUND_MODEL,
+      model: opts?.model ?? BACKGROUND_MODEL,
       // 5 emails + JSON overhead no longer fit the old 1024, and R157's value spine makes each
       // email longer again — a truncated response here is a parse failure.
       max_tokens: 3072,

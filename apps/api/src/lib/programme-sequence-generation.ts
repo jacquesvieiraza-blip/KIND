@@ -47,6 +47,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+import { CONVERSATION_MODEL } from './models'
 import type { ProgrammeSequenceStep } from './programme-sequence'
 
 export type GenerateSequenceResult =
@@ -190,7 +191,10 @@ export async function generateProgrammeSequence(
       client.booking_url ?? null,
       client.signer_name ?? null,
       knowledge as never,
-      { briefContext, industry: sample.industry ?? client.industry ?? null },
+      // ⚑ 24 Sep (R159) — the programme's emails are written by the conversational model, a named
+      // exception to R122a. One call per programme (or per Rewrite), never per person; every
+      // per-person writer stays on Haiku.
+      { briefContext, industry: sample.industry ?? client.industry ?? null, model: CONVERSATION_MODEL },
     ) as unknown as Record<string, { subject?: string; body?: string }>
   } catch (err) {
     return {

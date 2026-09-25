@@ -141,6 +141,9 @@ export type OperatorAction =
                             // conditions on a meeting and linked the accepting reply as evidence.
   | 'meeting_challenge_resolved' // ⚑ 25 Sep (R141 · P5b) — a person upheld or rejected a client's
                             // challenge to a meeting, with the reason the client reads.
+  | 'meeting_absence_recorded' // ⚑ 25 Sep (R141 · P5c) — a person recorded a no-show or cancellation
+                            // and WHO: prospect (one free reschedule) or client (counts as delivered).
+  | 'meeting_rescheduled'   // ⚑ 25 Sep (R141 · P5c) — the one free reschedule after a prospect's absence.
   | 'programme_ceiling_raised' // ⚑ 25 Sep (R166 ⑥ · P3b) — a person opened more sourcing on a programme,
                             // with a written reason. Before this, only a raw database edit could.
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model

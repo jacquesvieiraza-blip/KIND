@@ -7174,6 +7174,37 @@ COMMENT ON COLUMN public.meetings.challenge_outcome IS
   'upheld (the meeting was not qualified) | rejected (it stands). Null while open.';
 `,
   },
+  {
+    // ⚑ 25 Sep (R141 · R166 · P5c, board #2351) — WHO WAS ABSENT, AND THE ONE FREE RESCHEDULE.
+    // A no-show or cancellation now records whether it was the prospect (one free reschedule)
+    // or the client (counts as delivered). Expand only: nullable columns + two checks.
+    key: '20260925_meeting_absence',
+    title: 'meetings.absence_kind / absence_party — no-shows and cancellations, and who (R141, P5c)',
+    sql: `
+ALTER TABLE public.meetings
+  ADD COLUMN IF NOT EXISTS absence_kind        text,
+  ADD COLUMN IF NOT EXISTS absence_party       text,
+  ADD COLUMN IF NOT EXISTS absence_recorded_at timestamptz,
+  ADD COLUMN IF NOT EXISTS absence_recorded_by text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'meetings_absence_values') THEN
+    ALTER TABLE public.meetings ADD CONSTRAINT meetings_absence_values
+      CHECK ((absence_kind IS NULL OR absence_kind IN ('no_show', 'cancelled'))
+         AND (absence_party IS NULL OR absence_party IN ('prospect', 'client')));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'meetings_absence_is_complete') THEN
+    ALTER TABLE public.meetings ADD CONSTRAINT meetings_absence_is_complete
+      CHECK ((absence_kind IS NULL) = (absence_party IS NULL)
+         AND (absence_kind IS NULL) = (absence_recorded_at IS NULL));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.meetings.absence_party IS
+  'Who was absent or cancelled: prospect (one free reschedule, R141) | client (counts as delivered).';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

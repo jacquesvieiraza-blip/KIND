@@ -798,9 +798,16 @@ export async function raiseReviewIfNeeded(programmeId: string): Promise<boolean>
     if (error || !data) return false
     const p = data as unknown as ProgrammeRow
 
-    // Already held, or already reviewed and resolved for this stretch — leave it alone.
+    // Already held — leave it alone.
     if (reviewIsOpen(p)) return false
     if (TERMINAL_STATUSES.includes(p.status as ProgrammeStatus)) return false
+
+    // ⛓️ 25 Sep (R166 ⑥ · P3a) — ~~"or already reviewed and resolved for this stretch"~~. A
+    // RESOLVED review no longer ends the matter: after every further 250 people without a NEW
+    // meeting, the hold is raised again. The founder: *"the barriers need to be there."*
+    if ((p as unknown as { review_resolved_at?: string | null }).review_resolved_at) {
+      return await raiseRepeatReviewIfNeeded(p)
+    }
 
     const reached = await reviewTriggerReached(p)
     if (reached !== true) return false   // false = not there yet; null = unknown, never guess
@@ -831,6 +838,74 @@ export async function raiseReviewIfNeeded(programmeId: string): Promise<boolean>
     console.error(`[programme-authority] raiseReviewIfNeeded failed for ${programmeId}:`, err)
     return false
   }
+}
+
+/**
+ * ⚑ 25 Sep (R166 ⑥ · P3a) — THE REVIEW, AGAIN, EVERY 250 PEOPLE WITHOUT A NEW MEETING.
+ *
+ * Measured from the BASELINE a person left when they resolved the last review (people
+ * delivered and meetings booked at that moment). A new meeting moves the baseline forward, so
+ * the count restarts; another 250 people with no new meeting raises the hold again.
+ *
+ * ⚠️ AN UNREADABLE BASELINE RAISES THE HOLD (a person looks); UNREADABLE MEETINGS DO NOT (the
+ * same rule `reviewTriggerReached` keeps: a database hiccup is never "no meetings").
+ */
+export function repeatReviewDecision(input: {
+  sourcedUsed: number; bookedNow: number
+  baselineUsed: number | null; baselineBooked: number | null
+}): 'raise' | 'move_baseline' | 'wait' {
+  const baseUsed = input.baselineUsed ?? 0
+  const baseBooked = input.baselineBooked ?? 0
+  if (input.bookedNow > baseBooked) return 'move_baseline'
+  return input.sourcedUsed - baseUsed >= REVIEW_TRIGGER_LEADS ? 'raise' : 'wait'
+}
+
+async function raiseRepeatReviewIfNeeded(p: ProgrammeRow): Promise<boolean> {
+  const { data: base, error: baseErr } = await db.from('programmes')
+    .select('review_baseline_used, review_baseline_booked').eq('id', p.id).maybeSingle()
+  const { meetingCounts } = await import('./meeting-truth')
+  const counts = await meetingCounts({ clientId: p.client_id, programmeId: p.id })
+  if (counts === null) {
+    console.warn(`[programme-authority] meeting counts unreadable for programme ${p.id} — no repeat review raised`)
+    return false
+  }
+  const b = (base ?? {}) as { review_baseline_used?: number | null; review_baseline_booked?: number | null }
+  const decision = baseErr
+    ? 'raise'
+    : repeatReviewDecision({
+      sourcedUsed: p.sourced_used, bookedNow: counts.booked,
+      baselineUsed: b.review_baseline_used ?? null, baselineBooked: b.review_baseline_booked ?? null,
+    })
+
+  if (decision === 'move_baseline') {
+    await db.from('programmes')
+      .update({ review_baseline_used: p.sourced_used, review_baseline_booked: counts.booked })
+      .eq('id', p.id)
+    return false
+  }
+  if (decision === 'wait') return false
+
+  const reason = baseErr
+    ? `This programme's last review baseline could not be read, so a person must look again before the next batch. ${p.sourced_used} leads delivered in total.`
+    : `${p.sourced_used - (b.review_baseline_used ?? 0)} more leads delivered since the last review with no new booked meeting. ` +
+      `The review repeats every ${REVIEW_TRIGGER_LEADS} leads without a meeting (R166). The next new batch is held until a person reviews this. Delivery already in flight continues.`
+
+  const { data: hit, error: upErr } = await db.from('programmes')
+    .update({ review_required_at: new Date().toISOString(), review_resolved_at: null, review_reason: reason })
+    .eq('id', p.id)
+    .not('review_resolved_at', 'is', null)   // compare-and-set: only re-open a RESOLVED review
+    .select('id')
+  if (upErr || !hit || (hit as unknown[]).length === 0) {
+    if (upErr) console.error(`[programme-authority] could not re-raise the review on ${p.id}:`, upErr.message)
+    return false
+  }
+  console.warn(`[programme-authority] REVIEW HOLD raised AGAIN on programme ${p.id}: ${reason}`)
+  const { sendFounderAlert } = await import('./alerts')
+  void sendFounderAlert('sends_stalled', 'A programme needs another review', [
+    `Programme ${p.id} (client ${p.client_id}): ${reason}`,
+    'No new batch will start until this review is resolved. Nothing is paused, nothing is refunded, and no meeting has been created.',
+  ]).catch(() => {})
+  return true
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -999,8 +1074,16 @@ export async function resolveProgrammeReview(
     }
 
     const resolvedAt = new Date().toISOString()
+    // ⚑ 25 Sep (R166 ⑥ · P3a) — THE BASELINE the next review counts from: where the programme
+    // stands NOW. Unreadable meetings leave it null (counted as 0 — the conservative side).
+    const { meetingCounts } = await import('./meeting-truth')
+    const counts = await meetingCounts({ clientId: p.client_id, programmeId: p.id })
     const { data: hit, error: upErr } = await db.from('programmes')
-      .update({ review_resolved_at: resolvedAt })
+      .update({
+        review_resolved_at: resolvedAt,
+        review_baseline_used: p.sourced_used,
+        review_baseline_booked: counts === null ? null : counts.booked,
+      })
       .eq('id', programmeId)
       // ⚠️ COMPARE-AND-SET, the same shape the raise uses. Two operators pressing at once must
       // produce one resolution: the second finds the column already written and matches no row.

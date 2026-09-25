@@ -7097,6 +7097,23 @@ COMMENT ON TABLE public.apollo_credit_ledger IS
   'Every paid Apollo reveal and the credits it used (R166: paid reveals stop at 80% of the plan).';
 `,
   },
+  {
+    // ── ⚑ 25 Sep (R166 ⑥ · P3a) — THE NO-MEETING REVIEW REPEATS ────────────────────────
+    // Where the programme stood when its review was last resolved, so the hold fires again
+    // after every further 250 people without a new meeting. Expand only: two nullable ints.
+    key: '20260925_programme_review_repeat',
+    title: 'programmes.review_baseline_used / review_baseline_booked — the no-meeting review fires again every 250 people (R166, P3a)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS review_baseline_used   integer,
+  ADD COLUMN IF NOT EXISTS review_baseline_booked integer;
+
+COMMENT ON COLUMN public.programmes.review_baseline_used IS
+  'sourced_used when the no-meeting review was last resolved (or when a new meeting moved the baseline). The review fires again 250 people later without a new meeting.';
+COMMENT ON COLUMN public.programmes.review_baseline_booked IS
+  'Booked meetings for this programme at that same moment. A higher count later means a new meeting arrived.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

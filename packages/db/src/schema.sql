@@ -998,6 +998,10 @@ create table if not exists public.programmes (
   review_required_at        timestamptz,
   review_reason             text,
   review_resolved_at        timestamptz,
+  -- ⚑ 25 Sep (R166 ⑥ · P3a): where the programme stood when its review was last resolved, so the
+  -- no-meeting review fires again every 250 people without a new meeting.
+  review_baseline_used      integer,
+  review_baseline_booked    integer,
   review_resolution         text,
   -- ── PR A1 · internal authority (20260902_programme_internal_authority) ───────────────
   -- House is Client Zero and walks the SAME lifecycle a paying client walks while paying

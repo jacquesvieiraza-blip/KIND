@@ -134,6 +134,12 @@ export type ProgrammeTruth = {
      * client can see. `null` = unreadable; the operator must then type it rather than accept a 0.
      */
     meetings_booked: number | null
+    /**
+     * ⚑ 25 Sep (P6) — what settlement will count: qualified meetings delivered, and why it may
+     * not settle yet (unqualified meetings, open challenges). `null` = unreadable.
+     */
+    meetings_qualified?: number | null
+    settle_blocked_reason?: string | null
     /** Set once `settleProgrammeShortfall` has run. Null = not settled yet. */
     settlement: { settled_at: string; delivered_meetings: number | null; credit_cents: number } | null
   } | null
@@ -308,6 +314,18 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   } catch (err) {
     degraded.push(`The meetings booked for this programme could not be counted (${err instanceof Error ? err.message : String(err)}).`)
   }
+  // ⚑ 25 Sep (P6) — the figure settlement will use, and whether it may settle yet.
+  let meetingsQualified: number | null = null
+  let settleBlockedReason: string | null = null
+  try {
+    const { programmeDelivery, settlementVerdict } = await import('./meeting-truth')
+    const d = await programmeDelivery(p.id)
+    const v = settlementVerdict(d)
+    meetingsQualified = d ? d.delivered : null
+    settleBlockedReason = v.ok ? null : v.reason.replace(' Nothing was credited.', '')
+  } catch (err) {
+    degraded.push(`The qualified meetings for this programme could not be counted (${err instanceof Error ? err.message : String(err)}).`)
+  }
   const settledRow = p as unknown as {
     shortfall_credited_at?: string | null; shortfall_credit_cents?: number | null; delivered_meetings?: number | null
   }
@@ -390,6 +408,8 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       may_complete: completeVerdict.allowed,
       complete_blocked_reason: completeVerdict.allowed ? null : (completeVerdict.reason ?? null),
       meetings_booked: meetingsBooked,
+      meetings_qualified: meetingsQualified,
+      settle_blocked_reason: settleBlockedReason,
       settlement: settledRow.shortfall_credited_at
         ? { settled_at: settledRow.shortfall_credited_at,
             delivered_meetings: settledRow.delivered_meetings ?? null,

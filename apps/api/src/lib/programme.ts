@@ -1857,6 +1857,37 @@ export async function recordMakeWhole(programmeId: string, cents: number, note: 
 }
 
 /**
+ * ⚑ 25 Sep (R141 · R166 · P6) — SETTLE FROM THE RECORD, NOT FROM A TYPED NUMBER.
+ *
+ * The delivered figure is COUNTED (`programmeDelivery`: qualified meetings, less any challenge
+ * upheld) and the money mechanics below are unchanged. A figure a person supplies is now a
+ * CONFIRMATION: if it differs from the record the settlement is refused, naming the record's
+ * number. 🛑 Settlement is refused while any meeting is unqualified or any challenge is open —
+ * otherwise a programme whose meetings were simply never qualified would settle at 0 and
+ * credit its whole target.
+ */
+export async function settleProgrammeFromRecord(params: {
+  programmeId: string
+  confirmedDelivered?: number | null
+  note: string
+}): Promise<ProgrammeResult & { creditCents?: number; alreadySettled?: boolean; delivered?: number }> {
+  const p = await getProgramme(params.programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+  const already = (p as unknown as { shortfall_credited_at?: string | null }).shortfall_credited_at
+  if (already) {
+    return { ok: true, alreadySettled: true, creditCents: (p as unknown as { shortfall_credit_cents?: number }).shortfall_credit_cents ?? 0 }
+  }
+  const { programmeDelivery, settlementVerdict } = await import('./meeting-truth')
+  const v = settlementVerdict(await programmeDelivery(params.programmeId))
+  if (!v.ok) return { ok: false, reason: v.reason }
+  if (params.confirmedDelivered !== undefined && params.confirmedDelivered !== null && params.confirmedDelivered !== v.delivered) {
+    return { ok: false, reason: `The record shows ${v.delivered} qualified meeting${v.delivered === 1 ? '' : 's'} delivered, not ${params.confirmedDelivered}. Settle at ${v.delivered}, or correct the meetings first. Nothing was credited.` }
+  }
+  const r = await settleProgrammeShortfall({ programmeId: params.programmeId, deliveredMeetings: v.delivered, note: params.note })
+  return { ...r, delivered: v.delivered }
+}
+
+/**
  * 🛑 SETTLE A PROGRAMME THAT STOPPED SHORT — the credit goes to their WALLET (R136 ④).
  *
  * Founder-locked 23 Sep, verbatim: *"no. we dont give money back. we refund credits to their

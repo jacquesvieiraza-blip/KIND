@@ -1063,3 +1063,51 @@ export async function rescheduleAfterAbsence(meetingId: string, newScheduledAt: 
   if (!r.ok) return { ok: false, reason: 'storage_unreadable', message: `${r.refused.message} Nothing was changed.` }
   return { ok: true, meeting: r.meeting }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R141 · R166 · P6) — WHAT A PROGRAMME DELIVERED, COUNTED FROM THE RECORD.
+//
+// The settlement credit (R136 ④ / R166 ⑤) is owed for QUALIFIED meetings not delivered (R141).
+// Until now the delivered figure was typed by a person. It is now counted here, beside every
+// other meeting count, with the same exclusions (not excluded, not superseded):
+//   delivered       = qualified, and no challenge upheld against it
+//   unqualified     = live meetings nobody has qualified or ruled on yet
+//   openChallenges  = a client challenge still waiting for Vida's answer
+// A no-show is NOT subtracted — R141: "A properly qualified meeting is not credited back
+// because the prospect later fails to attend." ⚠️ `null` on a storage error, never zeros.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export type ProgrammeDelivery = { delivered: number; unqualified: number; openChallenges: number; upheld: number }
+
+export async function programmeDelivery(programmeId: string): Promise<ProgrammeDelivery | null> {
+  const { data, error } = await db.from('meetings')
+    .select('id, qualified_at, challenged_at, challenge_outcome')
+    .eq('programme_id', programmeId)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+  if (error) {
+    console.error('[meeting-truth] programmeDelivery failed:', error.message)
+    return null
+  }
+  const out: ProgrammeDelivery = { delivered: 0, unqualified: 0, openChallenges: 0, upheld: 0 }
+  for (const m of (data ?? []) as { qualified_at: string | null; challenged_at: string | null; challenge_outcome: string | null }[]) {
+    if (m.challenge_outcome === 'upheld') { out.upheld++; continue }
+    if (m.challenged_at && !m.challenge_outcome) { out.openChallenges++; continue }
+    if (m.qualified_at) out.delivered++
+    else out.unqualified++
+  }
+  return out
+}
+
+/** Pure: may this programme be settled on this record, and at what figure? */
+export function settlementVerdict(d: ProgrammeDelivery | null):
+  | { ok: true; delivered: number }
+  | { ok: false; reason: string } {
+  if (!d) return { ok: false, reason: 'The meetings for this programme could not be read, so nothing can be settled. Nothing was credited.' }
+  if (d.openChallenges > 0) {
+    return { ok: false, reason: `${d.openChallenges} client challenge${d.openChallenges === 1 ? ' is' : 's are'} still open — uphold or reject ${d.openChallenges === 1 ? 'it' : 'them'} in the meetings panel first. Nothing was credited.` }
+  }
+  if (d.unqualified > 0) {
+    return { ok: false, reason: `${d.unqualified} meeting${d.unqualified === 1 ? ' has' : 's have'} not been qualified — qualify or exclude each in the meetings panel first, so the credit is counted from qualified meetings. Nothing was credited.` }
+  }
+  return { ok: true, delivered: d.delivered }
+}

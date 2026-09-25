@@ -351,6 +351,9 @@ export default function VidaConsolePage() {
       complete_blocked_reason?: string | null
       /** ⚑ 23 Sep (Stage 6 · R136 ④) — meetings attributed to this programme; null = unreadable. */
       meetings_booked?: number | null
+      /** ⚑ 25 Sep (P6) — the qualified figure settlement counts, and why it may not settle yet. */
+      meetings_qualified?: number | null
+      settle_blocked_reason?: string | null
       /** ⚑ 23 Sep (Stage 6 · R136 ④) — set once the programme has been settled. */
       settlement?: { settled_at: string; delivered_meetings: number | null; credit_cents: number } | null
       paused_at: string | null; pause_reason: string | null
@@ -1197,6 +1200,8 @@ export default function VidaConsolePage() {
   // ⚠️ THE OPERATOR STATES THE DELIVERED COUNT. It is prefilled from the meetings attributed to
   // this programme — the figure the client can see — but never submitted on its own: a settled
   // figure is persisted and may not move afterwards, so a person confirms it.
+  // ⛓️ 25 Sep (P6) — the server now COUNTS it (qualified meetings, less upheld challenges) and
+  // refuses a typed figure that differs; the prefill is that count. The operator still confirms.
   const [settleMeetings, setSettleMeetings] = useState('')
   const settleProgramme = useCallback(async () => {
     const id = programmeActionId()
@@ -5030,16 +5035,21 @@ export default function VidaConsolePage() {
                       <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
                         <b className="text-[13px] block mb-1">Settle this programme</b>
                         <p className="text-[12px] text-[#6b5f8c] mb-2">
-                          {prog.programme.meetings_booked == null
-                            ? 'The meetings for this programme could not be counted — enter the delivered figure yourself.'
-                            : `${prog.programme.meetings_booked} of ${prog.programme.meeting_target} meetings are attributed to this programme.`}
+                          {/* ⛓️ 25 Sep (P6) — the figure is COUNTED from the meetings record (qualified,
+                              less any challenge upheld); the typed number only confirms it. Same box,
+                              same controls (R167) — only the words and the prefilled number changed. */}
+                          {prog.programme.settle_blocked_reason
+                            ? <span className="text-amber-800">{prog.programme.settle_blocked_reason}</span>
+                            : prog.programme.meetings_qualified == null
+                              ? 'The qualified meetings for this programme could not be counted, so it cannot be settled yet.'
+                              : `${prog.programme.meetings_qualified} of ${prog.programme.meeting_target} qualified meetings delivered, counted from the meetings record. Confirm that number to settle.`}
                           {' '}Anything short of the target is credited to their wallet. Completion needs this first.
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
                           <input value={settleMeetings}
                             onChange={e => setSettleMeetings(e.target.value)}
-                            onFocus={() => { if (settleMeetings === '' && prog.programme?.meetings_booked != null) setSettleMeetings(String(prog.programme.meetings_booked)) }}
-                            placeholder={prog.programme.meetings_booked == null ? 'delivered' : String(prog.programme.meetings_booked)}
+                            onFocus={() => { if (settleMeetings === '' && prog.programme?.meetings_qualified != null) setSettleMeetings(String(prog.programme.meetings_qualified)) }}
+                            placeholder={prog.programme.meetings_qualified == null ? 'delivered' : String(prog.programme.meetings_qualified)}
                             inputMode="numeric"
                             className="w-24 text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5" />
                           <button onClick={() => void settleProgramme()} disabled={lcBusy !== null}

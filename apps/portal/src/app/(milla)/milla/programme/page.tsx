@@ -24,7 +24,7 @@
 // no programme" shown to someone who has paid is a lie with their money in it.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -35,6 +35,7 @@ import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
 import { acceptanceGate } from '@/lib/programme-acceptance'
+import { SYNC_CHECK_MS, millaFacts, sameMillaFacts, millaChangeLines } from '@/lib/programme-sync'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
@@ -135,6 +136,44 @@ export default function ProgrammePage() {
     conversation.announce('Tell me where to widen — the location, the company size or the job titles — and I’ll re-count it free and show you the new ceiling.')
     conversation.focus()
   }, [conversation])
+
+  // ── ⚑ 25 Sep (R161) — MILLA HEARS WHAT HAPPENED IN VIDA, WITHOUT A REFRESH ─────────────────
+  // While the programme is on screen, re-read it every SYNC_CHECK_MS and on return to the tab.
+  // If something moved elsewhere — authorised, live, paused — the screen reloads and Milla says
+  // so in the chat, once per event. The client's own presses already re-read it, so they are
+  // never announced back. Read-only: it grants, charges and sends nothing.
+  const pRef = useRef<CustomerProgramme | null>(null)
+  useEffect(() => { pRef.current = p }, [p])
+  const syncAnnounce = useRef(conversation.announceOnce)
+  useEffect(() => { syncAnnounce.current = conversation.announceOnce }, [conversation.announceOnce])
+  const hasProgramme = !!p?.hasProgramme
+  useEffect(() => {
+    if (!hasProgramme) return
+    let stopped = false
+    const check = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        const r = await api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)
+        const shown = pRef.current
+        if (stopped || !r.data || !shown) return
+        const before = millaFacts(shown), after = millaFacts(r.data)
+        if (sameMillaFacts(before, after)) return
+        await load()
+        for (const c of millaChangeLines(before, after)) syncAnnounce.current(c.key, c.lines)
+      } catch { /* the next tick tries again */ }
+    }
+    const t = setInterval(() => { void check() }, SYNC_CHECK_MS)
+    const onReturn = () => { if (document.visibilityState === 'visible') void check() }
+    document.addEventListener('visibilitychange', onReturn)
+    window.addEventListener('focus', onReturn)
+    return () => {
+      stopped = true
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onReturn)
+      window.removeEventListener('focus', onReturn)
+    }
+  }, [hasProgramme, load])
 
   if (loading) {
     return (

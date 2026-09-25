@@ -880,6 +880,32 @@ export async function runIcpJob(
     }
   }
 
+  // ── ⚑ 25 Sep (R168 ② · P3c, board #2349) — NO SOURCING WITHOUT A PROGRAMME, FOR A CLIENT ──
+  //
+  // Founder, asked whether a client may pull people with no programme behind them: *"A"* —
+  // clients need a programme to source; House and Free Proof carry on as today.
+  //
+  // 🛑 THE DOOR THIS CLOSES. Every refusal in the gate above needs either a DECLARED programme
+  // client or an open programme. A client with neither — undeclared, or stored as the retired
+  // `legacy` model — passed it, had the shared pool served into their pipeline below, and only
+  // then was granted 0 provider records. Pool people are real people: they reached a client who
+  // had bought nothing. Refused here, before the pool and before any provider.
+  //
+  // ⚠️ EXACTLY THAT CASE, AND IT IS THE GATE'S OWN OUTPUT. After the gate, a non-proof run with no
+  // `programmeIdForRun` is one with no open programme AND an ICP attached to none — every other
+  // shape either threw above or set it. It sits AFTER the gate (not inside it) so the gate's four
+  // conditioned refusals, which a frozen test pins, are untouched.
+  //
+  // ⚠️ HOUSE IS NOT A CLIENT HERE — House sources on its own authority (Client Zero, R152), and the
+  // earlier lock stands: House sourcing must not stop. Free Proof never reaches this (`proofMode`).
+  // The question lives in `lib/no-programme-gate.ts` so it has one answer.
+  if (!proofMode && programmeIdForRun === null) {
+    const { maySourceWithoutProgramme, NO_PROGRAMME_NO_SOURCING } = await import('../lib/no-programme-gate')
+    if (!(await maySourceWithoutProgramme(clientId))) {
+      throw new ProgrammeAuthorityError('not_this_programme', NO_PROGRAMME_NO_SOURCING)
+    }
+  }
+
   // `leads_per_run` is the client's own per-run preference for a SELF-SERVE run — the
   // default when nobody has said how many to fetch. It is NOT a ceiling on an explicit
   // request.
@@ -3922,6 +3948,9 @@ const millaReplyTool = (profileRequired: boolean) => ({
           company_name:        { type: 'string', maxLength: 200 },
           website:             { type: 'string', maxLength: 300 },
           website_none:        { type: 'boolean', description: 'true ONLY when they said they have no website.' },
+          // ⚑ 25 Sep (R168 ④ · P7b) — THEIR OWN headcount, which sets their price band. Never the
+          // size of the companies they want to reach (that is `company_sizes`).
+          company_employees:   { type: 'integer', minimum: 1, description: 'Roughly how many people work at THEIR OWN company, as a whole number, only from what they told you. Never the size of the companies they want to reach.' },
           what_they_do:        { type: 'string', maxLength: 1200 },
           target_category:     { type: 'string', maxLength: 200, description: "Their own words for the kind of company to reach." },
           geographies:         { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
@@ -4046,11 +4075,21 @@ const boundedList = (maxItems: number, maxLen = 80) =>
  * DRAFT and nothing else — it is merged, never replacing, and nothing is spent or created
  * from it.
  */
+/** ⚑ 25 Sep (R168 ④ · P7b) — "about 30", "12,000" or 30 → a whole number, or nothing at all. */
+const statedEmployees = z.preprocess((v) => {
+  if (v === null || v === undefined || v === '') return undefined
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/[,\s]/g, ''))
+  return Number.isFinite(n) && n >= 1 && n <= 10_000_000 ? Math.round(n) : undefined
+}, z.number().int().min(1).optional())
+
 const BriefSoFar = z.object({
   contact_name:        clampedStr(120),
   company_name:        clampedStr(200),
   website:             clampedStr(300),
   website_none:        z.boolean().optional(),
+  // ⚑ 25 Sep (R168 ④ · P7b) — their OWN headcount. A value that is not a usable whole number is
+  // DROPPED, never refused: one unreadable answer must not cost the client the turn.
+  company_employees:   statedEmployees,
   what_they_do:        clampedStr(1200),
   target_category:     clampedStr(200),
   geographies:         boundedList(8),
@@ -4605,7 +4644,8 @@ Never ask again for anything listed above as already told to you.`
      things that are true and that they have approved.
   3. THE FEW FACTS WE NEED TO OPEN THEIR ACCOUNT — this used to be a separate form before
      anyone met you, and it is now yours: their company name, who you are speaking to,
-     which country their business is based in, a mobile number, and their website.
+     which country their business is based in, a mobile number, their website, and roughly
+     how many people work at their company.
 
 Ask for the account facts the way a person would — woven into the conversation, never as a
 checklist, never all at once. "What's the company called?" belongs at the start. "And who am
@@ -4614,6 +4654,12 @@ I speaking to?" is a normal thing to ask.
 ⚠️ THE WEBSITE IS NOT OPTIONAL, AND "WE DO NOT HAVE ONE" IS AN ANSWER (MVP1). Ask for it. If
 they have one, take it; if they say they have none, set "website_none" and move on. What you
 may never do is finish without having asked. The mobile stays genuinely optional.
+
+⚠️ ASK HOW MANY PEOPLE WORK AT THEIR OWN COMPANY (R168). "Roughly how many people work
+there?" belongs near the start, with the company name. It sets their price, so record it in
+"brief_so_far" as "company_employees" — a whole number, their own answer, never a guess and
+never from their website. It is THEIR company, NOT the size of the companies they want to
+reach — that is a different fact. If they would rather not say, move on: we check it ourselves.
 
 ⚠️ THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED. It is NOT where their customers are.
 Those are different facts and they are often different countries. NEVER copy it from the

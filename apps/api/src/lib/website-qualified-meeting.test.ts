@@ -114,9 +114,13 @@ describe('the credit for undelivered meetings is said the same way wherever "not
     expect(visible(read('trust.html'))).toContain(CREDIT)
   })
 
-  it('the FAQ answer to "Do you guarantee the meetings?" says it, and names the first payment', () => {
+  // ⛓️ 25 Sep (R166 ③ ⑤ · P13) — "the FIRST payment" no longer exists for a new programme: it is
+  // paid in one payment. Founder: *"one payment in. run bang"* and *"Once only, 90 days, new
+  // programmes"*. The FAQ now names THE payment, and says once per client / 90 days.
+  it('the FAQ answer to "Do you guarantee the meetings?" says it, names the payment, once and 90 days', () => {
     const t = visible(read('faqs.html'))
-    expect(t).toContain('each one not delivered is credited against the first payment of your next programme')
+    expect(t).toContain('each one not delivered is credited against the payment for your next programme')
+    expect(t).toContain('That credit is given once per client and expires after 90 days')
     expect(t, 'attendance was the first thing the risk review said is not guaranteed').toContain('attendance')
   })
 })

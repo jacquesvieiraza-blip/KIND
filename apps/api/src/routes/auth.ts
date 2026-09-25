@@ -537,6 +537,17 @@ authRouter.post('/onboard', async (req, res) => {
       if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
 
+    // ⚑ 25 Sep (R168 ④ · P7b) — THEIR STATED COMPANY SIZE, from the Brief they confirmed. It sets
+    // their price band; the company check (`ensureClientSize`) confirms it. Best-effort, like the
+    // name above: an un-migrated database must never cost us a signup — without it the check
+    // simply decides on its own, exactly as before.
+    const statedEmployees = Number(draftFacts?.company_employees)
+    if (Number.isInteger(statedEmployees) && statedEmployees >= 1) {
+      const { error: sizeErr } = await db.from('clients')
+        .update({ size_stated_employees: statedEmployees, size_stated_at: new Date().toISOString() }).eq('id', clientId)
+      if (sizeErr) console.warn('[onboard] stated company size not stored (run 20260925_client_size_stated):', sizeErr.message)
+    }
+
     // ── 🛑 ⚑ 12 Sep (S1-AUDIT-003) — THE SEAL IS NOT HERE ANY MORE ───────────────────
     //
     // ⛓️ WHAT STOOD HERE, AND WHY IT WAS WRONG:

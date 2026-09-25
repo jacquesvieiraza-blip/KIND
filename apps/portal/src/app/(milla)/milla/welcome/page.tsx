@@ -192,7 +192,10 @@ const GREETING_LINES = [
   // messages are great. but there should be a 4th message. say please tell us who you are, name
   // etc. just to get going."* It asks for the first three brief facts in their own order —
   // contact name, company, website — and the website is read by the existing BASIC read.
-  "To get us going — what’s your name, and which company are you with? If you have a website, send it too and I’ll read it, so you don’t have to explain everything.",
+  // ⛓️ 25 Sep (R168 ④ · P7b) — WAS: "…what’s your name, and which company are you with? If you
+  // have a website…". Founder: *"when they sign up. they got to tell us their company name. their
+  // size."* So the same message also asks roughly how many people work there; words only (R167).
+  "To get us going — what’s your name, which company are you with, and roughly how many people work there? If you have a website, send it too and I’ll read it, so you don’t have to explain everything.",
 ]
 
 /**

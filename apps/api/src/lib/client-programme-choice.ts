@@ -33,6 +33,7 @@ import { db } from '@kind/db'
 import {
   calculateProgramme, programmeMatchesQuote, ProgrammePricingError,
   type CalculatorInputs, type CalculatorResult,
+  overProgrammeMaximum,
 } from '@kind/shared'
 import { createProgramme, openProgrammeForClient, type ProgrammeRow } from './programme'
 
@@ -50,7 +51,7 @@ const RECHOOSABLE = ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT'] as const
 
 export type ChoiceOutcome =
   | { ok: true; programme: ProgrammeRow; result: CalculatorResult; created: boolean }
-  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity' | 'price_pending'; detail: string; committed?: number }
+  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity' | 'price_pending' | 'over_maximum'; detail: string; committed?: number }
 
 /**
  * Has this client finished Proof? Choosing a programme before that is out of order.
@@ -110,6 +111,10 @@ export async function chooseProgramme(
   const terms = await pricingTermsFor(clientId)
   if (terms.kind === 'pending') return { ok: false, reason: 'price_pending', detail: terms.message }
   const band = terms.kind === 'band' ? terms.band : null
+  // ⚑ 25 Sep (R168 ③ · P3·max) — 50 qualified meetings at most on the new terms, refused with the
+  // "talk to us" sentence. House and the curve are untouched (`band` is null for them).
+  const overMax = overProgrammeMaximum(Number(inputs.meetings), band)
+  if (overMax) return { ok: false, reason: 'over_maximum', detail: overMax }
 
   let result: CalculatorResult
   try {

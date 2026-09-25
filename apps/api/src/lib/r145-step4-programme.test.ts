@@ -29,7 +29,12 @@ describe('#27 · ONE button runs choose → accept → P1, in that order', () =>
   })
 
   it('🛑 the button says what it does, and the price it starts', () => {
-    expect(CALC).toContain('`Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : \'\'}`')
+    // ⛓️ 25 Sep (R168 · P7b) — WAS one template: "Accept N meetings · Pay P1" with the price only
+    // when known. With a price it still says the price it starts, word for word; with NO price
+    // yet (size being confirmed) it no longer says "Pay P1", because a client on the new terms
+    // pays once. Same rule — the button says what it does — for both cases.
+    expect(CALC).toContain(': d ? `Accept ${d.meetings} meetings · Pay P1 (${programmeMoney(d.firstPaymentCents)})`')
+    expect(CALC).toContain(': `Accept ${meetings} meetings`}')
   })
 
   it('🛑 the separate Accept and P1 cards are gone from the screen', () => {

@@ -409,6 +409,16 @@ async function programmeCheckout(
   // and this route would have opened a LIVE Stripe session for it until P2 was authorised
   // internally. House's P1 and P2 are internal authority, granted in Vida (R152). Refused before
   // Stripe is reached, so nothing is created and nothing can be charged.
+  // ⚑ 25 Sep — A DEMO ACCOUNT IS NEVER CHARGED EITHER. Said here with the reason; the checkout
+  // builder refuses too (`programme-checkout.ts`), so no other door can reach Stripe for a demo.
+  const { isDemoClient } = await import('../lib/demo')
+  if (await isDemoClient(clientId)) {
+    res.status(409).json({
+      success: false, error: 'demo_account',
+      message: 'This is a demo account, so there is nothing to pay and nothing is ever charged.',
+    })
+    return
+  }
   const { isHouseClient } = await import('../lib/house-client')
   if (await isHouseClient(clientId)) {
     res.status(409).json({

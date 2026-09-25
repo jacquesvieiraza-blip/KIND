@@ -7137,6 +7137,43 @@ COMMENT ON COLUMN public.meetings.challenge_deadline_at IS
   'booked_at + 3 business days. A client challenge after this is out of time (R141).';
 `,
   },
+  {
+    // ⚑ 25 Sep (R141 · R166 · P5b, board #2351) — THE CLIENT'S CHALLENGE TO A MEETING.
+    // Raised in Milla within 3 business days of booking, naming the condition not met;
+    // upheld or rejected by a person in Vida. Expand only: nullable columns + two checks.
+    key: '20260925_meeting_challenge',
+    title: 'meetings.challenged_at / challenge_condition / challenge_outcome — the client challenge (R141, P5b)',
+    sql: `
+ALTER TABLE public.meetings
+  ADD COLUMN IF NOT EXISTS challenged_at          timestamptz,
+  ADD COLUMN IF NOT EXISTS challenge_condition    text,
+  ADD COLUMN IF NOT EXISTS challenge_note         text,
+  ADD COLUMN IF NOT EXISTS challenge_outcome      text,
+  ADD COLUMN IF NOT EXISTS challenge_resolved_at  timestamptz,
+  ADD COLUMN IF NOT EXISTS challenge_resolved_by  text,
+  ADD COLUMN IF NOT EXISTS challenge_resolution_note text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'meetings_challenge_outcome_values') THEN
+    ALTER TABLE public.meetings ADD CONSTRAINT meetings_challenge_outcome_values
+      CHECK (challenge_outcome IS NULL OR challenge_outcome IN ('upheld', 'rejected'));
+  END IF;
+  -- A challenge names its condition, and an outcome only exists for a challenge that was raised.
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'meetings_challenge_is_complete') THEN
+    ALTER TABLE public.meetings ADD CONSTRAINT meetings_challenge_is_complete
+      CHECK ((challenged_at IS NULL) = (challenge_condition IS NULL)
+         AND (challenge_outcome IS NULL OR challenged_at IS NOT NULL)
+         AND ((challenge_outcome IS NULL) = (challenge_resolved_at IS NULL)));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.meetings.challenge_condition IS
+  'The one R141 condition the client says was not met (a key from the seven).';
+COMMENT ON COLUMN public.meetings.challenge_outcome IS
+  'upheld (the meeting was not qualified) | rejected (it stands). Null while open.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

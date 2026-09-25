@@ -139,6 +139,8 @@ export type OperatorAction =
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'meeting_qualified'      // ⚑ 25 Sep (R141 · P5a) — a person confirmed the seven Qualified Meeting
                             // conditions on a meeting and linked the accepting reply as evidence.
+  | 'meeting_challenge_resolved' // ⚑ 25 Sep (R141 · P5b) — a person upheld or rejected a client's
+                            // challenge to a meeting, with the reason the client reads.
   | 'programme_ceiling_raised' // ⚑ 25 Sep (R166 ⑥ · P3b) — a person opened more sourcing on a programme,
                             // with a written reason. Before this, only a raw database edit could.
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model

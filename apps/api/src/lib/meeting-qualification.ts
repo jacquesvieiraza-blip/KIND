@@ -6,14 +6,24 @@
 // `public.meetings`.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+// ⛓️ 25 Sep (P5b) — each condition also carries `clientLabel`: the website Pricing page's own
+// sentence, word for word, which is what a client reads in Milla when naming the condition
+// they challenge. `label` stays the operator's wording in Vida.
 export const QUALIFIED_MEETING_CONDITIONS = [
-  { key: 'icp_fit',               label: 'Within the client-approved ICP and targeting criteria' },
-  { key: 'role_fit',              label: 'Meets the agreed role, seniority or buying-influence criteria' },
-  { key: 'agreed_to_meet',        label: 'Has positively agreed to a meeting with the client' },
-  { key: 'date_time_set',         label: 'Scheduled for an agreed date and time' },
-  { key: 'genuine_relevance',     label: 'Has shown genuine relevance to the client’s offer, problem or service area' },
-  { key: 'not_existing_customer', label: 'Not an existing customer, active opportunity or excluded account (where the client made these available)' },
-  { key: 'acceptance_evidenced',  label: 'M&V can evidence the acceptance (a reply alone is not a qualified meeting)' },
+  { key: 'icp_fit',               label: 'Within the client-approved ICP and targeting criteria',
+    clientLabel: 'The prospect falls within your approved ICP and targeting criteria.' },
+  { key: 'role_fit',              label: 'Meets the agreed role, seniority or buying-influence criteria',
+    clientLabel: 'The individual meets the agreed role, seniority or buying-influence criteria.' },
+  { key: 'agreed_to_meet',        label: 'Has positively agreed to a meeting with the client',
+    clientLabel: 'The prospect has positively agreed to a meeting with you.' },
+  { key: 'date_time_set',         label: 'Scheduled for an agreed date and time',
+    clientLabel: 'The meeting has been scheduled for an agreed date and time.' },
+  { key: 'genuine_relevance',     label: 'Has shown genuine relevance to the client’s offer, problem or service area',
+    clientLabel: 'The prospect has demonstrated genuine relevance to your stated offer, problem or service area.' },
+  { key: 'not_existing_customer', label: 'Not an existing customer, active opportunity or excluded account (where the client made these available)',
+    clientLabel: 'The prospect is not an existing customer, active opportunity or excluded account, where that information has been made available to us.' },
+  { key: 'acceptance_evidenced',  label: 'M&V can evidence the acceptance (a reply alone is not a qualified meeting)',
+    clientLabel: 'We can evidence the prospect’s acceptance of the meeting.' },
 ] as const
 
 export type ConditionKey = typeof QUALIFIED_MEETING_CONDITIONS[number]['key']
@@ -46,4 +56,21 @@ export function addBusinessDays(from: Date, days: number): Date {
     if (wd !== 0 && wd !== 6) left--
   }
   return d
+}
+
+/** A condition key the client may name in a challenge. Pure. */
+export function isConditionKey(k: unknown): k is ConditionKey {
+  return typeof k === 'string' && QUALIFIED_MEETING_CONDITIONS.some(c => c.key === k)
+}
+
+/**
+ * ⚑ 25 Sep (P5b) — is the client still inside the challenge window? Always computed from
+ * `booked_at` (R141: "within 3 business days of the meeting being booked"), never from a
+ * stamped column, so a meeting not yet qualified by us has the same window. Pure.
+ */
+export function challengeDeadline(bookedAt: string | Date): Date {
+  return addBusinessDays(new Date(bookedAt), CHALLENGE_BUSINESS_DAYS)
+}
+export function challengeWindowOpen(bookedAt: string | Date, now: Date = new Date()): boolean {
+  return now.getTime() <= challengeDeadline(bookedAt).getTime()
 }

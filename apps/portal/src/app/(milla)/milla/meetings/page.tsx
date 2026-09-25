@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import MeetingChallenges from '@/components/milla/MeetingChallenges'
 
 // #507 — MILLA MEETINGS tab: the client's booked meetings (their calendar), from live
 // calendar_bookings. Meetings are REPORTED here — never a money condition.
@@ -52,6 +53,9 @@ export default function MillaMeetingsPage() {
       <div className="max-w-3xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Meetings</h1>
         <p className="text-sm text-[#7c6f9b] mt-0.5">Every meeting FIGSY booked from your approved leads.</p>
+        {/* ⚑ 25 Sep (R141 · P5b) — your programme's meetings and the 3-business-day challenge. The
+            same card as the Programme screen (one implementation); hidden until a meeting exists. */}
+        <MeetingChallenges />
 
         {error && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!meetings && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading your meetings…</p>}

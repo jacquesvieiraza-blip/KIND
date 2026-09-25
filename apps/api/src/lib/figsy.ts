@@ -101,22 +101,33 @@ async function coldCapReached(): Promise<boolean> {
 // Today all clients share one domain, so the GLOBAL cap protects that domain; this
 // per-client cap adds FAIRNESS (one client can't consume the whole global quota) and
 // becomes each client's own limit once #211 gives them isolated inboxes. Default 50/day,
-// override with FIGSY_PER_CLIENT_DAILY_CAP. Fails OPEN (never blocks a send on a query
-// error — the global cap is the backstop). Counts today's sends for this client via the
-// figsy_sent_emails→leads join (sent_emails has no client_id column).
-async function perClientCapReached(clientId: string | null | undefined): Promise<boolean> {
+// override with FIGSY_PER_CLIENT_DAILY_CAP. Counts today's sends for this client via the
+// figsy_sent_emails→leads join.
+//
+// ⛓️ 25 Sep (R166 ⑥ · P1) — IT NOW FAILS CLOSED. It used to fail OPEN ("never blocks a send
+// on a query error — the global cap is the backstop"), so an unreadable count let one client
+// send up to the whole platform's daily total. The founder: *"the barriers need to be there."*
+// A count we cannot read is a count we cannot trust: the send is deferred, never dropped.
+export async function perClientCapReached(clientId: string | null | undefined): Promise<boolean> {
   if (!clientId) return false
   const cap = parseInt(process.env.FIGSY_PER_CLIENT_DAILY_CAP ?? '50', 10)
   if (!Number.isFinite(cap) || cap <= 0) return false
   try {
     const start = new Date()
     start.setUTCHours(0, 0, 0, 0)
-    const { count } = await db.from('figsy_sent_emails')
+    const { count, error } = await db.from('figsy_sent_emails')
       .select('id, leads!inner(client_id)', { count: 'exact', head: true })
       .eq('leads.client_id', clientId)
       .gte('sent_at', start.toISOString())
+    if (error) {
+      console.error(`[figsy] per-client daily count unreadable for ${clientId} — holding sends: ${error.message}`)
+      return true
+    }
     return (count ?? 0) >= cap
-  } catch { return false }
+  } catch (err) {
+    console.error(`[figsy] per-client daily count threw for ${clientId} — holding sends:`, err)
+    return true
+  }
 }
 
 // Strip markdown code fences that Claude sometimes wraps JSON in
@@ -1209,6 +1220,22 @@ async function sendSequenceEmailCore(
   // `sendDay1OutreachBatch` ever called it. The run now decides and passes it in.
   const sendingInbox = opts.inbox ?? resolved.inbox
 
+  // ── ⚑ 25 Sep (R166 ⑥ · P1) — THE MAILBOX'S DAILY LIMIT, CHECKED HERE ON EVERY PATH ─────
+  // Rotation only exists on two of the send paths; this line is reached by all of them. A box
+  // at its limit — or whose count for today cannot be read — sends nothing: the step goes back
+  // and stays due, exactly like a refused mailbox above.
+  if (!opts?.isPreview) {
+    const { mailboxCapState } = await import('./mailbox-daily-cap')
+    const capState = await mailboxCapState(sendingInbox)
+    if (capState !== 'room') {
+      console.warn(`[figsy] sendSequenceEmail: mailbox ${sendingInbox.email} ${capState === 'at_cap' ? 'is at its daily limit' : 'has an unreadable count for today'} — step ${step} to ${lead.email} deferred.`)
+      await db.from('figsy_enrollments')
+        .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+        .eq('id', enrollmentId)
+      return 'deferred'
+    }
+  }
+
   // Insert the DB record first so we have the emailId for the tracking pixel
   const { data: emailRecord, error: emailRecordErr } = await db.from('figsy_sent_emails').insert({
     enrollment_id: enrollmentId,
@@ -1220,6 +1247,8 @@ async function sendSequenceEmailCore(
     // Taken from the lead we already hold; no extra lookup, and it is the same value
     // `inboxFor` above already resolved the sending mailbox from.
     client_id:     lead.client_id ?? null,
+    // ⚑ 25 Sep (R166 ⑥ · P1) — WHICH MAILBOX. Read back to hold each box to its daily limit.
+    inbox_id:      sendingInbox.id ?? null,
     lead_id:       lead.id,
     step,
     subject,
@@ -1868,9 +1897,18 @@ export async function sendDay1OutreachBatch(
   // A pool failure cannot happen here (resolveSendingInbox already said ok, and the pool
   // reuses its verdict) — but falling back to the single box is the honest degradation if it
   // ever does, rather than throwing away a batch that was cleared to send.
-  const rotation = pooled.ok && pooled.boxes.length > 0
+  const rotationBase = pooled.ok && pooled.boxes.length > 0
     ? pooled.boxes.map(b => ({ id: String(b.id), dailyCap: b.daily_cap ?? null, sentThisBatch: 0, row: b }))
     : [{ id: String(batchInbox.inbox.id), dailyCap: batchInbox.inbox.daily_cap ?? null, sentThisBatch: 0, row: batchInbox.inbox }]
+  // ⚑ 25 Sep (R166 ⑥ · P1) — START FROM WHAT EACH BOX HAS ALREADY SENT TODAY, with a real limit
+  // on every box. Unreadable → this batch sends nothing, rather than guessing zero.
+  const { seedRotationFromToday } = await import('./mailbox-daily-cap')
+  const seeded = await seedRotationFromToday(rotationBase)
+  if (!seeded) {
+    console.warn(`[day1-outreach] today's mailbox counts for ${clientId} could not be read — nothing sent this batch.`)
+    return
+  }
+  const rotation = seeded
   if (rotation.length > 1) {
     console.log(`[day1-outreach] rotating across ${rotation.length} mailboxes for ${clientId}: ${rotation.map(r => r.row.email).join(', ')}`)
   }
@@ -1990,6 +2028,7 @@ export async function sendDay1OutreachBatch(
         // day-1 send would stay invisible to the client's own counter permanently, and it is
         // the FIRST email any prospect ever receives.
         client_id:     lead.client_id ?? null,
+        inbox_id:      sendingInbox.id ?? null,   // ⚑ 25 Sep (P1) — counted against the box's daily limit
         lead_id:       lead.id,
         step:          1,
         subject:       draft.subject,

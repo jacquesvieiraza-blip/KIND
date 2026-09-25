@@ -6743,6 +6743,57 @@ operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
   }
 })
 
+// ── ⚑ 25 Sep (R141 · R166 · P5a) — THE QUALIFIED MEETING RECORD, IN VIDA ──────────────────
+// The website sells a QUALIFIED meeting with seven conditions. These two routes let a person
+// see a client's live meetings (with the prospect's own replies to choose the evidence from) and
+// confirm the seven conditions on one. The write is `qualifyMeeting` in meeting-truth.ts — the
+// one module that writes `public.meetings` — and it is audited here.
+operatorRouter.get('/meetings', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data: meetings, error } = await db.from('meetings')
+      .select('id, lead_id, programme_id, state, scheduled_at, booked_at, qualified_at, qualified_by, qualification, evidence_reply_id, evidence_note, challenge_deadline_at')
+      .eq('client_id', client.id).is('excluded_reason', null).is('superseded_by', null)
+      .order('scheduled_at', { ascending: false }).limit(100)
+    if (error) { res.status(503).json({ success: false, error: `Meetings could not be read (${error.message}).` }); return }
+    const rows = (meetings ?? []) as { lead_id: string | null }[]
+    const leadIds = [...new Set(rows.map(m => m.lead_id).filter((x): x is string => !!x))]
+    const [{ data: leads }, { data: replies }] = await Promise.all([
+      leadIds.length ? db.from('leads').select('id, first_name, last_name, company, job_title').in('id', leadIds) : Promise.resolve({ data: [] }),
+      leadIds.length ? db.from('figsy_replies').select('id, lead_id, received_at, processed_at, classification, body_text, body')
+        .eq('client_id', client.id).in('lead_id', leadIds).neq('classification', 'sent_reply').limit(500) : Promise.resolve({ data: [] }),
+    ])
+    const { QUALIFIED_MEETING_CONDITIONS } = await import('../lib/meeting-qualification')
+    res.json({
+      success: true,
+      conditions: QUALIFIED_MEETING_CONDITIONS,
+      meetings: rows.map(m => ({
+        ...m,
+        lead: ((leads ?? []) as { id: string }[]).find(l => l.id === m.lead_id) ?? null,
+        replies: ((replies ?? []) as { lead_id: string | null; body_text?: string | null; body?: string | null }[])
+          .filter(r => r.lead_id === m.lead_id)
+          .map(r => ({ ...r, body_text: undefined, body: undefined, snippet: String(r.body_text ?? r.body ?? '').replace(/\s+/g, ' ').slice(0, 160) })),
+      })),
+    })
+  } catch (err) { console.error('[operator/meetings]', err); res.status(500).json({ success: false, error: 'Failed to load meetings' }) }
+})
+
+operatorRouter.post('/meetings/:id/qualify', async (req: Request, res: Response) => {
+  try {
+    const { qualification, evidence_reply_id, evidence_note } = (req.body ?? {}) as { qualification?: Record<string, unknown>; evidence_reply_id?: string; evidence_note?: string }
+    const { qualifyMeeting } = await import('../lib/meeting-truth')
+    const r = await qualifyMeeting(req.params.id, { qualification: qualification ?? {}, evidenceReplyId: evidence_reply_id, evidenceNote: evidence_note ?? null }, operatorEmail(req))
+    if (r.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), action: 'meeting_qualified', subjectType: 'meeting', subjectId: req.params.id,
+        detail: { evidence_reply_id, evidence_note: evidence_note ?? null, challenge_deadline_at: r.challengeDeadlineAt, conditions: 'all seven confirmed' },
+      })
+    }
+    res.status(r.ok ? 200 : 409).json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
+  } catch (err) { console.error('[operator/meetings/qualify]', err); res.status(500).json({ success: false, error: 'Failed to qualify the meeting' }) }
+})
+
 operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {
   try {
     const { client_id, enabled } = (req.body ?? {}) as { client_id?: string; enabled?: boolean }

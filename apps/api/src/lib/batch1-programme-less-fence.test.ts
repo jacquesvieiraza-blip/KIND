@@ -43,6 +43,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+/** ⚑ 25 Sep (P3c) — the refusal sentence, matched by its words. (Importing `routes/icps` at the
+ *  top would load the real module before each test's mocks, which is why it is not imported.) */
+const NO_PROGRAMME = /This client has no programme, so nothing may be sourced for them/
+
 const PROGRAMME_ID = '11111111-1111-4111-8111-111111111111'
 
 describe('Batch 1 · the authority gate refuses a programme-model client with an unattached ICP', () => {
@@ -71,6 +75,10 @@ describe('Batch 1 · the authority gate refuses a programme-model client with an
     commercialModel: string | null | undefined
     openProgramme: boolean
     clientReadFails?: boolean
+    /** ⚑ 25 Sep (P3c) — who the run is for. Defaults to an ordinary client, as before. */
+    audience?: 'client' | 'house'
+    /** ⚑ 25 Sep (P3c) — a Free Proof pass number; absent = an ordinary run, as before. */
+    proofPass?: number
   }) {
     const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = []
     const searchCalls: Array<{ size: number }> = []
@@ -131,9 +139,12 @@ describe('Batch 1 · the authority gate refuses a programme-model client with an
     })
 
     // An ordinary CLIENT, not the house — the house branch has its own rules and its own item.
+    // ⛓️ 25 Sep (P3c) — the audience is now a parameter, defaulting to 'client' exactly as before,
+    // so the House exemption of R168 ② can be driven through the same real `runIcpJob`.
+    const aud = opts.audience ?? 'client'
     vi.doMock('./provider-boundary', async () => {
       const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
-      return { ...real, audienceForClient: async () => 'client', audienceForClientStrict: async () => 'client', audienceForUser: async () => 'client' }
+      return { ...real, audienceForClient: async () => aud, audienceForClientStrict: async () => aud, audienceForUser: async () => aud }
     })
 
     // Only `openProgrammeFor` is overridden. `authorityFor` — which the gate also uses — stays
@@ -167,7 +178,7 @@ describe('Batch 1 · the authority gate refuses a programme-model client with an
     const { runIcpJob } = await import('../routes/icps')
     let threw: Error | null = null
     try {
-      await runIcpJob('icp-1', 'c1', 'u1', 50)
+      await runIcpJob('icp-1', 'c1', 'u1', 50, opts.proofPass ? { proofPass: opts.proofPass } : undefined)
     } catch (e) {
       threw = e instanceof Error ? e : new Error(String(e))
     }
@@ -225,11 +236,39 @@ describe('Batch 1 · the authority gate refuses a programme-model client with an
   })
 
   it('a LEGACY client is the ONLY model that reaches the programme-less path', async () => {
-    // ⚠️ THIS IS TODAY'S BEHAVIOUR AND IT IS DELIBERATELY UNCHANGED. The $299-pack book still
-    // works; what the test pins is that it is the ONLY route in, so the unbounded-grant
-    // question is a legacy question and cannot touch an MVP1 programme client.
+    // ⛓️ 25 Sep (R168 ② · P3c) — WAS: `expect(r.threw, 'the legacy path was broken to fence the
+    // programme one').toBeNull()`. That pinned "today's behaviour" for the retired $299-pack
+    // book. The founder has now ruled on exactly this door — *"A"*: a client sources only
+    // through a programme; House and Free Proof carry on. A stored `legacy` client with no
+    // programme is therefore REFUSED at the gate, before the pool and before any provider.
+    // Stricter than before, never weaker: the old run already granted 0 provider records
+    // (`legacyAuthority` is false for every model since R124); what it still did was serve the
+    // shared pool, and that is what this now stops.
     const r = await runClient({ commercialModel: 'legacy', openProgramme: false })
-    expect(r.threw, 'the legacy path was broken to fence the programme one').toBeNull()
+    expect(r.threw, 'a client with no programme was sourced').toBeTruthy()
+    expect(r.threw!.message).toMatch(NO_PROGRAMME)
+    expect(r.searchCalls).toHaveLength(0)
+    expect(r.inserts, 'people were put into a client pipeline with no programme').toEqual([])
+  })
+
+  // ── ⚑ 25 Sep (R168 ② · P3c) — NO SOURCING WITHOUT A PROGRAMME ─────────────────────────────
+  it('🛑 P3c · an UNDECLARED client with NO programme is refused before the pool — the door that was open', async () => {
+    const r = await runClient({ commercialModel: null, openProgramme: false })
+    expect(r.threw, 'a client with no programme reached the pool').toBeTruthy()
+    expect(r.threw!.message).toMatch(NO_PROGRAMME)
+    expect(r.searchCalls).toHaveLength(0)
+    expect(r.inserts).toEqual([])
+    expect(r.rpcNames).not.toContain('try_reserve_programme_sourcing')
+  })
+
+  it('⛓️ P3c · House with no programme is NOT refused by this rule — House sourcing must not stop', async () => {
+    const r = await runClient({ commercialModel: null, openProgramme: false, audience: 'house' })
+    expect(r.threw?.message ?? '', 'House was stopped by the client-only rule').not.toMatch(NO_PROGRAMME)
+  })
+
+  it('⛓️ P3c · Free Proof never meets this rule — a proof pass is sourcing before any programme exists', async () => {
+    const r = await runClient({ commercialModel: null, openProgramme: false, proofPass: 1 })
+    expect(r.threw?.message ?? '', 'Free Proof was stopped by the programme rule').not.toMatch(NO_PROGRAMME)
   })
 })
 

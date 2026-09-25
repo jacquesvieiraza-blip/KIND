@@ -39,6 +39,17 @@ vi.mock('./commercial-model', async (importOriginal) =>
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+// ⛓️ 25 Sep (R168 ② · P3c) — STAND-IN, SAID SO. This file tests what a client run does AFTER the
+// authority gate (provider, provenance, proof state, surfacing). Its fixtures are clients with no
+// programme, which the founder has now ruled may not source (*"A"*). The rule has one home,
+// `no-programme-gate.ts`, and its own real proof in `batch1-programme-less-fence.test.ts`; here it
+// is stood in as "may source" so these downstream assertions keep testing exactly what they did.
+vi.mock('./no-programme-gate', () => ({
+  maySourceWithoutProgramme: async () => true,
+  NO_PROGRAMME_NO_SOURCING: 'stand-in',
+}))
+
+
 // `pdl-search` imports `./alerts`, which builds a Supabase client at module load. Hoisted so
 // Part 1 can import the real search module without a database.
 vi.mock('./alerts', () => ({ sendFounderAlert: async () => undefined }))

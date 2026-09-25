@@ -462,9 +462,13 @@ describe('WHO MUST NEVER BE STAMPED', () => {
   })
 
   it('a LEGACY (non-programme) run is never stamped', async () => {
+    // ⛓️ 25 Sep (R168 ② · P3c) — WAS: the run proceeded (`leadInserts > 0`) and stamped nothing.
+    // A client with no programme is now REFUSED before the pool and before any provider
+    // (founder: *"A"*), so it still stamps nothing — and now creates nothing either. Stricter.
     const rec = fresh()
-    await run({ pool: 3, provider: 3, programmeOnIcp: null, clientProgramme: false }, rec)
-    expect(rec.leadInserts).toBeGreaterThan(0)
+    await expect(run({ pool: 3, provider: 3, programmeOnIcp: null, clientProgramme: false }, rec))
+      .rejects.toMatchObject({ reason: 'not_this_programme' })
+    expect(rec.leadInserts, 'a client with no programme had leads created').toBe(0)
     expect(rec.stamps, 'a legacy run wrote programme attribution').toEqual([])
   })
 

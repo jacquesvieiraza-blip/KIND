@@ -17,6 +17,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// ⛓️ 25 Sep (R168 ② · P3c) — STAND-IN, SAID SO. This file tests what a client run does AFTER the
+// authority gate (provider, provenance, proof state, surfacing). Its fixtures are clients with no
+// programme, which the founder has now ruled may not source (*"A"*). The rule has one home,
+// `no-programme-gate.ts`, and its own real proof in `batch1-programme-less-fence.test.ts`; here it
+// is stood in as "may source" so these downstream assertions keep testing exactly what they did.
+vi.mock('./no-programme-gate', () => ({
+  maySourceWithoutProgramme: async () => true,
+  NO_PROGRAMME_NO_SOURCING: 'stand-in',
+}))
+
 // ⛓️ 25 Sep (R166 ⑥ · P2) — THE APOLLO BUDGET STANDS ASIDE HERE. Every paid reveal now asks the
 // budget first (it reads Apollo's usage endpoint), and this file's fake `fetch` would count that
 // reading as a reveal. The budget is proven on its own in `apollo-budget.test.ts`; this file

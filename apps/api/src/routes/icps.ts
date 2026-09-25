@@ -880,6 +880,32 @@ export async function runIcpJob(
     }
   }
 
+  // ── ⚑ 25 Sep (R168 ② · P3c, board #2349) — NO SOURCING WITHOUT A PROGRAMME, FOR A CLIENT ──
+  //
+  // Founder, asked whether a client may pull people with no programme behind them: *"A"* —
+  // clients need a programme to source; House and Free Proof carry on as today.
+  //
+  // 🛑 THE DOOR THIS CLOSES. Every refusal in the gate above needs either a DECLARED programme
+  // client or an open programme. A client with neither — undeclared, or stored as the retired
+  // `legacy` model — passed it, had the shared pool served into their pipeline below, and only
+  // then was granted 0 provider records. Pool people are real people: they reached a client who
+  // had bought nothing. Refused here, before the pool and before any provider.
+  //
+  // ⚠️ EXACTLY THAT CASE, AND IT IS THE GATE'S OWN OUTPUT. After the gate, a non-proof run with no
+  // `programmeIdForRun` is one with no open programme AND an ICP attached to none — every other
+  // shape either threw above or set it. It sits AFTER the gate (not inside it) so the gate's four
+  // conditioned refusals, which a frozen test pins, are untouched.
+  //
+  // ⚠️ HOUSE IS NOT A CLIENT HERE — House sources on its own authority (Client Zero, R152), and the
+  // earlier lock stands: House sourcing must not stop. Free Proof never reaches this (`proofMode`).
+  // The question lives in `lib/no-programme-gate.ts` so it has one answer.
+  if (!proofMode && programmeIdForRun === null) {
+    const { maySourceWithoutProgramme, NO_PROGRAMME_NO_SOURCING } = await import('../lib/no-programme-gate')
+    if (!(await maySourceWithoutProgramme(clientId))) {
+      throw new ProgrammeAuthorityError('not_this_programme', NO_PROGRAMME_NO_SOURCING)
+    }
+  }
+
   // `leads_per_run` is the client's own per-run preference for a SELF-SERVE run — the
   // default when nobody has said how many to fetch. It is NOT a ceiling on an explicit
   // request.

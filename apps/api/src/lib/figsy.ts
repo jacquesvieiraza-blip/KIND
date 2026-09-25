@@ -146,6 +146,24 @@ export function parseSequenceJson(raw: string): SequenceDraft | null {
   return from >= 0 && to > from ? tryParse(text.slice(from, to + 1)) : null
 }
 
+/**
+ * ⚑ 25 Sep — THE TEXT OF A REPLY, WHATEVER CAME BEFORE IT.
+ *
+ * Sonnet 5 thinks by default and returns its `thinking` block FIRST (with empty text under the
+ * default display). `content[0].text` therefore read "" and the House rewrite on Sonnet (R159)
+ * was refused twice as "invalid JSON" — the Railway log showed `raw:` empty on both attempts.
+ * Only `text` blocks are the answer; every other block is skipped. Haiku's reply is one text
+ * block, so this reads it exactly as before.
+ */
+export function replyText(content: unknown): string {
+  if (!Array.isArray(content)) return ''
+  return content
+    .filter((b): b is { type: 'text'; text: string } => !!b && (b as { type?: unknown }).type === 'text' && typeof (b as { text?: unknown }).text === 'string')
+    .map(b => b.text)
+    .join('')
+    .trim()
+}
+
 /** How many times a sequence draft is requested before the caller is told it failed. */
 export const SEQUENCE_DRAFT_ATTEMPTS = 2
 
@@ -399,10 +417,12 @@ Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
       model: opts?.model ?? BACKGROUND_MODEL,
       // 5 emails + JSON overhead no longer fit the old 1024, and R157's value spine makes each
       // email longer again — a truncated response here is a parse failure.
-      max_tokens: 3072,
+      // ⛓️ 25 Sep — 3072 → 16000. On Sonnet (R159) the model's thinking counts against this
+      // ceiling too; the second House attempt stopped at max_tokens with no text at all.
+      max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     })
-    const raw = ((message.content[0] as { type: string; text?: string } | undefined)?.text ?? '').trim()
+    const raw = replyText(message.content)
     const draft = parseSequenceJson(raw)
     if (draft) return threadFollowUps(draft)
     console.error(`[figsy] generateSequence attempt ${attempt}/${SEQUENCE_DRAFT_ATTEMPTS}: unreadable reply (stop_reason=${(message as { stop_reason?: string }).stop_reason ?? 'unknown'}), raw:`, raw.slice(0, 200))
@@ -2214,7 +2234,7 @@ Return ONLY valid JSON:
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  const raw = replyText(message.content)
   try {
     const draft = parseSequenceJson(raw)
     if (!draft) throw new Error('unreadable')

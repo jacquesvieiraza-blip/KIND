@@ -26,7 +26,7 @@ import {
   authoriseFirstInternal, authoriseSecondInternal, goLiveProgramme,
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
-  recordMakeWhole, settleProgrammeShortfall, nextBatchSize, ProgrammeStorageError,
+  recordMakeWhole, settleProgrammeFromRecord, nextBatchSize, ProgrammeStorageError,
 } from '../lib/programme'
 import { createProgrammeCheckoutSession } from '../lib/programme-checkout'
 
@@ -721,20 +721,26 @@ programmeRouter.post('/:id/make-whole', guard(async (req: Request, res: Response
  * and moves nothing — `increment_wallet` is not idempotent, so the compare-and-set is what
  * stands between a double-clicked button and a wallet credited twice.
  */
+// ⛓️ 25 Sep (R141 · R166 · P6) — THE FIGURE IS NOW COUNTED FROM THE MEETING RECORD
+// (`settleProgrammeFromRecord`): qualified meetings, less any challenge upheld. A supplied
+// `deliveredMeetings` is a confirmation and must match; it is no longer required, and it can no
+// longer decide the credit. Refused while a meeting is unqualified or a challenge is open.
 programmeRouter.post('/:id/settle-shortfall', guard(async (req: Request, res: Response) => {
   const { deliveredMeetings, note } = req.body ?? {}
-  if (deliveredMeetings === undefined || deliveredMeetings === null) {
-    res.status(400).json({ success: false, error: 'deliveredMeetings is required — the credit is computed from it, and guessing it would invent a settlement figure.' })
+  const confirmed = deliveredMeetings === undefined || deliveredMeetings === null || deliveredMeetings === ''
+    ? null : Number(deliveredMeetings)
+  if (confirmed !== null && (!Number.isInteger(confirmed) || confirmed < 0)) {
+    res.status(400).json({ success: false, error: 'Delivered meetings must be a whole number of at least 0.' })
     return
   }
-  const r = await settleProgrammeShortfall({
+  const r = await settleProgrammeFromRecord({
     programmeId: req.params.id,
-    deliveredMeetings: Number(deliveredMeetings),
+    confirmedDelivered: confirmed,
     note: String(note ?? ''),
   })
   res.status(r.ok ? 200 : 400).json({
     success: r.ok, error: r.reason,
-    creditCents: r.creditCents, alreadySettled: r.alreadySettled,
+    creditCents: r.creditCents, alreadySettled: r.alreadySettled, delivered: r.delivered,
     note: 'Credited to the client WALLET toward another run. This is NOT a Stripe refund — if money is also to be returned, do that separately in Stripe.',
   })
 }))

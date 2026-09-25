@@ -190,7 +190,7 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
   const email = await clientEmailOrRefuse(p.client_id, res)
   if (email === null) return
   const r = await createProgrammeCheckoutSession({
-    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_first',
+    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_first', band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
     clientEmail: email,
   })
@@ -384,7 +384,7 @@ programmeRouter.post('/:id/checkout/second', guard(async (req: Request, res: Res
   const email = await clientEmailOrRefuse(p.client_id, res)
   if (email === null) return
   const r = await createProgrammeCheckoutSession({
-    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_second',
+    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_second', band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
     clientEmail: email,
   })

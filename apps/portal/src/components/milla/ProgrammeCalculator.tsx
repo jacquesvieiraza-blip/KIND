@@ -240,7 +240,8 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
           {d && (
             <div>
               <strong className="text-[20px] tabular-nums">{programmeMoney(d.totalCents)} total</strong>
-              <div className="mv-hero-caption">{programmeMoney(d.effectiveCostPerMeetingCents)} per meeting · split 50 / 50</div>
+              {/* ⚑ 25 Sep (R166 ③ · P10) — one payment for a programme on the new terms; words only (R167). */}
+              <div className="mv-hero-caption">{programmeMoney(d.effectiveCostPerMeetingCents)} per meeting · {d.secondPaymentCents === 0 ? 'one payment' : 'split 50 / 50'}</div>
             </div>
           )}
         </div>
@@ -284,8 +285,12 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
           <div className="mv-programme-card">
             <div className="mv-eyebrow">Payment</div>
             <div className="mv-kv-list">
-              <div className="mv-kv-row"><span>P1 · starts preparation</span><strong>{programmeMoney(d.firstPaymentCents)}</strong></div>
-              <div className="mv-kv-row"><span>P2 · on approval</span><strong>{programmeMoney(d.secondPaymentCents)}</strong></div>
+              {d.secondPaymentCents === 0 ? (
+                <div className="mv-kv-row"><span>One payment · before we start</span><strong>{programmeMoney(d.firstPaymentCents)}</strong></div>
+              ) : (<>
+                <div className="mv-kv-row"><span>P1 · starts preparation</span><strong>{programmeMoney(d.firstPaymentCents)}</strong></div>
+                <div className="mv-kv-row"><span>P2 · on approval</span><strong>{programmeMoney(d.secondPaymentCents)}</strong></div>
+              </>)}
               <div className="mv-kv-row"><span>What you buy</span><strong>{d.meetings} qualified meetings</strong></div>
             </div>
             {/* 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE POINT OF COMMITMENT. The server's
@@ -307,12 +312,16 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
           className="mv-btn primary disabled:opacity-50">
           {internalBilling
             ? (busy ? 'Accepting…' : `Accept ${d?.meetings ?? meetings} meetings · no payment (House)`)
-            : busy ? 'Opening payment…' : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
+            : busy ? 'Opening payment…'
+              : d && d.secondPaymentCents === 0 ? `Accept ${d.meetings} meetings · Pay ${programmeMoney(d.firstPaymentCents)}`
+              : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
         </button>
         {onWiden ? <button onClick={onWiden} disabled={busy} className="mv-btn">Widen targeting</button> : null}
         {/* ⚠️ IT SAYS WHAT THE PRESS DOES: it accepts this programme and opens the first payment.
             Nothing is sent to anyone until the prepared programme is approved (P2). */}
-        <span className="mv-muted-note">Accepting opens the first payment. Nothing is sent until you approve the prepared programme.</span>
+        <span className="mv-muted-note">{d && d.secondPaymentCents === 0
+          ? 'Accepting opens the one payment. Nothing is sent until you approve the prepared programme.'
+          : 'Accepting opens the first payment. Nothing is sent until you approve the prepared programme.'}</span>
       </div>
 
       {/* ── ⚑ 24 Sep (#76) — THEIR NUMBERS, AS SLIDERS, AND LABELLED AN ILLUSTRATION ─────────── */}

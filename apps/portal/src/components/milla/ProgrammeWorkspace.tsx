@@ -96,6 +96,8 @@ export type CustomerProgramme = {
     /** The two halves, from the row. Milla never divides a price. */
     firstPaymentCents?: number
     secondPaymentCents?: number
+    /** ⚑ 25 Sep (R166 ③ · P10) — paid in ONE payment (new terms); the server decides. */
+    paysInFull?: boolean
     firstPaidAt: string | null
     secondPaidAt: string | null
     /** Internal P1/P2 authority — House runs on this and makes no payment. */
@@ -304,6 +306,8 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
               set, and the authorisation wording is reachable only when a half was authorised
               internally — which no paying client's row ever is. */}
           <div className="text-[12.5px] text-[#6b5f8c]">
+            {/* ⚑ 25 Sep (R166 ③ · P10) — one payment in full: one line, never "halves". */}
+            {p.money.paysInFull ? (p.money.firstPaidAt ? 'Paid in full' : 'Not yet paid — one payment, before we start') : (<>
             {p.money.firstPaidAt ? 'First 50% paid'
               : p.money.firstAuthorisedAt ? 'First 50% authorised internally'
               // An internally-billed programme owes no money at ANY point in its life, so its
@@ -315,6 +319,7 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
               : p.money.secondAuthorisedAt ? 'Second 50% authorised internally'
               : internallyAuthorised ? 'Second 50% not yet authorised'
               : 'Second 50% not yet paid'}
+            </>)}
           </div>
           {!p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
             // The founder's own framing of what the first half buys, stated as fact rather than
@@ -323,7 +328,9 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
             <p className="text-[12.5px] text-[#9b8ec4] mt-1.5">
               {internallyAuthorised
                 ? 'The first authorisation covers sourcing and preparation. Outreach has not started.'
-                : 'The first payment authorises sourcing and preparation. Outreach has not started.'}
+                : p.money.paysInFull
+                  ? 'The payment authorises sourcing and preparation. Outreach starts only after you approve.'
+                  : 'The first payment authorises sourcing and preparation. Outreach has not started.'}
             </p>
           )}
         </div>

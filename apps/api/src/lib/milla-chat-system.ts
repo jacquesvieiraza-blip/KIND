@@ -133,8 +133,12 @@ export function describeProgramme(prog: CustomerProgramme | null): string {
     ? '- Meetings booked: UNREADABLE right now — do not state a number, say you cannot see it'
     : `- Meetings booked so far: ${prog.progress.outcomesAchieved}`)
 
-  // The two 50% payments — the entire customer commercial model.
-  if (prog.money.totalCents > 0) {
+  // ⚑ 25 Sep (R166 ③ · P10) — ONE PAYMENT IN FULL for a programme on the new terms.
+  if (prog.money.totalCents > 0 && paysInFullFor(prog)) {
+    lines.push(`- Programme value: ${money(prog.money.totalCents)} total, paid in ONE payment — there is no second payment`)
+    lines.push(`- The payment (step 3 — before sourcing; authorises sourcing and preparation only): ${prog.money.firstPaidAt ? 'PAID' : 'not paid yet'}`)
+  } else if (prog.money.totalCents > 0) {
+  // The two 50% payments — the commercial model for programmes already running (and House).
     lines.push(`- Programme value: ${money(prog.money.totalCents)} total, paid in two halves of ${money(prog.money.totalCents / 2)}`)
     // ⚠️ TIED TO THE LIFECYCLE STEP NUMBERS, so this per-client block and the sequence above
     // cannot describe the same gate two different ways — the gap that caused the 31 Aug walk.
@@ -261,6 +265,45 @@ export const LIFECYCLE_RULES: readonly string[] = [
 ] as const
 
 /**
+ * ⚑ 25 Sep (R166 ③ · P10, board #2356) — THE LIFECYCLE FOR A CLIENT ON THE NEW TERMS: ONE PAYMENT.
+ *
+ * Founder: *"no P1 approval. to P2 approval. not risk of double payments a client needs to
+ * remember. one payment in. run bang"* · *"At Recommendation, before sourcing"*. Approval keeps
+ * no money attached. Same ordered-list discipline as above (one sequence, no gaps to
+ * interpolate across) — only the payment steps differ. `PROGRAMME_LIFECYCLE` stays exactly as it
+ * is for programmes already running, which keep the 50/50 they bought.
+ */
+export const PROGRAMME_LIFECYCLE_ONE_PAYMENT: readonly string[] = [
+  PROGRAMME_LIFECYCLE[0],
+  PROGRAMME_LIFECYCLE[1],
+  '3. PAYMENT — the full price, in ONE payment. It authorises SOURCING AND PREPARATION ONLY. ' +
+    'Nobody is contacted after it, and there is NO second payment.',
+  PROGRAMME_LIFECYCLE[3],
+  PROGRAMME_LIFECYCLE[4],
+  '6. APPROVAL — ONE approval of the whole programme, not a decision per person. No money is ' +
+    'attached to it.',
+  '7. LIVE — after the approval we make the programme live; outreach runs and the outcome is worked.',
+  '8. REVIEW / COMPLETION — a review hold can pause decisions on a live programme; ' +
+    'completion is the end of the programme.',
+] as const
+
+export const LIFECYCLE_RULES_ONE_PAYMENT: readonly string[] = [
+  'SOURCING AND OUTREACH ARE NOT THE SAME TRANSITION and never begin together. Sourcing is ' +
+    'authorised by the payment (step 3). Outreach starts only after the client approves ' +
+    '(step 6). Never say we "move into sourcing and outreach".',
+  'APPROVAL DOES NOT FOLLOW PROOF. Between Proof and the programme approval come the ' +
+    'Recommendation, the payment, the sourcing and preparation work, and the client reading ' +
+    'what we prepared. Never present approval as the next thing after Proof.',
+  'THERE IS ONE PAYMENT. Never mention a second payment, a second half, "Payment 2" or 50/50 ' +
+    'to this client — they pay once, in full, before sourcing.',
+  'NOTHING IS CONTACTED BEFORE THE CLIENT APPROVES. Not during Proof, not after the payment, ' +
+    'not during sourcing.',
+  // The last two rules (answer from their step; never claim a set is on the desk) are unchanged.
+  LIFECYCLE_RULES[4],
+  LIFECYCLE_RULES[5],
+] as const
+
+/**
  * The lifecycle, re-stated for the FINAL user turn.
  *
  * ══ ⚑ 31 Aug — WHY A SYSTEM PROMPT WAS NOT ENOUGH, PROVEN AT RUNTIME ════════════════════
@@ -284,14 +327,34 @@ export const LIFECYCLE_RULES: readonly string[] = [
  * would make the product lie about what it told them at the time. They stay; they are simply
  * no longer the most recent thing the model reads.
  */
-export function buildLifecycleReassertion(): string {
+/**
+ * ⚑ 25 Sep (R166 ③ · P10) — IS THIS CLIENT ON ONE PAYMENT?
+ *   • a programme exists      → what its stored split says (`money.paysInFull`)
+ *   • no programme yet        → yes, unless House: every NEW programme pays in full (R166)
+ *   • no programme block      → unknown → `null`, and the two-payment words stand unchanged
+ */
+export function paysInFullFor(prog: CustomerProgramme | null | undefined): boolean | null {
+  if (!prog) return null
+  if (typeof prog.money?.paysInFull === 'boolean') return prog.money.paysInFull
+  if (prog.hasProgramme === false) return !prog.money?.internalBilling
+  return null
+}
+
+/** ⚑ 25 Sep (P10) — which lifecycle this client is on. Unknown (no programme block) → the two-payment one, unchanged. */
+export function lifecycleFor(paysInFull: boolean | null | undefined): { steps: readonly string[]; rules: readonly string[] } {
+  return paysInFull ? { steps: PROGRAMME_LIFECYCLE_ONE_PAYMENT, rules: LIFECYCLE_RULES_ONE_PAYMENT }
+    : { steps: PROGRAMME_LIFECYCLE, rules: LIFECYCLE_RULES }
+}
+
+export function buildLifecycleReassertion(paysInFull?: boolean | null): string {
+  const lc = lifecycleFor(paysInFull)
   return [
     'CURRENT PROGRAMME TRUTH — this overrides anything earlier in this conversation, ' +
       'including answers you gave before. If an earlier answer of yours contradicts the ' +
       'sequence below, the sequence below is right and the earlier answer was wrong.',
     'THE PROGRAMME LIFECYCLE, IN ORDER. Every step is a distinct gate:',
-    PROGRAMME_LIFECYCLE.join('\n'),
-    LIFECYCLE_RULES.join('\n'),
+    lc.steps.join('\n'),
+    lc.rules.join('\n'),
   ].join('\n\n')
 }
 
@@ -397,12 +460,17 @@ export function buildMillaChatSystem(
     // the order, so she guessed. See the note above PROGRAMME_LIFECYCLE.
     'THE PROGRAMME LIFECYCLE, IN ORDER. Every step is a distinct gate — do not merge two of ' +
       'them, and do not skip any when explaining what happens next:\n' +
-      PROGRAMME_LIFECYCLE.join('\n'),
+      // ⚑ 25 Sep (P10) — the sequence for THIS client's terms. No programme block → unchanged.
+      lifecycleFor(paysInFullFor(prog)).steps.join('\n'),
     // The money is the RULE, never a figure — the amounts come from their own programme row
     // below, so a client without a price set is never quoted one.
-    'THE MONEY: a programme has ONE price, paid in two halves — Payment 1 at step 3 and ' +
-      'Payment 2 at step 7 above. There is no subscription.',
-    LIFECYCLE_RULES.join('\n'),
+    // ⚑ 25 Sep (P10) — one payment for a client on the new terms; two halves otherwise, unchanged.
+    paysInFullFor(prog)
+      ? 'THE MONEY: a programme has ONE price, paid in full in ONE payment at step 3 above. There ' +
+        'is no subscription and no second payment.'
+      : 'THE MONEY: a programme has ONE price, paid in two halves — Payment 1 at step 3 and ' +
+        'Payment 2 at step 7 above. There is no subscription.',
+    lifecycleFor(paysInFullFor(prog)).rules.join('\n'),
 
     // 🛑 THE RETIRED MODEL, NAMED SO SHE CANNOT REACH FOR IT. She is fluent in generic
     // lead-gen and will default to it the moment the prompt leaves a gap — which is exactly

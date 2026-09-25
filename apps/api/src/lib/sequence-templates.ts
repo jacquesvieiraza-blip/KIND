@@ -7,8 +7,9 @@
 //   1. PURPOSE — a sequence written to book a meeting is not the sequence that fills an
 //      event. The shape, the ask, and the ending all differ. Until now the product had one
 //      shape (meeting) and no way to say otherwise.
-//   2. DEPTH — 3 · 5 · 7, per campaign, the founder's judgement (R38 as amended: *"some are
+//   2. DEPTH — 3 · 5, per campaign, the founder's judgement (R38 as amended: *"some are
 //      3 steps. some are 5 and some are 7"*). 5 is the DEFAULT, never a law.
+//      ⛓️ 25 Sep (R166 ⑥) — 7 is WITHDRAWN: the founder set the most emails to one person at 5.
 //   3. CADENCE — including the one thing the product could not express at all: a DATE. An
 //      event sequence must count BACK from the event and finish before it. A day-21 breakup
 //      email that lands after the user group is worse than sending nothing.
@@ -26,7 +27,7 @@ export const SEQUENCE_PURPOSES: SequencePurpose[] = ['meeting', 'event', 'reacti
 export const DEFAULT_SEQUENCE_PURPOSE: SequencePurpose = 'meeting'
 
 /** The depths an operator may choose. R38: 5 is the default only; the hard cap is 7. */
-export const SEQUENCE_DEPTHS = [3, 5, 7] as const
+export const SEQUENCE_DEPTHS = [3, 5] as const   // ⛓️ 25 Sep (R166 ⑥): 7 withdrawn — the maximum is 5
 export type SequenceDepth = typeof SEQUENCE_DEPTHS[number]
 export const DEFAULT_SEQUENCE_DEPTH: SequenceDepth = 5
 
@@ -48,23 +49,21 @@ export function normaliseDepth(raw: unknown): SequenceDepth {
  * Meeting cadence at depth 5 matches R38's shipped default (4 · 5 · 5 · 7) exactly, so
  * turning this module on changes nothing for a campaign that made no choice.
  */
+// ⛓️ 25 Sep (R166 ⑥) — the depth-7 rows are withdrawn with 7 itself; the maximum is 5.
 const CADENCE: Record<SequencePurpose, Record<SequenceDepth, number[]>> = {
   meeting: {
     3: [4, 5, 0],
     5: [4, 5, 5, 7, 0],
-    7: [3, 4, 5, 5, 7, 7, 0],
   },
   // Reactivation talks to people who already know the sender: fewer touches, more room.
   reactivation: {
     3: [6, 8, 0],
     5: [5, 7, 7, 10, 0],
-    7: [4, 6, 6, 7, 7, 10, 0],
   },
   // Event cadence is only a FALLBACK — with a date, `eventCadence()` overrides it entirely.
   event: {
     3: [5, 5, 0],
     5: [4, 4, 4, 3, 0],
-    7: [3, 3, 3, 3, 3, 2, 0],
   },
 }
 

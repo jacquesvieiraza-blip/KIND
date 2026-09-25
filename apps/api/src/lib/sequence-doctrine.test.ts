@@ -152,8 +152,9 @@ describe('banned filler can never ship as a step\'s substance', () => {
 
 describe('NO-TOUCH — R3/R10 and the cadence are unchanged', () => {
   it('the depth ceiling is still 7 and the ladder is still 3/5/7', () => {
-    expect([...SEQUENCE_DEPTHS]).toEqual([3, 5, 7])
-    expect(Math.max(...SEQUENCE_DEPTHS)).toBe(7)
+    // ⛓️ 25 Sep (R166 ⑥) — the ladder is 3/5 and the ceiling 5: the founder withdrew 7 ("5").
+    expect([...SEQUENCE_DEPTHS]).toEqual([3, 5])
+    expect(Math.max(...SEQUENCE_DEPTHS)).toBe(5)
   })
 
   it('cadence and day offsets still compute, and a 3-step arc keeps opener and closer', () => {

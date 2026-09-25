@@ -33,7 +33,7 @@ describe('the default is unchanged — turning #651 on must not move R38', () =>
     expect(normalisePurpose('nonsense')).toBe('meeting')
     expect(normalisePurpose(null)).toBe('meeting')
     expect(normaliseDepth(4)).toBe(DEFAULT_SEQUENCE_DEPTH)
-    expect(normaliseDepth('7')).toBe(7)
+    expect(normaliseDepth('7')).toBe(DEFAULT_SEQUENCE_DEPTH)   // ⛓️ 25 Sep (R166 ⑥): 7 is no longer a depth, so it falls back like any other
   })
 })
 

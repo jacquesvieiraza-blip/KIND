@@ -306,5 +306,9 @@ export const LEGAL_ENTITY_NAME = 'K.I.N.D Technologies Ltd'
 /** The one-line footer a cold message carries. Built here so text and HTML cannot diverge. */
 export const POSTAL_FOOTER_LINE = `${LEGAL_ENTITY_NAME}, ${POSTAL_ADDRESS}`
 
-/** The most email steps a sequence may contain. Founder-locked 6 Aug (R3). */
-export const MAX_SEQUENCE_STEPS = 7
+/**
+ * The most email steps a sequence may contain — how many times one person can be emailed.
+ * ⛓️ 25 Sep (R166 ⑥): 7 → **5**. Founder-locked 6 Aug (R3) at 7; the founder set *"5"* on 25 Sep
+ * as part of the barriers on how often we contact anyone (*"the barriers need to be there"*).
+ */
+export const MAX_SEQUENCE_STEPS = 5

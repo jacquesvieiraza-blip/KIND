@@ -115,7 +115,9 @@ describe('draftToSteps (#212/R38 — the AI draft → full-step array, default d
       step3: { subject: 's', body: 'b' }, step4: { subject: 's', body: 'b' },
       step5: { subject: 's', body: 'b' },
     })
-    expect(out.length).toBeLessThan(MAX_SEQUENCE_STEPS)
+    // ⛓️ 25 Sep (R166 ⑥) — the headroom is gone by the founder's choice: the default (5) IS the
+    // maximum now. What still must hold is that the default never EXCEEDS it.
+    expect(out.length).toBeLessThanOrEqual(MAX_SEQUENCE_STEPS)
   })
   it('an older 3-step draft (no step4/step5) still converts — nothing stored breaks', () => {
     const out = draftToSteps({
@@ -166,7 +168,7 @@ describe('R38 source pins — both generators write the 5-step sequence, threade
     // cap is 7 — so the save endpoints accepted sequences activation would refuse.
     expect(seqApply).not.toMatch(/MAX_SEQUENCE_STEPS\s*=\s*\d/)
     expect(seqApply).toContain("export { MAX_SEQUENCE_STEPS } from '@kind/shared'")
-    expect(MAX_SEQUENCE_STEPS).toBe(7)
+    expect(MAX_SEQUENCE_STEPS).toBe(5)   // ⛓️ 25 Sep (R166 ⑥): the founder set the most emails to one person at 5 (was 7, R3/R38).
   })
 })
 

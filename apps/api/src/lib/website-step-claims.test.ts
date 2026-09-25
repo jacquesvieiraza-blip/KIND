@@ -167,6 +167,6 @@ describe('every place that ENFORCES the limit reads the one constant', () => {
     // It was in `apps/api` while the admin app cannot import from there (#563/#614) — which
     // is precisely why the editors kept their own copies.
     expect(read('packages/shared/src/constants/index.ts')).toMatch(/export const MAX_SEQUENCE_STEPS = \d/)
-    expect(MAX_SEQUENCE_STEPS).toBe(7)
+    expect(MAX_SEQUENCE_STEPS).toBe(5)   // ⛓️ 25 Sep (R166 ⑥): the founder set the most emails to one person at 5 (was 7, R3/R38).
   })
 })

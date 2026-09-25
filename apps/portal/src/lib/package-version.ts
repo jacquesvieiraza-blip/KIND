@@ -12,6 +12,8 @@
 // this is the half that tells the client before they press.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { millaNoticeLines } from '@kind/shared'
+
 /** How often an open Approval screen re-checks the package. It also re-checks on return to the tab. */
 export const PACKAGE_CHECK_MS = 30_000
 
@@ -20,11 +22,11 @@ export function packageChanged(shown: string | null | undefined, latest: string 
   return !!shown && !!latest && shown !== latest
 }
 
-/** What Milla says, once per version, when the package the client is reading has been replaced. */
+/**
+ * What Milla says, once per version, when the package the client is reading has been replaced.
+ * ⛓️ 25 Sep (R162) — the sentences live in `@kind/shared` (`millaNoticeLines('new_version')`), the
+ * same function the server uses to keep them in the thread.
+ */
 export function newVersionLines(versionNumber: number | null | undefined): string[] {
-  const which = typeof versionNumber === 'number' && versionNumber > 0 ? `version ${versionNumber}` : 'a new version'
-  return [
-    `I’ve rewritten your emails — this is now ${which}, and your screen has updated to show it.`,
-    'Please read them again before you approve. Nothing has been sent.',
-  ]
+  return millaNoticeLines('new_version', versionNumber ?? null) ?? []
 }

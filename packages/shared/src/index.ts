@@ -57,3 +57,5 @@ export * from './proof-wait'
 export * from './lead-reason-codes'
 // ⚑ 23 Sep — a client moves to Proof only when their people are ready to show (founder rule).
 export * from './proof-readiness'
+// ⚑ 25 Sep (R162) — what Milla tells a client when their programme moves; shown AND kept.
+export * from './milla-notices'

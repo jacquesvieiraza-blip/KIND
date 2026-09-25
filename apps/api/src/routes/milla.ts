@@ -355,6 +355,43 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
   }
 })
 
+// ── ⚑ 25 Sep (R162) — MILLA'S PROGRAMME NOTICES ARE KEPT IN THE CLIENT'S THREAD ─────────────
+// The founder's House walk: "this is now version 4" vanished on a refresh — Milla's screen drew it
+// and nothing kept it. The browser sends only WHICH notice (a kind, its parameter and a key); the
+// sentences are composed here from `millaNoticeLines`, so a client screen can never put words in
+// Milla's mouth. Row ids derive from the key, so the same notice is written once. Own thread only.
+millaRouter.post('/sessions/:sessionId/notices', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: session } = await db.from('milla_sessions')
+      .select('id').eq('id', req.params.sessionId).eq('client_id', clientId).single()
+    if (!session) { res.status(404).json({ success: false, error: 'Session not found' }); return }
+
+    const body = (req.body ?? {}) as { kind?: unknown; param?: unknown; key?: unknown }
+    const key = typeof body.key === 'string' ? body.key.trim().slice(0, 160) : ''
+    const param = typeof body.param === 'string' || typeof body.param === 'number' ? body.param : null
+    const { isMillaNoticeKind, millaNoticeLines } = await import('@kind/shared')
+    const lines = isMillaNoticeKind(body.kind) && key ? millaNoticeLines(body.kind, param) : null
+    if (!lines) { res.status(400).json({ success: false, error: 'Not a notice Milla can keep. Nothing was written.' }); return }
+
+    const { noticeRowIdFor } = await import('../lib/customer-turn')
+    for (let i = 0; i < lines.length; i++) {
+      const { error } = await db.from('milla_messages').insert({
+        id: noticeRowIdFor(req.params.sessionId, key, i),
+        session_id: req.params.sessionId, client_id: clientId,
+        role: 'assistant', content: lines[i], sources: null,
+      })
+      // Already kept (the same notice from another tab or a retry) is success, not failure.
+      if (error && (error as { code?: string }).code !== '23505') throw error
+    }
+    res.json({ success: true, kept: lines.length })
+  } catch (err) {
+    console.error('[milla/notices POST]', err)
+    res.status(500).json({ success: false, error: 'The notice could not be kept' })
+  }
+})
+
 // One alert per client per 15 minutes — in memory, same pattern as the approval-batch
 // throttle. A restart re-arms it, which is the safe direction to fail (an extra nudge).
 // ⛓️ 18 Sep (J3-C2) — `replyRowIdFor` MOVED TO `lib/customer-turn.ts`, WITH THE RULE AROUND IT.

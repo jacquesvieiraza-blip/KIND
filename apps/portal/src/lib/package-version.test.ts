@@ -44,7 +44,9 @@ describe('🛑 the Approval screen updates itself', () => {
   it('shows the new version and has Milla say so, once per version', () => {
     expect(APPROVAL).toContain('if (stopped || !next || !packageChanged(shownVersion, next.frozen?.version ?? null)) return')
     expect(APPROVAL).toContain('setData(next)')
-    expect(APPROVAL).toContain('announceOnce(`approval-version-${next.frozen?.version}`, newVersionLines(next.frozen?.version_number))')
+    // ⛓️ 25 Sep (R162) — WAS `announceOnce(…, newVersionLines(…))`: shown only, lost on a refresh.
+    // Now said AND kept in the thread, with the same sentences (`millaNoticeLines('new_version')`).
+    expect(APPROVAL).toContain("keepNotice(`approval-version-${next.frozen?.version}`, 'new_version', next.frozen?.version_number ?? null)")
   })
 
   it('the approval still sends the version on screen — the server refuses a stale one', () => {

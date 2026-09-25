@@ -451,7 +451,7 @@ export default function MillaHomePage() {
   // ⚑ 25 Sep (R161) — Home hears what happened in Vida without a refresh, through the SAME hook
   // the Programme screen uses. The founder tested the two-way sync from here, and Home never
   // re-read anything.
-  useProgrammeSync(prog, load, conversation.announceOnce)
+  useProgrammeSync(prog, load, conversation.keepNotice)
 
   useEffect(() => { setFinding(isFinding()) }, [])
 

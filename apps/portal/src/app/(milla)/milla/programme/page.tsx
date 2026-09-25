@@ -139,7 +139,7 @@ export default function ProgrammePage() {
 
   // ⚑ 25 Sep (R161) — Milla hears what happened in Vida without a refresh: the ONE shared hook,
   // also used by Milla Home (`useProgrammeSync`).
-  useProgrammeSync(p, load, conversation.announceOnce)
+  useProgrammeSync(p, load, conversation.keepNotice)
 
   if (loading) {
     return (

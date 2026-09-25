@@ -48,11 +48,12 @@ describe('🛑 every Milla screen that shows a programme re-reads it', () => {
     expect(HOOK).toContain('setInterval(() => { void check() }, SYNC_CHECK_MS)')
     expect(HOOK).toContain("document.addEventListener('visibilitychange', onReturn)")
     expect(HOOK).toContain('if (sameMillaFacts(before, after)) return')
-    expect(HOOK).toContain('for (const c of millaChangeLines(before, after)) sayRef.current(c.key, c.lines)')
+    // ⛓️ 25 Sep (R162) — WAS `sayRef.current(c.key, c.lines)`: shown only. Now kept in the thread.
+    expect(HOOK).toContain('for (const c of millaChangeLines(before, after)) sayRef.current(c.key, c.kind, c.param)')
   })
 
   it('🛑 Home uses it — the screen a client lives on — and so does the Programme screen', () => {
-    expect(HOME).toContain('useProgrammeSync(prog, load, conversation.announceOnce)')
-    expect(PAGE).toContain('useProgrammeSync(p, load, conversation.announceOnce)')
+    expect(HOME).toContain('useProgrammeSync(prog, load, conversation.keepNotice)')
+    expect(PAGE).toContain('useProgrammeSync(p, load, conversation.keepNotice)')
   })
 })

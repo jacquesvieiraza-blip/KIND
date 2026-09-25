@@ -3,8 +3,34 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD,
-  PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD,
+  PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD,
 } from '@kind/shared'
+
+/**
+ * ⛓️ 25 Sep (R166 ① · P13) — $299 IS NOW ENTERPRISE'S PRICE PER QUALIFIED MEETING, and the
+ * retired pack was ALSO $299. A bare "$299 must not appear" can no longer tell them apart, so the
+ * guard now asks the real question: every "$299" a visitor can read must sit beside
+ * "Enterprise" or "per (qualified) meeting". A "$299 pack" still fails.
+ */
+function packPriceMentions(html: string): string[] {
+  const out: string[] = []
+  const needle = `$${PACK_PRICE_USD}`
+  const text = (t: string) => t.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ')
+  for (let i = html.indexOf(needle); i >= 0; i = html.indexOf(needle, i + 1)) {
+    // ⚠️ TIGHT, AND RED-PROVEN: the qualifier must FOLLOW closely ("$299 Enterprise", "$299 per
+    // qualified meeting", "$299 by company size") or "Enterprise" come just BEFORE (a price card).
+    // A 160-character window let a planted "$299 pack of 100 leads" through, because the block's
+    // own "per qualified meeting" sat nearby. Raw text is also read, for a meta attribute.
+    const afterRaw = html.slice(i + needle.length, i + needle.length + 80)
+    const after = text(afterRaw).slice(0, 60)
+    const before = text(html.slice(Math.max(0, i - 120), i)).slice(-50)
+    const ok = /^\W*(Enterprise|for Enterprise|per (qualified )?meeting|\/ ?meeting|by (your )?company)/i.test(after)
+      || /^[^<]{0,12}Enterprise/i.test(afterRaw)
+      || /Enterprise\W[^$]{0,40}$/i.test(before)
+    if (!ok) out.push(text(html.slice(Math.max(0, i - 60), i + 60)).trim())
+  }
+  return out
+}
 
 // #413 / #327 — WHAT THE PUBLIC SITE AND THE CONTRACT SAY THE $99 BUYS.
 //
@@ -140,7 +166,7 @@ describe('no page carries the retired per-lead model any more', () => {
   for (const [name, html] of PAGES) {
     it(`${name} names no pack price, included count or per-lead price`, () => {
       const v = visible(html)
-      expect(v, `${name} still names the $${PACK_PRICE_USD} pack`).not.toContain(`$${PACK_PRICE_USD}`)
+      expect(packPriceMentions(v), `${name} still names the $${PACK_PRICE_USD} pack`).toEqual([])
       expect(v, `${name} still names ${PACK_LEADS} approved leads`).not.toContain(`${PACK_LEADS} approved leads`)
       expect(FLAT_FOUR.test(v), `${name} still prices something at $${LEAD_PRICE_USD}`).toBe(false)
     })
@@ -153,10 +179,14 @@ describe('no page carries the retired per-lead model any more', () => {
 })
 
 describe('the contract describes the programme the code actually prices', () => {
-  it(`§4 names the rate from the constants ($${PROGRAMME_ANCHOR_1_USD} down to $${PROGRAMME_FLOOR_USD})`, () => {
-    // Derived, never typed: if R81's curve moves, this fails rather than drifting quietly.
-    expect(terms).toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
-    expect(terms).toContain(`$${PROGRAMME_FLOOR_USD}`)
+  // ⛓️ 25 Sep (R166 ① · P13) — WAS the R81 curve ($450 down to $400). New programmes are priced
+  // flat by company size (founder: *"99 for founders. 199 for growth. and 299 for enterprise"*,
+  // *"Fixed $299, shown on the site"*). Still derived, never typed: if a band price moves in
+  // @kind/shared, this fails. The curve figures must not be quoted as the current price.
+  it('§4 names the band prices from the constants, and no longer quotes the curve', () => {
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms).toContain(`<strong>$${usd}</strong>`)
+    expect(terms).not.toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
+    expect(terms).not.toContain(`$${PROGRAMME_FLOOR_USD} per qualified meeting`)
   })
 
   // ⛓️ 23 Sep — "DENIES THE WALLET OUTRIGHT" IS NO LONGER THE WHOLE TRUTH.
@@ -199,7 +229,9 @@ describe('the contract describes the programme the code actually prices', () => 
 
   it('§5 carries the credit, the no-show rules, the challenge window and the split of responsibility', () => {
     expect(terms).toContain('each qualified meeting not delivered is credited to your account at the per-meeting rate you paid')
-    expect(terms).toContain('applied against the first payment of your next programme')
+    // ⛓️ 25 Sep (R166 ③ ⑤) — one payment, so "the first payment" is gone; once per client, 90 days.
+    expect(terms).toContain('applied against the payment for your next programme')
+    expect(terms).toContain('This credit is given <strong>once per client</strong> and <strong>expires 90 days</strong> after it is credited')
     expect(terms).toContain('not paid out in cash')
     expect(terms).toContain('reschedule the meeting once, at no additional charge')
     expect(terms).toContain('You cancel or do not attend:</strong> the meeting counts as delivered')
@@ -270,7 +302,7 @@ describe('#327 — the CSV claim now matches what a client can actually do', () 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('P30 — the homepage states the whole programme offer in what a visitor can read', () => {
   it('the pricing block carries no retired per-lead or pack money', () => {
-    expect(homePricing).not.toContain(`$${PACK_PRICE_USD}`)
+    expect(packPriceMentions(homePricing)).toEqual([])   // ⛓️ 25 Sep — $299 is Enterprise's price now (see packPriceMentions)
     expect(homePricing).not.toContain(`${PACK_LEADS} approved leads`)
     expect(homePricing).not.toContain(`$${LEAD_PRICE_USD}`)
     expect(homePricing).not.toMatch(/per (approved )?lead/i)
@@ -278,15 +310,18 @@ describe('P30 — the homepage states the whole programme offer in what a visito
   })
 
   it('no retired pack figure survives anywhere a visitor can read', () => {
-    expect(home).not.toContain(`$${PACK_PRICE_USD}`)
+    expect(packPriceMentions(home)).toEqual([])   // ⛓️ 25 Sep — $299 is Enterprise's price now (see packPriceMentions)
     expect(home).not.toContain(`${PACK_LEADS} approved leads`)
   })
 
+  // ⛓️ 25 Sep (R166 ③ · P13) — WAS "50/50 … Half to start, half to go live … second half is never
+  // charged". New programmes pay once, in full, before we start (founder: *"one payment in. run
+  // bang"*); nothing is sent until the client approves. The block states THAT structure now.
   it('the block states the payment structure the client actually meets', () => {
-    // R74: 50% authorises bounded sourcing/preparation, 50% at Approve & Go Live.
-    expect(homePricing).toContain('50/50')
-    expect(homePricing).toMatch(/Half to start, half to go live/)
-    expect(homePricing).toMatch(/second half is never charged/)
+    expect(homePricing).toMatch(/in one payment<\/strong> before we start/)
+    expect(homePricing).toMatch(/Nothing is sent until you have seen and approved the prepared programme/)
+    expect(homePricing, 'the halves are back on the homepage').not.toMatch(/50\/50|second half/)
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(homePricing).toContain(`<strong>$${usd}</strong>`)
   })
 
   it('it states the free proof, the single approval and the no-subscription promise', () => {
@@ -295,9 +330,11 @@ describe('P30 — the homepage states the whole programme offer in what a visito
     expect(homePricing).toContain('No subscription.')
   })
 
-  it('it states that unused programme value does not expire', () => {
-    // R74's locked wording: "unused programme value remains on account and never expires".
-    expect(homePricing).toMatch(/[Uu]nused programme value .*never expires/)
+  // ⛓️ 25 Sep (R166 ⑤ · P13) — WAS "unused programme value … never expires". The new-terms credit
+  // expires after 90 days, so the homepage no longer promises forever; it states the credit.
+  it('it states the credit for meetings not delivered, and no longer promises it never expires', () => {
+    expect(homePricing).toMatch(/the difference is credited toward your next programme/)
+    expect(homePricing).not.toMatch(/never expires/)
   })
 
   it('🛑 it publishes NO figure from the pricing curve (R81 — unquotable)', () => {
@@ -332,6 +369,37 @@ describe('P30 — the homepage states the whole programme offer in what a visito
       expect(foot(html), `${name} footer lost the programme sentence`).toContain('You choose how many qualified meetings')
       expect(foot(html), `${name} footer sells an undefined "outcome" again`).not.toContain('You choose the outcome')
       expect(foot(html), `${name} footer still links the retired calculator`).not.toContain('pipeline-calculator.html')
+    }
+  })
+})
+
+// ⚑ 25 Sep (R166 ① ③ · P13, board #2359) — THE WEBSITE'S PRICES ARE THE CODE'S PRICES.
+// Founder: *"99 for founders. 199 for growth. and 299 for enterprise"*, *"Fixed $299, shown on
+// the site"*, *"one payment in"*. The calculator and the three band cards must say exactly what
+// @kind/shared charges, and nothing may still quote the curve or a second half.
+describe('R166 — the site prices by band, in one payment', () => {
+  const visibleText = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '')
+  it('the calculator offers exactly the three band prices, and prices flat with one payment', () => {
+    const script = pricing.slice(pricing.indexOf("var b=document.getElementById('c-band');"))
+    const opts = [...pricing.matchAll(/<option value="(\d+)"/g)].map(m => Number(m[1]))
+    expect(opts).toEqual(Object.values(BAND_PRICE_PER_MEETING_USD))
+    expect(script).toContain('var total=per*n*100;')
+    expect(script).toContain("set('c-p1',money(total));")
+    expect(pricing).not.toContain('id="c-p2"')
+  })
+  it('the three cards carry the three prices, by name', () => {
+    for (const [band, usd] of Object.entries(BAND_PRICE_PER_MEETING_USD)) {
+      const name = band[0].toUpperCase() + band.slice(1)
+      expect(pricing).toMatch(new RegExp(`<h3>${name}</h3><div class="plan-range">per qualified meeting</div><div class="plan-price">\\$${usd}</div>`))
+    }
+  })
+  it('no page a visitor can read still quotes the curve or a second half', () => {
+    for (const f of ['pricing.html', 'index.html', 'milla.html', 'faqs.html', 'get-started.html', 'demo.html',
+      'solutions.html', 'support.html', 'vs-hiring-an-sdr.html', 'help-centre.html', 'nexus.html']) {
+      const v = visibleText(site(f))
+      expect(v, `${f} still quotes $${PROGRAMME_ANCHOR_1_USD}`).not.toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
+      expect(v, `${f} still says 50/50`).not.toMatch(/50\/50/)
+      expect(v, `${f} still mentions a second half`).not.toMatch(/second half/i)
     }
   })
 })

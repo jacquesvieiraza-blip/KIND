@@ -59,3 +59,5 @@ export * from './lead-reason-codes'
 export * from './proof-readiness'
 // ⚑ 25 Sep (R162) — what Milla tells a client when their programme moves; shown AND kept.
 export * from './milla-notices'
+// ⚑ 25 Sep (R166 ② · P7) — the client's size band (Founders · Growth · Enterprise).
+export * from './size-band'

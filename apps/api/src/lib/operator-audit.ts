@@ -144,6 +144,8 @@ export type OperatorAction =
   | 'meeting_absence_recorded' // ⚑ 25 Sep (R141 · P5c) — a person recorded a no-show or cancellation
                             // and WHO: prospect (one free reschedule) or client (counts as delivered).
   | 'meeting_rescheduled'   // ⚑ 25 Sep (R141 · P5c) — the one free reschedule after a prospect's absence.
+  | 'client_size_set'       // ⚑ 25 Sep (R166 ② · P7) — a person set (or, with a written reason,
+                            // changed) a client's locked size band, which sets their price per meeting.
   | 'programme_ceiling_raised' // ⚑ 25 Sep (R166 ⑥ · P3b) — a person opened more sourcing on a programme,
                             // with a written reason. Before this, only a raw database edit could.
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model

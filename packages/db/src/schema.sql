@@ -50,7 +50,22 @@ create table if not exists public.clients (
   -- survives ICP revisions and predates any programme. NOT meeting_target.
   -- Migration: 20260910_client_stated_outcome.
   outcome_kind text,
-  outcome_stated text
+  outcome_stated text,
+  -- ⚑ 25 Sep (R166 ② · P7): the client's OWN size band — found once from Apollo by their
+  -- website or set by a person, then locked. Migration: 20260925_client_size_band.
+  size_band           text,
+  size_employees      integer,
+  size_source         text,
+  size_review_reason  text,
+  size_checked_at     timestamptz,
+  size_locked_at      timestamptz,
+  size_set_by         text,
+  size_note           text,
+  constraint clients_size_band_values
+    check ((size_band is null or size_band in ('founders', 'growth', 'enterprise'))
+       and (size_source is null or size_source in ('apollo', 'person'))),
+  constraint clients_size_lock_is_complete
+    check (size_locked_at is null or (size_band is not null and size_source is not null and size_set_by is not null))
 );
 
 -- ─────────────────────────────────────────────

@@ -26,9 +26,15 @@ for (const f of ['public/terms.html', 'src/app/(legal)/terms/page.tsx']) {
       expect(t).toMatch(/Founders \(1–50 employees\), Growth \(51–200\) or Enterprise \(more than 200\)/)
       expect(t).toMatch(/Pricing page/)
       if (f.endsWith('.html')) {
-        expect(t).toMatch(/you do not choose your band/)
+        // ⛓️ 25 Sep (R168 ④ · P13b) — WAS `/you do not choose your band/` (R166 ②: "never chosen by
+        // the client"). The founder then ruled that the client TELLS us their size and we check it,
+        // and approved this exact sentence for the Terms. The old line is now forbidden, not merely
+        // absent.
+        expect(t).not.toMatch(/you do not choose your band/)
         expect(t).toMatch(/There is no volume discount/)
       }
+      // ⚑ 25 Sep (R168 ④) — the approved size sentence, in both the Terms file and the page.
+      expect(t).toContain('You tell us the size of your company when you sign up, and your price is set from it. We check it against company records; if they show your company is larger, our team confirms your band before you pay.')
       expect(t).not.toMatch(/\$\s?\d/)
     })
     it('one payment, in full, when you accept; outreach only after approval', () => {

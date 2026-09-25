@@ -313,6 +313,52 @@ export async function createProgramme(clientId: string, meetings: number): Promi
   return { ok: true, programme: data as ProgrammeRow }
 }
 
+/**
+ * ⚑ 25 Sep (R166 ⑥ · P3b) — RAISE A PROGRAMME'S SOURCING LIMIT, BY A PERSON, ON THE RECORD.
+ *
+ * The limit (meetings × the per-meeting limit) is where sourcing stops. Opening more was "a
+ * human decision" with no way to make it except a raw database edit that left no trace. This
+ * is that decision as a function: it takes an amount and a written reason, refuses anything
+ * vague or unbounded, and the route writes the audit row.
+ *
+ * 🛑 BOUNDED PER PRESS: at most one more full programme's worth (meetings × the limit), so a
+ * typo cannot open the gate to everything. Pressing again is a second, separately recorded act.
+ * ⚠️ COMPARE-AND-SET on the old ceiling, so two presses cannot both apply on stale reads.
+ * It moves no money, sends nothing, and grants no approval.
+ */
+export type RaiseCeilingResult =
+  | { ok: true; from: number; to: number }
+  | { ok: false; reason: string }
+
+export async function raiseSourcingCeiling(programmeId: string, additional: number, reason: string): Promise<RaiseCeilingResult> {
+  const why = String(reason ?? '').trim()
+  if (!Number.isInteger(additional) || additional < 1) {
+    return { ok: false, reason: 'Enter how many more people to allow — a whole number of at least 1. Nothing was changed.' }
+  }
+  if (why.length < 10) {
+    return { ok: false, reason: 'Write the reason for raising the limit (at least 10 characters) — it is kept on the record. Nothing was changed.' }
+  }
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme. Nothing was changed.' }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}. Nothing was changed.` }
+  if (!p1Authorised(p)) return { ok: false, reason: 'This programme has no sourcing authority yet, so there is no limit to raise. Nothing was changed.' }
+  const maxStep = sourcingCeiling(p.meeting_target)
+  if (additional > maxStep) {
+    return { ok: false, reason: `At most ${maxStep} more people per press (one programme's worth). Nothing was changed.` }
+  }
+  const from = p.sourcing_ceiling
+  const to = from + additional
+  const { data, error } = await db.from('programmes')
+    .update({ sourcing_ceiling: to, updated_at: new Date().toISOString() })
+    .eq('id', programmeId).eq('sourcing_ceiling', from)
+    .select('id')
+  if (error) return { ok: false, reason: `The limit could not be written (${error.message}). Nothing was changed.` }
+  if (!data || (data as unknown[]).length === 0) {
+    return { ok: false, reason: 'The limit changed while you were raising it. Take another look and try again. Nothing was changed.' }
+  }
+  return { ok: true, from, to }
+}
+
 async function setStatus(programmeId: string, status: ProgrammeStatus, extra: Record<string, unknown> = {}) {
   return db.from('programmes').update({ status, updated_at: new Date().toISOString(), ...extra })
     .eq('id', programmeId)

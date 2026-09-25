@@ -673,12 +673,19 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // publishes a new version — a programme-id action whose confirmation names the SELECTED
       // client, so it passes the same gate.
       'const rewriteMessages = useCallback(async () => {',
+      // ⛓️ 25 Sep (R166 ⑥ · P3b) — AN ELEVENTH AND TWELFTH, REGISTERED HERE. `resolveReview` posts
+      // `POST /programmes/:id/resolve-review` (releases a review hold — the route existed and Vida
+      // never called it); `raiseCeiling` posts `POST /programmes/:id/raise-ceiling` (opens more
+      // sourcing, with a written reason). Both target `prog.programme.id` while their dialogs name
+      // the SELECTED client, so both pass the same gate.
+      'const resolveReview = useCallback(async () => {',
+      'const raiseCeiling = useCallback(async () => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
-    // Ten call sites, and no eleventh action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
-    // 9 → 10 on 24 Sep (rewrite messages).
-    expect(code.split('programmeActionId()').length - 1).toBe(10)
+    // Twelve call sites, and no thirteenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
+    // 9 → 10 on 24 Sep (rewrite messages); 10 → 12 on 25 Sep (resolve review, raise limit).
+    expect(code.split('programmeActionId()').length - 1).toBe(12)
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {
@@ -690,6 +697,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       'const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {',
       // ⛓️ 24 Sep — the rewrite publishes a new version, so its dialog must name the right client too.
       'const rewriteMessages = useCallback(async () => {',
+      // ⛓️ 25 Sep (P3b) — both new dialogs name the client, so the gate must come first.
+      'const resolveReview = useCallback(async () => {',
+      'const raiseCeiling = useCallback(async () => {',
     ]) {
       const body = fnBody(code, fn)
       const gate = body.indexOf('programmeActionId()')

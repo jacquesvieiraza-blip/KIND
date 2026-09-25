@@ -136,8 +136,11 @@ async function dependencies(): Promise<Section> {
         `ZERO lead credits left (${found.used} of ${found.limit} used). Every reveal fails, so no Proof set and no programme batch can be delivered.`,
         'Top up at Apollo → Settings → Billing. Until then Vida raises a Needs-you task on every refused run.')
     }
+    // ⚑ 25 Sep (R166 ⑥ · P2) — AND WHERE OUR OWN BUDGET STOPS, so the row says both numbers.
+    const { APOLLO_BUDGET_SHARE } = await import('./apollo-budget')
+    const stopAt = Math.floor(found.limit * APOLLO_BUDGET_SHARE)
     return ok('Apollo credits (this cycle)',
-      `${left} lead credit(s) left this cycle (${found.used} of ${found.limit} used). A reveal costs one; People Search costs nothing.`)
+      `${left} lead credit(s) left this cycle (${found.used} of ${found.limit} used). A reveal costs one; People Search costs nothing. Our budget stops paid reveals at ${stopAt} (80%)${found.used >= stopAt ? ' — REACHED: reveals are held until the next cycle.' : '.'}`)
   }))
 
   // ── ⛓️ 17 Sep — HUNTER IS RETIRED, AND THE ROW SAYS SO INSTEAD OF PROBING IT ────────

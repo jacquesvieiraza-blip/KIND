@@ -2146,7 +2146,7 @@ export async function runIcpJob(
           .map(c => c.id)
         if (needGeography.length > 0) {
           const { bulkMatchEmails } = await import('../lib/apollo')
-          const revealed = await bulkMatchEmails(needGeography)
+          const revealed = await bulkMatchEmails(needGeography, 'proof_geography')
           for (const [apolloId, person] of revealed) proofGeoByApolloId.set(apolloId, person.country)
           console.log(`[icp] stage=proof_geo_qualification — ${needGeography.length} Apollo candidate(s) had no country from People Search; ${revealed.size} answered by bulk_match. Only a POSITIVE country match may enter the Proof set; unknown is a rejection, never a pass.`)
         }

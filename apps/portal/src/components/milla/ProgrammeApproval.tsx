@@ -37,6 +37,7 @@ import {
   PROGRAMME_BEST_EFFORTS, laterBatchesLine,
 } from '@kind/shared'
 import { programmeMoney } from '@/lib/programme-money'
+import { PACKAGE_CHECK_MS, packageChanged, newVersionLines } from '@/lib/package-version'
 
 export type ApprovalProspect = {
   id: string
@@ -164,7 +165,7 @@ export function whenLabel(messages: FrozenWork['messages'], i: number): string {
 }
 
 export default function ProgrammeApproval({
-  data, onApproved, secondPaymentCents, secondDue,
+  data: given, onApproved, secondPaymentCents, secondDue,
 }: {
   data: ApprovalPayload
   onApproved: (approvedAt: string | null) => void
@@ -174,8 +175,46 @@ export default function ProgrammeApproval({
   secondDue?: boolean
 }) {
   const [showAll, setShowAll] = useState(false)
+  // ⚑ 25 Sep (R160) — the screen holds its OWN copy of the package, so a newer version can replace
+  // it without the client reloading. A new payload from the page still wins.
+  const [data, setData] = useState(given)
+  useEffect(() => { setData(given) }, [given])
   // ⚑ 24 Sep (R145 step 5) — Milla opens the stage in the one chat, as the redesign does.
   const announceOnce = useMillaConversation().announceOnce
+
+  // ── ⚑ 25 Sep (R160) — A NEW VERSION REACHES THE CLIENT WITHOUT A REFRESH ────────────────────
+  // While the package waits for their approval, the screen re-reads it every PACKAGE_CHECK_MS and
+  // whenever they come back to the tab. A different frozen version replaces what is on screen and
+  // Milla says so in the chat, once per version. A failed check is simply tried again; the server
+  // still refuses an approval of a version the client was not shown.
+  const watching = data.canApprove && !data.programme?.approved_at
+  const shownVersion = data.frozen?.version ?? null
+  useEffect(() => {
+    if (!watching) return
+    let stopped = false
+    const check = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const { api } = await import('@/lib/api')
+        const { data: { session } } = await createClient().auth.getSession()
+        const r = await api.get<{ data: ApprovalPayload }>('/my/programme/review', session?.access_token)
+        const next = r.data
+        if (stopped || !next || !packageChanged(shownVersion, next.frozen?.version ?? null)) return
+        setData(next)
+        announceOnce(`approval-version-${next.frozen?.version}`, newVersionLines(next.frozen?.version_number))
+      } catch { /* the next tick tries again */ }
+    }
+    const t = setInterval(() => { void check() }, PACKAGE_CHECK_MS)
+    const onReturn = () => { if (document.visibilityState === 'visible') void check() }
+    document.addEventListener('visibilitychange', onReturn)
+    window.addEventListener('focus', onReturn)
+    return () => {
+      stopped = true
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onReturn)
+      window.removeEventListener('focus', onReturn)
+    }
+  }, [watching, shownVersion, announceOnce])
   const canApproveNow = data.canApprove && !data.programme?.approved_at
   useEffect(() => {
     if (!canApproveNow) return

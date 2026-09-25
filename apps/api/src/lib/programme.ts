@@ -15,7 +15,7 @@ import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
 import { DEFAULT_PROGRAMME_SEND_SCHEDULE } from './programme-sequence'
 import {
-  quoteProgramme, recommendedVolume, partnerCommissionCents, sourcingCeiling, isSizeBand,
+  quoteProgramme, overProgrammeMaximum, recommendedVolume, partnerCommissionCents, sourcingCeiling, isSizeBand,
   type ProgrammeStage,
 } from '@kind/shared'
 
@@ -299,6 +299,9 @@ export async function createProgramme(clientId: string, meetings: number): Promi
   const terms = await pricingTermsFor(clientId)
   if (terms.kind === 'pending') return { ok: false, reason: terms.message }
   const band = terms.kind === 'band' ? terms.band : null
+  // ⚑ 25 Sep (R168 ③ · P3·max) — 50 meetings at most on the new terms; House and the curve untouched.
+  const overMax = overProgrammeMaximum(meetings, band)
+  if (overMax) return { ok: false, reason: overMax }
   const q = quoteProgramme(meetings, band)
   const { data, error } = await db.from('programmes').insert({
     client_id: clientId,

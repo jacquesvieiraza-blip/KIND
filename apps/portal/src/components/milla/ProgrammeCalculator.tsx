@@ -56,6 +56,10 @@ type CalcPayload = {
   best_efforts_note?: string
   /** R136 ⑥ — what to do when they want more than their targeting reaches. */
   widen_note?: string
+  /** ⚑ 25 Sep (R168 ③) — the most one programme takes on (new terms); null = no such limit. */
+  max_meetings?: number | null
+  /** ⚑ 25 Sep (R168 ③) — the "talk to us" sentence at that limit, from the server. */
+  max_note?: string | null
   benchmark: { leadsPerMeeting: number; minLeadsPerMeeting: number }
 }
 
@@ -152,11 +156,24 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
   // is what makes a capacity arriving AFTER the client has already typed a larger number pull
   // them back down, rather than leaving a stale over-target sitting in a box that now has a
   // lower maximum.
+  // ⚑ 25 Sep (R168 ③ · P3·max) — the most one programme takes on, from the server (50 on the new
+  // terms, null for House and the curve). The control stops at whichever of the pool and this
+  // comes first. It is kept once it has been read, so a quote that fails for a moment does not
+  // re-open the control.
+  const [maxMeetings, setMaxMeetings] = useState<number | null>(null)
+  const [maxNote, setMaxNote] = useState<string | null>(null)
   useEffect(() => {
-    if (cap !== null && meetings > cap) setMeetings(cap)
-  }, [cap, meetings])
+    if (typeof calc?.max_meetings === 'number') { setMaxMeetings(calc.max_meetings); setMaxNote(calc.max_note ?? null) }
+  }, [calc])
+  const top = cap !== null && maxMeetings !== null ? Math.min(cap, maxMeetings) : (cap ?? maxMeetings)
+  const maxBinds = maxMeetings !== null && (cap === null || maxMeetings <= cap)
 
-  const atCeiling = cap !== null && meetings >= cap
+  useEffect(() => {
+    if (top !== null && meetings > top) setMeetings(top)
+  }, [top, meetings])
+
+  const atCeiling = cap !== null && meetings >= cap && !maxBinds
+  const atMaximum = maxBinds && maxMeetings !== null && meetings >= maxMeetings
 
   // ── 🛑 ⚑ 24 Sep (R145 step 4 · #27) — ONE BUTTON: "ACCEPT N MEETINGS · PAY P1" ─────────────
   //
@@ -250,23 +267,25 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
              was slow would be worse than the defect this fixes. */}
         <div className="mt-4">
           <div className="flex items-center gap-3">
-            <input id="calc-meetings" aria-label="Targeted qualified meetings" type="range" min={1} max={cap ?? 50} step={1} value={meetings}
+            <input id="calc-meetings" aria-label="Targeted qualified meetings" type="range" min={1} max={top ?? 50} step={1} value={meetings}
               onChange={e => setMeetings(Number(e.target.value))}
               className="flex-1 accent-[#6f3df4]" />
             {/* `max` on a number box is advisory, so a typed value is CLAMPED to the ceiling too. */}
-            <input aria-label="Targeted qualified meetings (number)" type="number" min={1} max={cap ?? 500} value={meetings}
-              onChange={e => setMeetings(Math.min(cap ?? Number.MAX_SAFE_INTEGER, Math.max(1, Number(e.target.value) || 1)))}
+            <input aria-label="Targeted qualified meetings (number)" type="number" min={1} max={top ?? 500} value={meetings}
+              onChange={e => setMeetings(Math.min(top ?? Number.MAX_SAFE_INTEGER, Math.max(1, Number(e.target.value) || 1)))}
               className="w-16 text-[13px] font-extrabold tabular-nums rounded-lg border border-[color:var(--mv-line2)] px-2 py-1 text-center bg-white" />
           </div>
           <div className="flex justify-between mt-1.5 text-[8px] text-[#8e8595]">
             <span>1 meeting</span>
-            <span>{cap !== null ? `Pool ceiling · ${cap}` : 'Move to choose'}</span>
+            <span>{maxBinds && maxMeetings !== null ? `Most per programme · ${maxMeetings}` : cap !== null ? `Pool ceiling · ${cap}` : 'Move to choose'}</span>
           </div>
         </div>
         {/* 🛑 THE FOUNDER'S FRAMING, AND IT COMES FROM THE SERVER so a screen cannot soften it. */}
         {calc?.target_note && <p className="mt-3">{calc?.target_note}</p>}
         {/* And at the ceiling they are pointed at their OWN targeting — never at a suggestion of ours. */}
         {(atCeiling || noCapacity) && calc?.widen_note && <p className="mt-2">{calc.widen_note}</p>}
+        {/* ⚑ 25 Sep (R168 ③) — at the most one programme takes on, they are told to talk to us. */}
+        {atMaximum && !noCapacity && maxNote && <p className="mt-2">{maxNote}</p>}
       </div>
 
       {d && (
@@ -275,7 +294,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
             <div className="mv-eyebrow">Capacity</div>
             <div className="mv-big tabular-nums">{capacity?.known && typeof capacity.workable === 'number' ? capacity.workable.toLocaleString('en-US') : '—'}</div>
             <div className="mv-sub">
-              workable pool behind the programme.{cap !== null ? ` ${cap} is the most we will take on at this targeting.` : ''}
+              workable pool behind the programme.{/* ⚑ 25 Sep (R168 ③) — the lower of the pool and the maximum, so the card and the slider never disagree. */}{cap !== null ? ` ${top ?? cap} is the most we will take on at this targeting.` : ''}
             </div>
             <div className="mv-kv-list">
               <div className="mv-kv-row"><span>People we plan to work</span><strong>{d.recommendedVolume.toLocaleString('en-US')}</strong></div>

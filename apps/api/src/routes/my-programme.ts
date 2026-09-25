@@ -612,7 +612,8 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { calculateProgramme, meetingTargetProblem, TARGET_NOT_GUARANTEE, ILLUSTRATIVE_LABEL,
             PROGRAMME_BEST_EFFORTS, WIDEN_TO_GO_FURTHER,
-            LEADS_PER_TARGETED_MEETING, MIN_LEADS_PER_MEETING } = await import('@kind/shared')
+            LEADS_PER_TARGETED_MEETING, MIN_LEADS_PER_MEETING,
+            overProgrammeMaximum, MAX_PROGRAMME_MEETINGS, OVER_PROGRAMME_MAXIMUM } = await import('@kind/shared')
     const meetings = Number(req.query.meetings)
     const problem = meetingTargetProblem(meetings)
     if (problem) { res.status(400).json({ success: false, error: problem }); return }
@@ -621,6 +622,10 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
     const { pricingTermsFor } = await import('../lib/client-size')
     const terms = await pricingTermsFor(clientId)
     if (terms.kind === 'pending') { res.status(409).json({ success: false, error: terms.message, code: 'price_pending' }); return }
+    // ⚑ 25 Sep (R168 ③ · P3·max) — above 50 on the new terms: no price, the "talk to us" sentence.
+    const bandForMax = terms.kind === 'band' ? terms.band : null
+    const overMax = overProgrammeMaximum(meetings, bandForMax)
+    if (overMax) { res.status(409).json({ success: false, error: overMax, code: 'over_maximum' }); return }
     const result = calculateProgramme({
       band: terms.kind === 'band' ? terms.band : null,
       meetings,
@@ -640,6 +645,10 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
       // sentence may be typed into a component where it would drift from the rule.
       best_efforts_note: PROGRAMME_BEST_EFFORTS,
       widen_note: WIDEN_TO_GO_FURTHER,
+      // ⚑ 25 Sep (R168 ③ · P3·max) — the most one programme takes on, for the slider to stop at;
+      // null for House and the curve, which keep today's control exactly.
+      max_meetings: bandForMax ? MAX_PROGRAMME_MEETINGS : null,
+      max_note: bandForMax ? OVER_PROGRAMME_MAXIMUM : null,
       benchmark: { leadsPerMeeting: LEADS_PER_TARGETED_MEETING, minLeadsPerMeeting: MIN_LEADS_PER_MEETING },
     })
   } catch (err) {
@@ -716,7 +725,7 @@ myProgrammeRouter.post('/choose', async (req: AuthRequest, res) => {
       // it, not a malformed request and not our fault. It carries `committed` so the screen can
       // put the slider back where the pool actually stops.
       const status = r.reason === 'invalid_target' ? 400
-        : r.reason === 'proof_incomplete' || r.reason === 'locked' || r.reason === 'over_capacity' || r.reason === 'price_pending' ? 409 : 503
+        : r.reason === 'proof_incomplete' || r.reason === 'locked' || r.reason === 'over_capacity' || r.reason === 'price_pending' || r.reason === 'over_maximum' ? 409 : 503
       res.status(status).json({
         success: false, code: r.reason, error: r.detail,
         ...(r.reason === 'over_capacity' ? { committed: r.committed ?? 0 } : {}),

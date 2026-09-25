@@ -121,6 +121,25 @@ programmeRouter.post('/', guard(async (req: Request, res: Response) => {
   if (!clientId || !Number.isInteger(meetings)) {
     res.status(400).json({ success: false, error: 'clientId and a whole meetings target are required.' }); return
   }
+  // ⚑ 25 Sep (R166 ⑥ · P3b) — THE SAME CAPACITY CHECK THE CLIENT'S OWN CHOICE MAKES. This door
+  // never asked whether the client's market could carry the target, so an operator could create
+  // a programme the pool cannot deliver. Over capacity is refused with the same widen sentence;
+  // an UNKNOWN capacity is not refused here either (the client-side rule, unchanged).
+  try {
+    const { activeIcpFor, clientCapacityFor } = await import('../lib/client-capacity')
+    const full = await activeIcpFor(String(clientId))
+    if (full) {
+      const cap = await clientCapacityFor(String(clientId), full)
+      if (cap.known && Number(meetings) > cap.committed) {
+        const { WIDEN_TO_GO_FURTHER } = await import('@kind/shared')
+        res.status(409).json({ success: false, reason: 'over_capacity', committed: cap.committed,
+          error: `This client's targeting carries up to ${cap.committed} booked meeting${cap.committed === 1 ? '' : 's'}. ${WIDEN_TO_GO_FURTHER}` })
+        return
+      }
+    }
+  } catch (e) {
+    console.error('[programme/create] capacity unreadable — not capping (same rule as the client choice)', e)
+  }
   const r = await createProgramme(String(clientId), Number(meetings))
   if (!r.ok) { res.status(400).json({ success: false, error: r.reason }); return }
   res.json({ success: true, programme: r.programme })
@@ -412,7 +431,9 @@ async function auditProgramme(
   // material act that moves no money, which is exactly why each is audited: a payment leaves a
   // Stripe object behind it, an authority leaves one timestamp.
   action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live'
-    | 'programme_icp_attached' | 'programme_run' | 'programme_review_resolved',
+    | 'programme_icp_attached' | 'programme_run' | 'programme_review_resolved'
+    // ⚑ 25 Sep (R166 ⑥ · P3b) — raising a sourcing limit is a person's decision, so it is recorded.
+    | 'programme_ceiling_raised',
   programmeId: string, detail: Record<string, unknown>,
 ) {
   const { writeOperatorAudit } = await import('../lib/operator-audit')
@@ -580,6 +601,23 @@ programmeRouter.post('/:id/run', guard(async (req: Request, res: Response) => {
  * ⚠️ AND IT IS AUDITED, because clearing this hold returns authority to spend on a programme
  * that is not converting — which is exactly the decision a person must be answerable for.
  */
+/**
+ * ⚑ 25 Sep (R166 ⑥ · P3b) — RAISE THE SOURCING LIMIT, WITH A REASON, ON THE RECORD.
+ * Until now the only way to open more was a raw database edit that nobody could see.
+ */
+programmeRouter.post('/:id/raise-ceiling', guard(async (req: Request, res: Response) => {
+  const { additional, reason } = (req.body ?? {}) as { additional?: unknown; reason?: unknown }
+  const { raiseSourcingCeiling } = await import('../lib/programme')
+  const r = await raiseSourcingCeiling(req.params.id, Number(additional), String(reason ?? ''))
+  if (r.ok) {
+    await auditProgramme(req, 'programme_ceiling_raised', req.params.id, {
+      by: pressedBy(req), from: r.from, to: r.to, reason: String(reason ?? '').trim(),
+      sent: 'nothing — raising the limit only lets sourcing continue; every send gate still applies',
+    })
+  }
+  res.status(r.ok ? 200 : 409).json({ success: r.ok, error: r.ok ? undefined : r.reason, from: r.ok ? r.from : null, to: r.ok ? r.to : null })
+}))
+
 programmeRouter.post('/:id/resolve-review', guard(async (req: Request, res: Response) => {
   const { resolveProgrammeReview } = await import('../lib/programme-authority')
   const r = await resolveProgrammeReview(req.params.id, pressedBy(req))

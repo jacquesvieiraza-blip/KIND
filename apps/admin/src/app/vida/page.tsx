@@ -1227,6 +1227,57 @@ export default function VidaConsolePage() {
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, settleMeetings, selected, clients, loadProgramme])
 
+  // ── ⚑ 25 Sep (R166 ⑥ · P3b) — RESOLVE A REVIEW, RAISE A LIMIT: TWO RECORDED DECISIONS ──────
+  //
+  // 🛑 `POST /programmes/:id/resolve-review` EXISTED AND NOTHING IN VIDA CALLED IT, so a programme
+  // held for review (250 people, no meeting) could only be released by a hand-crafted request —
+  // and from P3a that hold repeats every 250 people. And raising a sourcing limit had no control
+  // at all: only a raw database edit. Both are a person's decision and both are audited server-side.
+  const [raiseBy, setRaiseBy] = useState('')
+  const [raiseWhy, setRaiseWhy] = useState('')
+  const resolveReview = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const reviewBusy = forThisProgramme(setLcBusy)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Resolve the review on ${who}'s programme?\n\nThe next batch may start again. If another 250 people go out with no new meeting, it will be held for review again.`)) return
+    setLcBusy('review'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/resolve-review`, { method: 'POST' }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The review was not resolved.')
+      say('Review resolved. The next batch may start. The review repeats after another 250 people with no new meeting.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The review was not resolved.')
+    } finally { reviewBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  const raiseCeiling = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const raiseBusy = forThisProgramme(setLcBusy)
+    const more = Number(raiseBy)
+    if (!Number.isInteger(more) || more < 1) { setLcMsg('Enter how many more people to allow — a whole number of at least 1.'); return }
+    if (raiseWhy.trim().length < 10) { setLcMsg('Write why the limit is being raised (at least 10 characters). It is kept on the record.'); return }
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Allow ${more} more people on ${who}'s programme?\n\nThis spends more Apollo credits on this programme. It is recorded with your reason. Nothing is sent by this.`)) return
+    setLcBusy('raise'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/raise-ceiling`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ additional: more, reason: raiseWhy.trim() }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The limit was not raised.')
+      say(`Limit raised from ${j.from} to ${j.to}. Recorded with your reason.`)
+      setRaiseBy(''); setRaiseWhy('')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The limit was not raised.')
+    } finally { raiseBusy(null) }
+  }, [programmeActionId, forThisProgramme, raiseBy, raiseWhy, selected, clients, loadProgramme])
+
   const lifecycle = useCallback(async (action: string, label: string) => {
     // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
     //
@@ -4639,6 +4690,13 @@ export default function VidaConsolePage() {
                           {' '}This holds the NEXT NEW BATCH only; delivery already in flight continues. The {prog.programme.review_trigger_leads}-lead figure is a planning benchmark, not a guarantee.
                         </p>
                       )}
+                      {/* ⚑ 25 Sep (R166 ⑥ · P3b) — the review is released HERE, by a person, on the record. */}
+                      {prog.programme.review_required_at && !prog.programme.review_resolved_at && (
+                        <button onClick={() => void resolveReview()} disabled={lcBusy !== null}
+                          className="mt-2 text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                          Resolve review
+                        </button>
+                      )}
                     </div>
 
                     {/* ── ⚑ PR A2 · THE LIFECYCLE ────────────────────────────────────────
@@ -4936,6 +4994,19 @@ export default function VidaConsolePage() {
                           decision." Reaching the limit is where we stop, and what is owed for a
                           shortfall is wallet credit, settled below. */}
                       <p className="text-[11.5px] text-[#9b8ec4] mt-1">At the limit sourcing stops. A meetings shortfall is settled as wallet credit, below.</p>
+                      {/* ⚑ 25 Sep (R166 ⑥ · P3b) — opening more is a person's decision, with a reason, on the record. */}
+                      {prog.programme.status !== 'COMPLETED' && prog.programme.status !== 'CANCELLED' && prog.programme.sourcing_ceiling > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          <input value={raiseBy} onChange={e => setRaiseBy(e.target.value)} inputMode="numeric" placeholder="more people"
+                            className="w-28 text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5" />
+                          <input value={raiseWhy} onChange={e => setRaiseWhy(e.target.value)} placeholder="why (kept on the record)"
+                            className="flex-1 min-w-[160px] text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5" />
+                          <button onClick={() => void raiseCeiling()} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-[#5b21b6] border border-[#d8c8f5] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                            Raise limit
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* ── ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — SETTLE ─────────────────────────────

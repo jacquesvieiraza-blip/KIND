@@ -858,7 +858,9 @@ export async function recordFirstPayment(params: {
       .select('wallet_balance_usd').eq('id', p.client_id).maybeSingle()
     const balUsd = Number((w as { wallet_balance_usd?: number | null } | null)?.wallet_balance_usd ?? 0)
     const balCents = Number.isFinite(balUsd) ? Math.max(0, Math.floor(balUsd * 100)) : 0
-    applied = Math.min(intended, balCents)
+    // ⚑ 25 Sep (P11) — expired shortfall credit is not spendable (R166 ⑤).
+    const { availableCreditCents, readCreditExpiry } = await import('./shortfall-credit')
+    applied = Math.min(intended, availableCreditCents(balCents, await readCreditExpiry(p.client_id)))
     if (applied > 0) {
       const { error: drawErr } = await db.rpc('increment_wallet', {
         p_client_id: p.client_id, p_amount: -(applied / 100),
@@ -878,6 +880,9 @@ export async function recordFirstPayment(params: {
           reference: `programme-p1:${params.programmeId}`,
           note: `Wallet credit applied to programme first payment`,
         })
+        // ⚑ 25 Sep (P11) — the expiring credit is spent first.
+        const { recordCreditSpent } = await import('./shortfall-credit')
+        await recordCreditSpent(p.client_id, applied)
       }
     }
     if (applied < intended) {
@@ -2008,6 +2013,23 @@ export async function settleProgrammeShortfall(params: {
     return { ok: false, reason: err instanceof Error ? err.message : 'The credit could not be computed.' }
   }
 
+  // ⚑ 25 Sep (R166 ⑤ · P11) — A NEW-TERMS PROGRAMME'S CREDIT IS ONCE PER CLIENT, FOR 90 DAYS.
+  // Founder: *"Once only, 90 days, new programmes"*. A client who already had one is settled at
+  // 0 credit and the note says why. Curve programmes (running, House) are untouched.
+  let creditNote = ''
+  const bandProgramme = paysInFull(p)
+  if (bandProgramme && creditCents > 0) {
+    const { bandCreditAllowed } = await import('./shortfall-credit')
+    const allowed = await bandCreditAllowed(p.client_id)
+    if (allowed === 'unreadable') {
+      return { ok: false, reason: 'Whether this client has already had their one shortfall credit could not be read. Nothing was settled — try again.' }
+    }
+    if (allowed === 'already_used') {
+      creditNote = ` No credit: this client has already had their one shortfall credit (R166 — once per client). ${creditCents} cents would otherwise have been owed.`
+      creditCents = 0
+    }
+  }
+
   // ① CLAIM. `.is('shortfall_credited_at', null)` makes this a compare-and-set: two concurrent
   // presses cannot both win, and the loser updates zero rows.
   const now = new Date().toISOString()
@@ -2056,6 +2078,16 @@ export async function settleProgrammeShortfall(params: {
         'Do NOT re-run the settlement — it would credit the wallet twice.',
       ])
     }
+    // ⚑ 25 Sep (P11) — the once-only credit is stamped, with its 90-day expiry.
+    if (bandProgramme) {
+      const { markBandCreditGranted } = await import('./shortfall-credit')
+      if (!(await markBandCreditGranted(p.client_id, creditCents))) {
+        void sendFounderAlert('payment_failed', 'Shortfall credit given but its 90-day expiry was not stamped', [
+          `Programme ${programmeId} (client ${p.client_id}): ${creditCents} cents credited; the once-only / 90-day stamp did not write.`,
+          'The credit is in the wallet and will not expire until the stamp is set. Set it by hand.',
+        ])
+      }
+    }
   }
 
   // The credit reduces revenue for contribution, exactly as operator-decided make-whole does.
@@ -2068,8 +2100,8 @@ export async function settleProgrammeShortfall(params: {
   void sendFounderAlert('churn_risk', 'Programme settled short', [
     `Programme ${programmeId} (client ${p.client_id}) delivered ${deliveredMeetings} of ${p.meeting_target} meetings.`,
     creditCents > 0
-      ? `${creditCents} cents credited to their wallet toward another run.`
-      : 'Nothing was owed back.',
+      ? `${creditCents} cents credited to their wallet toward another run.${bandProgramme ? ' It expires in 90 days (R166).' : ''}`
+      : `Nothing was owed back.${creditNote}`,
     note,
     'This is WALLET CREDIT, not a Stripe refund. If money is also to be returned, do that separately.',
   ])

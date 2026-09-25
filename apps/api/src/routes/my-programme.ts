@@ -570,8 +570,10 @@ async function programmeCheckout(
       // ⚠️ THE WALLET IS IN DOLLARS AND THE CURVE IS IN CENTS. Crossing that boundary without
       // the ×100 would apply a credit a hundred times too small — and it would look plausible.
       const balanceCents = Number.isFinite(balanceUsd) ? Math.max(0, Math.floor(balanceUsd * 100)) : 0
+      // ⚑ 25 Sep (R166 ⑤ · P11) — expired shortfall credit is not spendable.
+      const { availableCreditCents, readCreditExpiry } = await import('../lib/shortfall-credit')
       walletCreditCents = walletCreditForPayment(
-        balanceCents, programmeStripeAmountCents(p.meeting_target, stage, (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null))
+        availableCreditCents(balanceCents, await readCreditExpiry(clientId)), programmeStripeAmountCents(p.meeting_target, stage, (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null))
     } catch (err) {
       console.error('[programme/me/checkout] wallet balance unreadable — charging full price', err)
       walletCreditCents = 0

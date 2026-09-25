@@ -1029,7 +1029,11 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
     // ⚑ 25 Sep (R166 ② · P7) — AFTER THE BRIEF, FIND THE CLIENT'S OWN SIZE BAND. In the
     // background: the client is never kept waiting on Apollo, and a failure only means a person
     // sets the band in Vida (the check files the Needs-you task itself).
-    if (p.clientId) {
+    // ⛓️ 25 Sep (P11) — only when Apollo is configured: with no key there is nothing to look up
+    // in the background, and the price path (`pricingTermsFor`) still marks the client for a
+    // person. Without this guard the background check logged after the request had finished —
+    // which surfaced as a test-worker teardown error in the gate.
+    if (p.clientId && process.env.APOLLO_API_KEY) {
       const cid = p.clientId
       void import('../lib/client-size')
         .then(m => m.ensureClientSize(cid, { email: req.authEmail ?? null }))

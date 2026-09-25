@@ -65,7 +65,15 @@ create table if not exists public.clients (
     check ((size_band is null or size_band in ('founders', 'growth', 'enterprise'))
        and (size_source is null or size_source in ('apollo', 'person'))),
   constraint clients_size_lock_is_complete
-    check (size_locked_at is null or (size_band is not null and size_source is not null and size_set_by is not null))
+    check (size_locked_at is null or (size_band is not null and size_source is not null and size_set_by is not null)),
+  -- ⚑ 25 Sep (R166 ⑤ · P11): the new-terms shortfall credit — once per client, 90 days.
+  -- Migration: 20260925_client_credit_expiry.
+  shortfall_credit_granted_at     timestamptz,
+  shortfall_credit_expires_at     timestamptz,
+  shortfall_credit_expiring_cents integer,
+  constraint clients_shortfall_credit_is_complete
+    check ((shortfall_credit_granted_at is null) = (shortfall_credit_expires_at is null)
+       and (shortfall_credit_expiring_cents is null or shortfall_credit_expiring_cents >= 0))
 );
 
 -- ─────────────────────────────────────────────

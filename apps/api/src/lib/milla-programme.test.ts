@@ -279,11 +279,13 @@ describe('THE APPROVED SHELL CHANGES, AND ONLY THOSE', () => {
   })
 
   it('Recent replies is KEPT (founder ruling 3)', () => {
-    expect(SHELL).toContain('Recent replies')
+    // ⛓️ 25 Sep (R165) — KEPT, and renamed with the Inbox: "Latest in your inbox".
+    expect(SHELL).toContain('Latest in your inbox')
   })
 
   it('every approved rail item is present and nothing new was invented', () => {
-    for (const item of ['Pipeline', 'Meetings', 'Replies', 'Programme', 'My ICP', 'Documents', 'Reports', 'Coaching']) {
+    // ⛓️ 25 Sep (R165) — 'Replies' → 'Inbox' by founder ruling; nothing new invented.
+    for (const item of ['Pipeline', 'Meetings', 'Inbox', 'Programme', 'My ICP', 'Documents', 'Reports', 'Coaching']) {
       expect(SHELL, `rail item missing: ${item}`).toContain(`'${item}'`)
     }
   })

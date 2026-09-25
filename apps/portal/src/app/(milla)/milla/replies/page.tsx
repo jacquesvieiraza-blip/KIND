@@ -9,7 +9,11 @@
 //
 // Same Milla-native pattern as /milla/billing: render the REAL inbox inside the Milla shell,
 // so there is one implementation of the reply experience rather than a second copy that drifts.
-import SourcePage from '@/app/(dashboard)/dashboard/inbox/page'
+//
+// ⛓️ 25 Sep (R165) — THE ONE IMPLEMENTATION IS NOW `MillaInbox` ("Inbox", not "Replies"). The
+// old dashboard Unibox was rebuilt as it, and `/dashboard/inbox` renders the same component, so
+// there is still exactly one reply screen. The URL stays `/milla/replies` so no link breaks.
+import MillaInbox from '@/components/milla/MillaInbox'
 
 /**
  * ⚑ 18 Sep (J22-C2 · PV 11 C) — WHAT HAPPENS TO A REPLY WE CANNOT PLACE, SAID HERE.
@@ -33,8 +37,8 @@ import SourcePage from '@/app/(dashboard)/dashboard/inbox/page'
 export default function MillaNative_replies() {
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
-      <SourcePage />
-      <p data-testid="held-reply-note" className="mt-4 text-[12.5px] text-[#9b8ec4]">
+      <MillaInbox />
+      <p data-testid="held-reply-note" className="mt-3 px-1 text-[11.5px] text-[#9b8ec4] leading-relaxed">
         Very occasionally a reply arrives that we cannot match to your programme automatically.
         When that happens it is not lost and it is not deleted — a person at K.I.N.D reads it and
         places it, and it appears here once they have.

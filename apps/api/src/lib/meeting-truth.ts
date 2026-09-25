@@ -849,3 +849,101 @@ export async function qualifyMeeting(
   }
   return { ok: true, meetingId, qualifiedAt, challengeDeadlineAt }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R141 · R166 · P5b) — THE CLIENT'S CHALLENGE, AND ITS RESOLUTION.
+//
+// R141's Terms: "Any challenge to whether a meeting was qualified must be raised with us within
+// 3 business days of the meeting being booked into your calendar, and must identify which of the
+// seven conditions above was not met."
+//
+// 🛑 TENANCY IS THE CALLER'S SESSION. `challengeMeeting` takes the client id the session proved
+// and refuses a meeting belonging to anyone else — as `not_found`, so it does not confirm that
+// the meeting exists. 🛑 ONE CHALLENGE PER MEETING, compare-and-set on `challenged_at IS NULL`.
+// 🛑 OUT OF TIME IS REFUSED, computed from `booked_at` — the Terms' clock, not a stamped column.
+// ⚠️ RESOLVING DOES NOT CHANGE WHAT COUNTS YET. Upheld/rejected is recorded; which meetings count
+// toward the target is P6 (settlement counts qualified meetings).
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export type ChallengeResult =
+  | { ok: true; meetingId: string; challengedAt: string }
+  | { ok: false; reason: 'not_found' | 'not_countable' | 'already_challenged' | 'out_of_time' | 'condition_required' | 'too_long' | 'storage_unreadable'; message: string }
+
+export const CHALLENGE_NOTE_MAX = 2000
+
+export async function challengeMeeting(
+  meetingId: string,
+  clientId: string,
+  input: { condition: unknown; note?: string | null },
+  now: Date = new Date(),
+): Promise<ChallengeResult> {
+  const { isConditionKey, challengeWindowOpen } = await import('./meeting-qualification')
+
+  if (!isConditionKey(input.condition)) {
+    return { ok: false, reason: 'condition_required', message: 'Choose which of the seven conditions was not met.' }
+  }
+  const note = (input.note ?? '').trim()
+  if (note.length > CHALLENGE_NOTE_MAX) {
+    return { ok: false, reason: 'too_long', message: `Please keep it under ${CHALLENGE_NOTE_MAX} characters.` }
+  }
+
+  const { data: m, error } = await db.from('meetings')
+    .select('id, client_id, booked_at, excluded_reason, superseded_by, challenged_at')
+    .eq('id', meetingId).maybeSingle()
+  if (error) return { ok: false, reason: 'storage_unreadable', message: 'We could not read this meeting just now. Nothing was changed — please try again.' }
+  const row = m as { client_id: string; booked_at: string; excluded_reason: string | null; superseded_by: string | null; challenged_at: string | null } | null
+  if (!row || row.client_id !== clientId) return { ok: false, reason: 'not_found', message: 'We could not find that meeting.' }
+  if (row.excluded_reason || row.superseded_by) {
+    return { ok: false, reason: 'not_countable', message: 'This meeting no longer counts toward your target, so there is nothing to challenge.' }
+  }
+  if (row.challenged_at) return { ok: false, reason: 'already_challenged', message: 'You have already challenged this meeting. We will come back to you.' }
+  if (!challengeWindowOpen(row.booked_at, now)) {
+    return { ok: false, reason: 'out_of_time', message: 'The 3 business days to challenge this meeting have passed.' }
+  }
+
+  const challengedAt = now.toISOString()
+  const { data: hit, error: upErr } = await db.from('meetings')
+    .update({ challenged_at: challengedAt, challenge_condition: input.condition, challenge_note: note || null, updated_at: challengedAt })
+    .eq('id', meetingId).eq('client_id', clientId).is('challenged_at', null)
+    .select('id')
+  if (upErr) return { ok: false, reason: 'storage_unreadable', message: 'We could not record your challenge just now. Nothing was changed — please try again.' }
+  if (!hit || (hit as unknown[]).length === 0) {
+    return { ok: false, reason: 'already_challenged', message: 'You have already challenged this meeting. We will come back to you.' }
+  }
+  return { ok: true, meetingId, challengedAt }
+}
+
+export type ResolveChallengeResult =
+  | { ok: true; meetingId: string; outcome: 'upheld' | 'rejected'; resolvedAt: string }
+  | { ok: false; reason: 'not_found' | 'not_challenged' | 'already_resolved' | 'invalid' | 'storage_unreadable'; message: string }
+
+export async function resolveMeetingChallenge(
+  meetingId: string,
+  input: { outcome: unknown; note: unknown },
+  by: string,
+): Promise<ResolveChallengeResult> {
+  if (input.outcome !== 'upheld' && input.outcome !== 'rejected') {
+    return { ok: false, reason: 'invalid', message: 'Choose Uphold or Reject. Nothing was changed.' }
+  }
+  const note = String(input.note ?? '').trim()
+  if (note.length < 10) {
+    return { ok: false, reason: 'invalid', message: 'Write the reason (at least 10 characters) — the client will read it. Nothing was changed.' }
+  }
+  const { data: m, error } = await db.from('meetings')
+    .select('id, challenged_at, challenge_outcome').eq('id', meetingId).maybeSingle()
+  if (error) return { ok: false, reason: 'storage_unreadable', message: `The meeting could not be read (${error.message}). Nothing was changed.` }
+  const row = m as { challenged_at: string | null; challenge_outcome: string | null } | null
+  if (!row) return { ok: false, reason: 'not_found', message: 'No such meeting. Nothing was changed.' }
+  if (!row.challenged_at) return { ok: false, reason: 'not_challenged', message: 'This meeting has not been challenged. Nothing was changed.' }
+  if (row.challenge_outcome) return { ok: false, reason: 'already_resolved', message: 'This challenge is already resolved. Nothing was changed.' }
+
+  const resolvedAt = new Date().toISOString()
+  const { data: hit, error: upErr } = await db.from('meetings')
+    .update({ challenge_outcome: input.outcome, challenge_resolved_at: resolvedAt, challenge_resolved_by: by, challenge_resolution_note: note, updated_at: resolvedAt })
+    .eq('id', meetingId).is('challenge_outcome', null).not('challenged_at', 'is', null)
+    .select('id')
+  if (upErr) return { ok: false, reason: 'storage_unreadable', message: `The resolution could not be written (${upErr.message}). Nothing was changed.` }
+  if (!hit || (hit as unknown[]).length === 0) {
+    return { ok: false, reason: 'already_resolved', message: 'Somebody else resolved this challenge first. Nothing was changed.' }
+  }
+  return { ok: true, meetingId, outcome: input.outcome, resolvedAt }
+}

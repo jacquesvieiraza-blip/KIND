@@ -401,6 +401,14 @@ create table if not exists public.meetings (
   evidence_reply_id    uuid references public.figsy_replies(id) on delete set null,
   evidence_note        text,
   challenge_deadline_at timestamptz,
+  -- ⚑ 25 Sep (R141 · R166 · P5b): the client's challenge, raised in Milla, resolved in Vida.
+  challenged_at        timestamptz,
+  challenge_condition  text,
+  challenge_note       text,
+  challenge_outcome    text,
+  challenge_resolved_at timestamptz,
+  challenge_resolved_by text,
+  challenge_resolution_note text,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
 
@@ -432,7 +440,13 @@ create table if not exists public.meetings (
   constraint meetings_exclusion_is_complete
     check ((excluded_reason is null) = (excluded_at is null)),
   constraint meetings_not_rescheduled_from_self
-    check (rescheduled_from is null or rescheduled_from <> id)
+    check (rescheduled_from is null or rescheduled_from <> id),
+  constraint meetings_challenge_outcome_values
+    check (challenge_outcome is null or challenge_outcome in ('upheld', 'rejected')),
+  constraint meetings_challenge_is_complete
+    check ((challenged_at is null) = (challenge_condition is null)
+       and (challenge_outcome is null or challenged_at is not null)
+       and ((challenge_outcome is null) = (challenge_resolved_at is null)))
 );
 
 create unique index if not exists meetings_google_event_id_key

@@ -850,3 +850,88 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
     res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R141 · R166 · P5b, board #2351) — THE CLIENT'S MEETINGS, AND THEIR CHALLENGE.
+//
+// The Terms give the client 3 business days from booking to challenge a meeting, naming the
+// condition that was not met. These two doors are that right, in Milla.
+//
+// 🛑 TENANCY FROM THE SESSION. The meeting id is in the path, and `challengeMeeting` refuses any
+// meeting whose `client_id` is not the session's — answering `not_found`, never "not yours".
+// ⚠️ NOTHING OPERATOR-ONLY LEAVES. Who qualified it, the evidence reply and the audit trail stay
+// in Vida; the client sees whether it is qualified, their own challenge, and our answer.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+myProgrammeRouter.get('/meetings', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('meetings')
+      .select('id, lead_id, scheduled_at, booked_at, qualified_at, challenged_at, challenge_condition, challenge_note, challenge_outcome, challenge_resolved_at, challenge_resolution_note')
+      .eq('client_id', clientId).is('excluded_reason', null).is('superseded_by', null)
+      .order('scheduled_at', { ascending: false }).limit(100)
+    // 🛑 A failed read is not "no meetings" — 503 with the locked sentence.
+    if (error) { res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed }); return }
+    const rows = (data ?? []) as { id: string; lead_id: string | null; booked_at: string }[]
+    const leadIds = [...new Set(rows.map(m => m.lead_id).filter((x): x is string => !!x))]
+    const { data: leads } = leadIds.length
+      ? await db.from('leads').select('id, first_name, last_name, company, job_title').eq('client_id', clientId).in('id', leadIds)
+      : { data: [] as unknown[] }
+    const { QUALIFIED_MEETING_CONDITIONS, challengeDeadline, challengeWindowOpen } = await import('../lib/meeting-qualification')
+    const now = new Date()
+    res.json({
+      success: true,
+      data: {
+        conditions: QUALIFIED_MEETING_CONDITIONS.map(c => ({ key: c.key, label: c.clientLabel })),
+        meetings: rows.map(m => {
+          const l = ((leads ?? []) as { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null }[])
+            .find(x => x.id === m.lead_id)
+          const { lead_id: _omit, ...rest } = m
+          return {
+            ...rest,
+            prospect: l ? { name: [l.first_name, l.last_name].filter(Boolean).join(' ') || null, company: l.company, title: l.job_title } : null,
+            challenge_deadline_at: challengeDeadline(m.booked_at).toISOString(),
+            can_challenge: !(m as { challenged_at?: string | null }).challenged_at && challengeWindowOpen(m.booked_at, now),
+          }
+        }),
+      },
+    })
+  } catch (err) {
+    console.error('[programme/me/meetings]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+// ⚠️ NO `:id` IN THE PATH. This router's standing guard (customer-programme-approval ⑤) is that
+// no customer route takes an id in its path. The meeting is named in the body, and
+// `challengeMeeting` refuses any meeting whose `client_id` is not the session's.
+myProgrammeRouter.post('/meetings/challenge', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { challengeMeeting } = await import('../lib/meeting-truth')
+    const r = await challengeMeeting(String(req.body?.meetingId ?? ''), clientId, {
+      condition: req.body?.condition, note: typeof req.body?.note === 'string' ? req.body.note : null,
+    })
+    if (!r.ok) {
+      const code = r.reason === 'not_found' ? 404
+        : r.reason === 'storage_unreadable' ? 503
+        : r.reason === 'condition_required' || r.reason === 'too_long' ? 400
+        : 409
+      // The sentence rides in `error` (what Milla's api helper shows); the reason in `code`.
+      res.status(code).json({ success: false, error: r.message, code: r.reason })
+      return
+    }
+    const { sendFounderAlert } = await import('../lib/alerts')
+    // ⚠️ An existing alert class, not a new one: a client asking for a person is exactly what
+    // `support_escalation` files in Vida Needs-you.
+    void sendFounderAlert('support_escalation', 'A client challenged a meeting', [
+      'A client challenged whether a meeting was qualified (R141, within 3 business days).',
+      'Uphold or reject it in Vida → the client → Qualify meetings. The client reads your reason.',
+    ], { clientId, subjectKind: 'meeting', subjectId: r.meetingId })
+    res.json({ success: true, data: { challenged_at: r.challengedAt } })
+  } catch (err) {
+    console.error('[programme/me/meetings/challenge]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})

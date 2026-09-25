@@ -6753,7 +6753,7 @@ operatorRouter.get('/meetings', async (req: Request, res: Response) => {
     const client = await requireClient(String(req.query.client_id ?? ''))
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { data: meetings, error } = await db.from('meetings')
-      .select('id, lead_id, programme_id, state, scheduled_at, booked_at, qualified_at, qualified_by, qualification, evidence_reply_id, evidence_note, challenge_deadline_at')
+      .select('id, lead_id, programme_id, state, scheduled_at, booked_at, qualified_at, qualified_by, qualification, evidence_reply_id, evidence_note, challenge_deadline_at, challenged_at, challenge_condition, challenge_note, challenge_outcome, challenge_resolved_at, challenge_resolved_by, challenge_resolution_note')
       .eq('client_id', client.id).is('excluded_reason', null).is('superseded_by', null)
       .order('scheduled_at', { ascending: false }).limit(100)
     if (error) { res.status(503).json({ success: false, error: `Meetings could not be read (${error.message}).` }); return }
@@ -6792,6 +6792,24 @@ operatorRouter.post('/meetings/:id/qualify', async (req: Request, res: Response)
     }
     res.status(r.ok ? 200 : 409).json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
   } catch (err) { console.error('[operator/meetings/qualify]', err); res.status(500).json({ success: false, error: 'Failed to qualify the meeting' }) }
+})
+
+// ⚑ 25 Sep (R141 · P5b) — RESOLVE A CLIENT'S CHALLENGE: upheld or rejected, with a reason the
+// client reads in Milla. Audited. What counts toward the target is P6's change, not this one.
+operatorRouter.post('/meetings/:id/resolve-challenge', async (req: Request, res: Response) => {
+  try {
+    const { outcome, note } = (req.body ?? {}) as { outcome?: string; note?: string }
+    const { resolveMeetingChallenge } = await import('../lib/meeting-truth')
+    const r = await resolveMeetingChallenge(req.params.id, { outcome, note }, operatorEmail(req))
+    if (r.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), action: 'meeting_challenge_resolved', subjectType: 'meeting', subjectId: req.params.id,
+        detail: { outcome: r.outcome, note: note ?? null },
+      })
+    }
+    res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'invalid' ? 400 : 409)
+      .json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
+  } catch (err) { console.error('[operator/meetings/resolve-challenge]', err); res.status(500).json({ success: false, error: 'Failed to resolve the challenge' }) }
 })
 
 operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {

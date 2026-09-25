@@ -7,6 +7,10 @@
 // reply as the evidence. The server refuses anything less; this screen only makes it easy to do
 // right. Once qualified a meeting stands — a dispute is the client's challenge within 3 business
 // days, not an edit here.
+//
+// ⛓️ 25 Sep (P5b) — AND THE CLIENT'S CHALLENGE LANDS HERE. A challenged meeting shows the
+// condition the client named and their words; a person upholds or rejects it with a reason the
+// client reads in Milla. Recorded, audited; what counts toward the target is P6.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useState } from 'react'
 
@@ -15,6 +19,8 @@ type Reply = { id: string; received_at: string | null; processed_at: string | nu
 type Meeting = {
   id: string; state: string; scheduled_at: string; booked_at: string
   qualified_at: string | null; qualified_by: string | null; challenge_deadline_at: string | null
+  challenged_at?: string | null; challenge_condition?: string | null; challenge_note?: string | null
+  challenge_outcome?: 'upheld' | 'rejected' | null; challenge_resolved_by?: string | null; challenge_resolution_note?: string | null
   lead: { first_name: string | null; last_name: string | null; company: string | null; job_title: string | null } | null
   replies: Reply[]
 }
@@ -31,6 +37,7 @@ export default function MeetingQualifyPanel({ clientId }: { clientId: string }) 
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [reason, setReason] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     try {
@@ -59,6 +66,23 @@ export default function MeetingQualifyPanel({ clientId }: { clientId: string }) 
     finally { setBusy(false) }
   }, [ticks, evidence, note, load])
 
+  const resolve = useCallback(async (m: Meeting, outcome: 'upheld' | 'rejected') => {
+    const why = (reason[m.id] ?? '').trim()
+    const verb = outcome === 'upheld' ? 'Uphold' : 'Reject'
+    if (!confirm(`${verb} this challenge?\n\nThe client will read your reason in Milla:\n“${why}”`)) return
+    setBusy(true); setMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/meetings/${encodeURIComponent(m.id)}/resolve-challenge`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome, note: why }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The challenge was not resolved.')
+      setMsg(outcome === 'upheld' ? 'Challenge upheld — recorded.' : 'Challenge rejected — the meeting stands.')
+      await load()
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'The challenge was not resolved.') }
+    finally { setBusy(false) }
+  }, [reason, load])
+
   return (
     <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3" data-testid="meeting-qualify-panel">
       <b className="text-[13px] block mb-1">Meetings — qualify against the seven conditions</b>
@@ -78,6 +102,29 @@ export default function MeetingQualifyPanel({ clientId }: { clientId: string }) 
                 ? <span className="ml-auto text-[11.5px] font-bold text-emerald-700">Qualified {when(m.qualified_at)} by {m.qualified_by} · challenge until {when(m.challenge_deadline_at)}</span>
                 : open !== m.id && <button onClick={() => start(m)} className="ml-auto text-[12px] font-bold text-[#5b21b6] border border-[#d8c8f5] rounded-lg px-2 py-1">Qualify</button>}
             </div>
+            {m.challenged_at && (
+              <div className={`mt-2 rounded-lg p-2.5 text-[12.5px] ${m.challenge_outcome ? 'bg-[#faf8ff]' : 'bg-amber-50 border border-amber-200'}`} data-testid="meeting-challenge">
+                <div className="font-bold">
+                  {m.challenge_outcome === 'upheld' ? 'Challenge upheld' : m.challenge_outcome === 'rejected' ? 'Challenge rejected' : 'The client challenged this meeting'}
+                  <span className="font-normal text-[#9b8ec4]"> · {when(m.challenged_at)}</span>
+                </div>
+                <div className="text-[#6b5f8c] mt-0.5">Condition not met: {conditions.find(c => c.key === m.challenge_condition)?.label ?? m.challenge_condition}</div>
+                {m.challenge_note && <div className="mt-0.5">“{m.challenge_note}”</div>}
+                {m.challenge_outcome ? (
+                  <div className="text-[#6b5f8c] mt-1">{m.challenge_resolved_by}: {m.challenge_resolution_note}</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    <input id={`c-${m.id}-reason`} value={reason[m.id] ?? ''} onChange={e => setReason(r => ({ ...r, [m.id]: e.target.value }))}
+                      placeholder="Your reason — the client reads this (at least 10 characters)"
+                      className="text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5 bg-white" />
+                    <div className="flex gap-2">
+                      <button onClick={() => void resolve(m, 'upheld')} disabled={busy || (reason[m.id] ?? '').trim().length < 10} className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-40">Uphold — not qualified</button>
+                      <button onClick={() => void resolve(m, 'rejected')} disabled={busy || (reason[m.id] ?? '').trim().length < 10} className="text-[12.5px] font-bold text-[#5b21b6] border border-[#d8c8f5] rounded-lg px-2.5 py-1.5 disabled:opacity-40">Reject — it stands</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {open === m.id && (
               <div className="mt-2 bg-[#faf8ff] rounded-lg p-2.5 flex flex-col gap-1.5">
                 {conditions.map(c => (

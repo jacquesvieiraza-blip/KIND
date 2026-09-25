@@ -34,6 +34,7 @@ import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/Prog
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
 import OfferCard from '@/components/milla/OfferCard'
+import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
 import { acceptanceGate } from '@/lib/programme-acceptance'
 import { useProgrammeSync } from '@/components/milla/useProgrammeSync'
@@ -214,6 +215,9 @@ export default function ProgrammePage() {
           own words, which the email writer then uses. Optional; the card hides once answered or
           skipped, and nothing waits on it. */}
       {p.hasProgramme && p.stage !== 'Completion' && <OfferCard />}
+      {/* ⚑ 25 Sep (R141 · P5b) — the client's meetings, and their right under the Terms to challenge
+          one within 3 business days of booking. Hidden until a meeting exists. */}
+      {p.hasProgramme && (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') && <MeetingChallenges />}
       {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
           `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`
           ("Pay the first half and start"). They are ONE panel above now, with ONE button that

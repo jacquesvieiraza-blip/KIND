@@ -100,7 +100,10 @@ describe('🛑 who decides the band', () => {
   it('the paid path opens the band\'s ceiling; the credit reads the stored flat price', () => {
     const prog = readFileSync(join(__dirname, 'programme.ts'), 'utf8')
     const at = prog.indexOf('export async function recordFirstPayment(')
-    expect(prog.slice(at, at + 6000)).toContain('bandSourcingCeiling(p) ?? sourcingCeiling(p.meeting_target)')
+    // ⛓️ 25 Sep (P11) — reads the whole function (to the next export), not a fixed 6,000
+    // characters: P11's credit lines pushed the ceiling past the old window. Same assertion.
+    const fn = prog.slice(at, prog.indexOf('\nexport ', at + 10))
+    expect(fn).toContain('bandSourcingCeiling(p) ?? sourcingCeiling(p.meeting_target)')
     expect(prog).toContain('shortfallCreditCents(p.meeting_target, deliveredMeetings, collectedCents, flat)')
   })
 })

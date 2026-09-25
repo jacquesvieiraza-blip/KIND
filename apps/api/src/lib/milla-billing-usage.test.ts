@@ -456,7 +456,10 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     // OUR APOLLO PROVIDER CREDITS (the budget that stops paid reveals at 80% of the plan), not
     // any client's money, wallet or price — a founder ruling in his own words: *"80% of the
     // monthly plan, per programme = its limit"*. Named, not renamed around.
-    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied', '20260925_apollo_credit_ledger']
+    // ⛓️ 25 Sep (R166 ⑤ · P11) — `20260925_client_credit_expiry` matches `/credit/` and IS a
+    // money-model change, authorised in the founder's own words: *"Once only, 90 days, new
+    // programmes"* — the shortfall credit is once per client and expires after 90 days. Named.
+    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied', '20260925_apollo_credit_ledger', '20260925_client_credit_expiry']
     const offenders = mine.filter(k => /billing|wallet|usage|credit|lead_price|pack/i.test(k))
       .filter(k => !AUTHORISED.includes(k))
     expect(offenders, `a Milla slice migrated the money model: ${offenders.join(', ')}`).toEqual([])

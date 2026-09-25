@@ -7262,6 +7262,32 @@ COMMENT ON COLUMN public.programmes.size_band IS
   'R166: the band this programme was priced on (founders $99 · growth $199 · enterprise $299 per qualified meeting). NULL = the R81 curve.';
 `,
   },
+  {
+    // ⚑ 25 Sep (R166 ⑤ · P11, board #2357) — THE SHORTFALL CREDIT: ONCE PER CLIENT, 90 DAYS.
+    // Expand only; credit already promised as "never expires" carries no stamp.
+    key: '20260925_client_credit_expiry',
+    title: 'clients.shortfall_credit_granted_at / _expires_at / _expiring_cents — once only, 90 days (R166 ⑤, P11)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS shortfall_credit_granted_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS shortfall_credit_expires_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS shortfall_credit_expiring_cents integer;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'clients_shortfall_credit_is_complete') THEN
+    ALTER TABLE public.clients ADD CONSTRAINT clients_shortfall_credit_is_complete
+      CHECK ((shortfall_credit_granted_at IS NULL) = (shortfall_credit_expires_at IS NULL)
+         AND (shortfall_credit_expiring_cents IS NULL OR shortfall_credit_expiring_cents >= 0));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.clients.shortfall_credit_granted_at IS
+  'R166 ⑤: when this client received their ONE new-terms shortfall credit. Set once; never again.';
+COMMENT ON COLUMN public.clients.shortfall_credit_expiring_cents IS
+  'The part of the wallet that stops being spendable at shortfall_credit_expires_at. Spent first.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

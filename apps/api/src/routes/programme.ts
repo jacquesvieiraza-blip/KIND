@@ -19,7 +19,7 @@
 import { Router, type Request, type Response } from 'express'
 import { adminKeyValid } from './admin'
 import { db } from '@kind/db'
-import { quoteProgramme } from '@kind/shared'
+import { quoteProgramme, isSizeBand } from '@kind/shared'
 import {
   createProgramme, getProgramme, openProgrammeForClient, recommendProgramme,
   awaitFirstPayment, approveProgramme, pauseProgramme, resumeProgramme,
@@ -109,7 +109,9 @@ programmeRouter.use((req: Request, res: Response, next: () => void) => {
 programmeRouter.get('/quote/:meetings', (req: Request, res: Response) => {
   const meetings = Number(req.params.meetings)
   try {
-    res.json({ success: true, quote: quoteProgramme(meetings) })
+    // ⚑ 25 Sep (R166 · P8) — an operator may ask for a band's quote: ?band=founders|growth|enterprise.
+    const band = isSizeBand(req.query.band) ? req.query.band : null
+    res.json({ success: true, quote: quoteProgramme(meetings, band) })
   } catch (e) {
     res.status(400).json({ success: false, error: e instanceof Error ? e.message : 'Invalid meeting target' })
   }

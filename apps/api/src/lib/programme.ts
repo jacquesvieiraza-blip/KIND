@@ -15,7 +15,7 @@ import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
 import { DEFAULT_PROGRAMME_SEND_SCHEDULE } from './programme-sequence'
 import {
-  quoteProgramme, recommendedVolume, partnerCommissionCents, sourcingCeiling,
+  quoteProgramme, recommendedVolume, partnerCommissionCents, sourcingCeiling, isSizeBand,
   type ProgrammeStage,
 } from '@kind/shared'
 
@@ -256,6 +256,16 @@ async function programmeEntryAllowed(clientId: string): Promise<{ ok: true } | {
  * recomputing on read is deliberate: a price quoted to a client must not move if the curve is
  * ever amended, and a programme mid-flight must bill what it sold.
  */
+/**
+ * ⚑ 25 Sep (R166 ④ · P8) — A BAND PROGRAMME'S OWN LIMIT: meetings × 300 / 300 / 400.
+ * `null` for a programme priced on the R81 curve (every programme already running, House
+ * included), whose ceiling stays `sourcingCeiling(p.meeting_target)` — byte for byte as before.
+ */
+function bandSourcingCeiling(p: { meeting_target: number; size_band?: string | null }): number | null {
+  const band = (p as { size_band?: string | null }).size_band
+  return isSizeBand(band) ? sourcingCeiling(p.meeting_target, band) : null
+}
+
 export async function createProgramme(clientId: string, meetings: number): Promise<ProgrammeResult> {
   const existing = await openProgrammeForClient(clientId)
   if (existing) return { ok: false, reason: 'This client already has an open programme.' }
@@ -281,10 +291,17 @@ export async function createProgramme(clientId: string, meetings: number): Promi
   const entry = await programmeEntryAllowed(clientId)
   if (!entry.ok) return { ok: false, reason: entry.reason }
 
-  const q = quoteProgramme(meetings)
+  // ⚑ 25 Sep (R166 ① · P8) — PRICED ON THE CLIENT'S OWN SIZE BAND, flat per qualified meeting.
+  // House keeps the R81 curve; a client whose size is not yet confirmed gets no price at all.
+  const { pricingTermsFor } = await import('./client-size')
+  const terms = await pricingTermsFor(clientId)
+  if (terms.kind === 'pending') return { ok: false, reason: terms.message }
+  const band = terms.kind === 'band' ? terms.band : null
+  const q = quoteProgramme(meetings, band)
   const { data, error } = await db.from('programmes').insert({
     client_id: clientId,
     status: 'DRAFT',
+    size_band: band,
     meeting_target: q.meetings,
     recommended_volume: q.recommendedVolume,
     price_per_meeting_cents: q.pricePerMeetingCents,
@@ -342,7 +359,7 @@ export async function raiseSourcingCeiling(programmeId: string, additional: numb
   if (!p) return { ok: false, reason: 'No such programme. Nothing was changed.' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}. Nothing was changed.` }
   if (!p1Authorised(p)) return { ok: false, reason: 'This programme has no sourcing authority yet, so there is no limit to raise. Nothing was changed.' }
-  const maxStep = sourcingCeiling(p.meeting_target)
+  const maxStep = bandSourcingCeiling(p) ?? sourcingCeiling(p.meeting_target)
   if (additional > maxStep) {
     return { ok: false, reason: `At most ${maxStep} more people per press (one programme's worth). Nothing was changed.` }
   }
@@ -547,6 +564,8 @@ export async function authoriseFirstInternal(programmeId: string): Promise<Progr
     // ⚠️ THE CEILING IS THE LIMIT, NOT THE PLAN — exactly as the paid path does it. The
     // internal route must authorise the same volume a payment would, or House is not walking
     // the customer's lifecycle at all.
+    // ⚑ 25 Sep (P8) — internal authority is the HOUSE path, and House is priced on the R81 curve
+    // (R166 transition), so this ceiling is unchanged. Band limits apply on the paid path.
     sourcing_ceiling: sourcingCeiling(p.meeting_target),
     status: 'SOURCING_AUTHORISED',
     updated_at: new Date().toISOString(),
@@ -871,7 +890,7 @@ export async function recordFirstPayment(params: {
     // plan said it needed to land its meetings — no room to keep trying on the ones that were
     // running long. Founder-locked: *"the limit is 400 not 250. if we hit the 400 we stop."*
     // `recommended_volume` is untouched and still sizes and prices the programme.
-    sourcing_ceiling: sourcingCeiling(p.meeting_target),
+    sourcing_ceiling: bandSourcingCeiling(p) ?? sourcingCeiling(p.meeting_target),
     status: 'SOURCING_AUTHORISED',
     updated_at: new Date().toISOString(),
   }).eq('id', params.programmeId).is('first_payment_ref', null).select()
@@ -1954,7 +1973,10 @@ export async function settleProgrammeShortfall(params: {
   let creditCents: number
   try {
     const { shortfallCreditCents } = await import('@kind/shared')
-    creditCents = shortfallCreditCents(p.meeting_target, deliveredMeetings, collectedCents)
+    // ⚑ 25 Sep (R166 · P8) — a band programme is valued at ITS OWN stored flat price; a curve
+    // programme exactly as before (R136 ⑤, the tier it bought).
+    const flat = (p as { size_band?: string | null }).size_band ? p.price_per_meeting_cents : null
+    creditCents = shortfallCreditCents(p.meeting_target, deliveredMeetings, collectedCents, flat)
   } catch (err) {
     return { ok: false, reason: err instanceof Error ? err.message : 'The credit could not be computed.' }
   }

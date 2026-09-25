@@ -7241,6 +7241,27 @@ COMMENT ON COLUMN public.clients.size_review_reason IS
   'Why a person must set the band: free_email | no_website | domain_mismatch | not_found | lookup_failed.';
 `,
   },
+  {
+    // ⚑ 25 Sep (R166 ① ④ · P8, board #2354) — THE BAND A PROGRAMME WAS PRICED ON. NULL = the
+    // R81 curve (programmes already running keep it). Expand only.
+    key: '20260925_programme_size_band',
+    title: 'programmes.size_band — the band a programme was priced on (R166, P8)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS size_band text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'programmes_size_band_values') THEN
+    ALTER TABLE public.programmes ADD CONSTRAINT programmes_size_band_values
+      CHECK (size_band IS NULL OR size_band IN ('founders', 'growth', 'enterprise'));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.programmes.size_band IS
+  'R166: the band this programme was priced on (founders $99 · growth $199 · enterprise $299 per qualified meeting). NULL = the R81 curve.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

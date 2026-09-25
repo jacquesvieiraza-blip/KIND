@@ -124,6 +124,8 @@ export const MIN_LEADS_PER_MEETING = 25
 export interface CalculatorInputs {
   /** THE ONE COMMITTED CHOICE: targeted booked meetings. A positive whole number. */
   meetings: number
+  /** ⚑ 25 Sep (R166 ① · P8) — the client's locked size band; null/absent = the R81 curve. */
+  band?: import('./size-band').SizeBand | null
   /**
    * Leads per targeted booked meeting. Starts at the M&V benchmark (R77's 250).
    *
@@ -208,7 +210,7 @@ export function calculateProgramme(inputs: CalculatorInputs): CalculatorResult {
   const assumptions = readAssumptions(inputs)
   // 🛑 THE MONEY IS THE CURVE'S. This throws for an invalid target before anything else is
   // computed, so no illustrative figure is ever produced for a programme that cannot exist.
-  const quote = quoteProgramme(inputs.meetings)
+  const quote = quoteProgramme(inputs.meetings, inputs.band ?? null)
 
   // ⚠️ THE VOLUME FOLLOWS THE CLIENT'S ASSUMPTION, WITHIN THE CLAMP — so the number they
   // accept is the number they were shown. At the default it is exactly `quote.recommendedVolume`.

@@ -1052,6 +1052,9 @@ create table if not exists public.programmes (
   review_baseline_used      integer,
   review_baseline_booked    integer,
   review_resolution         text,
+  -- ⚑ 25 Sep (R166 · P8): the band this programme was priced on — founders $99 · growth $199 ·
+  -- enterprise $299 per qualified meeting. NULL = the R81 curve (programmes already running).
+  size_band                 text check (size_band is null or size_band in ('founders', 'growth', 'enterprise')),
   -- ── PR A1 · internal authority (20260902_programme_internal_authority) ───────────────
   -- House is Client Zero and walks the SAME lifecycle a paying client walks while paying
   -- nothing. Authority and PAYMENT are separate facts, and only payment is money:

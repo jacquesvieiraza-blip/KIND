@@ -14,7 +14,7 @@ export default function TermsPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: 23 September 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 25 September 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
@@ -29,8 +29,8 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Programmes &amp; Billing</h2>
-            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Your Brief and your Proof &mdash; up to 20 real people who match your targeting, shown masked &mdash; are free. You choose the number of booked meetings your programme aims for, and its price is shown before you commit. It is paid in two halves: <strong>Payment 1</strong> authorises sourcing and preparation only, and <strong>Payment 2</strong> is taken when you approve the prepared package and authorises outreach. If you pause before your programme goes live, Payment 2 is never charged.</p>
-            <p className="mt-2">If your programme ends having delivered fewer booked meetings than your target, the difference, at the price per meeting you bought at, is <strong>credited to your K.I.N.D account</strong> towards the first payment of a future programme. Account credit is not paid back to your card and does not expire. Programme payments are non-refundable.</p>
+            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Your Brief and your Proof &mdash; up to 20 real people who match your targeting, shown masked &mdash; are free. You choose the number of booked meetings your programme aims for. It is priced at a fixed amount per meeting set by your company&rsquo;s size &mdash; Founders (1&ndash;50 employees), Growth (51&ndash;200) or Enterprise (more than 200), at the rates on our Pricing page &mdash; and its price is shown before you commit. It is paid <strong>in one payment, in full</strong>, when you accept it: that payment authorises sourcing and preparation only, and outreach begins only after you approve the prepared package. A programme accepted under our earlier terms continues on them: <strong>Payment 1</strong> authorises sourcing and preparation only, and <strong>Payment 2</strong> is taken when you approve the prepared package and authorises outreach. If you pause before your programme goes live, Payment 2 is never charged.</p>
+            <p className="mt-2">If your programme ends having delivered fewer booked meetings than your target, the difference, at the price per meeting you bought at, is <strong>credited to your K.I.N.D account</strong> towards the payment for a future programme. This credit is given <strong>once per client</strong> and <strong>expires 90 days</strong> after it is credited (credit owed on a programme under our earlier terms does not expire). Account credit is not paid back to your card. Programme payments are non-refundable.</p>
             <p className="mt-2">K.I.N.D makes <strong>no guarantee</strong> of meetings booked, replies, conversion rates or sales outcomes. Any figure we give for expected prospects or results is a planning estimate based on our current experience, not a promise.</p>
           </section>
 

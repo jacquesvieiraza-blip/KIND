@@ -119,6 +119,21 @@ export async function verifyInbox(inbox: InboxRow): Promise<{ ok: boolean; messa
  * "sent" row, which is bug class #338 all over again. Every failure comes back as
  * `{ ok: false }` with the cause attached.
  */
+/**
+ * ⚑ 25 Sep — a recipient no real send may go to: the demo TLD `.invalid`, `.internal`, a
+ * `kind-demo.` domain, an RFC-2606 example domain, or localhost. (Not `.test` — see `sendAs`.)
+ */
+export function isDemoOrReservedRecipient(to: string): boolean {
+  const a = (to || '').trim().toLowerCase()
+  const domain = a.includes('@') ? a.split('@')[1] ?? '' : ''
+  if (!domain) return true
+  return domain === 'invalid' || domain.endsWith('.invalid')
+    || domain.endsWith('.internal')
+    || domain.startsWith('kind-demo.')
+    || /(^|\.)example\.(com|org|net)$/.test(domain) || domain === 'example'
+    || domain === 'localhost'
+}
+
 export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<CheckedSend> {
   try {
     // ══ 🛑 THE KILL-SWITCH, AT THE SEAM (founder-locked 9 Sep) ═════════════════════════
@@ -140,6 +155,31 @@ export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<Check
     const { killSwitchBlocks, KILL_SWITCH_REFUSAL } = await import('./outreach-kill-switch')
     if (killSwitchBlocks('smtp', `${inbox.email ?? 'unknown mailbox'} → ${mail.to}`)) {
       return { ok: false, id: null, error: new Error(KILL_SWITCH_REFUSAL), errorName: null }
+    }
+
+    // ══ ⚑ 25 Sep — 🛑 NO SEND TO A DEMO OR FAKE ADDRESS, AND NOTHING FROM A DEMO ACCOUNT ═══════
+    //
+    // Before this the seam asked only the kill-switch; demo and fake-address stops lived in the
+    // callers. This is the one place every SMTP send passes, so it is the backstop that holds
+    // even if a caller forgets: a demo/non-deliverable recipient (`isDemoOrReservedRecipient`:
+    // `.invalid` — the TLD every demo address uses — `.internal`, `kind-demo.`, example domains,
+    // localhost) or a mailbox belonging to a demo client is refused before a connection opens.
+    //
+    // ⚠️ `.test` IS DELIBERATELY NOT ON THIS LIST. The frozen, certified `kill-switch-absolute`
+    // suite (XC-10) proves the seam IS reached with a `…@prospect.test` recipient; a `.test`
+    // address can never be delivered anyway, so leaving it through costs nothing and keeps that
+    // certified proof intact.
+    if (isDemoOrReservedRecipient(mail.to)) {
+      return { ok: false, id: null, error: new Error('mailer: not a deliverable recipient (demo or reserved address) — refusing to send'), errorName: null }
+    }
+    const { db } = await import('@kind/db')
+    const { data: owner } = await db.from('client_inboxes').select('client_id').eq('id', inbox.id).maybeSingle()
+    const ownerId = (owner as { client_id?: string | null } | null)?.client_id ?? null
+    if (ownerId) {
+      const { isDemoClient } = await import('./demo')
+      if (await isDemoClient(ownerId)) {
+        return { ok: false, id: null, error: new Error('mailer: this mailbox belongs to a demo account — refusing to send'), errorName: null }
+      }
     }
 
     if (!inbox.smtp_host || !inbox.smtp_user || !inbox.smtp_pass_enc) {

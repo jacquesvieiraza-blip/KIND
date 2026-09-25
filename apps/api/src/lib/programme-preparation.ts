@@ -355,7 +355,14 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // and preparation continues — which is what turns this into a legible Vida blocker instead
   // of a silent early return.
   const { claimPooledSender } = await import('./sender-claim')
-  const senderClaim = await claimPooledSender(p.client_id)
+  // ⚑ 25 Sep — 🛑 A DEMO ACCOUNT NEVER TAKES A REAL MAILBOX. Claiming would attach a warmed,
+  // real pooled sender to a sales demo and verify it over SMTP. A demo is treated as if the
+  // claim was refused for lack of inventory — recorded, and the programme simply cannot freeze
+  // on a real sender (the demo build supplies its own).
+  const { isDemoClient } = await import('./demo')
+  const senderClaim = await isDemoClient(p.client_id)
+    ? { ok: false as const, reason: 'no_inventory' as const, detail: 'demo account — a real pooled mailbox is never claimed for a demo' }
+    : await claimPooledSender(p.client_id)
   if (!senderClaim.ok && senderClaim.reason !== 'already_has_sender') {
     // 🛑 RECORDED HERE, GATED THERE — AND THE SPLIT IS THE POINT (corrected on first run).
     //

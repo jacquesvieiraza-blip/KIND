@@ -53,6 +53,13 @@ export async function createProgrammeCheckoutSession(params: {
   walletCreditCents?: number
 }): Promise<{ url: string | null; sessionId?: string; error?: string }> {
   if (!stripe) return { url: null, error: 'Stripe not configured' }
+  // ⚑ 25 Sep — 🛑 A DEMO ACCOUNT IS NEVER CHARGED. Before this, only House was refused (and only
+  // at the client door): a demo account pressing "Pay" would have opened a LIVE Stripe checkout.
+  // Refused here, where the only Stripe session is created, so every door is covered.
+  const { isDemoClient } = await import('./demo')
+  if (await isDemoClient(params.clientId)) {
+    return { url: null, error: 'This is a demo account, so nothing is ever charged.' }
+  }
   try {
     const owedCents = programmeStripeAmountCents(params.meetings, params.stage)
     const isFirst = params.stage === 'programme_first'

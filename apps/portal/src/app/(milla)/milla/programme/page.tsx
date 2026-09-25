@@ -209,8 +209,18 @@ export default function ProgrammePage() {
           ("Pay the first half and start"). They are ONE panel above now, with ONE button that
           runs the same three server steps in the same order. B1 (13 Sep) stands: acceptance is
           persisted server-side before any checkout is created. */}
+      {/* ⚑ 25 Sep — THE HOUSE ACCOUNT IS NEVER ASKED FOR THE SECOND HALF. The founder's House walk
+          showed "Pay the second half — $2,187.50" after approval; the server now refuses that
+          checkout too. House's P2 is authorised internally in Vida (R152), as P1 was (#1791). */}
       {p.hasProgramme && p.approvedAt && !p.wentLiveAt
-        && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
+        && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && p.money.internalBilling === true && (
+        <div className="mt-3 mv-hero-card" data-testid="house-second-nothing-to-pay">
+          <div className="mv-eyebrow">Second half</div>
+          <p>This is the House account, so there is nothing to pay. P2 is authorised internally in Vida.</p>
+        </div>
+      )}
+      {p.hasProgramme && p.approvedAt && !p.wentLiveAt
+        && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && p.money.internalBilling !== true && (
         <div className="mt-3">
           <ProgrammePayment
             stage="second"

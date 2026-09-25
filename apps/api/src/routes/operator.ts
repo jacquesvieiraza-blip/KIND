@@ -6865,7 +6865,7 @@ operatorRouter.post('/client-size/check', async (req: Request, res: Response) =>
     const client = await requireClient(String((req.body ?? {}).client_id ?? ''))
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { ensureClientSize } = await import('../lib/client-size')
-    const r = await ensureClientSize(client.id)
+    const r = await ensureClientSize(client.id, { force: true })
     res.json({ success: true, data: r })
   } catch (err) { console.error('[operator/client-size/check]', err); res.status(500).json({ success: false, error: 'Failed to check the size' }) }
 })

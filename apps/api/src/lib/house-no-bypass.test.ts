@@ -149,6 +149,8 @@ const ALLOWED: Record<string, string> = {
   'programme.ts': 'MONEY — C38: internal P1 authority is House-only, so it must know which client is House',
   'customer-programme.ts': 'MONEY — internalBilling, so House is not told it owes itself a payment',
   'house-client.ts': 'MONEY — the identity resolver itself',
+  // ⛓️ 25 Sep (R166 · P8): added with its reason, as this allowlist requires.
+  'client-size.ts': 'MONEY — House keeps the R81 curve it runs on and is never priced by a size band (R166 transition)',
   'house-sequence.ts': 'CONTENT — the one launch programme\'s approved five-step copy',
   'programme-preparation.ts': 'CONTENT — seeds that copy when the chain has no sequence, and nothing else',
   'programme-reconcile-availability.ts': 'CONTENT — reconciles that same one programme',

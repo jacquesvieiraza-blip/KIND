@@ -115,13 +115,20 @@ async function markReview(clientId: string, reason: SizeReviewReason, wasReason:
  * The client's band — found and locked if it can be, or marked for a person. Idempotent: a
  * locked band is returned as it is, and Apollo is asked at most once per client.
  */
-export async function ensureClientSize(clientId: string, opts: { email?: string | null } = {}): Promise<ClientSize> {
+export async function ensureClientSize(clientId: string, opts: { email?: string | null; force?: boolean } = {}): Promise<ClientSize> {
   const { data, error } = await db.from('clients').select(COLUMNS).eq('id', clientId).maybeSingle()
   if (error || !data) return { status: 'unreadable', message: 'The client could not be read.' }
   const row = data as ClientSizeRow
   const done = fromRow(row)
   if (done) return done
 
+  // ⚠️ ALREADY WAITING FOR A PERSON → NOT ASKED AGAIN. The calculator reads this on every
+  // slider move; re-running the lookup each time would spend a credit per move. Only Vida's
+  // "Check with Apollo" (`force`) asks again.
+  if (row.size_review_reason && !opts.force) {
+    const r = row.size_review_reason as SizeReviewReason
+    return { status: 'review', reason: r, message: SIZE_REVIEW_REASON_COPY[r] ?? 'A person is confirming the size.' }
+  }
   if (row.is_demo === true) return markReview(clientId, 'not_found', row.size_review_reason)
 
   const plan = sizeLookupPlan({ website: row.website, email: opts.email ?? await loginEmail(row.user_id) })
@@ -185,4 +192,32 @@ export async function setClientSizeByPerson(
   }).eq('id', clientId)
   if (upErr) return { ok: false, reason: 'storage_unreadable', message: `The band could not be saved (${upErr.message}). Nothing was changed.` }
   return { ok: true, band: input.band, previous }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R166 ① · P8) — WHICH TERMS A NEW PROGRAMME IS PRICED ON.
+//
+//   • a locked band        → that band's flat price (R166 ①)
+//   • the House account    → the R81 curve (House keeps the terms it runs on; it pays nothing)
+//   • anything else        → NO PRICE YET: a person is confirming the size (R166 ②). The size
+//                            check is (re)run here, so a client whose band can be found now is
+//                            not held back by a background check that has not landed.
+// 🛑 Never a default band: pricing an unknown company as Founders would under-price an enterprise.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export const PRICE_PENDING_COPY =
+  'We’re confirming your company size, which sets your price per meeting. A person is on it — your price will be ready here shortly.'
+
+export type PricingTerms =
+  | { kind: 'band'; band: SizeBand }
+  | { kind: 'curve' }
+  | { kind: 'pending'; message: string }
+
+export async function pricingTermsFor(clientId: string): Promise<PricingTerms> {
+  try {
+    const { isHouseClient } = await import('./house-client')
+    if (await isHouseClient(clientId)) return { kind: 'curve' }
+  } catch { /* not House as far as we can tell — fall through to the band */ }
+  const size = await ensureClientSize(clientId)
+  if (size.status === 'set') return { kind: 'band', band: size.band }
+  return { kind: 'pending', message: PRICE_PENDING_COPY }
 }

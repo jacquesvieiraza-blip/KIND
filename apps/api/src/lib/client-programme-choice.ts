@@ -50,7 +50,7 @@ const RECHOOSABLE = ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT'] as const
 
 export type ChoiceOutcome =
   | { ok: true; programme: ProgrammeRow; result: CalculatorResult; created: boolean }
-  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity'; detail: string; committed?: number }
+  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity' | 'price_pending'; detail: string; committed?: number }
 
 /**
  * Has this client finished Proof? Choosing a programme before that is out of order.
@@ -104,9 +104,16 @@ export async function chooseProgramme(
     }
   }
 
+  // ⚑ 25 Sep (R166 ① · P8) — THE PRICE IS THE CLIENT'S OWN BAND'S, NEVER CHOSEN BY THEM. The
+  // band is read here, not taken from `inputs` — a browser cannot pick its own price.
+  const { pricingTermsFor } = await import('./client-size')
+  const terms = await pricingTermsFor(clientId)
+  if (terms.kind === 'pending') return { ok: false, reason: 'price_pending', detail: terms.message }
+  const band = terms.kind === 'band' ? terms.band : null
+
   let result: CalculatorResult
   try {
-    result = calculateProgramme(inputs)
+    result = calculateProgramme({ ...inputs, band })
   } catch (e) {
     if (e instanceof ProgrammePricingError) {
       return { ok: false, reason: 'invalid_target', detail: e.message }
@@ -193,6 +200,7 @@ export async function chooseProgramme(
     const { data, error } = await db.from('programmes').update({
       meeting_target: result.meetings,
       recommended_volume: result.recommendedVolume,
+      size_band: band,
       price_per_meeting_cents: result.quote.pricePerMeetingCents,
       price_total_cents: result.totalCents,
       first_payment_cents: result.firstPaymentCents,

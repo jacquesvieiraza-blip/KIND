@@ -136,6 +136,11 @@ vi.mock('@kind/db', () => ({
 // ⚑ 10 Sep (G) — `calls` COUNTS INVOCATIONS, because "P2 does not prepare" is now a duty and
 // a stub that cannot be counted cannot prove it.
 const prep: { complete: boolean; calls: number } = { complete: true, calls: 0 }
+// ⛓️ 25 Sep (R166 · P8) — creating or choosing a programme now asks WHICH PRICING TERMS apply
+// (`client-size.ts`: the client's size band, the curve for House, or "no price yet"). This file
+// is about the curve and the rows it writes, so its client is curve-priced; nothing asserted
+// here changed. Band pricing is proven in `pricing-by-band.test.ts`.
+vi.mock('./client-size', () => ({ pricingTermsFor: async () => ({ kind: 'curve' }) }))
 vi.mock('./programme-preparation', () => ({
   prepareProgrammeOutreach: async () => ({
     ...(prep.calls++, {}),

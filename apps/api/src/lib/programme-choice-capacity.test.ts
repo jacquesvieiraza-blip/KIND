@@ -57,6 +57,11 @@ vi.mock('@kind/db', () => ({
 
 // The provider preview is the one thing that must NOT run in a unit test — and the one thing
 // whose answer this whole file is about. So it is replaced by a switch, and counted.
+// ⛓️ 25 Sep (R166 · P8) — creating or choosing a programme now asks WHICH PRICING TERMS apply
+// (`client-size.ts`: the client's size band, the curve for House, or "no price yet"). This file
+// is about the curve and the rows it writes, so its client is curve-priced; nothing asserted
+// here changed. Band pricing is proven in `pricing-by-band.test.ts`.
+vi.mock('./client-size', () => ({ pricingTermsFor: async () => ({ kind: 'curve' }) }))
 vi.mock('./client-capacity', () => ({
   activeIcpFor: async (clientId: string) =>
     state.icps.find(i => i.client_id === clientId && i.is_active) ?? null,

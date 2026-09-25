@@ -95,6 +95,11 @@ vi.mock('@kind/db', () => ({
   },
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
+// ⛓️ 25 Sep (R166 · P8) — creating or choosing a programme now asks WHICH PRICING TERMS apply
+// (`client-size.ts`: the client's size band, the curve for House, or "no price yet"). This file
+// is about the curve and the rows it writes, so its client is curve-priced; nothing asserted
+// here changed. Band pricing is proven in `pricing-by-band.test.ts`.
+vi.mock('./client-size', () => ({ pricingTermsFor: async () => ({ kind: 'curve' }) }))
 
 import {
   createProgramme, recordFirstPayment, recordSecondPayment,

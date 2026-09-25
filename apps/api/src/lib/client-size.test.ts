@@ -86,12 +86,17 @@ describe('ensureClientSize', () => {
     expect(await ensureClientSize('c1')).toMatchObject({ status: 'review', reason: 'not_found' })
     expect(state.updates.some(u => u.size_band)).toBe(false)
     expect(state.alerts).toHaveLength(1)
-    // The same reason again files no second task.
-    state.client = { ...state.client!, size_review_reason: 'not_found' }; apollo(null)
-    await ensureClientSize('c1'); expect(state.alerts).toHaveLength(1)
+    // ⛓️ 25 Sep (P8) — ALREADY WAITING FOR A PERSON → APOLLO IS NOT ASKED AGAIN (the calculator
+    // reads this on every slider move). Only Vida's "Check with Apollo" (`force`) asks again, and
+    // the same reason again files no second task.
+    state.client = { ...state.client!, size_review_reason: 'not_found' }
+    expect(await ensureClientSize('c1')).toMatchObject({ status: 'review', reason: 'not_found' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    apollo(null)
+    await ensureClientSize('c1', { force: true }); expect(state.alerts).toHaveLength(1)
 
     fetchMock.mockRejectedValueOnce(new Error('network'))
-    expect(await ensureClientSize('c1')).toMatchObject({ status: 'review', reason: 'lookup_failed' })
+    expect(await ensureClientSize('c1', { force: true })).toMatchObject({ status: 'review', reason: 'lookup_failed' })
 
     state.client = { ...state.client!, is_demo: true, size_review_reason: null }
     expect(await ensureClientSize('c1')).toMatchObject({ status: 'review' })

@@ -62,6 +62,7 @@
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { LEADS_PER_TARGETED_MEETING } from './programme-pricing'
+import type { SizeBand } from './size-band'
 
 /**
  * 🛑 THE LIMIT: people worked per meeting before we stop. Internal. Never shown to a client.
@@ -86,9 +87,23 @@ export const LEADS_PER_MEETING_WORST_CASE = 400
  * ⚠️ NOT `recommendedVolume`, AND THE TWO MUST NOT BE MERGED BACK. 250 still sizes and prices
  * the programme; 400 decides when we stop. One is a plan, the other is a boundary.
  */
-export function sourcingCeiling(meetings: number): number {
+export function sourcingCeiling(meetings: number, band?: SizeBand | null): number {
   const m = Number.isFinite(meetings) ? Math.max(0, Math.floor(meetings)) : 0
-  return m * LEADS_PER_MEETING_WORST_CASE
+  // ⚑ 25 Sep (R166 ④ · P8) — a band programme stops at ITS limit; no band is 400, as before.
+  return m * (band ? BAND_LEADS_LIMIT_PER_MEETING[band] : LEADS_PER_MEETING_WORST_CASE)
+}
+
+/**
+ * ⚑ 25 Sep (R166 ④ · P8, board #2354) — THE LIMIT PER MEETING, BY BAND. Never disclosed (R136 ③).
+ *
+ * Founder, from the options put to him: *"300 Founders, 400 Enterprise"* and, for Growth,
+ * *"300"*. Each stays above the 250 benchmark — the rule `capacityInvariant` exists for — so no
+ * programme stops at or before the point it was expected to succeed.
+ */
+export const BAND_LEADS_LIMIT_PER_MEETING: Readonly<Record<SizeBand, number>> = {
+  founders: 300,
+  growth: 300,
+  enterprise: 400,
 }
 
 /**

@@ -610,7 +610,13 @@ myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
     const meetings = Number(req.query.meetings)
     const problem = meetingTargetProblem(meetings)
     if (problem) { res.status(400).json({ success: false, error: problem }); return }
+    // ⚑ 25 Sep (R166 ① · P8) — priced on the client's OWN size band, read from the session's
+    // client (never from the query). Size not confirmed yet → no price, and the sentence says why.
+    const { pricingTermsFor } = await import('../lib/client-size')
+    const terms = await pricingTermsFor(clientId)
+    if (terms.kind === 'pending') { res.status(409).json({ success: false, error: terms.message, code: 'price_pending' }); return }
     const result = calculateProgramme({
+      band: terms.kind === 'band' ? terms.band : null,
       meetings,
       leadsPerMeeting: req.query.leadsPerMeeting === undefined ? undefined : Number(req.query.leadsPerMeeting),
       averageClientValue: req.query.averageClientValue === undefined ? undefined : Number(req.query.averageClientValue),
@@ -704,7 +710,7 @@ myProgrammeRouter.post('/choose', async (req: AuthRequest, res) => {
       // it, not a malformed request and not our fault. It carries `committed` so the screen can
       // put the slider back where the pool actually stops.
       const status = r.reason === 'invalid_target' ? 400
-        : r.reason === 'proof_incomplete' || r.reason === 'locked' || r.reason === 'over_capacity' ? 409 : 503
+        : r.reason === 'proof_incomplete' || r.reason === 'locked' || r.reason === 'over_capacity' || r.reason === 'price_pending' ? 409 : 503
       res.status(status).json({
         success: false, code: r.reason, error: r.detail,
         ...(r.reason === 'over_capacity' ? { committed: r.committed ?? 0 } : {}),

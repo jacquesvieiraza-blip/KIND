@@ -33,6 +33,8 @@
 // two. That is a founder-locked rule, not a rounding convenience, and it is why the split is
 // computed by subtraction rather than by rounding each half.
 
+import type { SizeBand } from './size-band'
+
 /** Leads recommended per targeted booked meeting (FD-01 · R77). A PLANNING BENCHMARK, NEVER A GUARANTEE. */
 export const LEADS_PER_TARGETED_MEETING = 250
 
@@ -224,13 +226,23 @@ export function walletCreditForPayment(balanceCents: number, owedCents: number):
  */
 export function shortfallCreditCents(
   boughtMeetings: number, deliveredMeetings: number, collectedCents: number,
+  // ⚑ 25 Sep (R166 · P8) — A FLAT-PRICED (BAND) PROGRAMME PASSES ITS OWN STORED PRICE. Without
+  // it the curve's $450 rate would value a $99 meeting at $450 and credit nothing, or worse.
+  // Omitted for curve programmes, which keep R136 ⑤ exactly as it was.
+  flatPricePerMeetingCents?: number | null,
 ): number {
   if (!Number.isInteger(collectedCents) || collectedCents < 0) {
     throw new ProgrammePricingError(
       `Collected amount must be a non-negative whole number of cents — received ${collectedCents}.`,
     )
   }
-  const earned = deliveredValueCents(boughtMeetings, deliveredMeetings)
+  if (flatPricePerMeetingCents !== undefined && flatPricePerMeetingCents !== null
+      && (!Number.isInteger(flatPricePerMeetingCents) || flatPricePerMeetingCents <= 0)) {
+    throw new ProgrammePricingError(`A flat price must be a positive whole number of cents — received ${flatPricePerMeetingCents}.`)
+  }
+  const earned = flatPricePerMeetingCents
+    ? (assertMeetings(boughtMeetings), Math.min(Math.max(0, Math.floor(deliveredMeetings)), boughtMeetings) * flatPricePerMeetingCents)
+    : deliveredValueCents(boughtMeetings, deliveredMeetings)
   // Clamped at zero: collecting less than was earned is a debt, not a credit, and this
   // function is not the place that decides what to do about it.
   return Math.max(0, collectedCents - earned)
@@ -285,6 +297,33 @@ export interface ProgrammeQuote {
   firstPaymentCents: number
   secondPaymentCents: number
   recommendedVolume: number
+  /** ⚑ 25 Sep (R166 ① · P8) — the size band this quote is priced on; null = the R81 curve. */
+  band?: SizeBand | null
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R166 ① · P8, board #2354) — THE PRICE BY SIZE BAND, FLAT PER QUALIFIED MEETING.
+//
+// Founder, verbatim: *"99 for founders. 199 for growth. and 299 for enterprise"*, *"Fixed $299,
+// shown on the site"*, and *"No, flat price per meeting"* — no volume discount. The band is the
+// client's OWN company size (R166 ②, `size-band.ts`), never chosen by them.
+//
+// ⛓️ THE R81 CURVE ($450 → $400) IS SUPERSEDED FOR NEW PROGRAMMES, NOT DELETED. Programmes
+// already running — House included — keep the terms they bought (R166 transition), and their
+// stored price is what every later calculation reads. A quote with no band is still the curve.
+//
+// Flat dollars are whole cents, so there is no rounding here at all: total = meetings × price.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export const BAND_PRICE_PER_MEETING_USD: Readonly<Record<SizeBand, number>> = {
+  founders: 99,
+  growth: 199,
+  enterprise: 299,
+}
+
+export function bandPricePerMeetingCents(band: SizeBand): number {
+  const usd = BAND_PRICE_PER_MEETING_USD[band]
+  if (!(usd > 0)) throw new ProgrammePricingError(`No price for size band "${String(band)}".`)
+  return usd * 100
 }
 
 /**
@@ -294,7 +333,23 @@ export interface ProgrammeQuote {
  * three-`$4`-literals defect R68 records — where the charge read one constant and the partner
  * commission read another, so moving one alone would have paid 50% commission on a $4 sale.
  */
-export function quoteProgramme(meetings: number): ProgrammeQuote {
+export function quoteProgramme(meetings: number, band?: SizeBand | null): ProgrammeQuote {
+  // ⚑ 25 Sep (R166 ① · P8) — a band prices flat; no band is the R81 curve, byte for byte.
+  if (band) {
+    assertMeetings(meetings)
+    const per = bandPricePerMeetingCents(band)
+    const total = per * meetings
+    return {
+      meetings,
+      pricePerMeetingUsd: per / 100,
+      pricePerMeetingCents: per,
+      totalCents: total,
+      firstPaymentCents: firstPaymentCents(total),
+      secondPaymentCents: secondPaymentCents(total),
+      recommendedVolume: recommendedVolume(meetings),
+      band,
+    }
+  }
   const totalCents = programmeTotalCents(meetings)
   return {
     meetings,

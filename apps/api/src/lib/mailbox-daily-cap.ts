@@ -80,3 +80,48 @@ export async function mailboxCapState(inbox: { id?: string | null; daily_cap?: n
   if (!sent) return 'unreadable'
   return (sent.get(String(inbox.id)) ?? 0) >= mailboxDailyCap(inbox.daily_cap) ? 'at_cap' : 'room'
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R166 ⑥ · P4) — A MAILBOX WHOSE BOUNCES REACH 3% STOPS SENDING.
+//
+// The founder: *"3%"*. Measured over the last 7 days, on the addresses THIS mailbox sent to
+// (P1's `inbox_id`), against the blocklist's hard bounces and spam complaints. Only judged once
+// the box has sent at least 20 in the window — one bounce in five sends is noise, not a signal.
+// While the rate is at or above 3% every send from the box is held and the founder is told; as
+// the window moves on (or a person acts) it recovers. Unreadable → held.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export const MAILBOX_BOUNCE_LIMIT = 0.03
+export const MAILBOX_BOUNCE_MIN_SENDS = 20
+export const MAILBOX_BOUNCE_WINDOW_DAYS = 7
+
+/** Pure: may a box with this record keep sending? */
+export function bounceVerdict(sent: number, bounced: number): 'ok' | 'too_many_bounces' {
+  if (sent < MAILBOX_BOUNCE_MIN_SENDS) return 'ok'
+  return bounced / sent >= MAILBOX_BOUNCE_LIMIT ? 'too_many_bounces' : 'ok'
+}
+
+export async function mailboxBounceState(inboxId: string | null | undefined): Promise<{ state: 'ok' | 'too_many_bounces' | 'unreadable'; sent: number; bounced: number }> {
+  if (!inboxId) return { state: 'unreadable', sent: 0, bounced: 0 }
+  try {
+    const since = new Date(Date.now() - MAILBOX_BOUNCE_WINDOW_DAYS * 86_400_000).toISOString()
+    const { data: sends, error: sErr } = await db.from('figsy_sent_emails')
+      .select('lead_id').eq('inbox_id', String(inboxId)).gte('sent_at', since).limit(20000)
+    if (sErr) return { state: 'unreadable', sent: 0, bounced: 0 }
+    const leadIds = [...new Set(((sends ?? []) as { lead_id: string | null }[]).map(r => r.lead_id).filter((x): x is string => !!x))]
+    const sent = (sends ?? []).length
+    if (sent < MAILBOX_BOUNCE_MIN_SENDS || leadIds.length === 0) return { state: 'ok', sent, bounced: 0 }
+    const { data: leads, error: lErr } = await db.from('leads').select('email').in('id', leadIds)
+    if (lErr) return { state: 'unreadable', sent, bounced: 0 }
+    // HC-1 — every blocklist probe goes through the one normaliser, so case can never hide a bounce.
+    const { normalizeRevealEmails } = await import('./billing-rules')
+    const rawEmails = ((leads ?? []) as { email: string | null }[]).map(l => l.email)
+    if (normalizeRevealEmails(rawEmails).length === 0) return { state: 'ok', sent, bounced: 0 }
+    const { data: bad, error: bErr } = await db.from('opt_out_blocklist')
+      .select('email').in('email', normalizeRevealEmails(rawEmails)).in('reason', ['hard_bounce', 'spam_complaint'])
+    if (bErr) return { state: 'unreadable', sent, bounced: 0 }
+    const bounced = (bad ?? []).length
+    return { state: bounceVerdict(sent, bounced), sent, bounced }
+  } catch {
+    return { state: 'unreadable', sent: 0, bounced: 0 }
+  }
+}

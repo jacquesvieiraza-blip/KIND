@@ -152,6 +152,18 @@ export async function processInboundReply(
     return { ok: false as const, dropped: unusable }
   }
 
+  // ── ⚑ 25 Sep (R166 ⑥ · P4) — A DELIVERY-FAILURE NOTICE IS A BOUNCE, NEVER A REPLY ───────
+  // SMTP sends bounce back to the sending mailbox, which forwards to us like a reply. The dead
+  // address is blocklisted as a hard bounce (what the send path and the 3% bounce hold read),
+  // and the notice is dropped rather than filed in anyone's Inbox as a "reply".
+  {
+    const { isBounceNotice, recordBounceNotice } = await import('./bounce-notice')
+    if (isBounceNotice(inbound)) {
+      const outcome = await recordBounceNotice({ fromEmail: inbound.fromEmail, toEmail: inbound.toEmail ?? null, subject: inbound.subject ?? null, body: inbound.body })
+      return { ok: false as const, dropped: `bounce_notice_${outcome}` }
+    }
+  }
+
   // R1 — EVERY match, across ALL clients. This was `.maybeSingle()`, which ERRORS on more
   // than one row: two clients prospecting the same person meant `lead` came back null and
   // the reply was dropped forever behind a 200. The reply is now routed into each matching

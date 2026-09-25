@@ -361,6 +361,20 @@ async function programmeCheckout(
   const p = await openProgrammeForSession(clientId)
   if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
 
+  // ⚑ 25 Sep — THE HOUSE ACCOUNT OWES NOTHING, AT EITHER HALF, AND NO CHECKOUT IS EVER MINTED FOR IT.
+  // The founder's House walk: after approving, Milla offered "Pay the second half — $2,187.50",
+  // and this route would have opened a LIVE Stripe session for it until P2 was authorised
+  // internally. House's P1 and P2 are internal authority, granted in Vida (R152). Refused before
+  // Stripe is reached, so nothing is created and nothing can be charged.
+  const { isHouseClient } = await import('../lib/house-client')
+  if (await isHouseClient(clientId)) {
+    res.status(409).json({
+      success: false, error: 'internally_billed',
+      message: 'This is the House account, so there is nothing to pay. P1 and P2 are authorised internally in Vida. Nothing has been charged.',
+    })
+    return
+  }
+
   // 🛑 THE SAME STATE RULES THE OPERATOR DOORS USE. Restating them loosely here is how a client
   // pays for a stage the programme is not in.
   if (stage === 'programme_first') {

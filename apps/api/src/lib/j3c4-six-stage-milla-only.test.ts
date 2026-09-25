@@ -187,7 +187,9 @@ describe('J3-C4 · what is NOT done, stated', () => {
     // "J3-C4" in a commit log cannot be read as "the rail is the six stages now". When the
     // founder's decision arrives, this assertion is the one that has to change.
     const shell = codeOf(join(PORTAL, 'components/milla/MillaShell.tsx'))
-    for (const label of ['Home', 'Pipeline', 'Meetings', 'Programme', 'Replies', 'My ICP', 'Documents', 'Reports', 'Coaching']) {
+    // ⛓️ 25 Sep (R165) — 'Replies' → 'Inbox': a founder RENAME of the same destination, not the
+    // parked six-stage rail. Still nine destinations; this assertion still guards the parked clause.
+    for (const label of ['Home', 'Pipeline', 'Meetings', 'Programme', 'Inbox', 'My ICP', 'Documents', 'Reports', 'Coaching']) {
       expect(shell, `the rail no longer has ${label} — the parked clause may have been built`)
         .toContain(`'${label}'`)
     }

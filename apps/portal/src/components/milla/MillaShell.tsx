@@ -185,7 +185,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   // approved preview names by what is under it: the programme.
   const SECTION_LABEL: [string, string][] = [
     ['/milla/pipeline', 'Pipeline'], ['/milla/meetings', 'Meetings'], ['/milla/programme', 'Programme'],
-    ['/milla/replies', 'Replies'], ['/milla/icp', 'My ICP'], ['/milla/documents', 'Documents'],
+    ['/milla/replies', 'Inbox'], ['/milla/icp', 'My ICP'], ['/milla/documents', 'Documents'],
     ['/milla/reports', 'Reports'], ['/milla/coaching', 'Coaching'], ['/milla/performance', 'Performance'],
     ['/milla/analytics', 'Analytics'], ['/milla/roi', 'Your ROI'], ['/milla/command-centre', 'Command Centre'],
     ['/milla/teams', 'Teams Hub'], ['/milla/settings', 'Settings'], ['/milla/billing', 'Billing'],
@@ -235,7 +235,9 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     ['Workspace', '/milla/programme', 'Programme', '◇', undefined],
     // #644 — THE REPLY IS THE OUTCOME THE CLIENT IS PAYING FOR, so it keeps a permanent home here,
     // badged with the same live count the old "Recent replies" list was built from.
-    ['Workspace', '/milla/replies', 'Replies', '✉', s?.recent_replies?.length || undefined],
+    // ⛓️ 25 Sep (R165) — CALLED "INBOX", NOT "REPLIES" (founder: *"this also needs to be lablled
+    // inbox. not replies."*). Same route, same badge.
+    ['Workspace', '/milla/replies', 'Inbox', '✉', s?.recent_replies?.length || undefined],
     ['Your programme', '/milla/icp', 'My ICP', '◎', undefined],
     ['Your programme', '/milla/documents', 'Documents', '□', undefined],
     ['Your programme', '/milla/reports', 'Reports', '↗', undefined],
@@ -365,8 +367,9 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
                 The redesign's rail has no such list; the founder's ruling keeps it, so it is here,
                 in the redesign's rail styling. #644 — every entry opens the reply screen. */}
             <div className="mv-nav-group">
-              <div className="mv-nav-label">Recent replies</div>
-              {s && s.recent_replies.length === 0 && <div className="px-2.5 text-[9px] text-[#a29aa9]">No replies yet.</div>}
+              {/* ⛓️ 25 Sep (R165) — the list STAYS (ruling 3); only its name follows the Inbox. */}
+              <div className="mv-nav-label">Latest in your inbox</div>
+              {s && s.recent_replies.length === 0 && <div className="px-2.5 text-[9px] text-[#a29aa9]">Nothing yet.</div>}
               {(s?.recent_replies ?? []).map((r, i) => (
                 <Link key={i} href="/milla/replies" className="mv-nav-item">
                   <Star className="w-3.5 h-3.5 text-[#d84ca5] shrink-0" />

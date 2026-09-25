@@ -26,12 +26,17 @@ describe('#644 — replies are reachable from Milla', () => {
 
   it('the route renders the REAL inbox rather than a second copy of it', () => {
     // A duplicate reply UI is how two screens come to disagree about what a reply looks like.
+    // ⛓️ 25 Sep (R165) — WAS `dashboard/inbox/page`. The founder had the old Unibox rebuilt as
+    // the Milla Inbox; the dashboard route now renders the SAME component, so the invariant
+    // (one reply screen, never a second copy) is what is still asserted, on both routes.
     const route = readFileSync(ROUTE, 'utf8')
-    expect(route).toContain('dashboard/inbox/page')
+    expect(route).toContain("import MillaInbox from '@/components/milla/MillaInbox'")
+    const old = readFileSync(join(__dirname, '../../../portal/src/app/(dashboard)/dashboard/inbox/page.tsx'), 'utf8')
+    expect(old).toContain("import MillaInbox from '@/components/milla/MillaInbox'")
   })
 
-  it('the rail has a Replies entry', () => {
-    expect(shell).toContain("'/milla/replies', 'Replies'")
+  it('the rail has an Inbox entry (⛓️ 25 Sep, R165: was "Replies" — renamed by founder ruling)', () => {
+    expect(shell).toContain("'/milla/replies', 'Inbox'")
   })
 
   it('and each recent-reply entry is a Link, not an inert div', () => {
@@ -58,13 +63,15 @@ describe('#644 — the client can find replies without already knowing where the
     // ⛓️ 24 Sep (R145 — the redesign's rail): WAS sliced from `link('/milla',` to
     // `section('Recent replies')`. The rail is now one RAIL list rendered in the redesign's two
     // groups, with Recent replies after them — so the slice runs from the list to that group.
-    const nav = shell.slice(shell.indexOf('const RAIL:'), shell.indexOf('<div className="mv-nav-label">Recent replies</div>'))
+    // ⛓️ 25 Sep (R165) — the list's label is now "Latest in your inbox"; same group, same place.
+    const nav = shell.slice(shell.indexOf('const RAIL:'), shell.indexOf('<div className="mv-nav-label">Latest in your inbox</div>'))
     // ⛓️ 30 Aug (BUILD-004A-1) — TWO LABELS RENAMED BY FOUNDER RULING, NOT BY ME.
     // 'New leads' → 'Home' (ruling 1: it was the per-lead approval desk, and the programme
     // model has no per-lead approval) and 'My campaign' → 'Programme' (approved nav rename).
     // #644's actual invariant is untouched and is what this still tests: a client can REACH
     // replies from the rail without already knowing where they are.
-    for (const dest of ['Home', 'Pipeline', 'Meetings', 'Programme', 'Replies']) {
+    // ⛓️ 25 Sep (R165) — 'Replies' → 'Inbox', the founder's rename. Same destination.
+    for (const dest of ['Home', 'Pipeline', 'Meetings', 'Programme', 'Inbox']) {
       expect(nav, `${dest} must be reachable from the rail`).toContain(dest)
     }
   })

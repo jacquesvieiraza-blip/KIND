@@ -2582,7 +2582,7 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
     // 🛑 NO CURRENT OUTREACH MEANS NO CURRENT REPLIES. Returned positively as an empty inbox
     // rather than as a query nobody can read — a calibration workspace has sent nobody an
     // email, so a reply here could only be an earlier motion's.
-    if (scope.mode === 'none') { res.json({ success: true, data: [] }); return }
+    if (scope.mode === 'none') { res.json({ success: true, data: [], sent: [], sent_total: 0 }); return }
 
     // ── 🛑 4 Sep (FOUNDER-REJECTED, CORRECTED) — UNREADABLE FAILS **CLOSED** ──────────────
     //
@@ -2619,7 +2619,38 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
       .order('processed_at', { ascending: false })
       .limit(200)
     if (error) throw error
-    res.json({ success: true, data })
+
+    // ── ⚑ 25 Sep — THE INBOX SHOWS THE WHOLE CONVERSATION (founder: "look inside … this needs
+    // to be much better") ───────────────────────────────────────────────────────────────────
+    //
+    // A reply alone reads as a message from nowhere; the client needs the email it answers.
+    // `sent` is OUR emails to the people who replied — and ONLY to them: the lead ids come
+    // from the rows above, which are already client-scoped and current-work-bounded, so this
+    // can never widen what the client sees. `status = 'sent'` keeps drafts out.
+    //
+    // `sent_total` says whether any email has gone out at all in the current work, so an empty
+    // inbox can say WHY it is empty instead of guessing. `null` = we do not know (legacy scope,
+    // or the count failed) — the screen then makes no claim either way.
+    //
+    // ⚠️ BOTH FAIL SOFT TO `null`, NEVER TO `[]`/0. The replies are the truth this route exists
+    // for; losing the context around them must not blank them, and must not claim "nothing sent".
+    const rows = (data ?? []) as { lead_id?: string | null }[]
+    const replyLeadIds = [...new Set(rows.map(r => r.lead_id).filter((id): id is string => !!id))]
+    let sent: unknown[] | null = []
+    if (replyLeadIds.length > 0) {
+      const s = await db.from('figsy_sent_emails')
+        .select('lead_id, step, subject, body, sent_at')
+        .in('lead_id', replyLeadIds).eq('status', 'sent')
+        .order('sent_at', { ascending: true }).limit(600)
+      sent = s.error ? null : (s.data ?? [])
+    }
+    let sentTotal: number | null = null
+    if (scope.mode === 'ids') {
+      const c = await db.from('figsy_sent_emails').select('id', { count: 'exact', head: true })
+        .in('lead_id', safeIn(scope.ids)).eq('status', 'sent')
+      sentTotal = c.error ? null : (c.count ?? 0)
+    }
+    res.json({ success: true, data, sent, sent_total: sentTotal })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
 })
 

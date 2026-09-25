@@ -33,6 +33,7 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
+import OfferCard from '@/components/milla/OfferCard'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
 import { acceptanceGate } from '@/lib/programme-acceptance'
 import { useProgrammeSync } from '@/components/milla/useProgrammeSync'
@@ -209,6 +210,10 @@ export default function ProgrammePage() {
       ) : (
       <ProgrammeWorkspace p={p} />
       )}
+      {/* ⚑ 25 Sep (R158 · R163) — straight after choosing a programme: four questions in the client's
+          own words, which the email writer then uses. Optional; the card hides once answered or
+          skipped, and nothing waits on it. */}
+      {p.hasProgramme && p.stage !== 'Completion' && <OfferCard />}
       {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
           `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`
           ("Pay the first half and start"). They are ONE panel above now, with ONE button that

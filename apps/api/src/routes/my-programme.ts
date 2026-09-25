@@ -102,6 +102,49 @@ async function openProgrammeForSession(clientId: string) {
 }
 
 // ── GET /my/programme/review — the masked prospects for THIS programme ─────────────────
+// ── ⚑ 25 Sep (R158 · R163) — THE CLIENT'S OFFER, IN THEIR OWN WORDS ─────────────────────────
+// Four answers — problems, impact, ROI (quoted only with the client's tick), solution — saved into
+// the store the email writer already reads (`lib/client-offer.ts`). Skippable; nothing waits on it.
+myProgrammeRouter.get('/offer', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readOffer } = await import('../lib/client-offer')
+    res.json({ success: true, data: await readOffer(clientId) })
+  } catch (err) {
+    console.error('[programme/me/offer GET]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+myProgrammeRouter.post('/offer', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { cleanOffer, saveOffer } = await import('../lib/client-offer')
+    const input = cleanOffer(req.body)
+    if (!input) { res.status(400).json({ success: false, error: 'Answer at least one of the four questions, or skip for now.' }); return }
+    await saveOffer(clientId, input)
+    res.json({ success: true, saved: true, roi_may_quote: input.roiMayQuote })
+  } catch (err) {
+    console.error('[programme/me/offer POST]', err)
+    res.status(503).json({ success: false, error: 'Your answers could not be saved just now. Please try again.' })
+  }
+})
+
+myProgrammeRouter.post('/offer/skip', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { skipOffer } = await import('../lib/client-offer')
+    await skipOffer(clientId)
+    res.json({ success: true, skipped: true })
+  } catch (err) {
+    console.error('[programme/me/offer/skip POST]', err)
+    res.status(503).json({ success: false, error: 'That could not be saved just now. Please try again.' })
+  }
+})
+
 myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

@@ -261,11 +261,19 @@ export async function getClientKnowledgeForOutreach(clientId: string): Promise<s
       if (str(pitch.pain_points))     lines.push(`Pains the sender solves: ${str(pitch.pain_points)}`)
       if (str(pitch.differentiators)) lines.push(`Differentiators / proof points: ${str(pitch.differentiators)}`)
     }
+    // ⚑ 25 Sep (R163) — the client's own four answers from Milla's offer card. The ROI appears
+    // ONLY when the client ticked "you may mention this result" (`offerDigestLines`).
+    if (pitch) {
+      const { offerDigestLines } = await import('./client-offer')
+      lines.push(...offerDigestLines(pitch))
+    }
     const messaging = byKind.get('messaging')
     if (messaging && str(messaging.style)) lines.push(`Preferred voice/persona: ${str(messaging.style)}`)
     const digest = lines.filter(Boolean).join('\n').trim()
     // Cap so the prompt stays bounded regardless of how much the client saved.
-    return digest.slice(0, 1500)
+    // ⛓️ 25 Sep (R163) — 1500 → 3000: the offer card adds up to four answers, and a cut here
+    // could drop the permitted result the client asked us to use.
+    return digest.slice(0, 3000)
   } catch (err) {
     console.warn('[figsy] getClientKnowledgeForOutreach failed — proceeding without grounding', err)
     return ''

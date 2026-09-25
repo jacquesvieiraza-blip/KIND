@@ -48,6 +48,7 @@
 
 import { db } from '@kind/db'
 import { isSendSchedule, type SendSchedule } from './send-schedule'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 
 /**
  * The schedule every programme is created with.
@@ -105,6 +106,12 @@ export async function applyProgrammeSequence(
 ): Promise<ApplySequenceResult> {
   if (!Array.isArray(steps) || steps.length === 0) {
     return { ok: false, reason: 'A sequence needs at least one message step. Nothing was changed.' }
+  }
+  // ⚑ 25 Sep (R166 ⑥ · P1) — THE SAME MAXIMUM AS EVERY OTHER SEQUENCE DOOR. This route checked
+  // only "at least one", and the send engine sends every stored step — so the one sequence a
+  // programme actually runs was the one sequence with no ceiling on how often a person is emailed.
+  if (steps.length > MAX_SEQUENCE_STEPS) {
+    return { ok: false, reason: `A sequence can have at most ${MAX_SEQUENCE_STEPS} emails. This one has ${steps.length}. Nothing was changed.` }
   }
 
   const { resolveProgrammeChain } = await import('./programme-chain')

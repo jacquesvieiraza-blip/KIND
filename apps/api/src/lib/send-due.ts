@@ -344,11 +344,10 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
   // per message resets to zero every time, so "least-used" always answers the same box and
   // rotation becomes a silent no-op. It lives here because this scope is the run.
   //
-  // ⚠️ THE COUNTS ARE IN MEMORY AND THAT IS A LIMIT, NOT A CHOICE. `figsy_sent_emails` has no
-  // column naming the mailbox that sent, so "how many has THIS box sent today?" cannot be
-  // read back from the database. Within one run the spread and the per-box caps are exact;
-  // two runs in one day could put a box over its own cap, bounded still by the global cap.
-  // The fix is one column (#610), and it is deliberately not in this build.
+  // ⛓️ 25 Sep (R166 ⑥ · P1) — ~~"THE COUNTS ARE IN MEMORY AND THAT IS A LIMIT… two runs in one
+  // day could put a box over its own cap… The fix is one column (#610)"~~. The column now
+  // exists (`figsy_sent_emails.inbox_id`): each run's tally is SEEDED from today's real count,
+  // and `sendSequenceEmail` re-checks the box's limit before every send on every path.
   const { sendablePool, nextFromRotation } = await import('./sending-inbox')
   const { secretState } = await import('./inbox-secret')
   const secretOk = secretState().ok
@@ -364,9 +363,16 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
       .select('id, email, kind, status, provider, daily_cap, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
       .eq('client_id', clientId).not('status', 'in', '("released","retired")')
     const pool = sendablePool((data ?? []) as unknown as InboxRow[], secretOk)
-    const slots: RotationSlot[] = pool.ok
+    const base: RotationSlot[] = pool.ok
       ? pool.boxes.map(b => ({ id: String(b.id), dailyCap: b.daily_cap ?? null, sentThisBatch: 0, row: b }))
       : []
+    // ⚑ 25 Sep (R166 ⑥ · P1) — THE TALLY STARTS FROM TODAY, NOT FROM ZERO. Each box begins this
+    // run at what it has already sent since midnight, and a blank limit is the default, never
+    // "unlimited". Unreadable → no rotation for this client this run (it is held, not guessed).
+    const { seedRotationFromToday } = await import('./mailbox-daily-cap')
+    const seeded = await seedRotationFromToday(base)
+    const slots: RotationSlot[] = seeded ?? []
+    if (!seeded) console.warn(`[send-due] client ${clientId} — today's mailbox counts could not be read; nothing sent for this client this run.`)
     rotationByClient.set(clientId, slots)
     return slots
   }

@@ -47,6 +47,11 @@ vi.mock('@kind/db', () => ({
         // the gate fails CLOSED — correctly — and every send here defers for the wrong reason.
         not() { return q },
         order() { return q }, limit() { return q },
+        // ⛓️ 25 Sep (R166 · P1) — `gte()` added for the same reason `not()` was: every send now
+        // reads the sending mailbox's count since midnight (`mailbox-daily-cap.ts`). Without it
+        // the read fails, the mailbox is held — correctly — and the "it still sends" cases here
+        // would fail for a reason that has nothing to do with what they test.
+        gte() { return q },
         // Chainable AND awaitable: `figsy_sent_emails` is written as
         // `.insert(row).select('id').single()`, and an insert mock that returns a bare Promise
         // makes `.select` undefined — the function throws on the line before the mailer, so

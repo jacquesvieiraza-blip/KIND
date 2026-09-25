@@ -35,6 +35,11 @@ vi.mock('@kind/db', () => ({
       const q: Record<string, unknown> = {
         select() { return q }, eq() { return q }, is() { return q }, in() { return q },
         not() { return q }, order() { return q }, limit() { return q },
+        // ⛓️ 25 Sep (R166 · P1) — `gte()` added for the same reason `not()` was: every send now
+        // reads the sending mailbox's count since midnight (`mailbox-daily-cap.ts`). Without it
+        // the read fails, the mailbox is held — correctly — and the "it still sends" cases here
+        // would fail for a reason that has nothing to do with what they test.
+        gte() { return q },
         insert() {
           const ins: Record<string, unknown> = {
             select() { return ins },

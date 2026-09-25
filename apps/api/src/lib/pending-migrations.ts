@@ -7057,6 +7057,25 @@ COMMENT ON COLUMN public.contact_requests.type IS
   'Where the enquiry came from: ''contact'' or ''get-started'' (the website forms). The older values ''demo'', ''general'' and ''enterprise'' were never written by anything.';
 `,
   },
+  {
+    // ── ⚑ 25 Sep (R166 ⑥ · P1) — WHICH MAILBOX SENT THIS EMAIL ─────────────────────────
+    //
+    // The per-mailbox daily limit was counted in memory, per run, so a 30-a-day box could send
+    // ~30 every two-hourly run. This column lets each run start from the box's real count for
+    // today. EXPAND ONLY: nullable, no default, no backfill, plus the index the count reads.
+    key: '20260925_sent_email_inbox',
+    title: 'figsy_sent_emails.inbox_id — which mailbox sent each email, so a mailbox daily limit holds across runs (R166, P1)',
+    sql: `
+ALTER TABLE public.figsy_sent_emails
+  ADD COLUMN IF NOT EXISTS inbox_id uuid REFERENCES public.client_inboxes(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS figsy_sent_emails_inbox_sent_idx
+  ON public.figsy_sent_emails (inbox_id, sent_at);
+
+COMMENT ON COLUMN public.figsy_sent_emails.inbox_id IS
+  'The client mailbox this email left from. Read to count each mailbox''s sends today against client_inboxes.daily_cap.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

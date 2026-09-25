@@ -99,7 +99,8 @@ export type RotationBox = {
   id: string
   /** null = no cap for this box. */
   dailyCap: number | null
-  /** How many this box has sent SO FAR IN THIS BATCH (the caller's tally). */
+  /** How many this box has sent TODAY — seeded from the database at the start of a run
+   *  (⚑ 25 Sep, P1), then counted up in memory as the run sends. */
   sentThisBatch: number
 }
 

@@ -785,12 +785,32 @@ leadRouter.get('/coaching', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { data: bookings } = await db.from('calendar_bookings')
-      .select('id, lead_id, start_time, status')
-      .eq('client_id', clientId).gte('start_time', new Date(Date.now() - 864e5).toISOString())
-      .order('start_time', { ascending: true }).limit(25)
+    // ── ⛓️ 25 Sep (R141 · R166 · P5d) — COACHING READS THE MEETING RECORD, NOT `calendar_bookings`.
+    // `calendar_bookings` is the RETIRED source (BUILD-003 item 2; `/leads/meetings` below moved
+    // on 4 Sep, D3): it records what we asked Google to create and knows nothing of an excluded,
+    // superseded or rescheduled meeting — so a meeting moved once was coached twice, and an
+    // excluded one was coached at all. Same scope rule as `/leads/meetings`: a programme client
+    // sees that programme's meetings, a calibration workspace sees none.
+    // Upcoming only (from a day ago), soonest first, 25 at most — as before.
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+    if (scope.mode === 'none') { res.json({ success: true, data: { meetings: [] } }); return }
+    if (scope.mode === 'unreadable') {
+      res.status(503).json({ success: false, error: 'Your current work is unreadable — coaching was not loaded.' }); return
+    }
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const rows = await meetingsForClient({ clientId, ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}), limit: 100 })
+    // ⚠️ null is a FAILED READ, never "no meetings to prepare for".
+    if (rows === null) { res.status(503).json({ success: false, error: 'Meeting truth is unreadable — coaching was not loaded.' }); return }
+    const since = Date.now() - 864e5
+    const bookings = rows
+      .filter(m => new Date(m.scheduledAt).getTime() >= since && (m.state === 'BOOKED' || m.state === 'BOOKED_UNVERIFIED'))
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
+      .slice(0, 25)
+      // The response keeps its contract (`booking_id`, `start_time`, `status`); the id is now the MEETING's.
+      .map(m => ({ id: m.id, lead_id: m.leadId, start_time: m.scheduledAt, status: 'confirmed' }))
 
-    const leadIds = Array.from(new Set((bookings ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    const leadIds = Array.from(new Set(bookings.map(b => b.lead_id).filter((v): v is string => !!v)))
     const safe = leadIds.length ? leadIds : ['00000000-0000-0000-0000-000000000000']
     const [leads, replies] = await Promise.all([
       // `why_fits` is NOT a column and never has been — it is the name of a RESPONSE field,
@@ -798,10 +818,14 @@ leadRouter.get('/coaching', async (req: AuthRequest, res) => {
       // Postgres reject the whole query, and `.data ?? []` turned that into an empty map:
       // every booked meeting rendered as "Prospect" with no title, company, score or reason.
       db.from('leads').select('id, first_name, last_name, job_title, company, industry, score, score_reasoning').in('id', safe),
-      db.from('figsy_replies').select('lead_id, body_text, body, classification').eq('client_id', clientId).in('lead_id', safe),
+      // ⛓️ 25 Sep (P5d) — "THEIR OWN WORDS" ARE THEIRS: our outbound (`sent_reply`) is excluded,
+      // and the newest inbound reply wins (the Map below keeps the FIRST per lead).
+      db.from('figsy_replies').select('lead_id, body_text, body, classification').eq('client_id', clientId).in('lead_id', safe)
+        .neq('classification', 'sent_reply').order('received_at', { ascending: false }),
     ])
     const leadById = new Map((leads.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
-    const replyById = new Map((replies.data ?? []).map((r: Record<string, unknown>) => [r.lead_id as string, r]))
+    const replyById = new Map<string, Record<string, unknown>>()
+    for (const r of (replies.data ?? []) as Record<string, unknown>[]) if (!replyById.has(r.lead_id as string)) replyById.set(r.lead_id as string, r)
 
     const meetings = (bookings ?? []).map((b: Record<string, unknown>) => {
       const l = leadById.get(b.lead_id as string) as Record<string, unknown> | undefined
@@ -839,7 +863,9 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
     const { data: reply } = await db.from('figsy_replies')
+      // ⛓️ 25 Sep (P5d) — never our own outbound as "their own words".
       .select('body_text, body, classification').eq('client_id', clientId).eq('lead_id', lead.id)
+      .neq('classification', 'sent_reply')
       .order('received_at', { ascending: false }).limit(1).maybeSingle()
     const { data: me } = await db.from('clients').select('company_name, industry').eq('id', clientId).maybeSingle()
 

@@ -16,6 +16,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+// ⛓️ 25 Sep (R166 ⑥ · P2) — THE APOLLO BUDGET STANDS ASIDE HERE. Every paid reveal now asks the
+// budget first (it reads Apollo's usage endpoint), and this file's fake `fetch` would count that
+// reading as a reveal. The budget is proven on its own in `apollo-budget.test.ts`; this file
+// proves what it always proved, with the budget answering "within budget".
+vi.mock('./apollo-budget', () => ({
+  checkApolloBudget: async () => ({ ok: true, usage: { limit: 1_000_000, used: 0, source: 'apollo' }, ceiling: 800_000 }),
+  recordApolloSpend: async () => {},
+  APOLLO_BUDGET_SHARE: 0.8,
+}))
 
 // ⚑ 23 Sep (R137) — 🧪 LEGACY-ERA FIXTURE. Production no longer resolves any client to the retired
 // per-lead model (founder: *"the 299/4 is retired/ this must go."*), so the code this file tests

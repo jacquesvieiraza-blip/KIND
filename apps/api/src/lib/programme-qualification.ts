@@ -158,7 +158,7 @@ export async function qualifyCandidates(
     out.provider_reveals_attempted = revealable.length
     try {
       const { bulkMatchEmails } = await import('./apollo')
-      const got = await bulkMatchEmails(revealable.map(r => r.apollo_id as string))
+      const got = await bulkMatchEmails(revealable.map(r => r.apollo_id as string), 'programme_qualification')
       for (const [k, v] of got) revealed.set(k, v)
       out.provider_reveals_succeeded = revealed.size
     } catch (err) {

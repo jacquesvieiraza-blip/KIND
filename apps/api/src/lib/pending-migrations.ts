@@ -7076,6 +7076,27 @@ COMMENT ON COLUMN public.figsy_sent_emails.inbox_id IS
   'The client mailbox this email left from. Read to count each mailbox''s sends today against client_inboxes.daily_cap.';
 `,
   },
+  {
+    // ── ⚑ 25 Sep (R166 ⑥ · P2) — THE APOLLO CREDIT LEDGER ──────────────────────────────
+    // Every paid reveal and the credits it used. Expand only: one new table, RLS, no policy.
+    key: '20260925_apollo_credit_ledger',
+    title: 'apollo_credit_ledger — every paid Apollo reveal and the credits it used (R166, P2)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.apollo_credit_ledger (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  occurred_at  timestamptz NOT NULL DEFAULT now(),
+  credits      integer NOT NULL CHECK (credits >= 0),
+  purpose      text NOT NULL DEFAULT 'unspecified'
+);
+
+CREATE INDEX IF NOT EXISTS apollo_credit_ledger_occurred_idx ON public.apollo_credit_ledger (occurred_at);
+
+ALTER TABLE public.apollo_credit_ledger ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.apollo_credit_ledger IS
+  'Every paid Apollo reveal and the credits it used (R166: paid reveals stop at 80% of the plan).';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

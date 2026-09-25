@@ -452,7 +452,11 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     //
     // ⚠️ AND THE EXCEPTION IS PINNED TO ONE KEY. Any OTHER money-model migration in this window
     // still fails here, including a second one from the same ruling.
-    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied']
+    // ⛓️ 25 Sep (R166 ⑥ · P2) — `20260925_apollo_credit_ledger` matches `/credit/`. It records
+    // OUR APOLLO PROVIDER CREDITS (the budget that stops paid reveals at 80% of the plan), not
+    // any client's money, wallet or price — a founder ruling in his own words: *"80% of the
+    // monthly plan, per programme = its limit"*. Named, not renamed around.
+    const AUTHORISED = ['20260923_programme_shortfall_credit', '20260923_programme_wallet_applied', '20260925_apollo_credit_ledger']
     const offenders = mine.filter(k => /billing|wallet|usage|credit|lead_price|pack/i.test(k))
       .filter(k => !AUTHORISED.includes(k))
     expect(offenders, `a Milla slice migrated the money model: ${offenders.join(', ')}`).toEqual([])

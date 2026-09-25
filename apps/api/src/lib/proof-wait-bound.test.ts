@@ -20,6 +20,15 @@ process.env.SUPABASE_URL ??= 'http://localhost:54321'
 process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'test-service-role'
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
+// ⛓️ 25 Sep (R166 ⑥ · P2) — THE APOLLO BUDGET STANDS ASIDE HERE. Every paid reveal now asks the
+// budget first (it reads Apollo's usage endpoint), and this file's fake `fetch` would count that
+// reading as a reveal. The budget is proven on its own in `apollo-budget.test.ts`; this file
+// proves what it always proved, with the budget answering "within budget".
+vi.mock('./apollo-budget', () => ({
+  checkApolloBudget: async () => ({ ok: true, usage: { limit: 1_000_000, used: 0, source: 'apollo' }, ceiling: 800_000 }),
+  recordApolloSpend: async () => {},
+  APOLLO_BUDGET_SHARE: 0.8,
+}))
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {

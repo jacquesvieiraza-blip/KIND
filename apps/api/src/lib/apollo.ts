@@ -682,6 +682,14 @@ export class ApolloCreditsExhaustedError extends Error {
   constructor() { super('Apollo credits exhausted — upgrade plan or wait for monthly reset') }
 }
 
+/**
+ * ⚑ 25 Sep (R166 ⑥ · P2) — OUR budget refused the reveal, not Apollo's plan. A subclass on
+ * purpose: every caller that already stops on exhausted credits stops on this too.
+ */
+export class ApolloBudgetExhaustedError extends ApolloCreditsExhaustedError {
+  constructor(detail: string) { super(); this.message = `Apollo budget reached (R166: paid reveals stop at 80% of the plan) — ${detail}` }
+}
+
 export class ApolloRateLimitError extends Error {
   constructor() { super('Apollo rate limit hit — try again in a few minutes') }
 }
@@ -815,7 +823,11 @@ export interface RevealedPerson {
   last_name: string | null
 }
 
-export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, RevealedPerson>> {
+export async function bulkMatchEmails(
+  apolloIds: string[],
+  /** ⚑ 25 Sep (P2) — what this reveal is for, recorded in `apollo_credit_ledger`. */
+  purpose = 'unspecified',
+): Promise<Map<string, RevealedPerson>> {
   const out = new Map<string, RevealedPerson>()
   const apiKey = process.env.APOLLO_API_KEY
 
@@ -838,6 +850,17 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
     // ⚠️ OUTSIDE THE `try` (R66) — a swallowed block would silently return unenriched
     // rows and look like a provider miss.
     assertPaidProviderAllowed('apollo', 'bulkMatch')
+    // ⚑ 25 Sep (R166 ⑥ · P2) — THE BUDGET, ALSO OUTSIDE THE `try`: a refusal must stop the run,
+    // never be swallowed as "no matches". Checked per batch, against the credits it could use.
+    {
+      const { checkApolloBudget } = await import('./apollo-budget')
+      const verdict = await checkApolloBudget(batch.length)
+      if (!verdict.ok) {
+        throw new ApolloBudgetExhaustedError(verdict.reason === 'unreadable'
+          ? 'the credit balance could not be read and no manual limit is set'
+          : `${verdict.usage.used} of ${verdict.usage.limit} used; the budget stops at ${verdict.ceiling}`)
+      }
+    }
     try {
       const res = await fetch(bulkMatchUrl(), {
         // ⛓️ J5-C14 — the reveal is the other half of a Proof run's worst case.
@@ -862,6 +885,12 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
           id?: string; email?: string | null; email_status?: string | null
           country?: string | null; last_name?: string | null
         } | null>
+      }
+      // ⚑ 25 Sep (P2) — WHAT THIS BATCH SPENT: Apollo charges a credit per matched person.
+      {
+        const spent = (data.matches ?? []).filter(m => m && (m.id || m.email)).length
+        const { recordApolloSpend } = await import('./apollo-budget')
+        await recordApolloSpend(spent, purpose)
       }
       ;(data.matches ?? []).forEach((m, idx) => {
         const apolloId = m?.id ?? batch[idx]

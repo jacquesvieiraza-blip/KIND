@@ -903,7 +903,9 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     const apollo   = readFileSync(join(__dirname, './apollo.ts'), 'utf8')
     // The paid path's machinery is exactly as it was — this build changed WHO enters it.
     expect(delivery).toContain('if (process.env.HUNTER_API_KEY) {')
-    expect(delivery).toContain('const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string))')
+    // ⛓️ 25 Sep (R166 · P2) — the call now names what it is for ('lead_delivery', recorded in the
+    // Apollo credit ledger). The machinery this pins is otherwise unchanged.
+    expect(delivery).toContain("const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string), 'lead_delivery')")
     expect(apollo).toContain('const ids = apolloRevealableIds(apolloIds)')
     expect(apollo).toContain('bulk_match: AR5 refused ${refused} non-Apollo id(s) — routed to the Hunter waterfall instead')
     // …and delivery still cannot charge (#420's invariant).

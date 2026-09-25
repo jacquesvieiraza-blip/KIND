@@ -50,7 +50,7 @@ export async function enrichAndDeliverLeads(
 
   const needEmail = (rows ?? []).filter(r => !r.email && r.apollo_id)
   if (needEmail.length > 0) {
-    const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string))
+    const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string), 'lead_delivery')
 
     // ── ⚑ 7 Sep — THE FINAL QUALIFICATION GATE, WHERE THE FACTS FIRST EXIST ─────────────
     //

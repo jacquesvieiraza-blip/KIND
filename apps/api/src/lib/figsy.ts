@@ -1234,6 +1234,22 @@ async function sendSequenceEmailCore(
         .eq('id', enrollmentId)
       return 'deferred'
     }
+    // ⚑ 25 Sep (R166 ⑥ · P4) — AND A MAILBOX AT 3% BOUNCES (last 7 days, ≥20 sends) SENDS NOTHING.
+    const { mailboxBounceState } = await import('./mailbox-daily-cap')
+    const bounce = await mailboxBounceState(sendingInbox.id)
+    if (bounce.state !== 'ok') {
+      console.warn(`[figsy] sendSequenceEmail: mailbox ${sendingInbox.email} ${bounce.state === 'too_many_bounces' ? `is held — ${bounce.bounced} bounces on ${bounce.sent} sends (≥3%)` : 'has an unreadable bounce record'} — step ${step} to ${lead.email} deferred.`)
+      await db.from('figsy_enrollments')
+        .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+        .eq('id', enrollmentId)
+      if (bounce.state === 'too_many_bounces') {
+        void sendFounderAlert('sends_stalled', `Mailbox ${sendingInbox.email} paused — bounces at ${Math.round((bounce.bounced / bounce.sent) * 100)}%`, [
+          `${bounce.bounced} of its last ${bounce.sent} sends (7 days) bounced or were marked spam. At 3% a mailbox stops sending (R166).`,
+          'Nothing more is sent from it until the rate falls. Check the list quality and the mailbox health before sending again.',
+        ])
+      }
+      return 'deferred'
+    }
   }
 
   // Insert the DB record first so we have the emailId for the tracking pixel

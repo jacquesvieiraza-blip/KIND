@@ -30,6 +30,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect, vi } from 'vitest'
 
+// ⛓️ 25 Sep (R168 ② · P3c) — STAND-IN, SAID SO. This file tests what a client run does AFTER the
+// authority gate (provider, provenance, proof state, surfacing). Its fixtures are clients with no
+// programme, which the founder has now ruled may not source (*"A"*). The rule has one home,
+// `no-programme-gate.ts`, and its own real proof in `batch1-programme-less-fence.test.ts`; here it
+// is stood in as "may source" so these downstream assertions keep testing exactly what they did.
+vi.mock('./no-programme-gate', () => ({
+  maySourceWithoutProgramme: async () => true,
+  NO_PROGRAMME_NO_SOURCING: 'stand-in',
+}))
+
+
 // ⚑ 23 Sep (R137) — 🧪 LEGACY-ERA FIXTURE. Production no longer resolves any client to the retired
 // per-lead model (founder: *"the 299/4 is retired/ this must go."*), so the code this file tests
 // is unreachable from production and is removed, with these tests, by its own follow-up PR.

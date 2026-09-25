@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD } from '@kind/shared'
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD } from '@kind/shared'
 
 // #413 #410 #327 — THE PAPER MATCHES THE PRODUCT.
 //
@@ -83,19 +83,22 @@ describe('#413 — the contract matches the payment path', () => {
   // The DUTY is unchanged and is what these now assert: the contract must state exactly when
   // money is taken, and must never imply a charge that happens earlier than it does.
   it('no outreach is paid for or sent before the client has approved', () => {
-    expect(terms).toMatch(/No outreach is sent until it is paid and you have instructed us to go live/)
-    expect(terms).toMatch(/falls due after you have approved the prepared programme/)
+    // ⛓️ 25 Sep (R166 ③ · P13) — one payment, before sourcing; outreach still waits for approval.
+    expect(terms).toMatch(/No outreach is sent until you have approved the prepared programme and instructed us to go live/)
+    expect(terms).toMatch(/Your programme is paid in one payment, in full, when you accept it/)
   })
 
   it('the two payments are stated as halves, and the second is escapable', () => {
+    // ⛓️ 25 Sep (R166 ⑧ · P13) — the halves now live in the EARLIER-TERMS clause, which still
+    // binds every programme already running (founder: running programmes keep what they bought).
     expect(terms).toMatch(/50% of your programme price/)
-    expect(terms).toMatch(/If you pause before go-live, the second payment is never taken/)
+    expect(terms).toMatch(/never taken if you pause before go-live/)
   })
 
   it('and still states the model itself correctly', () => {
     // Derived from the R81 curve, not typed: the rate and the floor.
-    expect(terms).toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
-    expect(terms).toContain(`$${PROGRAMME_FLOOR_USD}`)
+    // ⛓️ 25 Sep (R166 ① · P13) — the model is priced by size band now, from the constants.
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms).toContain(`$${usd}`)
     expect(terms).toMatch(/reviewing is always free/i)
     expect(terms).toMatch(/no subscription to cancel/i)
   })

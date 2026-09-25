@@ -61,9 +61,15 @@ create table if not exists public.clients (
   size_locked_at      timestamptz,
   size_set_by         text,
   size_note           text,
+  -- ⚑ 25 Sep (R168 ④ · P7b): the size the client TOLD us at sign-up — it sets the band, and the
+  -- company check holds it only when it finds them bigger. Migration: 20260925_client_size_stated.
+  size_stated_employees integer,
+  size_stated_at        timestamptz,
   constraint clients_size_band_values
     check ((size_band is null or size_band in ('founders', 'growth', 'enterprise'))
        and (size_source is null or size_source in ('apollo', 'person'))),
+  constraint clients_size_stated_positive
+    check (size_stated_employees is null or size_stated_employees >= 1),
   constraint clients_size_lock_is_complete
     check (size_locked_at is null or (size_band is not null and size_source is not null and size_set_by is not null)),
   -- ⚑ 25 Sep (R166 ⑤ · P11): the new-terms shortfall credit — once per client, 90 days.

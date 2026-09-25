@@ -197,7 +197,9 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
   }
 
   /** Runs the REAL runIcpJob against mocks. Returns what it reached for. */
-  async function runSourcing(audience: Audience, grantReturns: number) {
+  // ⛓️ 25 Sep (P3c) — `opts.catchRefusal` (B/B2 only): return the refusal instead of throwing it.
+  // Every other caller keeps the old behaviour — an unexpected throw still fails its test.
+  async function runSourcing(audience: Audience, grantReturns: number, opts: { catchRefusal?: boolean } = {}) {
     const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = []
     const searchCalls: Array<{ size: number; audience: string }> = []
 
@@ -294,9 +296,15 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
     }))
 
     const { runIcpJob } = await import('../routes/icps')
-    await runIcpJob('icp-1', 'c1', 'u1', 10)
+    let refused: Error | null = null
+    try {
+      await runIcpJob('icp-1', 'c1', 'u1', 10)
+    } catch (e) {
+      if (!opts.catchRefusal) throw e
+      refused = e instanceof Error ? e : new Error(String(e))
+    }
 
-    return { rpcNames: rpcCalls.map(c => c.fn), rpcCalls, searchCalls }
+    return { rpcNames: rpcCalls.map(c => c.fn), rpcCalls, searchCalls, refused }
   }
 
   // `middleware/auth.ts:4` calls `createClient(...)` at MODULE SCOPE, and importing
@@ -339,23 +347,29 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
   // arguments unchanged". The ICP in this harness carries no programme, so the client path
   // now mirrors the House path directly above: the remainder is granted, unreserved, because
   // there is nothing to reserve against. The PDL money fence is not called by anybody.
+  // ⛓️ 25 Sep (R168 ② · P3c) — WAS: the programme-less client reached Apollo (one search, size 10).
+  // Founder: *"A"* — a client sources only through a programme. It is now refused before any
+  // provider; the half this test exists for — the retired PDL money fence is NOT what stops it —
+  // is asserted exactly as before.
   it('B — a NORMAL CLIENT with no programme reaches Apollo without the PDL money fence', async () => {
-    const { rpcNames, searchCalls } = await runSourcing('client', 10)
+    const { rpcNames, searchCalls, refused } = await runSourcing('client', 10, { catchRefusal: true })
     expect(rpcNames, 'the PDL money fence is retired (FD-6)').not.toContain('try_spend_sourcing')
-    expect(searchCalls).toHaveLength(1)
-    expect(searchCalls[0].audience).toBe('client')
-    // The volume limit is the remainder that already existed — no new budget rule.
-    expect(searchCalls[0].size).toBe(10)
+    expect(searchCalls, 'a client with no programme reached a provider (R168 ②)').toHaveLength(0)
+    expect(refused?.message).toMatch(/This client has no programme, so nothing may be sourced for them/)
   })
 
   // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — was "a NORMAL CLIENT with no allowance is still
   // refused, exactly as AR8 says". `clients.sourcing_allowance` is denominated in PDL
   // records and bounds nothing now. A programme-less client is bounded per run by the
   // remainder, exactly as House is; the reported gap is the absence of a LIFETIME ceiling.
+  // ⛓️ 25 Sep (R168 ② · P3c) — WAS `searchCalls` length 1 ("the run proceeds on the per-run
+  // remainder"). Still never refused BY THE PDL ALLOWANCE (no `try_spend_sourcing`); refused now
+  // because it has no programme.
   it('B2 — a NORMAL CLIENT with no PDL allowance is NOT refused by it any more', async () => {
-    const { rpcNames, searchCalls } = await runSourcing('client', 0)
+    const { rpcNames, searchCalls, refused } = await runSourcing('client', 0, { catchRefusal: true })
     expect(rpcNames).not.toContain('try_spend_sourcing')
-    expect(searchCalls, 'the run proceeds on the per-run remainder').toHaveLength(1)
+    expect(searchCalls, 'a client with no programme reached a provider (R168 ②)').toHaveLength(0)
+    expect(refused?.message).toMatch(/This client has no programme, so nothing may be sourced for them/)
   })
 })
 

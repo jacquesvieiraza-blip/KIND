@@ -25,6 +25,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// ⛓️ 25 Sep (R168 ② · P3c) — STAND-IN, SAID SO. This file tests what a client run does AFTER the
+// authority gate (provider, provenance, proof state, surfacing). Its fixtures are clients with no
+// programme, which the founder has now ruled may not source (*"A"*). The rule has one home,
+// `no-programme-gate.ts`, and its own real proof in `batch1-programme-less-fence.test.ts`; here it
+// is stood in as "may source" so these downstream assertions keep testing exactly what they did.
+vi.mock('./no-programme-gate', () => ({
+  maySourceWithoutProgramme: async () => true,
+  NO_PROGRAMME_NO_SOURCING: 'stand-in',
+}))
+
+
 // ⚑ 23 Sep (R137) — 🧪 LEGACY-ERA FIXTURE. Production no longer resolves any client to the retired
 // per-lead model (founder: *"the 299/4 is retired/ this must go."*), so the code this file tests
 // is unreachable from production and is removed, with these tests, by its own follow-up PR.
@@ -268,7 +279,13 @@ describe('the launch journey — one ICP, two proof passes, then K.I.N.D presses
       return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
     })
   })
-  afterEach(() => {
+  afterEach(async () => {
+    // ⛓️ 25 Sep (R168 ② · P3c) — LET A GO'S BACKGROUND SOURCING FINISH INSIDE THE TEST THAT STARTED
+    // IT. `go()` fires the first run and returns; its RPCs used to land before the next test's
+    // `beforeEach` by luck of timing. One more await in the authority gate (the no-programme
+    // question) moved them into the NEXT test's recorder, where THE PROOF MONEY RULES read them.
+    // Draining here is stricter isolation, and asserts nothing away.
+    await new Promise(r => setTimeout(r, 50))
     vi.doUnmock('../routes/admin'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts'); vi.doUnmock('./provider-boundary')
     vi.resetModules()
     process.env.ANTHROPIC_API_KEY = prev.anthropic

@@ -239,6 +239,27 @@ export function calculateProgramme(inputs: CalculatorInputs): CalculatorResult {
 }
 
 /**
+ * 🛑 ⚑ 25 Sep (R168 ③ · P3·max, board #2349) — THE LARGEST PROGRAMME A CLIENT CAN BUY.
+ *
+ * Founder: *"A we start here"* — 50 qualified meetings. Above it the client is told to talk to
+ * us, so the founder still gets the deal and shapes it himself.
+ *
+ * ⚠️ NEW TERMS ONLY. It applies to a programme priced on a size band (R166). Programmes already
+ * running and House keep the R81 curve they bought, and this limit does not touch them.
+ */
+export const MAX_PROGRAMME_MEETINGS = 50
+
+/** What a client on the new terms is told above the maximum. The number is interpolated. */
+export const OVER_PROGRAMME_MAXIMUM =
+  `${MAX_PROGRAMME_MEETINGS} qualified meetings is the most one programme takes on. ` +
+  'For more, talk to us first — we will shape it with you.'
+
+/** The sentence when a band-priced target is above the maximum, else null. Pure. */
+export function overProgrammeMaximum(meetings: number, band: import('./size-band').SizeBand | null | undefined): string | null {
+  return band && Number(meetings) > MAX_PROGRAMME_MEETINGS ? OVER_PROGRAMME_MAXIMUM : null
+}
+
+/**
  * Is this a target the calculator will accept? Used by the screen to enable its own control,
  * so the client is never invited to press something the server will refuse.
  */

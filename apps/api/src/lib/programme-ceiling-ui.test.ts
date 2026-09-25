@@ -61,22 +61,32 @@ describe('🛑 ① the meetings control stops where the pool stops', () => {
   })
 
   it('🛑 BOTH INPUTS TAKE THEIR MAXIMUM FROM THE CAPACITY READ', () => {
+    // ⛓️ 25 Sep (R168 ③ · P3·max) — WAS: two `max={…}` attributes naming `cap` directly. Both
+    // controls now stop at `top`: the LOWER of the capacity read and the 50-meeting maximum on
+    // the new terms (null for House and the curve). Still derived from the capacity read — `top`
+    // IS `cap` whenever no maximum applies — and asserted as such, so it is not weaker.
+    expect(CALC).toContain('const top = cap !== null && maxMeetings !== null ? Math.min(cap, maxMeetings) : (cap ?? maxMeetings)')
     const maxima = CALC.match(/max=\{[^}]*\}/g) ?? []
-    const meetingMaxima = maxima.filter(m => m.includes('cap'))
+    const meetingMaxima = maxima.filter(m => m.includes('top'))
     expect(meetingMaxima.length, 'fewer than two controls read the capacity').toBeGreaterThanOrEqual(2)
   })
 
   it('🛑 AND A NUMBER TYPED PAST THE CEILING IS CLAMPED, not just visually limited', () => {
     // `max` on a number input is advisory — a typed value exceeds it happily. Without the
     // clamp the slider would stop at capacity while the box beside it accepted anything.
-    expect(CALC, 'the typed value is not clamped to the capacity').toMatch(/Math\.min\(cap/)
+    // ⛓️ 25 Sep (P3·max) — WAS `/Math\.min\(cap/`; the clamp is now to `top` (capacity, or the
+    // maximum when lower — see above).
+    expect(CALC, 'the typed value is not clamped to the capacity').toMatch(/Math\.min\(top/)
   })
 
   it('🛑 AN UNKNOWN CAPACITY CAPS NOTHING — it must never read as zero', () => {
     // "We could not reach the provider" and "your market carries no meetings" are different
     // facts, and capping a paying client at zero for the first would be the worse failure.
-    expect(CALC).toMatch(/cap\s*\?\?\s*50/)
-    expect(CALC).toMatch(/cap\s*\?\?\s*500/)
+    // ⛓️ 25 Sep (P3·max) — WAS `cap ?? 50` / `cap ?? 500`. Unknown capacity still caps nothing
+    // beyond the old defaults: `top` is null when there is neither a capacity nor a maximum.
+    expect(CALC).toMatch(/top\s*\?\?\s*50/)
+    expect(CALC).toMatch(/top\s*\?\?\s*500/)
+    expect(CALC).toContain('(cap ?? maxMeetings)')
     expect(CALC, 'the guard does not require a KNOWN capacity').toMatch(/c\.known/)
   })
 

@@ -1026,6 +1026,15 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
       })
       return
     }
+    // ⚑ 25 Sep (R166 ② · P7) — AFTER THE BRIEF, FIND THE CLIENT'S OWN SIZE BAND. In the
+    // background: the client is never kept waiting on Apollo, and a failure only means a person
+    // sets the band in Vida (the check files the Needs-you task itself).
+    if (p.clientId) {
+      const cid = p.clientId
+      void import('../lib/client-size')
+        .then(m => m.ensureClientSize(cid, { email: req.authEmail ?? null }))
+        .catch(err => console.error('[milla/brief-draft/confirm] size check failed:', err))
+    }
     res.json({ success: true, data: {
       confirmed_at: r.draft.confirmedAt,
       client_id: p.clientId,

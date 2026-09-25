@@ -6846,6 +6846,48 @@ operatorRouter.post('/meetings/:id/reschedule', async (req: Request, res: Respon
   } catch (err) { console.error('[operator/meetings/reschedule]', err); res.status(500).json({ success: false, error: 'Failed to reschedule' }) }
 })
 
+// ⚑ 25 Sep (R166 ② · P7) — THE CLIENT'S SIZE BAND: read it, check it against Apollo once, or
+// let a person set it. A locked band is changed only with a written reason. Audited.
+operatorRouter.get('/client-size', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data, error } = await db.from('clients')
+      .select('size_band, size_employees, size_source, size_review_reason, size_checked_at, size_locked_at, size_set_by, size_note, website')
+      .eq('id', client.id).maybeSingle()
+    if (error) { res.status(503).json({ success: false, error: `The client could not be read (${error.message}).` }); return }
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/client-size]', err); res.status(500).json({ success: false, error: 'Failed to load the size band' }) }
+})
+
+operatorRouter.post('/client-size/check', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String((req.body ?? {}).client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { ensureClientSize } = await import('../lib/client-size')
+    const r = await ensureClientSize(client.id)
+    res.json({ success: true, data: r })
+  } catch (err) { console.error('[operator/client-size/check]', err); res.status(500).json({ success: false, error: 'Failed to check the size' }) }
+})
+
+operatorRouter.post('/client-size', async (req: Request, res: Response) => {
+  try {
+    const { client_id, band, employees, note } = (req.body ?? {}) as { client_id?: string; band?: string; employees?: number | string; note?: string }
+    const client = await requireClient(String(client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { setClientSizeByPerson } = await import('../lib/client-size')
+    const r = await setClientSizeByPerson(client.id, { band, employees, note }, operatorEmail(req))
+    if (r.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: client.id, action: 'client_size_set', subjectType: 'client', subjectId: client.id,
+        detail: { band: r.band, previous: r.previous, employees: employees ?? null, note: note ?? null },
+      })
+    }
+    res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'storage_unreadable' ? 503 : 400)
+      .json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
+  } catch (err) { console.error('[operator/client-size]', err); res.status(500).json({ success: false, error: 'Failed to set the size band' }) }
+})
+
 operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {
   try {
     const { client_id, enabled } = (req.body ?? {}) as { client_id?: string; enabled?: boolean }

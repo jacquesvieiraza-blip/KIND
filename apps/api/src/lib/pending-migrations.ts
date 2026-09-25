@@ -7205,6 +7205,42 @@ COMMENT ON COLUMN public.meetings.absence_party IS
   'Who was absent or cancelled: prospect (one free reschedule, R141) | client (counts as delivered).';
 `,
   },
+  {
+    // ⚑ 25 Sep (R166 ② · P7, board #2353) — THE CLIENT'S SIZE BAND. Found once from Apollo by
+    // the client's website, or set by a person in Vida; then locked. Expand only.
+    key: '20260925_client_size_band',
+    title: 'clients.size_band / size_employees / size_locked_at — the client\'s size band (R166 ②, P7)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS size_band           text,
+  ADD COLUMN IF NOT EXISTS size_employees      integer,
+  ADD COLUMN IF NOT EXISTS size_source         text,
+  ADD COLUMN IF NOT EXISTS size_review_reason  text,
+  ADD COLUMN IF NOT EXISTS size_checked_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS size_locked_at      timestamptz,
+  ADD COLUMN IF NOT EXISTS size_set_by         text,
+  ADD COLUMN IF NOT EXISTS size_note           text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'clients_size_band_values') THEN
+    ALTER TABLE public.clients ADD CONSTRAINT clients_size_band_values
+      CHECK ((size_band IS NULL OR size_band IN ('founders', 'growth', 'enterprise'))
+         AND (size_source IS NULL OR size_source IN ('apollo', 'person')));
+  END IF;
+  -- A locked band is a band, with who set it.
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'clients_size_lock_is_complete') THEN
+    ALTER TABLE public.clients ADD CONSTRAINT clients_size_lock_is_complete
+      CHECK (size_locked_at IS NULL OR (size_band IS NOT NULL AND size_source IS NOT NULL AND size_set_by IS NOT NULL));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.clients.size_band IS
+  'R166 ②: founders (1–50) | growth (51–200) | enterprise (200+), by the client''s own company size. Locked once set.';
+COMMENT ON COLUMN public.clients.size_review_reason IS
+  'Why a person must set the band: free_email | no_website | domain_mismatch | not_found | lookup_failed.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

@@ -31,6 +31,7 @@ import {
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
 import MeetingQualifyPanel from '@/components/vida/MeetingQualifyPanel'   // ⚑ 25 Sep (R141 · P5a)
+import ClientSizePanel from '@/components/vida/ClientSizePanel'   // ⚑ 25 Sep (R166 ② · P7)
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
 
 
@@ -4994,6 +4995,7 @@ export default function VidaConsolePage() {
                     </div>
 
                     {/* ⚑ 25 Sep (R141 · R166 · P5a) — every meeting qualified against the seven conditions, with evidence. */}
+                    {selected && <ClientSizePanel clientId={selected} />}
                     {selected && <MeetingQualifyPanel clientId={selected} />}
 
                     <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">

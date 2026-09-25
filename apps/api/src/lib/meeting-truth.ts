@@ -79,6 +79,19 @@ const MEETING_COLUMNS =
   'scheduled_at, booked_at, verified_at, held_confirmed_at, no_show_confirmed_at, confirmed_by, ' +
   'rescheduled_from, superseded_by, excluded_reason, excluded_at, excluded_note'
 
+/** ⚑ 25 Sep (P5c) — what a rescheduled meeting keeps: it is the same meeting at a new time. */
+const CARRIED_ON_RESCHEDULE = [
+  'booked_at', 'qualification', 'qualified_at', 'qualified_by', 'evidence_reply_id', 'evidence_note',
+  'challenge_deadline_at', 'challenged_at', 'challenge_condition', 'challenge_note', 'challenge_outcome',
+  'challenge_resolved_at', 'challenge_resolved_by', 'challenge_resolution_note',
+] as const
+
+function carriedFrom(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of CARRIED_ON_RESCHEDULE) if (row[k] !== undefined && row[k] !== null) out[k] = row[k]
+  return out
+}
+
 /** Postgres unique-violation. The house idiom for "somebody else got there first". */
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string } | null)?.code === '23505'
@@ -336,10 +349,12 @@ export function confirmNoShow(meetingId: string, confirmedBy: string): Promise<M
 export async function rescheduleMeeting(
   meetingId: string,
   newScheduledAt: string,
-  opts: { googleEventId?: string | null } = {},
+  // ⚑ 25 Sep (P5c) — `afterProspectAbsence` is set ONLY by `rescheduleAfterAbsence`, which has
+  // already proven the prospect missed or cancelled and that this is the first reschedule.
+  opts: { googleEventId?: string | null; afterProspectAbsence?: boolean } = {},
 ): Promise<MeetingResult> {
   const { data: existing, error: readErr } = await db.from('meetings')
-    .select(MEETING_COLUMNS).eq('id', meetingId).maybeSingle()
+    .select(`${MEETING_COLUMNS}, ${CARRIED_ON_RESCHEDULE.join(', ')}`).eq('id', meetingId).maybeSingle()
 
   if (readErr) {
     console.error('[meeting-truth] rescheduleMeeting read failed:', readErr.message)
@@ -356,7 +371,10 @@ export async function rescheduleMeeting(
       message: 'That meeting was already rescheduled — move the meeting that replaced it.',
     } }
   }
-  if (old.state === 'HELD' || old.state === 'NO_SHOW') {
+  // ⛓️ 25 Sep (P5c) — A PROSPECT'S NO-SHOW IS NOW RESCUED ONCE (R141: "we will make reasonable
+  // efforts to reschedule the meeting once, at no additional charge"), and only through
+  // `rescheduleAfterAbsence`. A HELD meeting, and any other NO_SHOW, is still history.
+  if (old.state === 'HELD' || (old.state === 'NO_SHOW' && !opts.afterProspectAbsence)) {
     return { ok: false, refused: {
       reason: 'illegal_transition',
       message: `A ${old.state} meeting is history and is not rescheduled — book a new meeting.`,
@@ -395,6 +413,10 @@ export async function rescheduleMeeting(
     scheduled_at:    newScheduledAt,
     verified_at:     verified ? now : null,
     rescheduled_from: old.id,
+    // ⚑ 25 Sep (P5c) — THE SAME MEETING, MOVED: it keeps its qualification, its evidence, the
+    // client's challenge and the ORIGINAL booking time, so it counts once and the client's
+    // 3-business-day window does not reopen because the prospect moved it.
+    ...carriedFrom(existing as unknown as Record<string, unknown>),
   }).select(MEETING_COLUMNS).single()
 
   if (insErr) {
@@ -946,4 +968,98 @@ export async function resolveMeetingChallenge(
     return { ok: false, reason: 'already_resolved', message: 'Somebody else resolved this challenge first. Nothing was changed.' }
   }
   return { ok: true, meetingId, outcome: input.outcome, resolvedAt }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R141 · R166 · P5c) — NO-SHOWS AND CANCELLATIONS, AND WHO.
+//
+// R141's Terms: the prospect does not attend or cancels → "we will make reasonable efforts to
+// reschedule the meeting once, at no additional charge"; "You cancel or do not attend: the
+// meeting counts as delivered toward your target"; "The meeting is successfully rescheduled: it
+// counts once toward your target, not twice."
+//
+// 🛑 A PERSON SAYS SO, NEVER THE CLOCK — the same rule as HELD / NO_SHOW above. A no-show moves
+// the state to NO_SHOW with its stamp; a cancellation leaves the state as booked (it still
+// counts, R141) and records who. 🛑 ONE FREE RESCHEDULE: only after the PROSPECT was absent,
+// and never for a meeting that is itself already a reschedule. 🛑 A CLIENT ABSENCE IS REFUSED A
+// FREE RESCHEDULE — it counts as delivered.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export type AbsenceKind = 'no_show' | 'cancelled'
+export type AbsenceParty = 'prospect' | 'client'
+
+export type AbsenceResult =
+  | { ok: true; meetingId: string; kind: AbsenceKind; party: AbsenceParty }
+  | { ok: false; reason: 'invalid' | 'not_found' | 'not_countable' | 'already_recorded' | 'storage_unreadable'; message: string }
+
+export async function recordMeetingAbsence(
+  meetingId: string,
+  input: { kind: unknown; party: unknown },
+  by: string,
+): Promise<AbsenceResult> {
+  if (input.kind !== 'no_show' && input.kind !== 'cancelled') {
+    return { ok: false, reason: 'invalid', message: 'Choose "did not attend" or "cancelled". Nothing was changed.' }
+  }
+  if (input.party !== 'prospect' && input.party !== 'client') {
+    return { ok: false, reason: 'invalid', message: 'Choose who: the prospect or the client. Nothing was changed.' }
+  }
+  const kind = input.kind as AbsenceKind
+  const party = input.party as AbsenceParty
+
+  const { data: m, error } = await db.from('meetings')
+    .select('id, state, excluded_reason, superseded_by, absence_kind').eq('id', meetingId).maybeSingle()
+  if (error) return { ok: false, reason: 'storage_unreadable', message: `The meeting could not be read (${error.message}). Nothing was changed.` }
+  const row = m as { state: string; excluded_reason: string | null; superseded_by: string | null; absence_kind: string | null } | null
+  if (!row) return { ok: false, reason: 'not_found', message: 'No such meeting. Nothing was changed.' }
+  if (row.excluded_reason || row.superseded_by) {
+    return { ok: false, reason: 'not_countable', message: 'This meeting is excluded or was already rescheduled. Record it on the live meeting. Nothing was changed.' }
+  }
+  if (row.absence_kind) return { ok: false, reason: 'already_recorded', message: 'A no-show or cancellation is already recorded on this meeting. Nothing was changed.' }
+  if (row.state === 'HELD' || row.state === 'NO_SHOW') {
+    return { ok: false, reason: 'already_recorded', message: `This meeting is already settled as ${row.state}. Nothing was changed.` }
+  }
+
+  const now = new Date().toISOString()
+  const patch: Record<string, unknown> = {
+    absence_kind: kind, absence_party: party, absence_recorded_at: now, absence_recorded_by: by, updated_at: now,
+  }
+  // A no-show is the NO_SHOW outcome, with its stamp (meetings_no_show_requires_confirmation).
+  if (kind === 'no_show') Object.assign(patch, { state: 'NO_SHOW', no_show_confirmed_at: now, confirmed_by: by })
+
+  const { data: hit, error: upErr } = await db.from('meetings')
+    .update(patch).eq('id', meetingId).is('absence_kind', null).is('superseded_by', null)
+    .select('id')
+  if (upErr) return { ok: false, reason: 'storage_unreadable', message: `It could not be recorded (${upErr.message}). Nothing was changed.` }
+  if (!hit || (hit as unknown[]).length === 0) {
+    return { ok: false, reason: 'already_recorded', message: 'Somebody else recorded this first. Nothing was changed.' }
+  }
+  return { ok: true, meetingId, kind, party }
+}
+
+export type RescueResult =
+  | { ok: true; meeting: MeetingRow }
+  | { ok: false; reason: 'not_found' | 'no_absence' | 'client_absence' | 'already_rescheduled' | 'invalid' | 'storage_unreadable'; message: string }
+
+/** The one free reschedule after the PROSPECT missed or cancelled (R141). */
+export async function rescheduleAfterAbsence(meetingId: string, newScheduledAt: string): Promise<RescueResult> {
+  const at = new Date(newScheduledAt)
+  if (!newScheduledAt || Number.isNaN(at.getTime())) {
+    return { ok: false, reason: 'invalid', message: 'Give the new date and time. Nothing was changed.' }
+  }
+  const { data: m, error } = await db.from('meetings')
+    .select('id, absence_kind, absence_party, rescheduled_from, superseded_by').eq('id', meetingId).maybeSingle()
+  if (error) return { ok: false, reason: 'storage_unreadable', message: `The meeting could not be read (${error.message}). Nothing was changed.` }
+  const row = m as { absence_kind: string | null; absence_party: string | null; rescheduled_from: string | null; superseded_by: string | null } | null
+  if (!row) return { ok: false, reason: 'not_found', message: 'No such meeting. Nothing was changed.' }
+  if (!row.absence_kind) {
+    return { ok: false, reason: 'no_absence', message: 'Record the no-show or cancellation first — the free reschedule follows a prospect’s absence. Nothing was changed.' }
+  }
+  if (row.absence_party === 'client') {
+    return { ok: false, reason: 'client_absence', message: 'The client missed or cancelled, so under the Terms this meeting counts as delivered — there is no free reschedule. Nothing was changed.' }
+  }
+  if (row.rescheduled_from || row.superseded_by) {
+    return { ok: false, reason: 'already_rescheduled', message: 'This meeting has already had its one free reschedule. Nothing was changed.' }
+  }
+  const r = await rescheduleMeeting(meetingId, at.toISOString(), { afterProspectAbsence: true })
+  if (!r.ok) return { ok: false, reason: 'storage_unreadable', message: `${r.refused.message} Nothing was changed.` }
+  return { ok: true, meeting: r.meeting }
 }

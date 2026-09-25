@@ -409,6 +409,12 @@ create table if not exists public.meetings (
   challenge_resolved_at timestamptz,
   challenge_resolved_by text,
   challenge_resolution_note text,
+  -- ⚑ 25 Sep (R141 · R166 · P5c): a no-show or cancellation, and who — prospect (one free
+  -- reschedule) or client (counts as delivered).
+  absence_kind         text,
+  absence_party        text,
+  absence_recorded_at  timestamptz,
+  absence_recorded_by  text,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
 
@@ -446,7 +452,13 @@ create table if not exists public.meetings (
   constraint meetings_challenge_is_complete
     check ((challenged_at is null) = (challenge_condition is null)
        and (challenge_outcome is null or challenged_at is not null)
-       and ((challenge_outcome is null) = (challenge_resolved_at is null)))
+       and ((challenge_outcome is null) = (challenge_resolved_at is null))),
+  constraint meetings_absence_values
+    check ((absence_kind is null or absence_kind in ('no_show', 'cancelled'))
+       and (absence_party is null or absence_party in ('prospect', 'client'))),
+  constraint meetings_absence_is_complete
+    check ((absence_kind is null) = (absence_party is null)
+       and (absence_kind is null) = (absence_recorded_at is null))
 );
 
 create unique index if not exists meetings_google_event_id_key

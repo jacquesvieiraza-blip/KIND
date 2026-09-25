@@ -6753,7 +6753,7 @@ operatorRouter.get('/meetings', async (req: Request, res: Response) => {
     const client = await requireClient(String(req.query.client_id ?? ''))
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { data: meetings, error } = await db.from('meetings')
-      .select('id, lead_id, programme_id, state, scheduled_at, booked_at, qualified_at, qualified_by, qualification, evidence_reply_id, evidence_note, challenge_deadline_at, challenged_at, challenge_condition, challenge_note, challenge_outcome, challenge_resolved_at, challenge_resolved_by, challenge_resolution_note')
+      .select('id, lead_id, programme_id, state, scheduled_at, booked_at, qualified_at, qualified_by, qualification, evidence_reply_id, evidence_note, challenge_deadline_at, challenged_at, challenge_condition, challenge_note, challenge_outcome, challenge_resolved_at, challenge_resolved_by, challenge_resolution_note, rescheduled_from, absence_kind, absence_party, absence_recorded_at, absence_recorded_by')
       .eq('client_id', client.id).is('excluded_reason', null).is('superseded_by', null)
       .order('scheduled_at', { ascending: false }).limit(100)
     if (error) { res.status(503).json({ success: false, error: `Meetings could not be read (${error.message}).` }); return }
@@ -6810,6 +6810,40 @@ operatorRouter.post('/meetings/:id/resolve-challenge', async (req: Request, res:
     res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'invalid' ? 400 : 409)
       .json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
   } catch (err) { console.error('[operator/meetings/resolve-challenge]', err); res.status(500).json({ success: false, error: 'Failed to resolve the challenge' }) }
+})
+
+// ⚑ 25 Sep (R141 · P5c) — A NO-SHOW OR CANCELLATION, AND WHO; THEN THE ONE FREE RESCHEDULE.
+// Prospect absent → one free reschedule. Client absent → counts as delivered, no reschedule.
+operatorRouter.post('/meetings/:id/absence', async (req: Request, res: Response) => {
+  try {
+    const { kind, party } = (req.body ?? {}) as { kind?: string; party?: string }
+    const { recordMeetingAbsence } = await import('../lib/meeting-truth')
+    const r = await recordMeetingAbsence(req.params.id, { kind, party }, operatorEmail(req))
+    if (r.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), action: 'meeting_absence_recorded', subjectType: 'meeting', subjectId: req.params.id,
+        detail: { kind: r.kind, party: r.party },
+      })
+    }
+    res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'invalid' ? 400 : 409)
+      .json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })
+  } catch (err) { console.error('[operator/meetings/absence]', err); res.status(500).json({ success: false, error: 'Failed to record it' }) }
+})
+
+operatorRouter.post('/meetings/:id/reschedule', async (req: Request, res: Response) => {
+  try {
+    const { scheduled_at } = (req.body ?? {}) as { scheduled_at?: string }
+    const { rescheduleAfterAbsence } = await import('../lib/meeting-truth')
+    const r = await rescheduleAfterAbsence(req.params.id, String(scheduled_at ?? ''))
+    if (r.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), action: 'meeting_rescheduled', subjectType: 'meeting', subjectId: req.params.id,
+        detail: { replacement: r.meeting.id, scheduled_at: r.meeting.scheduled_at, why: 'prospect absent — the one free reschedule (R141)' },
+      })
+    }
+    res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'invalid' ? 400 : 409)
+      .json(r.ok ? { success: true, meetingId: r.meeting.id, scheduledAt: r.meeting.scheduled_at } : { success: false, reason: r.reason, error: r.message })
+  } catch (err) { console.error('[operator/meetings/reschedule]', err); res.status(500).json({ success: false, error: 'Failed to reschedule' }) }
 })
 
 operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {

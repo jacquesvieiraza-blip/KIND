@@ -333,7 +333,10 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
             ? (busy ? 'Accepting…' : `Accept ${d?.meetings ?? meetings} meetings · no payment (House)`)
             : busy ? 'Opening payment…'
               : d && d.secondPaymentCents === 0 ? `Accept ${d.meetings} meetings · Pay ${programmeMoney(d.firstPaymentCents)}`
-              : `Accept ${d?.meetings ?? meetings} meetings · Pay P1${d ? ` (${programmeMoney(d.firstPaymentCents)})` : ''}`}
+              // ⚑ 25 Sep (R168 · P7b) — with no price yet (size still being confirmed) the button no
+              // longer says "Pay P1": a client on the new terms pays once. Words only (R167).
+              : d ? `Accept ${d.meetings} meetings · Pay P1 (${programmeMoney(d.firstPaymentCents)})`
+              : `Accept ${meetings} meetings`}
         </button>
         {onWiden ? <button onClick={onWiden} disabled={busy} className="mv-btn">Widen targeting</button> : null}
         {/* ⚠️ IT SAYS WHAT THE PRESS DOES: it accepts this programme and opens the first payment.

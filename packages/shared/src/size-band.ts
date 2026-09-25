@@ -34,7 +34,7 @@ export function sizeBandLabel(band: SizeBand | null | undefined): string {
 }
 
 /** Why a person must decide the band (R166 ②: "A person reviews it"). */
-export type SizeReviewReason = 'free_email' | 'no_website' | 'domain_mismatch' | 'not_found' | 'lookup_failed'
+export type SizeReviewReason = 'free_email' | 'no_website' | 'domain_mismatch' | 'not_found' | 'lookup_failed' | 'stated_smaller'
 
 export const SIZE_REVIEW_REASON_COPY: Record<SizeReviewReason, string> = {
   free_email:      'They signed up with a free email address, so the company could not be confirmed.',
@@ -42,4 +42,27 @@ export const SIZE_REVIEW_REASON_COPY: Record<SizeReviewReason, string> = {
   domain_mismatch: 'Their email address and their website are different companies.',
   not_found:       'Apollo has no company size for their website.',
   lookup_failed:   'The company-size check could not reach Apollo.',
+  // ⚑ 25 Sep (R168 ④) — the only case where the client's own answer waits for a person.
+  stated_smaller:  'They told us a smaller company size than company records show, so a person confirms their band before they pay.',
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R168 ④ · P7b) — SIZE IS STATED BY THE CLIENT, THEN CHECKED.
+//
+// Founder: *"when they sign up. they got to tell us their company name. their size. we take their
+// word for it. but we should build in a company check."* — and, asked what happens when the two
+// disagree: *"a"*. Their word sets the band. The check holds the price for a person ONLY when it
+// finds the company BIGGER (the one way to under-pay); smaller, or not found, their word stands.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+const BAND_RANK: Record<SizeBand, number> = { founders: 1, growth: 2, enterprise: 3 }
+
+/**
+ * What to do with a stated size and the check's answer. Pure.
+ * `checkedBand` null = the check could not find the company (or could not run).
+ */
+export function statedSizeVerdict(statedBand: SizeBand, checkedBand: SizeBand | null):
+  | { kind: 'stated_stands' }
+  | { kind: 'person_confirms' } {
+  if (checkedBand && BAND_RANK[checkedBand] > BAND_RANK[statedBand]) return { kind: 'person_confirms' }
+  return { kind: 'stated_stands' }
 }

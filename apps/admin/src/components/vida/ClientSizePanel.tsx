@@ -77,7 +77,7 @@ export default function ClientSizePanel({ clientId }: { clientId: string }) {
             <p className="text-[12.5px]">
               <b>{sizeBandLabel(size.size_band)}</b>
               {size.size_employees ? <span className="text-[#6b5f8c]"> · {size.size_employees} employees</span> : null}
-              <span className="text-[#9b8ec4]"> · {size.size_source === 'apollo' ? 'from Apollo' : `set by ${size.size_set_by}`} · locked {when(size.size_locked_at)}</span>
+              <span className="text-[#9b8ec4]"> · {size.size_source === 'apollo' ? 'from Apollo' : size.size_set_by === 'client' ? 'as the client told us (R168)' : `set by ${size.size_set_by}`} · locked {when(size.size_locked_at)}</span>
             </p>
           ) : size.size_review_reason ? (
             <p className="text-[12.5px] text-amber-800">Needs you: {SIZE_REVIEW_REASON_COPY[size.size_review_reason]}</p>

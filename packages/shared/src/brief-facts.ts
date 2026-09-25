@@ -301,6 +301,12 @@ export type BriefDraftFacts = {
   country?: string | null
   /** Account fact, not a Brief fact. */
   phone?: string | null
+  /**
+   * ⚑ 25 Sep (R168 ④ · P7b) — Account fact, not a Brief fact: roughly how many people work at the
+   * client's OWN company, as they told Milla. It sets their price band; the company check confirms
+   * it. Never the size of the companies they want to reach — that is `company_sizes`, fact #8.
+   */
+  company_employees?: number | null
 }
 
 /**

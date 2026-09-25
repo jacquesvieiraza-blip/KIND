@@ -16,7 +16,7 @@
 // headcount means review, not "Founders by default" (that would under-price an enterprise).
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { db } from '@kind/db'
-import { bandForEmployees, isSizeBand, type SizeBand, type SizeReviewReason, SIZE_REVIEW_REASON_COPY } from '@kind/shared'
+import { bandForEmployees, isSizeBand, statedSizeVerdict, type SizeBand, type SizeReviewReason, SIZE_REVIEW_REASON_COPY } from '@kind/shared'
 import { isGenericEmailDomain } from './email-hygiene'
 import { apolloBase } from './provider-hosts'
 
@@ -69,7 +69,7 @@ export async function apolloOrgHeadcount(domain: string): Promise<number | null>
 }
 
 export type ClientSize =
-  | { status: 'set'; band: SizeBand; employees: number | null; source: 'apollo' | 'person'; lockedAt: string }
+  | { status: 'set'; band: SizeBand; employees: number | null; source: 'apollo' | 'person' | 'stated'; lockedAt: string }
   | { status: 'review'; reason: SizeReviewReason; message: string }
   | { status: 'unreadable'; message: string }
 
@@ -77,13 +77,28 @@ type ClientSizeRow = {
   id: string; user_id: string | null; website: string | null; is_demo?: boolean | null
   size_band: string | null; size_employees: number | null; size_source: string | null
   size_review_reason: string | null; size_locked_at: string | null
+  /** ⚑ 25 Sep (R168 ④ · P7b) — who set it; 'client' = from the client's own answer. */
+  size_set_by?: string | null
 }
 
-const COLUMNS = 'id, user_id, website, is_demo, size_band, size_employees, size_source, size_review_reason, size_locked_at'
+const COLUMNS = 'id, user_id, website, is_demo, size_band, size_employees, size_source, size_review_reason, size_locked_at, size_set_by'
+/** ⚑ 25 Sep (P7b) — read on its own, so a database without the column behaves exactly as before. */
+async function statedEmployeesFor(clientId: string): Promise<number | null> {
+  try {
+    const { data, error } = await db.from('clients').select('size_stated_employees').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    const n = Number((data as { size_stated_employees?: unknown }).size_stated_employees)
+    return Number.isInteger(n) && n >= 1 ? n : null
+  } catch { return null }
+}
 
 function fromRow(row: ClientSizeRow): ClientSize | null {
   if (row.size_locked_at && isSizeBand(row.size_band)) {
-    return { status: 'set', band: row.size_band, employees: row.size_employees, source: row.size_source === 'apollo' ? 'apollo' : 'person', lockedAt: row.size_locked_at }
+    // ⚑ 25 Sep (P7b) — a band from the client's own answer is stored as source 'person' (a human
+    // decided it — P7's check allows exactly apollo | person) with set_by 'client', and read back
+    // as 'stated'.
+    const source = row.size_source === 'apollo' ? 'apollo' : row.size_set_by === 'client' ? 'stated' : 'person'
+    return { status: 'set', band: row.size_band, employees: row.size_employees, source, lockedAt: row.size_locked_at }
   }
   return null
 }
@@ -96,9 +111,9 @@ async function loginEmail(userId: string | null): Promise<string | null> {
   } catch { return null }
 }
 
-async function markReview(clientId: string, reason: SizeReviewReason, wasReason: string | null): Promise<ClientSize> {
+async function markReview(clientId: string, reason: SizeReviewReason, wasReason: string | null, note?: string): Promise<ClientSize> {
   const now = new Date().toISOString()
-  await db.from('clients').update({ size_review_reason: reason, size_checked_at: now })
+  await db.from('clients').update({ size_review_reason: reason, size_checked_at: now, ...(note ? { size_note: note } : {}) })
     .eq('id', clientId).is('size_locked_at', null)
   // One Needs-you task per reason, not one per check.
   if (wasReason !== reason) {
@@ -109,6 +124,20 @@ async function markReview(clientId: string, reason: SizeReviewReason, wasReason:
     ], { clientId, subjectKind: 'client_size', subjectId: clientId })
   }
   return { status: 'review', reason, message: SIZE_REVIEW_REASON_COPY[reason] }
+}
+
+/** ⚑ 25 Sep (P7b) — lock a band once. Compare-and-set: whoever locked it first stands. */
+async function lockBand(clientId: string, band: SizeBand, employees: number | null, note: string): Promise<ClientSize> {
+  const now = new Date().toISOString()
+  const { data: hit, error: upErr } = await db.from('clients').update({
+    size_band: band, size_employees: employees, size_source: 'person', size_set_by: 'client',
+    size_locked_at: now, size_checked_at: now, size_review_reason: null, size_note: note,
+  }).eq('id', clientId).is('size_locked_at', null).select(COLUMNS)
+  if (upErr) return { status: 'unreadable', message: `The band could not be saved (${upErr.message}).` }
+  const saved = ((hit ?? []) as ClientSizeRow[])[0]
+  if (saved) return fromRow(saved) ?? { status: 'unreadable', message: 'The band was not saved.' }
+  const again = await db.from('clients').select(COLUMNS).eq('id', clientId).maybeSingle()
+  return (again.data && fromRow(again.data as ClientSizeRow)) || { status: 'unreadable', message: 'The band could not be read back.' }
 }
 
 /**
@@ -127,11 +156,47 @@ export async function ensureClientSize(clientId: string, opts: { email?: string 
   // "Check with Apollo" (`force`) asks again.
   if (row.size_review_reason && !opts.force) {
     const r = row.size_review_reason as SizeReviewReason
-    return { status: 'review', reason: r, message: SIZE_REVIEW_REASON_COPY[r] ?? 'A person is confirming the size.' }
+    // ⚑ 25 Sep (R168 ④ · P7b) — UNLESS THEY HAVE SINCE TOLD US THEIR SIZE. A check that ran before
+    // their answer was stored (free email, no website…) must not keep their price waiting now
+    // that their word can set it. Asked once more, then locked or held for a person for good.
+    // `stated_smaller` is the check already disagreeing with them — that one waits for a person.
+    if (r === 'stated_smaller' || (await statedEmployeesFor(clientId)) === null) {
+      return { status: 'review', reason: r, message: SIZE_REVIEW_REASON_COPY[r] ?? 'A person is confirming the size.' }
+    }
   }
   if (row.is_demo === true) return markReview(clientId, 'not_found', row.size_review_reason)
 
   const plan = sizeLookupPlan({ website: row.website, email: opts.email ?? await loginEmail(row.user_id) })
+
+  // ── ⚑ 25 Sep (R168 ④ · P7b) — THEY TOLD US THEIR SIZE: THEIR WORD, CHECKED ──────────────────
+  //
+  // Founder: *"we take their word for it. but we should build in a company check"* · *"a"*. Their
+  // answer sets the band. The check holds the price for a person ONLY when it finds the company
+  // BIGGER — the one way to under-pay. Smaller, not found, no website, or Apollo unreachable:
+  // their word stands, and the note says what the check saw.
+  const stated = await statedEmployeesFor(clientId)
+  const statedBand = bandForEmployees(stated)
+  if (statedBand && stated !== null) {
+    let checked: number | null = null
+    let checkNote: string
+    if ('review' in plan) {
+      checkNote = `the company check could not run (${plan.review})`
+    } else {
+      try {
+        checked = await apolloOrgHeadcount(plan.lookup)
+        checkNote = checked === null ? `Apollo has no size for ${plan.lookup}` : `Apollo: ${checked} at ${plan.lookup}`
+      } catch (err) {
+        console.error('[client-size] Apollo lookup failed (their stated size stands):', err instanceof Error ? err.message : err)
+        checkNote = 'the company check could not reach Apollo'
+      }
+    }
+    const note = `They told us ${stated} people; ${checkNote}.`
+    if (statedSizeVerdict(statedBand, bandForEmployees(checked)).kind === 'person_confirms') {
+      return markReview(clientId, 'stated_smaller', row.size_review_reason, note)
+    }
+    return lockBand(clientId, statedBand, stated, note)
+  }
+
   if ('review' in plan) return markReview(clientId, plan.review, row.size_review_reason)
 
   let employees: number | null

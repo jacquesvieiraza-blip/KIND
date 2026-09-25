@@ -129,6 +129,13 @@ export type CustomerProgramme = {
      */
     firstPaymentCents: number
     secondPaymentCents: number
+    /**
+     * ⚑ 25 Sep (R166 ③ · P10) — ONE PAYMENT IN FULL (a band-priced programme), so Milla never
+     * mentions a second half. Read from the stored split — priced, and nothing owed at P2 — so
+     * this hot read never depends on a new column. Absent when there is no programme yet —
+     * `paysInFullFor` (milla-chat-system) answers for that case.
+     */
+    paysInFull?: boolean
     firstPaidAt: string | null
     secondPaidAt: string | null
     /**
@@ -479,6 +486,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       totalCents: Number(p.price_total_cents ?? 0),
       firstPaymentCents: Number(p.first_payment_cents ?? 0),
       secondPaymentCents: Number(p.second_payment_cents ?? 0),
+      paysInFull: Number(p.price_total_cents ?? 0) > 0 && Number(p.second_payment_cents ?? 0) === 0,
       firstPaidAt: (p.first_paid_at as string | null) ?? null,
       secondPaidAt: (p.second_paid_at as string | null) ?? null,
       firstAuthorisedAt: (p.first_authorised_at as string | null) ?? null,

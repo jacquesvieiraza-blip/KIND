@@ -266,10 +266,11 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   //
   // ⚠️ THE QUESTION STAYS AT THE END. Appending the re-assertion after it buries what the
   // client actually asked, which is its own defect; the guard asserts this ordering.
-  const { buildLifecycleReassertion } = await import('./milla-chat-system')
+  const { buildLifecycleReassertion, paysInFullFor } = await import('./milla-chat-system')
   history.push({
     role:    'user',
-    content: `${buildLifecycleReassertion()}\n\nContext from documents:\n${contextText}\n\n` +
+    // ⚑ 25 Sep (P10) — the lifecycle for THIS client's terms (one payment on the new terms).
+    content: `${buildLifecycleReassertion(paysInFullFor(programme))}\n\nContext from documents:\n${contextText}\n\n` +
              `Question: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 

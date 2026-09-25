@@ -4718,13 +4718,17 @@ export default function VidaConsolePage() {
                       <p className="text-[12px] text-[#6b5f8c] mb-2">
                         {/* The state line says INTERNAL AUTHORITY, never "paid" — for House
                             those are different facts and only one of them is true. */}
-                        P1: {prog.programme.first_paid_at ? 'paid'
+{/* ⚑ 25 Sep (R166 ③ · P10) — ONE payment settled both stages (the same Stripe session). */}
+                        {prog.programme.first_payment_ref && prog.programme.second_payment_ref === prog.programme.first_payment_ref
+                          ? 'Paid in full (one payment)' : (<>
+                                                P1: {prog.programme.first_paid_at ? 'paid'
                           : prog.programme.first_authorised_at ? `internal authority ${fmtDate(prog.programme.first_authorised_at)}`
                           : 'not authorised'}
                         {' · '}
                         P2: {(prog.programme.second_paid_at && prog.programme.second_payment_ref) ? 'paid'
                           : prog.programme.second_authorised_at ? `internal authority ${fmtDate(prog.programme.second_authorised_at)}`
                           : 'not authorised'}
+                        </>)}
                         {prog.programme.went_live_at ? ` · live since ${fmtDate(prog.programme.went_live_at)}` : ''}
                       </p>
                       <div className="flex flex-wrap gap-2">

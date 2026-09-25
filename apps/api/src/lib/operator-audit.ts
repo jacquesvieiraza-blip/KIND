@@ -137,6 +137,8 @@ export type OperatorAction =
                             // converting, and because before this build the hold had no
                             // writer for its resolution at all — it was a one-way door.
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
+  | 'meeting_qualified'      // ⚑ 25 Sep (R141 · P5a) — a person confirmed the seven Qualified Meeting
+                            // conditions on a meeting and linked the accepting reply as evidence.
   | 'programme_ceiling_raised' // ⚑ 25 Sep (R166 ⑥ · P3b) — a person opened more sourcing on a programme,
                             // with a written reason. Before this, only a raw database edit could.
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model

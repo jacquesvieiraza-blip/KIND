@@ -393,6 +393,14 @@ create table if not exists public.meetings (
   excluded_reason      text check (excluded_reason in ('duplicate', 'spam', 'outside_icp')),
   excluded_at          timestamptz,
   excluded_note        text,
+  -- ⚑ 25 Sep (R141 · R166 · P5a): the Qualified Meeting record — the seven conditions, the
+  -- accepting reply as evidence, and the 3-business-day challenge window.
+  qualification        jsonb,
+  qualified_at         timestamptz,
+  qualified_by         text,
+  evidence_reply_id    uuid references public.figsy_replies(id) on delete set null,
+  evidence_note        text,
+  challenge_deadline_at timestamptz,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
 

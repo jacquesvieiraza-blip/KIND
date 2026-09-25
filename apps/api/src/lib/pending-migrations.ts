@@ -7114,6 +7114,29 @@ COMMENT ON COLUMN public.programmes.review_baseline_booked IS
   'Booked meetings for this programme at that same moment. A higher count later means a new meeting arrived.';
 `,
   },
+  {
+    // ── ⚑ 25 Sep (R141 · R166 · P5a) — THE QUALIFIED MEETING RECORD ───────────────────
+    // The seven conditions, the accepting reply as evidence, and the 3-business-day challenge
+    // window, on the meeting itself. Expand only: nullable columns.
+    key: '20260925_meeting_qualification',
+    title: 'meetings.qualification / qualified_at / evidence_reply_id / challenge_deadline_at — the Qualified Meeting record (R141, P5a)',
+    sql: `
+ALTER TABLE public.meetings
+  ADD COLUMN IF NOT EXISTS qualification         jsonb,
+  ADD COLUMN IF NOT EXISTS qualified_at          timestamptz,
+  ADD COLUMN IF NOT EXISTS qualified_by          text,
+  ADD COLUMN IF NOT EXISTS evidence_reply_id     uuid REFERENCES public.figsy_replies(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS evidence_note         text,
+  ADD COLUMN IF NOT EXISTS challenge_deadline_at timestamptz;
+
+COMMENT ON COLUMN public.meetings.qualification IS
+  'The seven R141 conditions as confirmed by a person: icp_fit, role_fit, agreed_to_meet, date_time_set, genuine_relevance, not_existing_customer, acceptance_evidenced.';
+COMMENT ON COLUMN public.meetings.evidence_reply_id IS
+  'The prospect''s reply in which they accepted the meeting — the evidence condition 7 requires.';
+COMMENT ON COLUMN public.meetings.challenge_deadline_at IS
+  'booked_at + 3 business days. A client challenge after this is out of time (R141).';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

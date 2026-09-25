@@ -778,3 +778,74 @@ export async function recomputeCampaignMeetingCache(campaignId: string): Promise
   }
   return true
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 25 Sep (R141 · R166 · P5a) — QUALIFY A MEETING: THE SEVEN CONDITIONS, WITH EVIDENCE.
+//
+// The website sells a Qualified Meeting (R141). This is where a meeting becomes one, and it is
+// here because this module is the one writer of `public.meetings`.
+//
+// 🛑 ALL SEVEN OR NOTHING. A meeting with one condition unconfirmed is not qualified, and the
+// refusal names which. 🛑 THE EVIDENCE IS THE PROSPECT'S OWN ACCEPTING REPLY — a reply from the
+// same client and the same person, never our own outbound. 🛑 ONCE QUALIFIED IT STANDS: a
+// dispute is the client's challenge (within 3 business days), not a silent re-edit.
+// ⚠️ COMPARE-AND-SET on `qualified_at IS NULL`, so two operators cannot both qualify it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export type QualifyResult =
+  | { ok: true; meetingId: string; qualifiedAt: string; challengeDeadlineAt: string }
+  | { ok: false; reason: 'not_found' | 'not_countable' | 'already_qualified' | 'conditions_not_met' | 'evidence_invalid' | 'storage_unreadable'; message: string }
+
+export async function qualifyMeeting(
+  meetingId: string,
+  input: { qualification: Record<string, unknown>; evidenceReplyId: string | null | undefined; evidenceNote?: string | null },
+  by: string,
+): Promise<QualifyResult> {
+  const { QUALIFIED_MEETING_CONDITIONS, allConditionsMet, missingConditions, addBusinessDays, CHALLENGE_BUSINESS_DAYS } = await import('./meeting-qualification')
+
+  const { data: m, error } = await db.from('meetings')
+    .select('id, client_id, lead_id, booked_at, qualified_at, excluded_reason, superseded_by')
+    .eq('id', meetingId).maybeSingle()
+  if (error) return { ok: false, reason: 'storage_unreadable', message: `The meeting could not be read (${error.message}). Nothing was changed.` }
+  if (!m) return { ok: false, reason: 'not_found', message: 'No such meeting. Nothing was changed.' }
+  const row = m as { id: string; client_id: string; lead_id: string | null; booked_at: string; qualified_at: string | null; excluded_reason: string | null; superseded_by: string | null }
+  if (row.excluded_reason || row.superseded_by) {
+    return { ok: false, reason: 'not_countable', message: 'This meeting is excluded or was rescheduled, so it cannot be qualified. Qualify the live meeting instead.' }
+  }
+  if (row.qualified_at) {
+    return { ok: false, reason: 'already_qualified', message: 'This meeting is already qualified. A dispute is raised as the client’s challenge, not by editing it.' }
+  }
+  if (!allConditionsMet(input.qualification)) {
+    return { ok: false, reason: 'conditions_not_met', message: `Not qualified — these conditions are not confirmed: ${missingConditions(input.qualification).join('; ')}. Nothing was changed.` }
+  }
+
+  // The evidence: the prospect's own accepting reply, from this client and this person.
+  if (!input.evidenceReplyId) {
+    return { ok: false, reason: 'evidence_invalid', message: 'Choose the reply in which the prospect accepted the meeting — that is the evidence condition 7 requires. Nothing was changed.' }
+  }
+  const { data: rep, error: repErr } = await db.from('figsy_replies')
+    .select('id, client_id, lead_id, classification').eq('id', input.evidenceReplyId).maybeSingle()
+  if (repErr) return { ok: false, reason: 'storage_unreadable', message: `The evidence reply could not be read (${repErr.message}). Nothing was changed.` }
+  const r = rep as { client_id: string; lead_id: string | null; classification: string } | null
+  if (!r || r.client_id !== row.client_id || (row.lead_id && r.lead_id !== row.lead_id) || r.classification === 'sent_reply') {
+    return { ok: false, reason: 'evidence_invalid', message: 'That reply is not this prospect’s own reply to this client, so it cannot evidence the acceptance. Nothing was changed.' }
+  }
+
+  const qualification = Object.fromEntries(QUALIFIED_MEETING_CONDITIONS.map(c => [c.key, true]))
+  const qualifiedAt = new Date().toISOString()
+  const challengeDeadlineAt = addBusinessDays(new Date(row.booked_at), CHALLENGE_BUSINESS_DAYS).toISOString()
+  const { data: hit, error: upErr } = await db.from('meetings')
+    .update({
+      qualification, qualified_at: qualifiedAt, qualified_by: by,
+      evidence_reply_id: input.evidenceReplyId,
+      evidence_note: (input.evidenceNote ?? '').trim() || null,
+      challenge_deadline_at: challengeDeadlineAt,
+      updated_at: qualifiedAt,
+    })
+    .eq('id', meetingId).is('qualified_at', null)
+    .select('id')
+  if (upErr) return { ok: false, reason: 'storage_unreadable', message: `The qualification could not be written (${upErr.message}). Nothing was changed.` }
+  if (!hit || (hit as unknown[]).length === 0) {
+    return { ok: false, reason: 'already_qualified', message: 'Somebody else qualified this meeting first. Nothing was changed.' }
+  }
+  return { ok: true, meetingId, qualifiedAt, challengeDeadlineAt }
+}

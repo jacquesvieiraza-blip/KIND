@@ -20,7 +20,7 @@ const read = (p: string) => stripCommentsForEnvScan(readFileSync(join(__dirname,
 
 describe('the sequence cap is 7 — and the editor and the gate agree about it', () => {
   it('the gate enforces 7', () => {
-    expect(MAX_STEPS).toBe(7)
+    expect(MAX_STEPS).toBe(5)   // ⛓️ 25 Sep (R166 ⑥): the founder set the most emails to one person at 5 (was 7, R3/R38).
   })
 
   it('THE AGREEMENT: the Vida editor stops at the same number the gate blocks at', () => {

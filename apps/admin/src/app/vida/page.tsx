@@ -1853,7 +1853,7 @@ export default function VidaConsolePage() {
   // #651 — the operator's sequence plan. Defaults reproduce the previous behaviour exactly
   // (a meeting sequence at the default depth), so Draft still works without touching these.
   const [seqPurpose, setSeqPurpose] = useState<'meeting' | 'event' | 'reactivation'>('meeting')
-  const [seqDepth, setSeqDepth] = useState<3 | 5 | 7>(5)
+  const [seqDepth, setSeqDepth] = useState<3 | 5>(5)   // ⛓️ 25 Sep (R166 ⑥): 7 touches withdrawn — the maximum is 5
   const [seqEventDate, setSeqEventDate] = useState('')
   const [seqEventWarn, setSeqEventWarn] = useState<string | null>(null)
 
@@ -3537,11 +3537,10 @@ export default function VidaConsolePage() {
                                   <option value="event">Event invite</option>
                                   <option value="reactivation">Reactivation</option>
                                 </select>
-                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5 | 7)}
+                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5)}
                                   className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
                                   <option value={3}>3 touches</option>
                                   <option value={5}>5 touches</option>
-                                  <option value={7}>7 touches</option>
                                 </select>
                                 {seqPurpose === 'event' && (
                                   <label className="text-[12px] text-[#5c5279] flex items-center gap-1">
@@ -3576,11 +3575,10 @@ export default function VidaConsolePage() {
                                   <option value="event">Event invite</option>
                                   <option value="reactivation">Reactivation</option>
                                 </select>
-                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5 | 7)}
+                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5)}
                                   className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
                                   <option value={3}>3 touches</option>
                                   <option value={5}>5 touches</option>
-                                  <option value={7}>7 touches</option>
                                 </select>
                                 {seqPurpose === 'event' && (
                                   <label className="text-[12px] text-[#5c5279] flex items-center gap-1">

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { pecrVerdict, pecrSkipReason } from './pecr'
 import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { db } from '@kind/db'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { BACKGROUND_MODEL } from './models'
 import { normalizeRevealEmail } from './billing-rules'
 import { sequencePlan, normalisePurpose, normaliseDepth, VALUE_SPINE, type SequencePurpose, type SequenceDepth } from './sequence-templates'
@@ -705,7 +706,11 @@ export function enrollmentStep(
 ): EnrollmentStepView | null {
   const arr = Array.isArray(enrollment.steps) ? (enrollment.steps as Array<{ subject?: string; body?: string; wait_days?: number }>) : null
   if (arr && arr.length > 0) {
-    const total = arr.length
+    // ⚑ 25 Sep (R166 ⑥ · P1b) — NOBODY IS EMAILED MORE THAN MAX_SEQUENCE_STEPS TIMES, whatever
+    // was stored. Every door now refuses a longer sequence, but rows saved before the limit fell
+    // to 5 may still hold 6 or 7 steps; the sequence simply ENDS at the limit (the send path
+    // reads `total` to know which step is the last), rather than mailing past it.
+    const total = Math.min(arr.length, MAX_SEQUENCE_STEPS)
     if (stepNum < 1 || stepNum > total) return null
     const s = arr[stepNum - 1]
     if (!s?.subject || !s?.body) return null

@@ -37,7 +37,7 @@ import {
   PROGRAMME_BEST_EFFORTS, laterBatchesLine,
 } from '@kind/shared'
 import { programmeMoney } from '@/lib/programme-money'
-import { PACKAGE_CHECK_MS, packageChanged, newVersionLines } from '@/lib/package-version'
+import { PACKAGE_CHECK_MS, packageChanged } from '@/lib/package-version'
 
 export type ApprovalProspect = {
   id: string
@@ -180,7 +180,7 @@ export default function ProgrammeApproval({
   const [data, setData] = useState(given)
   useEffect(() => { setData(given) }, [given])
   // ⚑ 24 Sep (R145 step 5) — Milla opens the stage in the one chat, as the redesign does.
-  const announceOnce = useMillaConversation().announceOnce
+  const { announceOnce, keepNotice } = useMillaConversation()
 
   // ── ⚑ 25 Sep (R160) — A NEW VERSION REACHES THE CLIENT WITHOUT A REFRESH ────────────────────
   // While the package waits for their approval, the screen re-reads it every PACKAGE_CHECK_MS and
@@ -201,7 +201,8 @@ export default function ProgrammeApproval({
         const next = r.data
         if (stopped || !next || !packageChanged(shownVersion, next.frozen?.version ?? null)) return
         setData(next)
-        announceOnce(`approval-version-${next.frozen?.version}`, newVersionLines(next.frozen?.version_number))
+        // ⛓️ 25 Sep (R162) — said AND kept in the thread, so a refresh does not lose it.
+        keepNotice(`approval-version-${next.frozen?.version}`, 'new_version', next.frozen?.version_number ?? null)
       } catch { /* the next tick tries again */ }
     }
     const t = setInterval(() => { void check() }, PACKAGE_CHECK_MS)
@@ -214,7 +215,7 @@ export default function ProgrammeApproval({
       document.removeEventListener('visibilitychange', onReturn)
       window.removeEventListener('focus', onReturn)
     }
-  }, [watching, shownVersion, announceOnce])
+  }, [watching, shownVersion, keepNotice])
   const canApproveNow = data.canApprove && !data.programme?.approved_at
   useEffect(() => {
     if (!canApproveNow) return

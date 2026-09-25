@@ -16,6 +16,7 @@ import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS, firstProofRe
 import { FilterRow } from '@/components/milla/FilterRow'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
+import { useProgrammeSync } from '@/components/milla/useProgrammeSync'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 // ⚑ 3 Sep (PR B) — THE CUSTOMER'S REVIEW AND THEIR ONE APPROVAL (R39, 15 Aug: "the client
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
@@ -447,6 +448,10 @@ export default function MillaHomePage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  // ⚑ 25 Sep (R161) — Home hears what happened in Vida without a refresh, through the SAME hook
+  // the Programme screen uses. The founder tested the two-way sync from here, and Home never
+  // re-read anything.
+  useProgrammeSync(prog, load, conversation.keepNotice)
 
   useEffect(() => { setFinding(isFinding()) }, [])
 

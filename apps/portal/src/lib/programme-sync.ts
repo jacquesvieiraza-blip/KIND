@@ -9,6 +9,8 @@
 // timestamp). Pure, so it is tested directly. Nothing here grants, charges or sends anything.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
+
 export const SYNC_CHECK_MS = 20_000
 
 export type MillaSyncFacts = {
@@ -41,22 +43,24 @@ export function sameMillaFacts(a: MillaSyncFacts, b: MillaSyncFacts): boolean {
     && a.approvedAt === b.approvedAt && a.wentLiveAt === b.wentLiveAt && a.paused === b.paused
 }
 
-/** What Milla says about a change made elsewhere. Each item is said once, by its key. */
-export function millaChangeLines(prev: MillaSyncFacts, next: MillaSyncFacts): { key: string; lines: string[] }[] {
-  const out: { key: string; lines: string[] }[] = []
-  if (!prev.firstAt && next.firstAt) {
-    out.push({ key: `sync-first-${next.firstAt}`, lines: ['Your programme is authorised — I’m finding and preparing your people now. Nothing is sent until you approve.'] })
+export type MillaChange = { key: string; kind: MillaNoticeKind; param?: string | null; lines: string[] }
+
+/**
+ * What Milla says about a change made elsewhere. Each item is said once, by its key.
+ * ⛓️ 25 Sep (R162) — the sentences now come from `millaNoticeLines` in `@kind/shared`, the SAME
+ * function the server uses to keep them in the thread, so shown and kept cannot differ.
+ */
+export function millaChangeLines(prev: MillaSyncFacts, next: MillaSyncFacts): MillaChange[] {
+  const out: MillaChange[] = []
+  const add = (key: string, kind: MillaNoticeKind, param?: string | null) => {
+    const lines = millaNoticeLines(kind, param ?? null)
+    if (lines) out.push({ key, kind, ...(param ? { param } : {}), lines })
   }
-  if (!prev.secondAt && next.secondAt) {
-    out.push({ key: `sync-second-${next.secondAt}`, lines: ['Your programme is fully authorised. It goes live next — nothing is sent until then.'] })
-  }
-  if (!prev.wentLiveAt && next.wentLiveAt) {
-    out.push({ key: `sync-live-${next.wentLiveAt}`, lines: ['Your programme is now live.'] })
-  }
-  if (!prev.paused && next.paused) out.push({ key: `sync-paused-${next.stage}-${Date.now()}`, lines: ['Your programme is paused. Nothing is being sent.'] })
-  if (prev.paused && !next.paused) out.push({ key: `sync-resumed-${next.stage}-${Date.now()}`, lines: ['Your programme has resumed.'] })
-  if (out.length === 0 && prev.stage !== next.stage) {
-    out.push({ key: `sync-stage-${next.stage}`, lines: [`Your programme has moved on to ${next.stage} — this screen has updated.`] })
-  }
+  if (!prev.firstAt && next.firstAt) add(`sync-first-${next.firstAt}`, 'first')
+  if (!prev.secondAt && next.secondAt) add(`sync-second-${next.secondAt}`, 'second')
+  if (!prev.wentLiveAt && next.wentLiveAt) add(`sync-live-${next.wentLiveAt}`, 'live')
+  if (!prev.paused && next.paused) add(`sync-paused-${next.stage}-${Date.now()}`, 'paused')
+  if (prev.paused && !next.paused) add(`sync-resumed-${next.stage}-${Date.now()}`, 'resumed')
+  if (out.length === 0 && prev.stage !== next.stage) add(`sync-stage-${next.stage}`, 'stage', next.stage)
   return out
 }

@@ -39,12 +39,21 @@ describe('what moved, and what Milla says', () => {
   })
 })
 
-describe('🛑 the programme page re-reads itself', () => {
-  it('on a timer and on return to the tab, reloads and announces once per event', () => {
-    expect(PAGE).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)")
-    expect(PAGE).toContain('setInterval(() => { void check() }, SYNC_CHECK_MS)')
-    expect(PAGE).toContain("document.addEventListener('visibilitychange', onReturn)")
-    expect(PAGE).toContain('if (sameMillaFacts(before, after)) return')
-    expect(PAGE).toContain('for (const c of millaChangeLines(before, after)) syncAnnounce.current(c.key, c.lines)')
+describe('🛑 every Milla screen that shows a programme re-reads it', () => {
+  const HOOK = readFileSync(join(__dirname, '../components/milla/useProgrammeSync.ts'), 'utf8')
+  const HOME = readFileSync(join(__dirname, '../app/(milla)/milla/page.tsx'), 'utf8')
+
+  it('the one hook: on a timer and on return to the tab, reloads and announces once per event', () => {
+    expect(HOOK).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)")
+    expect(HOOK).toContain('setInterval(() => { void check() }, SYNC_CHECK_MS)')
+    expect(HOOK).toContain("document.addEventListener('visibilitychange', onReturn)")
+    expect(HOOK).toContain('if (sameMillaFacts(before, after)) return')
+    // ⛓️ 25 Sep (R162) — WAS `sayRef.current(c.key, c.lines)`: shown only. Now kept in the thread.
+    expect(HOOK).toContain('for (const c of millaChangeLines(before, after)) sayRef.current(c.key, c.kind, c.param)')
+  })
+
+  it('🛑 Home uses it — the screen a client lives on — and so does the Programme screen', () => {
+    expect(HOME).toContain('useProgrammeSync(prog, load, conversation.keepNotice)')
+    expect(PAGE).toContain('useProgrammeSync(p, load, conversation.keepNotice)')
   })
 })

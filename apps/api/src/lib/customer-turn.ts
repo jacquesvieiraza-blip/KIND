@@ -59,6 +59,14 @@ export function replyRowIdFor(userRowId: string): string {
   return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`
 }
 
+/**
+ * ⚑ 25 Sep (R162) — THE ROW ID OF ONE SAVED MILLA NOTICE: derived from the thread, the notice's
+ * key and the line's position, so saving the same notice twice (two tabs, a retry) writes it once.
+ */
+export function noticeRowIdFor(sessionId: string, key: string, index: number): string {
+  return replyRowIdFor(`${sessionId}:notice:${key}:${index}`)
+}
+
 export type OwnTurnResult =
   /** The row is ours. `alreadyOwned` means a previous attempt stored it — success, not failure. */
   | { ok: true; userRowId: string; assistantRowId: string; alreadyOwned: boolean }

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
-import { loadError } from '@kind/shared'
+import { loadError, millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
 // J3-C5 — the one rule for what an unrestored thread is allowed to claim.
 import { restoreView } from '@/lib/conversation-restore'
 import { createClient } from '@/lib/supabase/client'
@@ -226,6 +226,11 @@ type MillaConversationApi = {
   /** ⚑ 24 Sep (R145 step 3b · #25) — `announce`, but at most once per key for this visit. */
   announceOnce: (key: string, lines: string[]) => void
   /**
+   * ⚑ 25 Sep (R162) — SAY A PROGRAMME NOTICE ONCE AND KEEP IT IN THE THREAD, so a refresh does not
+   * lose it. The browser names only the notice; the server composes and stores the sentences.
+   */
+  keepNotice: (key: string, kind: MillaNoticeKind, param?: string | number | null) => void
+  /**
    * ⚑ 24 Sep (R145 step 6 · #38) — the client asks Milla something from a button on the right, in
    * THIS chat, through the canonical sender. ⛓️ WAS a link to `/milla?ask=…`, which nothing read —
    * the "ask Milla" buttons on Results and Complete went nowhere.
@@ -255,7 +260,7 @@ export function useMillaConversation(): MillaConversationApi {
 const INERT: MillaConversationApi = {
   focus: () => {}, publishDeskSet: () => {}, icpRevision: 0,
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
-  setDeskActions: () => {}, announceOnce: () => {}, ask: () => {},
+  setDeskActions: () => {}, announceOnce: () => {}, keepNotice: () => {}, ask: () => {},
 }
 
 export function MillaConversationProvider(
@@ -488,6 +493,29 @@ export function MillaConversationProvider(
     announcedKeys.current.add(key)
     for (const l of lines) announce(l)
   }, [announce])
+  // ⚑ 25 Sep (R162) — shown now, kept for later. Best effort: a notice that could not be kept is
+  // still on screen, and nothing about the programme depends on it.
+  const noticeSid = useRef<string | null>(null)
+  useEffect(() => { noticeSid.current = sessionId }, [sessionId])
+  const keepNotice = useCallback((key: string, kind: MillaNoticeKind, param?: string | number | null) => {
+    if (announcedKeys.current.has(key)) return
+    const lines = millaNoticeLines(kind, param ?? null)
+    if (!lines) return
+    announceOnce(key, lines)
+    void (async () => {
+      try {
+        const tok = await token()
+        let sid = noticeSid.current
+        if (!sid) {
+          const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok).catch(() => null)
+          sid = list?.data?.[0]?.id ?? null
+          if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok).catch(() => null); sid = c?.sessionId ?? null }
+          if (sid) { noticeSid.current = sid; setSessionId(sid) }
+        }
+        if (sid) await api.post(`/milla/sessions/${sid}/notices`, { kind, param: param ?? null, key }, tok)
+      } catch { /* shown already; keeping it is best effort */ }
+    })()
+  }, [announceOnce])
 
   /**
    * ⛓️ THE TRANSPORT SWITCHES; THE CONVERSATION DOES NOT.
@@ -757,8 +785,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, ask }),
-    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, ask])
+    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
+    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),

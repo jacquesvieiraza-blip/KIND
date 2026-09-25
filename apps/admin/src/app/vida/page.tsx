@@ -10,6 +10,7 @@ import {
 } from '@/lib/vida-stage-copy'
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
+import { VIDA_SYNC_MS, vidaFacts, sameVidaFacts, vidaChangeLines } from '@/lib/vida-programme-sync'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
 // ⚑ 13 Sep (B2) — the two historical-classification controls, rendered only when the
@@ -541,6 +542,54 @@ export default function VidaConsolePage() {
       setProgErr(outcome.message ?? PROGRAMME_READ_FAILED_COPY)
     }
   }, [])
+
+  // ── ⚑ 25 Sep (R161) — VIDA HEARS WHAT HAPPENED IN MILLA, WITHOUT A REFRESH ───────────────
+  // While a client is open, re-read their programme every VIDA_SYNC_MS and on return to the tab.
+  // If it moved — an approval, a payment, a pause — reload the panel and say what moved in Vida's
+  // chat. The operator's own presses already re-read the programme first, so they are never
+  // announced back. Read-only: it grants, charges and sends nothing.
+  const progRef = useRef<ProgrammeTruth | null>(null)
+  useEffect(() => { progRef.current = prog }, [prog])
+  const syncSay = useRef(conversation.say)
+  useEffect(() => { syncSay.current = conversation.say }, [conversation.say])
+  const syncClients = useRef(clients)
+  useEffect(() => { syncClients.current = clients }, [clients])
+  useEffect(() => {
+    const clientId = selected
+    if (!clientId) return
+    let stopped = false
+    const check = async () => {
+      try {
+        const j = await fetch(`/api/proxy/operator/programme?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
+        if (stopped || selectedRef.current !== clientId || j?.success !== true) return
+        const next = ((j?.data ?? null) as ProgrammeTruth | null)?.programme ?? null
+        if (!next || next.client_id !== clientId) return
+        const shown = progRef.current?.programme ?? null
+        if (!shown || shown.client_id !== clientId) return
+        // P1/P2 "in place" = paid or internally authorised, resolved HERE (this page is on the
+        // internal-authority allowlist); the sync module only compares what it is handed.
+        const source = (x: NonNullable<ProgrammeTruth['programme']>) => ({
+          status: x.status, approved_at: x.approved_at, paused_at: x.paused_at, went_live_at: x.went_live_at,
+          first_at: x.first_paid_at ?? x.first_authorised_at, second_at: x.second_paid_at ?? x.second_authorised_at,
+        })
+        const before = vidaFacts(source(shown)), after = vidaFacts(source(next))
+        if (!before || !after || sameVidaFacts(before, after)) return
+        await loadProgramme(clientId)
+        const name = (syncClients.current ?? []).find(c => c.id === clientId)?.company_name ?? 'The client'
+        for (const line of vidaChangeLines(before, after, name)) syncSay.current('vida', line)
+      } catch { /* the next tick tries again */ }
+    }
+    const t = setInterval(() => { void check() }, VIDA_SYNC_MS)
+    const onReturn = () => { if (document.visibilityState === 'visible') void check() }
+    document.addEventListener('visibilitychange', onReturn)
+    window.addEventListener('focus', onReturn)
+    return () => {
+      stopped = true
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onReturn)
+      window.removeEventListener('focus', onReturn)
+    }
+  }, [selected, loadProgramme])
 
   /**
    * 🛑 THE ONE GATE EVERY PROGRAMME-ID ACTION PASSES, AT THE PRESS. (BL-1.)

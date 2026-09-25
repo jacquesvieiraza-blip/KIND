@@ -344,8 +344,12 @@ export function quoteProgramme(meetings: number, band?: SizeBand | null): Progra
       pricePerMeetingUsd: per / 100,
       pricePerMeetingCents: per,
       totalCents: total,
-      firstPaymentCents: firstPaymentCents(total),
-      secondPaymentCents: secondPaymentCents(total),
+      // ⚑ 25 Sep (R166 ③ · P9) — ONE PAYMENT IN FULL, at Recommendation, before sourcing.
+      // Founder: *"no P1 approval. to P2 approval. not risk of double payments a client needs to
+      // remember. one payment in. run bang"* and *"At Recommendation, before sourcing"*. Approval
+      // keeps no money attached. ⛓️ Supersedes R141's "always 50/50" for new programmes only.
+      firstPaymentCents: total,
+      secondPaymentCents: 0,
       recommendedVolume: recommendedVolume(meetings),
       band,
     }
@@ -371,7 +375,13 @@ export type ProgrammeStage = 'programme_first' | 'programme_second'
  * Stripe takes integer minor units, so this IS the Stripe amount — no further conversion, no
  * float multiplication at the boundary.
  */
-export function programmeStripeAmountCents(meetings: number, stage: ProgrammeStage): number {
+export function programmeStripeAmountCents(meetings: number, stage: ProgrammeStage, band?: SizeBand | null): number {
+  // ⚑ 25 Sep (R166 · P9) — A BAND PROGRAMME IS CHARGED ITS OWN QUOTE: the whole total at P1,
+  // nothing at P2. Without a band this is the curve's 50/50, exactly as before.
+  if (band) {
+    const q = quoteProgramme(meetings, band)
+    return stage === 'programme_first' ? q.firstPaymentCents : q.secondPaymentCents
+  }
   const total = programmeTotalCents(meetings)
   return stage === 'programme_first' ? firstPaymentCents(total) : secondPaymentCents(total)
 }

@@ -51,6 +51,11 @@ export async function createProgrammeCheckoutSession(params: {
    * already spent a client's credit would take their money and deliver nothing.
    */
   walletCreditCents?: number
+  /**
+   * ⚑ 25 Sep (R166 · P9) — the programme's size band (`programmes.size_band`). A band programme
+   * is charged ITS OWN quote (the whole total at P1, nothing at P2); none is the curve's 50/50.
+   */
+  band?: import('@kind/shared').SizeBand | null
 }): Promise<{ url: string | null; sessionId?: string; error?: string }> {
   if (!stripe) return { url: null, error: 'Stripe not configured' }
   // ⚑ 25 Sep — 🛑 A DEMO ACCOUNT IS NEVER CHARGED. Before this, only House was refused (and only
@@ -61,7 +66,10 @@ export async function createProgrammeCheckoutSession(params: {
     return { url: null, error: 'This is a demo account, so nothing is ever charged.' }
   }
   try {
-    const owedCents = programmeStripeAmountCents(params.meetings, params.stage)
+    const owedCents = programmeStripeAmountCents(params.meetings, params.stage, params.band ?? null)
+    // ⚑ 25 Sep (P9) — nothing is owed at this stage (a programme paid in full has no second
+    // payment). Refused before Stripe, which would reject a zero amount anyway.
+    if (owedCents < 1) return { url: null, error: 'Nothing is owed at this stage — this programme was paid in full.' }
     const isFirst = params.stage === 'programme_first'
 
     // 🛑 CREDIT IS P1 ONLY, ENFORCED HERE AND NOT ONLY AT THE CALLER. Founder-ruled: P1

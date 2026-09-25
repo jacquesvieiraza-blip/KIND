@@ -57,6 +57,8 @@ export interface ProgrammeRow {
   meeting_target: number
   recommended_volume: number
   price_per_meeting_cents: number
+  /** ⚑ 25 Sep (R166 · P8) — the band this programme was priced on; null/absent = the R81 curve. */
+  size_band?: string | null
   price_total_cents: number
   first_payment_cents: number
   second_payment_cents: number
@@ -418,6 +420,18 @@ export async function awaitFirstPayment(programmeId: string): Promise<ProgrammeR
  * exist without the ref — and `computeContribution` already reads exactly this column for
  * revenue, so agreeing with it keeps money and authority reading the same fact.
  */
+/**
+ * ⚑ 25 Sep (R166 ③ · P9, board #2355) — DOES THIS PROGRAMME PAY IN FULL AT RECOMMENDATION?
+ *
+ * Founder: *"one payment in. run bang"* · *"At Recommendation, before sourcing"*. True for every
+ * programme priced on a size band (R166 ①, `size_band` set at creation); false for a programme
+ * on the R81 curve — every programme already running, House included, keeps the 50/50 it bought.
+ * One predicate, in the module that owns the columns, so no route restates the rule.
+ */
+export function paysInFull(p: { size_band?: string | null }): boolean {
+  return isSizeBand((p as { size_band?: string | null }).size_band)
+}
+
 export function p1Authorised(p: ProgrammeRow): boolean {
   return !!(p.first_paid_at || p.first_authorised_at)
 }
@@ -892,6 +906,17 @@ export async function recordFirstPayment(params: {
     // `recommended_volume` is untouched and still sizes and prices the programme.
     sourcing_ceiling: bandSourcingCeiling(p) ?? sourcingCeiling(p.meeting_target),
     status: 'SOURCING_AUTHORISED',
+    // ⚑ 25 Sep (R166 ③ · P9) — ONE PAYMENT IN FULL. For a programme that pays in full this ONE
+    // payment is also the second: the same Stripe session is recorded as settling P2, in the
+    // same compare-and-set write, so the gates downstream (approval → Make Live) read "paid in
+    // full" exactly as they always have and no client is ever asked to pay again. The second
+    // stage's price is 0, so revenue still sums to exactly the total. Curve programmes (every
+    // programme already running, House included) are untouched.
+    ...(paysInFull(p) ? {
+      second_payment_ref: params.sessionId,
+      second_payment_intent_id: params.paymentIntentId ?? null,
+      second_paid_at: new Date().toISOString(),
+    } : {}),
     updated_at: new Date().toISOString(),
   }).eq('id', params.programmeId).is('first_payment_ref', null).select()
 
@@ -1708,6 +1733,8 @@ export async function resumeProgramme(programmeId: string): Promise<ProgrammeRes
  * the client's money and then refuse to act on it.
  */
 export function maySecondCharge(p: ProgrammeRow): { allowed: boolean; reason?: string } {
+  // ⚑ 25 Sep (R166 ③ · P9) — a programme paid in full at P1 is never charged again.
+  if (paysInFull(p)) return { allowed: false, reason: 'This programme was paid in full at the start — there is no second payment.' }
   if (p.went_live_at) return { allowed: false, reason: 'The programme is already live.' }
   if (p.paused_at) return { allowed: false, reason: 'Paused before Go Live — the second payment is not charged.' }
   if (p.status !== 'APPROVED') return { allowed: false, reason: `The programme is ${p.status}, not APPROVED.` }

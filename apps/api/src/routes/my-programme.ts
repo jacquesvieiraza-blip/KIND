@@ -490,7 +490,11 @@ async function programmeCheckout(
       res.status(409).json({ success: false, error: 'wrong_state', message: `This programme is ${p.status}, so the first payment is not due.` }); return
     }
   } else {
-    const { maySecondCharge } = await import('../lib/programme')
+    const { maySecondCharge, paysInFull } = await import('../lib/programme')
+    // ⚑ 25 Sep (R166 ③ · P9) — PAID IN FULL AT THE START: there is no second payment to take.
+    if (paysInFull(p)) {
+      res.status(409).json({ success: false, error: 'paid_in_full', message: 'Your programme was paid in full at the start, so there is nothing more to pay. Nothing has been charged.' }); return
+    }
     const gate = maySecondCharge(p)
     if (!gate.allowed) { res.status(409).json({ success: false, error: 'wrong_state', message: gate.reason }); return }
     if (secondInternallyAuthorised(p)) {
@@ -567,7 +571,7 @@ async function programmeCheckout(
       // the ×100 would apply a credit a hundred times too small — and it would look plausible.
       const balanceCents = Number.isFinite(balanceUsd) ? Math.max(0, Math.floor(balanceUsd * 100)) : 0
       walletCreditCents = walletCreditForPayment(
-        balanceCents, programmeStripeAmountCents(p.meeting_target, stage))
+        balanceCents, programmeStripeAmountCents(p.meeting_target, stage, (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null))
     } catch (err) {
       console.error('[programme/me/checkout] wallet balance unreadable — charging full price', err)
       walletCreditCents = 0
@@ -576,7 +580,7 @@ async function programmeCheckout(
 
   const { createProgrammeCheckoutSession } = await import('../lib/programme-checkout')
   const r = await createProgrammeCheckoutSession({
-    clientId, programmeId: p.id, meetings: p.meeting_target, stage, walletCreditCents,
+    clientId, programmeId: p.id, meetings: p.meeting_target, stage, walletCreditCents, band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String((req.body ?? {}).successUrl ?? ''),
     cancelUrl: String((req.body ?? {}).cancelUrl ?? ''),
     clientEmail: email.trim(),

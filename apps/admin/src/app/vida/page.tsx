@@ -72,8 +72,11 @@ type NeedsApprovalCard = {
 type SendingCard = { id: string; lead_id: string; current_step: number | null; total_steps: number | null; status: string | null; next_send_at: string | null }
 type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null; qualified_at: string | null }
 type QualifiedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; email: string | null; score: number | null }
-type BookedCard = { id: string; lead_id: string; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null
-  status: string | null; no_show_at: string | null; rebook_count: number }
+// ⛓️ 28 Sep (R173 · 3 of 3) — a row of the meetings table (the client's meeting truth).
+// ~~status / no_show_at / rebook_count~~ were calendar_bookings columns.
+type BookedCard = { id: string; lead_id: string | null; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null
+  state: 'BOOKED' | 'BOOKED_UNVERIFIED' | 'HELD' | 'NO_SHOW'; rescheduled: boolean }
+const MEETING_STATE_LABEL: Record<string, string> = { BOOKED: 'Booked', BOOKED_UNVERIFIED: 'Booked · not yet confirmed', HELD: 'Held', NO_SHOW: 'No-show' }
 
 type Board = {
   client: { id: string; company_name: string | null }
@@ -83,7 +86,8 @@ type Board = {
     sending: { count: number; cards: SendingCard[] }
     replied: { count: number; cards: RepliedCard[] }
     qualified: { count: number; cards: QualifiedCard[] }
-    booked: { count: number; cards: BookedCard[] }
+    /** `null` = the meetings could not be read — never shown as 0. */
+    booked: { count: number | null; cards: BookedCard[] }
   }
 }
 
@@ -2205,41 +2209,6 @@ export default function VidaConsolePage() {
         : `Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
   }
 
-  // ── BOOKINGS: mark a no-show, give a goodwill rebook ──────────────────────────
-  // The tab was read-only, so the two-attempts rule and the client notice that fires with
-  // it could only be reached from the separate /vida/bookings page — not from the console
-  // an operator actually works in. Neither call moves money.
-  async function actBooking(bookingId: string, kind: 'no-show' | 'rebook', newStart?: string) {
-    if (!selected) return
-    setCockpitBusy(true); setSaveMsg(null)
-    try {
-      const body: Record<string, unknown> = { client_id: selected }
-      if (kind === 'no-show') body.mark = true
-      if (kind === 'rebook' && newStart) body.new_start = newStart
-      const j = await fetch(`/api/proxy/operator/bookings/${encodeURIComponent(bookingId)}/${kind}`, {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
-      }).then(r => r.json())
-      if (!j?.success) { setSaveMsg(notice.error(j?.error || 'Could not update the booking')); return }
-      setSaveMsg(notice.ok(kind === 'no-show'
-        ? (programmeModel
-            ? 'Marked a no-show. No money moves on this plan — the programme covers it.'
-            : unresolvedModel
-              ? 'Marked a no-show.'
-              : 'Marked a no-show. Nothing was refunded — the $4 stands.')
-        : j.rebooks_left === 0
-          ? (programmeModel
-              ? 'Second attempt used. The client has been told; their programme covers the re-run.'
-              : unresolvedModel
-                ? 'Second attempt used. The client has been told.'
-                : 'Second attempt used. The client has been told, with the $4 re-run choice.')
-          : `Rebooked. ${j.rebooks_left} attempt left.`))
-      await loadCockpit(selected)
-    } catch (err) {
-      setSaveMsg(notice.error(noticeText(err, 'Could not update the booking')))
-    }
-    setCockpitBusy(false)
-  }
-
   // #564 (the residual) — "Just unblock them" WAS THE LAST BUTTON STILL SWALLOWING ITS ANSWER.
   //
   // `setCampaignStatus` below was fixed; this one kept the exact pattern that item condemned:
@@ -3444,11 +3413,12 @@ export default function VidaConsolePage() {
                   ['Sending', cols?.sending.count ?? 0, 'Campaign'],
                   ['Replied', cols?.replied.count ?? 0, 'Inbox'],
                   ['Qualified', cols?.qualified.count ?? 0, null],
-                  ['Booked', cols?.booked.count ?? 0, 'Bookings'],
-                ] as [string, number, CockpitTab | null][]).map(([label, n, goTo]) => (
+                  // ⛓️ 28 Sep (R173 · 3 of 3) — unreadable meetings show "?", never 0.
+                  ['Booked', cols ? cols.booked.count : 0, 'Bookings'],
+                ] as [string, number | null, CockpitTab | null][]).map(([label, n, goTo]) => (
                   <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
-                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
-                    {n} {label}
+                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n === null || n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
+                    {n ?? '?'} {label}
                   </button>
                 ))}
               </div>
@@ -3817,7 +3787,7 @@ export default function VidaConsolePage() {
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
                     : t === 'People' ? (cols?.sourced.count ?? 0)
                     : t === 'Asks' ? unansweredAsks
-                    : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0
+                    : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0   // null → no badge; the tab itself says it could not read
                   return (
                     <button key={t} onClick={() => setTab(t)}
                       className={`shrink-0 px-2.5 py-2 text-[13px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${on ? 'border-[#7C3AED] text-[#1f1235] bg-[#faf8ff]' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'}`}>
@@ -4533,14 +4503,19 @@ export default function VidaConsolePage() {
                     ))}
                 </>)}
 
-                {/* BOOKINGS */}
+                {/* BOOKINGS — ⛓️ 28 Sep (R173 · 3 of 3): the client's meetings from the meetings
+                    table, the same rows their Milla counts. ~~calendar_bookings cards with "Mark
+                    no-show" and "Rebook"~~ — those wrote to a table no count reads any more, so a
+                    press changed nothing the client or the target could see. No-shows, the one
+                    free reschedule and qualification are the meetings panel on the Programme tab
+                    (R141); every card points there. */}
                 {shownTab === 'Bookings' && (<>
-                  {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
-                  {(cols?.booked.cards.length ?? 0) === 0
+                  {cols && cols.booked.count === null
+                    ? <p className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ Meetings could not be read — this is not "no meetings".</p>
+                    : (cols?.booked.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
                     : cols!.booked.cards.map(c => {
-                      const noShow = !!c.no_show_at || c.status === 'no_show'
-                      const attemptsLeft = Math.max(0, 2 - (c.rebook_count ?? 0))
+                      const noShow = c.state === 'NO_SHOW'
                       return (
                         <div key={c.id} className={`border rounded-xl px-3 py-2.5 mb-2 ${noShow ? 'border-amber-300 bg-amber-50/50' : 'border-emerald-200 bg-emerald-50/40'}`}>
                           <div className="flex items-center gap-2.5">
@@ -4548,37 +4523,15 @@ export default function VidaConsolePage() {
                               <b className="text-[13.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
                               <span className="text-[12px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
                               <span className={`text-[12px] font-semibold ${noShow ? 'text-[#92400e]' : 'text-emerald-700'}`}>
-                                {noShow ? 'No-show' : ''}{noShow && c.start_time ? ' · ' : ''}
-                                {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
-                                {(c.rebook_count ?? 0) > 0 && ` · attempt ${(c.rebook_count ?? 0) + 1} of 3`}
+                                {MEETING_STATE_LABEL[c.state] ?? c.state}
+                                {c.start_time ? ` · ${new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
+                                {c.rescheduled && ' · rescheduled'}
                               </span>
                             </div>
-                            {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[12.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
-                          </div>
-                          {/* Neither of these moves money. A no-show KEEPS the $4 (they were
-                              worked); a rebook is goodwill, capped at two, and the second one
-                              tells the client with the $4 re-run choice. */}
-                          <div className="flex gap-2 mt-2 flex-wrap">
-                            {!noShow && (
-                              <button onClick={() => actBooking(c.id, 'no-show')} disabled={cockpitBusy}
-                                className="text-[12.5px] font-bold text-[#92400e] bg-[#fffbeb] border border-[#fcd34d] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
-                                Mark no-show
-                              </button>
-                            )}
-                            {noShow && attemptsLeft > 0 && (
-                              <button onClick={() => { const t = prompt('New agreed time (e.g. 2026-08-04 10:00) — leave blank to just record the retry:'); actBooking(c.id, 'rebook', t?.trim() ? new Date(t.trim().replace(' ', 'T')).toISOString() : undefined) }}
-                                disabled={cockpitBusy}
-                                className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
-                                Rebook · {attemptsLeft} left
-                              </button>
-                            )}
-                            {noShow && attemptsLeft === 0 && (
-                              <span className="text-[12px] text-[#92400e] font-semibold">{programmeModel
-                                ? 'Two attempts used — the client has been told; their programme covers the re-run.'
-                                : unresolvedModel
-                                  ? 'Two attempts used — the client has been told.'
-                                  : 'Two attempts used — the client has been told, with the $4 re-run choice.'}</span>
-                            )}
+                            <div className="ml-auto shrink-0 flex flex-col items-end gap-1">
+                              <button onClick={() => setTab('Programme')} className="text-[12.5px] font-bold text-[#7C3AED]">Qualify · no-show · reschedule &rarr;</button>
+                              {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="text-[12px] font-semibold text-[#9b8ec4]">Record &rarr;</a>}
+                            </div>
                           </div>
                         </div>
                       )

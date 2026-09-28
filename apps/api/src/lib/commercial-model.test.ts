@@ -707,10 +707,14 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain("'Their 👍 starts the work — you don\u2019t assign anyone.'")
     // ⑥ the no-campaign notice
     expect(vida).toContain("'Approvals are blocked while no campaign is active.'")
-    // ⑦ the two booking sentences
-    expect(vida).toContain("'Marked a no-show.'")
-    expect(vida).toContain("'Second attempt used. The client has been told.'")
-    expect(vida).toContain("'Two attempts used — the client has been told.'")
+    // ⑦ ⛓️ 28 Sep (R173 · 3 of 3) — THE TWO BOOKING SENTENCES LEFT WITH THEIR BUTTONS.
+    // ~~'Marked a no-show.' · 'Second attempt used. The client has been told.' · 'Two attempts
+    // used — the client has been told.'~~ belonged to the Bookings tab's "Mark no-show" and
+    // "Rebook", which wrote to `calendar_bookings` — a table no count reads since BUILD-003. The
+    // tab now lists the meetings table and points to the meetings panel, which names no money.
+    // So the guard becomes: the legacy money sentences cannot come back through that tab.
+    expect(vida).not.toContain('the $4 re-run choice')
+    expect(vida).not.toContain('the $4 stands')
     // ⑧ the wallet chip, which already had one — and now reads from the SAME derivation as the
     // rest of the console rather than asking `resolved === 'unreadable'` for itself. The two
     // copies had already drifted: a loading or field-missing response left the chip fully active
@@ -725,7 +729,9 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // 🛑 EVERY `programmeModel ?` TERNARY IN THIS FILE HAS AN `unresolvedModel` ARM. The sweep is
     // the guard: a NEW money sentence added with two branches instead of three fails here.
     const ternaries = [...vida.matchAll(/programmeModel\s*\n?\s*\?/g)]
-    expect(ternaries.length, 'the model-aware sentences are still there').toBeGreaterThanOrEqual(5)
+    // ⛓️ 28 Sep (R173 · 3 of 3) — ~~≥ 5~~: three of the six were the booking sentences above,
+    // gone with their buttons. Every one that remains is still swept for its third arm below.
+    expect(ternaries.length, 'the model-aware sentences are still there').toBeGreaterThanOrEqual(3)
     for (const m of ternaries) {
       const after = vida.slice(m.index!, m.index! + 900)
       expect(after, `a programmeModel ternary with no unresolved arm: …${vida.slice(m.index!, m.index! + 120)}`)

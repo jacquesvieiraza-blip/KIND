@@ -24,6 +24,7 @@ import { ArrowLeft, Inbox as InboxIcon, Loader2, Search, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import {
   buildConversations, inFilter, NEXT, STATUS,
   type Conversation, type InboxFilter, type InboxStatus, type ReplyRow, type SentRow,
@@ -97,6 +98,8 @@ export default function MillaInbox() {
     setLoading(false)
   }, [])
   useEffect(() => { void load() }, [load])
+  // ⚑ 28 Sep (R171) — re-read every 20s and on return to the tab: what Vida records shows here.
+  useLiveRefresh(load)
 
   const all = useMemo(() => buildConversations(rows, sent), [rows, sent])
   const counts = useMemo(() => ({

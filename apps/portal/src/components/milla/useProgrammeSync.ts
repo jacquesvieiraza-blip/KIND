@@ -28,9 +28,10 @@ export function useProgrammeSync(
   const sayRef = useRef(keepNotice)
   useEffect(() => { sayRef.current = keepNotice }, [keepNotice])
 
-  const hasProgramme = !!p?.hasProgramme
+  // ⛓️ 28 Sep (R171) — ~~`if (!hasProgramme) return`~~: the check now runs BEFORE a programme
+  // exists too, so a client at the Recommendation hears what Vida did for them (e.g. the stage
+  // moving once their size is set) without reloading.
   useEffect(() => {
-    if (!hasProgramme) return
     let stopped = false
     const check = async () => {
       try {
@@ -39,7 +40,12 @@ export function useProgrammeSync(
         const shown = pRef.current
         if (stopped || !r.data || !shown) return
         const before = millaFacts(shown), after = millaFacts(r.data)
-        if (sameMillaFacts(before, after)) return
+        // ⚑ 28 Sep (R171) — ANY change reloads the screen (meetings booked, sends, replies,
+        // targets), silently. Only the status moves below are also SAID, as before (R161).
+        if (sameMillaFacts(before, after)) {
+          if (JSON.stringify(shown) !== JSON.stringify(r.data)) await reloadRef.current()
+          return
+        }
         await reloadRef.current()
         for (const c of millaChangeLines(before, after)) sayRef.current(c.key, c.kind, c.param)
       } catch { /* the next tick tries again */ }
@@ -54,5 +60,5 @@ export function useProgrammeSync(
       document.removeEventListener('visibilitychange', onReturn)
       window.removeEventListener('focus', onReturn)
     }
-  }, [hasProgramme])
+  }, [])
 }

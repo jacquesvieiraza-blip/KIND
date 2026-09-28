@@ -47,7 +47,10 @@ describe('🛑 every Milla screen that shows a programme re-reads it', () => {
     expect(HOOK).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)")
     expect(HOOK).toContain('setInterval(() => { void check() }, SYNC_CHECK_MS)')
     expect(HOOK).toContain("document.addEventListener('visibilitychange', onReturn)")
-    expect(HOOK).toContain('if (sameMillaFacts(before, after)) return')
+    // ⛓️ 28 Sep (R171) — ~~`if (sameMillaFacts(before, after)) return`~~: a same-status change now
+    // RELOADS silently (counts, targets) and still announces nothing; only status moves are said.
+    expect(HOOK).toContain('if (sameMillaFacts(before, after)) {')
+    expect(HOOK).toContain('if (JSON.stringify(shown) !== JSON.stringify(r.data)) await reloadRef.current()\n          return\n        }')
     // ⛓️ 25 Sep (R162) — WAS `sayRef.current(c.key, c.lines)`: shown only. Now kept in the thread.
     expect(HOOK).toContain('for (const c of millaChangeLines(before, after)) sayRef.current(c.key, c.kind, c.param)')
   })

@@ -5,9 +5,10 @@
 // leads moving Approved → Contacted → Replied → Booked, from GET /leads/pipeline.
 // Read-only by design — the client approves, we do the work (founder-locked north star).
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 
 type Card = { id: string; name: string; company: string | null; job_title: string | null; score: number | null; classification?: string | null; start_time?: string | null }
 type Pipeline = {
@@ -48,14 +49,15 @@ export default function MillaPipelinePage() {
   const [p, setP] = useState<Pipeline | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.get<{ data: Pipeline }>('/leads/pipeline', await token())
-        setP(r.data)
-      } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your pipeline') }
-    })()
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get<{ data: Pipeline }>('/leads/pipeline', await token())
+      setP(r.data); setError(null)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your pipeline') }
   }, [])
+  useEffect(() => { void load() }, [load])
+  // ⚑ 28 Sep (R171) — re-read every 20s and on return to the tab: what Vida records shows here.
+  useLiveRefresh(load)
 
   // ⚠️ AN UNKNOWN MODEL FALLS BACK TO THE FOUR-COLUMN LEGACY BOARD, deliberately: while the
   // API is older or the field is missing, showing a column that does not apply is a far

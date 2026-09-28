@@ -158,6 +158,23 @@ else
   echo "   (needs PostgreSQL server binaries + the real PostgREST binary; see scripts/fullstack/README.md)"
 fi
 
+# ── [10] THE DEMO, WALKED END TO END (R173, founder-ruled 28 Sep) ───────────────────────────
+#
+# *"i need this demo enviroment to be perfect. match the exact flow. then when i add new fatures
+# the demo also needs to be updated."* The Northwind demo at all six stages, as the client in
+# Milla and as the operator in Vida, with the exact numbers each screen must show and a browser
+# scan for error text (`scripts/demo-walk.sh`). A change that breaks the demo is red here.
+#
+# ⚠️ IT RUNS WITH THE REAL-DATABASE STAGE (REAL_DB_TESTS=1) — the environment that has the
+# PostgreSQL server binaries it needs — and DEMO_WALK=1 turns it on alone. It is REQUIRED before
+# any client-facing PR is handed over (R173).
+if [ "${REAL_DB_TESTS:-}" = "1" ] || [ "${DEMO_WALK:-}" = "1" ]; then
+  step "The demo, walked end to end (R173 — six stages, Milla + Vida)" bash scripts/demo-walk.sh
+else
+  echo ""
+  echo "── [skipped] Demo walk — runs with REAL_DB_TESTS=1 (or DEMO_WALK=1); see scripts/demo-walk.sh"
+fi
+
 echo ""
 echo "══════════════════════════════════════════════════════════"
 if [ -n "$FAILED" ]; then

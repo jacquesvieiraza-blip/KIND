@@ -88,3 +88,5 @@ for (const [stage, paths] of Object.entries(PAGES)) {
 }
 await browser.close()
 for (const r of report) console.log(`${r.bad.length ? '✗' : '✓'} ${r.stage.padEnd(9)} ${r.where}${r.bad.length ? `  — shows: ${r.bad.join(', ')}` : ''}`)
+// A screen showing an error is a failed demo: the gate (`scripts/demo-walk.sh`) reads this exit.
+if (report.some(r => r.bad.length > 0)) process.exit(1)

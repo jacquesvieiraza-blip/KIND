@@ -281,7 +281,8 @@ export async function advanceProgrammeToReview(programmeId: unknown): Promise<Ad
   prepared.headline =
     `This programme is ready for the client to approve — ${prep.enrolled.length} prospect(s) prepared on this run, ` +
     `${prep.alreadyEnrolled} already prepared. The reviewed set is frozen. Nothing has been sent, and nothing can send ` +
-    'until it is approved, the second payment is authorised and it is made live.'
+    // ⛓️ 28 Sep (R172 · C5) — one-payment programmes have no second payment to wait for.
+    'until it is approved, paid in full and made live.'
   return { ok: true, report: prepared }
 }
 

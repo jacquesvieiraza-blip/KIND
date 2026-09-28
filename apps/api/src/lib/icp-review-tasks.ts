@@ -122,6 +122,19 @@ export async function raiseIcpReviewTask(input: {
       evidence: { icp_id: input.icpId, fields: fieldsOwed(input.review) },
     })
     if (!t.ok) return { ok: false, raised: false, error: t.error, tableMissing: t.tableMissing }
+    // ⚑ 28 Sep (R172 · C4) — A NEW REVIEW TASK ALSO EMAILS THE FOUNDER, ONCE. Nothing searches for
+    // this client until somebody translates their targeting; a task alone waited for Vida to be
+    // opened. The same key as the task, so the mirror cannot file a second row (J22-C1).
+    if (t.alreadyOpen !== true) {
+      try {
+        const { sendFounderAlert } = await import('./alerts')
+        await sendFounderAlert('support_escalation',
+          sentence(input.companyName ?? null, fieldsOwed(input.review)),
+          [DETAIL, 'Vida → this client → Proof: translate their targeting, and their Proof starts.'],
+          // The review task above IS the row; the email files no second one (C4).
+          { clientId: input.clientId, subjectKind: 'icp', subjectId: input.icpId, mirrorTask: false })
+      } catch { /* the task above is the record; an email that fails never un-raises it */ }
+    }
     return { ok: true, raised: t.alreadyOpen !== true }
   } catch (err) {
     return { ok: false, raised: false, error: err instanceof Error ? err.message : String(err) }

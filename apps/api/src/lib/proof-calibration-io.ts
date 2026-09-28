@@ -325,6 +325,15 @@ export async function closeCalibrationLoop(
     }
   }
   if ((data ?? []).length === 0) return { closed: false, reason: 'already' }
+  // ⚑ 28 Sep (R172 · C4) — THE HAND-OFF TELLS THE FOUNDER. It was Vida-only: a client handed to a
+  // person for calibration waited until somebody happened to open the console. The write above is
+  // conditional (first escalation only), so this email is sent once per hand-off.
+  void import('./alerts').then(({ sendFounderAlert }) => sendFounderAlert('support_escalation',
+    'A client’s Proof needs a person — calibration handed to you', [
+      `Client ${clientId}${icpId ? ` (ICP ${icpId})` : ''}: automatic Proof stopped and handed over (${verdict.trigger}).`,
+      'Vida → this client → Proof: call them on the confirmed number, then restart calibrated.',
+    ], { clientId, subjectKind: 'proof_calibration', subjectId: clientId, dedupeKey: `proof_calibration:${clientId}` }))
+    .catch(() => {})
   return { closed: true, trigger: verdict.trigger }
 }
 
@@ -613,6 +622,13 @@ export async function claimCalibratedRestart(clientId: string): Promise<RestartC
   if ((data ?? []).length === 0) {
     return { ok: false, reason: 'already_used', detail: 'The calibrated restart has already been used.' }
   }
+  // ⚑ 28 Sep (R172 · C4) — the hand-off alert (filed by `closeCalibrationLoop`) is answered by this
+  // restart, so it closes with it; otherwise the client would stay in Needs you after the fix.
+  try {
+    const { resolveOperatorTasksForCondition } = await import('./operator-tasks')
+    await resolveOperatorTasksForCondition('support_escalation', `proof_calibration:${clientId}`,
+      'The calibrated restart was started — the hand-off is answered.')
+  } catch { /* the restart stands; the row can be resolved by hand */ }
   return { ok: true, usedAt: at }
 }
 

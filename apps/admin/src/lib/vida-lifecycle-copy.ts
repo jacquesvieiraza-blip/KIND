@@ -43,6 +43,8 @@ export type LifecycleState =
   | 'proof_exception'
   // ⚑ 19 Sep — nothing searched yet: their targeting is still awaiting human translation.
   | 'proof_awaiting_translation'
+  // ⚑ 28 Sep (R172 · C1) — their latest Proof run failed or went silent.
+  | 'proof_failed'
   // ⚑ 28 Sep — at the calculator, but their price waits on a person setting their company size.
   | 'recommendation_size_pending'
   | 'blocked'
@@ -103,6 +105,8 @@ export type PanelAction = {
 
 export type LifecycleCopyInput = {
   clientName: string
+  /** ⚑ 28 Sep (R172 · C5) — ONE payment settled both stages (R166 ③): there is no second payment to wait for. */
+  paidInFull?: boolean
   state: LifecycleState
   mode: VidaMode
   counts: {
@@ -647,6 +651,25 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
     // ── ③ RECOMMENDATION — commercial truth, and the client's decision. ───────────────
     // ⚑ 28 Sep (R166 ② · R168 ④) — THE CLIENT CANNOT BE PRICED UNTIL A PERSON SETS THEIR SIZE. Found on the
     // founder's end-to-end walk: this read "No action needed" while the client was told "A person is on it".
+    // ⚑ 28 Sep (R172 · C1) — THE RUN FAILED OR WENT SILENT. Before this, Vida read "No action
+    // needed" while the stuck-client email told the founder to "restart their Proof".
+    case 'proof_failed':
+      return {
+        subtitle: 'Their Proof run did not finish',
+        messages: [
+          `${i.clientName}'s Proof run stopped before it produced their examples.`,
+          'Fix the cause if it is ours (the stuck-client email names it), then press Retry Proof. A failed run spends nothing.',
+        ],
+        chips: ['Why did it fail?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'The latest run failed or went silent' },
+          { kind: 'fact', label: 'Their attempt', value: 'Still available', caption: 'The failed run released it' },
+          { kind: 'fact', label: 'Waiting on', value: 'Us' },
+          vidaCard('Needs you'),
+        ],
+        actions: [{ key: 'retry_proof', label: 'Retry Proof', kind: 'primary' }],
+      }
+
     case 'recommendation_size_pending':
       return {
         subtitle: 'Waiting on us — their company size',
@@ -862,10 +885,17 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
             ].filter(Boolean).join(' · '),
           }] : []),
           { kind: 'fact', label: 'Client', value: approved ? 'Approved' : 'Waiting' },
-          { kind: 'fact', label: 'Second payment',
-            value: approved ? 'Awaiting the client' : 'Not yet authorised',
-            caption: approved ? 'Outreach cannot start until it is settled' : 'The gate after approval' },
-          { kind: 'fact', label: 'Next', value: approved ? 'The client authorises the second payment.' : 'The client approves the programme in Milla.' },
+          // ⛓️ 28 Sep (R172 · C5) — a one-payment programme was PAID IN FULL at the start; ~~"Second
+          // payment · Not yet authorised"~~ told the founder money was still to come.
+          ...(i.paidInFull ? [
+            { kind: 'fact' as const, label: 'Payment', value: 'Paid in full', caption: 'One payment, at the start — nothing else is due' },
+            { kind: 'fact' as const, label: 'Next', value: approved ? 'Make live.' : 'The client approves the programme in Milla.' },
+          ] : [
+            { kind: 'fact' as const, label: 'Second payment',
+              value: approved ? 'Awaiting the client' : 'Not yet authorised',
+              caption: approved ? 'Outreach cannot start until it is settled' : 'The gate after approval' },
+            { kind: 'fact' as const, label: 'Next', value: approved ? 'The client authorises the second payment.' : 'The client approves the programme in Milla.' },
+          ]),
           vidaCard('Holding'),
         ],
         // 🛑 VIDA CANNOT APPROVE. The client's approval is consent to email real strangers on

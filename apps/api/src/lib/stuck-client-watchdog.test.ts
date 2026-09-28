@@ -9,7 +9,7 @@ import { join } from 'node:path'
 type Row = Record<string, unknown>
 const state = vi.hoisted(() => ({
   work: [] as Row[], sizes: [] as Row[], programmes: [] as Row[],
-  open: new Set<string>(), raised: [] as Row[], emailed: [] as string[], taskFails: false,
+  open: new Set<string>(), raised: [] as Row[], emailed: [] as string[], taskFails: false, emailDown: false,
 }))
 
 vi.mock('@kind/db', () => ({
@@ -39,7 +39,8 @@ vi.mock('./operator-tasks', () => ({
   },
 }))
 vi.mock('./alerts', () => ({
-  sendFounderAlert: async (_k: string, subject: string) => { state.emailed.push(subject); return { delivered: true } },
+  // ⛓️ 28 Sep (R172 · C6) — the stand-in reports the EMAIL leg too; "told" now means an email left.
+  sendFounderAlert: async (_k: string, subject: string) => { state.emailed.push(subject); return state.emailDown ? { delivered: true, emailOk: false } : { delivered: true, emailOk: true } },
 }))
 
 import { findStuckClients, runStuckClientWatchdog, STUCK_AFTER_MINUTES } from './stuck-client-watchdog'
@@ -53,7 +54,7 @@ const work = (over: Row): Row => ({
 
 beforeEach(() => {
   state.work = []; state.sizes = []; state.programmes = []
-  state.open = new Set(); state.raised = []; state.emailed = []; state.taskFails = false
+  state.open = new Set(); state.raised = []; state.emailed = []; state.taskFails = false; state.emailDown = false
 })
 
 describe('who is stuck', () => {
@@ -112,6 +113,12 @@ describe('🛑 the founder is told — once', () => {
   it('an older failure followed by a newer good run is history, not a stuck client', async () => {
     state.work = [work({ id: 'w-new', state: 'completed', requested_at: ago(5) }), work({ id: 'w-old', state: 'failed', failed_at: ago(50), requested_at: ago(60) })]
     expect(await runStuckClientWatchdog({ nowMs: NOW })).toMatchObject({ found: 0, told: 0 })
+  })
+
+  it('⚑ C6 · an email that did not go is NOT counted as telling the founder', async () => {
+    state.emailDown = true
+    state.work = [work({ state: 'failed', failed_at: ago(2) })]
+    expect(await runStuckClientWatchdog({ nowMs: NOW })).toMatchObject({ told: 0, unmailed: 1 })
   })
 
   it('if the task cannot be written, it does not email every 10 minutes', async () => {

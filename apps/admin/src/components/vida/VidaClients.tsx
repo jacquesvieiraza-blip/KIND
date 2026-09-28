@@ -100,6 +100,10 @@ export function VidaClients({ open }: { open: boolean }) {
   // the worklist puts them at "Waiting on their $299" with `actor: 'them'` — filtered out of
   // "Needs you", which is exactly the client the review is about.
   const [proofReview, setProofReview] = useState<Set<string>>(new Set())
+  // ⚑ 28 Sep (R172 · C3) — clients with an OPEN critical task (the stuck-client watchdog, a stopped
+  // preparation, a programme that could not be saved). The email said "Needs-you task"; until now
+  // it was only on /cockpit, so the Needs-you list did not show the client the email was about.
+  const [escalated, setEscalated] = useState<Set<string>>(new Set())
   // ⚑ MVP1 — open onboarding drafts, merged into the rail beside confirmed clients.
   const [drafts, setDrafts] = useState<DraftRow[] | null>(null)
   const [lifecycle, setLifecycle] = useState<Record<string, LifecycleRow>>({})
@@ -223,6 +227,12 @@ export function VidaClients({ open }: { open: boolean }) {
           .filter((a: { kind: string }) => a.kind === 'proof_review')
           .map((a: { client_id: string }) => a.client_id))) })
         .catch(() => { /* the filter simply keeps its default; the list is not blanked */ }),
+      // ⚑ 28 Sep (R172 · C3) — the sixth read, same policy: a failed read changes nothing.
+      fetch('/api/proxy/operator/tasks').then(r => r.json())
+        .then(j => { if (alive() && j?.success) setEscalated(new Set(((j.data?.tasks ?? []) as { client_id: string | null; severity: string; kind: string }[])
+          .filter(t => t.client_id && (t.severity === 'critical' || t.kind === 'support_escalation'))
+          .map(t => t.client_id as string))) })
+        .catch(() => { /* the filter simply keeps its default; the list is not blanked */ }),
     ])
   }, [])
 
@@ -267,7 +277,7 @@ export function VidaClients({ open }: { open: boolean }) {
   // including states with nothing to press. The lifecycle rule is deliberately hard to earn —
   // a real retry, Make Live, a usable Run, a reply waiting on a person, a stopped sender, or a
   // blocker only a human can clear. Everything else is Vida working, and silence is correct.
-  const needsYou = (id: string) => lifecycle[id]?.needs_you === true
+  const needsYou = (id: string) => lifecycle[id]?.needs_you === true || escalated.has(id)
   // ⚠️ THE SELECTED CLIENT IS NEVER FILTERED OUT of the list they are looking at.
   const visible = needsFilter
     ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)

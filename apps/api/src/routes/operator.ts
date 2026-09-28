@@ -3881,7 +3881,8 @@ operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response
     }
 
     const { retryProofAfterZeroEligible } = await import('../lib/proof-run-launch')
-    const out = await retryProofAfterZeroEligible(clientId, icpId)
+    // ⚑ 28 Sep (R172 · C1) — a failed or stuck run observed (and claimed) above is itself the reason.
+    const out = await retryProofAfterZeroEligible(clientId, icpId, { recoveringFailedRun: !!lastWork && RECOVERABLE.includes(observedState) })
 
     // ⚠️ AUDITED WHETHER IT STARTED OR NOT. A refusal is an operator action too, and "I
     // pressed it and nothing happened" is exactly the thing an audit trail has to answer.
@@ -6882,6 +6883,14 @@ operatorRouter.post('/client-size', async (req: Request, res: Response) => {
         operatorEmail: operatorEmail(req), clientId: client.id, action: 'client_size_set', subjectType: 'client', subjectId: client.id,
         detail: { band: r.band, previous: r.previous, employees: employees ?? null, note: note ?? null },
       })
+      // ⚑ 28 Sep (R172 · C9) — the "price waiting" task the stuck-client watchdog raised is answered
+      // by this act, so it closes here (the client's screen picks the price up on its next re-read
+      // and Milla tells them it is ready). Same key the watchdog files under; best-effort.
+      try {
+        const { resolveOperatorTasksForCondition } = await import('../lib/operator-tasks')
+        await resolveOperatorTasksForCondition('support_escalation', `stuck:price_waiting:${client.id}:${client.id}`,
+          `Company size set in Vida by ${operatorEmail(req)} — their price is released.`)
+      } catch (e) { console.error('[operator/client-size] could not close the price-waiting task:', e) }
     }
     res.status(r.ok ? 200 : r.reason === 'not_found' ? 404 : r.reason === 'storage_unreadable' ? 503 : 400)
       .json(r.ok ? { success: true, ...r } : { success: false, reason: r.reason, error: r.message })

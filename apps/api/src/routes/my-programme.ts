@@ -857,6 +857,37 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
       return
     }
 
+    // ── ⚑ 28 Sep (R172 · C2) — A PAID-IN-FULL APPROVAL IS THE MOMENT TO MAKE LIVE ───────────
+    // On 50/50 terms the "ready for Make Live" alert fires when the SECOND payment lands. A
+    // one-payment programme (R166 ③) recorded P2 at P1, so that alert never fired: the client was
+    // told "nothing else is needed from you" and nobody told the founder to press Make Live. Now
+    // the approval itself tells him — once, as a task plus one email. Never blocks the answer.
+    if (!r.alreadyApproved) {
+      const { p2Authorised } = await import('../lib/programme')
+      if (p2Authorised(r.programme)) {
+        void (async () => {
+          try {
+            const { raiseOperatorTask } = await import('../lib/operator-tasks')
+            const title = 'A client approved their paid-in-full programme — ready for Make Live'
+            const lines = [
+              `Programme ${r.programme.id} (client ${clientId}) is APPROVED and PAID IN FULL, and it is NOT live.`,
+              'Press Make live in Vida to arm it. Make Live sends zero — Run is the separate action that starts sending.',
+            ]
+            const dedupeKey = `ready_make_live:${r.programme.id}`
+            const task = await raiseOperatorTask({
+              kind: 'support_escalation', severity: 'warn', title, detail: lines.join('\n'),
+              clientId, subjectKind: 'programme_make_live', subjectId: r.programme.id, dedupeKey, evidence: {},
+            })
+            if (!task.ok || ('alreadyOpen' in task && task.alreadyOpen)) return
+            const { sendFounderAlert } = await import('../lib/alerts')
+            await sendFounderAlert('new_signup', title, lines, {
+              clientId, programmeId: r.programme.id, subjectKind: 'programme_make_live', subjectId: r.programme.id, dedupeKey,
+            })
+          } catch (e) { console.error('[programme/me/approve] ready-for-Make-Live notice failed:', e) }
+        })()
+      }
+    }
+
     res.json({
       success: true,
       data: {

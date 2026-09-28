@@ -7360,6 +7360,28 @@ BEGIN
 END $$;
 `,
   },
+  {
+    // ⚑ 28 Sep (end-to-end check, C8) — an operator's own reply (classification 'sent_reply') was
+    // refused by the 3 Jun rule and silently lost. Same list plus 'sent_reply'; NOT VALID (widen only).
+    key: '20260928_reply_classification_sent_reply',
+    title: "figsy_replies — an operator's sent reply may be recorded (C8)",
+    sql: `
+ALTER TABLE public.figsy_replies DROP CONSTRAINT IF EXISTS figsy_replies_classification_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'figsy_replies_classification_values_check') THEN
+    ALTER TABLE public.figsy_replies ADD CONSTRAINT figsy_replies_classification_values_check
+      CHECK (classification IS NULL OR classification IN (
+        'hot','warm','cold',
+        'interested','not_interested',
+        'opt_out','unsubscribe',
+        'out_of_office','wrong_person','referral','other',
+        'sent_reply'
+      )) NOT VALID;
+  END IF;
+END $$;
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

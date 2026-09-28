@@ -69,6 +69,8 @@ export type LifecycleState =
    * modelling a new exception on a broken one would have shipped the same defect twice.
    */
   | 'signup' | 'proof' | 'proof_calibration_failed' | 'proof_exception' | 'proof_awaiting_translation' | 'recommendation'
+  // ⚑ 28 Sep (R166 ② · R168 ④) — at the calculator, but their price waits on a person setting their size.
+  | 'recommendation_size_pending'
   | 'sourcing' | 'sourcing_exception'
   | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
@@ -157,6 +159,13 @@ export type NeedsYouReason =
    * more clients behind them in the same state.
    */
   | 'icp_awaiting_translation'
+  /**
+   * ⚑ 28 Sep (R166 ② · R168 ④) — the client is at the calculator and cannot be priced: their company
+   * size could not be confirmed (no stated size, no website, free email…) and waits on a person.
+   * Found on the founder's end-to-end walk: Vida said "No action needed" while the client could not
+   * buy. The client is told "A person is on it" — this is that person's task.
+   */
+  | 'size_awaiting_person'
 
 /**
  * Everything the derivation is allowed to look at.
@@ -251,6 +260,11 @@ export type LifecycleFacts = {
    * answer must not invent an operator task on every client at once.
    */
   awaitingIcpTranslation?: boolean | null
+  /**
+   * ⚑ 28 Sep — their price is waiting on a person to set their company size (R166 ②). Fails soft:
+   * `null` (unreadable) reads as no block, like every other fact here.
+   */
+  sizeAwaitingPerson?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -319,6 +333,8 @@ const MODE_OF: Record<LifecycleState, VidaMode> = {
   // searches until somebody does, so this is a task and never an ambient state.
   proof_awaiting_translation: 'Needs you',
   recommendation: 'No action needed',
+  // ⚑ 28 Sep — the client cannot be priced until a person sets their size: a task, never ambient.
+  recommendation_size_pending: 'Needs you',
   sourcing: 'Working',
   sourcing_exception: 'Needs you',
   approval: 'No action needed',
@@ -385,7 +401,12 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // ⚠️ CHECKED AFTER THE ESCALATION so a failed loop keeps its task even if a completion
     // somehow also existed, and BEFORE `proofStarted` because a completed Proof is
     // necessarily a started one.
-    if (f.proofCompleted === true) return verdict('recommendation', 'recommendation', null)
+    if (f.proofCompleted === true) {
+      // ⚑ 28 Sep (R166 ② · R168 ④) — AT THE CALCULATOR BUT UNPRICEABLE. The client has been told "A
+      // person is on it"; without this Vida read "No action needed" and nobody was.
+      if (f.sizeAwaitingPerson === true) return verdict('recommendation_size_pending', 'recommendation', 'size_awaiting_person')
+      return verdict('recommendation', 'recommendation', null)
+    }
     // ── 🛑 ⚑ 16 Sep (MVP1 · A1b) — WE PRODUCED NOTHING, AND THE CLIENT HAS BEEN PROMISED A
     //    PERSON ────────────────────────────────────────────────────────────────────────────
     //

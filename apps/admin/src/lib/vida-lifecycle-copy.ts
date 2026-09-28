@@ -43,6 +43,8 @@ export type LifecycleState =
   | 'proof_exception'
   // ⚑ 19 Sep — nothing searched yet: their targeting is still awaiting human translation.
   | 'proof_awaiting_translation'
+  // ⚑ 28 Sep — at the calculator, but their price waits on a person setting their company size.
+  | 'recommendation_size_pending'
   | 'blocked'
 
 export type VidaMode = 'No action needed' | 'Working' | 'Watching' | 'Needs you'
@@ -643,6 +645,25 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
       }
 
     // ── ③ RECOMMENDATION — commercial truth, and the client's decision. ───────────────
+    // ⚑ 28 Sep (R166 ② · R168 ④) — THE CLIENT CANNOT BE PRICED UNTIL A PERSON SETS THEIR SIZE. Found on the
+    // founder's end-to-end walk: this read "No action needed" while the client was told "A person is on it".
+    case 'recommendation_size_pending':
+      return {
+        subtitle: 'Waiting on us — their company size',
+        messages: [
+          `${i.clientName} is at the calculator and cannot be priced yet: we could not confirm their company size by ourselves.`,
+          `Set their band in Client tools → Programme → Company size, and their price appears straight away.`,
+        ],
+        chips: ['Why could we not confirm their size?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Recommendation', caption: 'Their price is waiting on their size' },
+          { kind: 'fact', label: 'Client sees', value: 'A person is on it', caption: 'No price and no payment until the band is set' },
+          { kind: 'fact', label: 'Waiting on', value: 'Us' },
+          vidaCard('Needs you'),
+        ],
+        actions: [],
+      }
+
     case 'recommendation':
       return {
         subtitle: 'Recommendation with the client',

@@ -244,6 +244,8 @@ export type NorthwindRows = {
   meetings: Record<string, unknown>[]
   session: Record<string, unknown> | null
   messages: Record<string, unknown>[]
+  offer: Record<string, unknown> | null
+  proofClaim: Record<string, unknown> | null
 }
 
 export function stageIndex(stage: NorthwindStage): number {
@@ -275,7 +277,7 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
   const at = stageIndex(stage)
   const S = { proof: 1, programme: 2, approval: 3, results: 4, complete: 5 }
   const iso = (daysAgo: number, hours = 0) => new Date(now.getTime() - daysAgo * 86_400_000 + hours * 3_600_000).toISOString()
-  const empty: NorthwindRows = { client: null, draft: null, programme: null, icp: null, campaign: null, sequence: null, leads: [], enrollments: [], sentEmails: [], replies: [], meetings: [], session: null, messages: [] }
+  const empty: NorthwindRows = { client: null, draft: null, programme: null, icp: null, campaign: null, sequence: null, leads: [], enrollments: [], sentEmails: [], replies: [], meetings: [], session: null, messages: [], offer: null, proofClaim: null }
   // Brief: signed in, no account — and half-way through the conversation, so the presenter
   // picks it up live at Milla's question about roles.
   if (at < S.proof) {
@@ -297,8 +299,16 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     // "price pending", and no Needs-you task is raised for a person to set it.
     size_band: NORTHWIND_BAND, size_employees: NORTHWIND_EMPLOYEES,
     size_source: 'person', size_set_by: 'client', size_locked_at: iso(30), size_checked_at: iso(30),
-    proof_started_at: iso(28), proof_passes_done: 1,
+    // One automatic Proof pass, recorded on the ledger (the claim below) and classified: no
+    // pre-ledger passes. Without both, Vida asks a person to classify "historical Proof authority".
+    proof_started_at: iso(28), proof_passes_done: 1, proof_passes_legacy: 0,
     proof_completed_at: at >= S.programme ? iso(21) : null,
+  }
+
+  // The first automatic Proof pass, as a new client's first Proof leaves it: claimed and completed.
+  const proofClaim: Record<string, unknown> = {
+    client_id: ids.clientId, icp_id: ids.icpId, authority: 'automatic_1', status: 'completed',
+    claimed_at: iso(28), settled_at: iso(27),
   }
 
   const draft: Record<string, unknown> = {
@@ -349,7 +359,7 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       score_reasoning: `Runs operations at a ${c.size}-person ${c.industry.toLowerCase()} firm in the UK — the exact profile in your brief, and senior enough to decide.`,
       category_fit: 'yes', status: 'scored', proof_pass: 1,
       delivered_at: iso(28), surfaced_for_approval_at: iso(28),
-      ...(inProgramme ? { programme_id: ids.programmeId, qualified_at: iso(18) } : {}),
+      ...(inProgramme ? { programme_id: ids.programmeId, qualified_at: iso(18), email_status: 'verified' } : {}),
     }
   })
 
@@ -362,14 +372,35 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     created_at: new Date(now.getTime() - t.daysAgo * 86_400_000 - 3_600_000 + n * 60_000).toISOString(),
   }))
 
+  // The client's offer, in their words (`figsy_knowledge` kind 'pitch', read by `client-offer.ts`).
+  // Answered once the programme exists, so Milla never asks "four quick questions" mid-demo.
+  const offer = hasProgramme ? {
+    client_id: ids.clientId, kind: 'pitch',
+    data: { offer: {
+      problems: 'Field-service teams booking engineers from spreadsheets and whiteboards, and chasing job sheets by phone.',
+      impact: 'Coordinators lose hours a day; visits get missed or double-booked, and customers notice.',
+      roi: '', roi_may_quote: false,
+      solution: 'Scheduling, job tracking and on-site sign-off in one app.',
+      answered_at: iso(20), source: 'milla_offer_card',
+    } },
+  } : null
+
+  // At Approval the 20 people are enrolled but nothing is scheduled (`next_send_at` stays null,
+  // so no send sweep can pick them up — and `is_demo` refuses every send anyway). This is what
+  // the frozen package lists as "20 people we will write to".
   if (!delivering) {
-    return { ...empty, client, draft, programme, icp, campaign, sequence, leads, session, messages }
+    const enrollments = hasProgramme ? NORTHWIND_CAST.slice(0, NORTHWIND_PROGRAMME_PEOPLE).map((_, i) => ({
+      client_id: ids.clientId, campaign_id: ids.campaignId, programme_id: ids.programmeId, sequence_id: ids.sequenceId,
+      lead_id: ids.leadIds[i], status: 'enrolled', current_step: 0, enrolled_at: iso(18),
+    })) : []
+    return { ...empty, client, draft, programme, icp, campaign, sequence, leads, session, messages, offer, enrollments, proofClaim }
   }
 
   // ── Delivery: every programme person was emailed; replies and meetings follow. ──
   const replying = new Set(NORTHWIND_REPLIES.map(r => r.cast))
   const enrollments = NORTHWIND_CAST.slice(0, NORTHWIND_PROGRAMME_PEOPLE).map((_, i) => ({
-    client_id: ids.clientId, campaign_id: ids.campaignId, lead_id: ids.leadIds[i],
+    client_id: ids.clientId, campaign_id: ids.campaignId, programme_id: ids.programmeId, sequence_id: ids.sequenceId,
+    lead_id: ids.leadIds[i],
     status: replying.has(i) ? 'replied' : stage === 'Complete' ? 'completed' : 'in_progress',
     current_step: replying.has(i) ? 1 : stage === 'Complete' ? 3 : 2,
     enrolled_at: iso(15),
@@ -399,6 +430,9 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       from_email: northwindEmail(c), from_name: `${c.first} ${c.last}`,
       subject: `Re: ${NORTHWIND_SEQUENCE[0].subject}`, body: r.body, body_text: r.body,
       classification: r.classification, received_at: iso(r.daysAgo),
+      // The Inbox counts "meetings booked" from this stamp (`lib/inbox.ts`) — the same moment
+      // as the meeting's own `booked_at`.
+      meeting_booked_at: r.meeting !== null && r.meeting <= delivered ? iso(r.daysAgo - 1) : null,
     }
   })
 
@@ -431,5 +465,5 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       }
     })
 
-  return { client, draft, programme, icp, campaign, sequence, leads, enrollments, sentEmails, replies, meetings, session, messages }
+  return { client, draft, programme, icp, campaign, sequence, leads, enrollments, sentEmails, replies, meetings, session, messages, offer, proofClaim }
 }

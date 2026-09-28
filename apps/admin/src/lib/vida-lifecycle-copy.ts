@@ -107,6 +107,13 @@ export type LifecycleCopyInput = {
   clientName: string
   /** ⚑ 28 Sep (R172 · C5) — ONE payment settled both stages (R166 ③): there is no second payment to wait for. */
   paidInFull?: boolean
+  /**
+   * ⚑ 28 Sep — THE SECOND STAGE IS ALREADY SETTLED, by payment or by internal authority
+   * (House, the Northwind demo). The approval card said "Second payment · Not yet authorised"
+   * for a programme whose second stage WAS authorised, because it only recognised a paid
+   * reference. Absent = not settled (the old wording stands).
+   */
+  secondSettled?: 'paid' | 'authorised' | null
   state: LifecycleState
   mode: VidaMode
   counts: {
@@ -889,6 +896,11 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
           // payment · Not yet authorised"~~ told the founder money was still to come.
           ...(i.paidInFull ? [
             { kind: 'fact' as const, label: 'Payment', value: 'Paid in full', caption: 'One payment, at the start — nothing else is due' },
+            { kind: 'fact' as const, label: 'Next', value: approved ? 'Make live.' : 'The client approves the programme in Milla.' },
+          ] : i.secondSettled ? [
+            { kind: 'fact' as const, label: 'Second payment',
+              value: i.secondSettled === 'paid' ? 'Paid' : 'Authorised internally',
+              caption: i.secondSettled === 'paid' ? 'Nothing else is due' : 'No charge — authorised without a payment' },
             { kind: 'fact' as const, label: 'Next', value: approved ? 'Make live.' : 'The client approves the programme in Milla.' },
           ] : [
             { kind: 'fact' as const, label: 'Second payment',

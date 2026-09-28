@@ -358,3 +358,30 @@ describe('⑥ the mode pill says one of exactly four things', () => {
     }
   })
 })
+
+// ⚑ 28 Sep (R164 · demo B) — a demo account has no mailbox BY DESIGN (it can never send), so
+// Vida must not put it in Needs you for "no sending mailbox". Every real client still does.
+describe('R164 · a demo account\'s missing mailbox is not a Needs-you', () => {
+  const live = { status: 'LIVE', approved: true, secondAuthorised: true, live: true }
+  const run = { ...live, run: true }
+  it('a REAL client with no sendable mailbox still needs you — unchanged, in every sender branch', () => {
+    for (const programme of [prog(live), prog(run)]) {
+      for (const sends of [0, 9]) {
+        expect(at({ programme, sends, senderSendable: false }).needsYouReason).toBe('sender_not_sendable')
+        expect(at({ programme, sends, senderSendable: false, isDemo: false }).needsYouReason).toBe('sender_not_sendable')
+      }
+    }
+  })
+  it('a DEMO client with no mailbox is judged on everything else', () => {
+    for (const programme of [prog(live), prog(run)]) {
+      for (const sends of [0, 9]) {
+        const v = at({ programme, sends, senderSendable: false, isDemo: true })
+        expect(v.state).not.toBe('review_sender')
+        expect(v.needsYouReason).not.toBe('sender_not_sendable')
+      }
+    }
+    // …and a real exception on a demo is still one: a waiting reply is still a Needs-you.
+    expect(at({ programme: prog(run), sends: 9, senderSendable: false, isDemo: true, repliesAwaitingDecision: 2 }).needsYouReason)
+      .toBe('reply_needs_decision')
+  })
+})

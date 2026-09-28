@@ -762,7 +762,18 @@ export function MillaConversationProvider(
     if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle
     // 🛑 NO PROGRAMME MEANS NO PROGRAMME STATUS, whatever campaign rows exist.
     if (prog.hasProgramme === false) return idle
-    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500', cls: 'attn' }
+    // ⚑ 28 Sep — A FINISHED PROGRAMME SAYS SO. At Completion there is no open programme, so
+    // `campaign_status` (read through the open programme) is empty and the chip used to fall
+    // through to "Outreach hasn't started" — under a screen reading "8 / 8 · Target met".
+    if (prog.stage === 'Completion') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]', cls: 'good' }
+    // ⛓️ 28 Sep — THE OLD "GO LIVE — LOAD $99" TEST NO LONGER APPLIES TO A PROGRAMME.
+    // ~~`if (needsGoLive) return 'Not started'`~~ — `has_funded` asks whether a legacy wallet
+    // top-up / purchase row exists (`milla-summary.ts`). A programme is paid (or authorised) on
+    // the programme row itself (R124 retired the per-lead model), so a LIVE programme client with
+    // no legacy top-up was shown "Not started" in red while their emails went out. Seen on the
+    // Northwind demo at Results; true of any programme client. With a programme, the campaign
+    // status below is the truth; the go-live test stays only for a client with no programme.
+    if (needsGoLive && prog.hasProgramme !== true) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500', cls: 'attn' }
     const st = summary?.campaign_status
     if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500', cls: 'good' }
     if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500', cls: 'attn' }

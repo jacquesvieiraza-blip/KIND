@@ -6,10 +6,21 @@ import { createClient } from '@/lib/supabase/client'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 
-// #507 — MILLA MEETINGS tab: the client's booked meetings (their calendar), from live
-// calendar_bookings. Meetings are REPORTED here — never a money condition.
+// #507 — MILLA MEETINGS tab: the client's booked meetings, from `GET /leads/meetings`, which
+// reads `public.meetings` (the one meeting record). Meetings are REPORTED here — never a money
+// condition.
 
-type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
+type Meeting = { id: string; title: string; start_time: string | null; status: string; state?: string; name: string; company: string | null }
+
+// ⛓️ 28 Sep — UPCOMING IS A BOOKED MEETING IN THE FUTURE. WAS ~~`m.status === 'confirmed'`~~ — a
+// value the API has not sent since meetings moved to `public.meetings` (it sends a label:
+// Booked · Held · No-show · Awaiting verification · Rescheduled, plus the raw `state`). So every
+// meeting was filed under PAST and badged "Confirmed" — a meeting two days away included. Seen on
+// the Northwind demo; true for every client. The badge now shows the API's own label.
+const UPCOMING_STATES = ['BOOKED', 'BOOKED_UNVERIFIED']
+function isUpcoming(m: Pick<Meeting, 'start_time' | 'state'>, now: number): boolean {
+  return !!m.start_time && new Date(m.start_time).getTime() >= now && UPCOMING_STATES.includes(m.state ?? '')
+}
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -32,8 +43,8 @@ export default function MillaMeetingsPage() {
   useLiveRefresh(load)
 
   const now = Date.now()
-  const upcoming = (meetings ?? []).filter(m => m.start_time && new Date(m.start_time).getTime() >= now && m.status === 'confirmed')
-  const past = (meetings ?? []).filter(m => !(m.start_time && new Date(m.start_time).getTime() >= now && m.status === 'confirmed'))
+  const upcoming = (meetings ?? []).filter(m => isUpcoming(m, now))
+  const past = (meetings ?? []).filter(m => !isUpcoming(m, now))
 
   const Card = ({ m }: { m: Meeting }) => (
     <div className="bg-white border border-[#eee7f7] rounded-2xl p-4 flex items-center gap-3.5">
@@ -45,8 +56,12 @@ export default function MillaMeetingsPage() {
         <span className="text-[12px] text-[#9b8ec4]">{[m.company, m.title].filter(Boolean).join(' · ')}</span>
         <div className="text-[12px] text-[#5c5279] mt-0.5">{when(m.start_time)}</div>
       </div>
-      <span className={`text-[11px] font-extrabold rounded-full px-3 py-1 ${m.status === 'completed' ? 'text-indigo-700 bg-indigo-50' : 'text-emerald-700 bg-emerald-50'}`}>
-        {m.status === 'completed' ? 'Completed' : 'Confirmed'}
+      <span className={`text-[11px] font-extrabold rounded-full px-3 py-1 ${
+        m.state === 'HELD' ? 'text-indigo-700 bg-indigo-50'
+        : m.state === 'NO_SHOW' ? 'text-red-700 bg-red-50'
+        : m.state === 'BOOKED_UNVERIFIED' ? 'text-amber-700 bg-amber-50'
+        : 'text-emerald-700 bg-emerald-50'}`}>
+        {m.status || 'Booked'}
       </span>
     </div>
   )

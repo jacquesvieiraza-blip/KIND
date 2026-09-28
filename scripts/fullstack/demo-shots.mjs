@@ -64,7 +64,7 @@ for (const [stage, paths] of Object.entries(PAGES)) {
     report.push({ stage, where: `Milla ${path} → ${new URL(page.url()).pathname}`, bad, file })
     await page.close()
   }
-  const vp = await vida.newPage()
+  let vp = await vida.newPage()
   await vp.goto(`${ENV.admin}/vida/demo`, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {})
   await vp.waitForTimeout(2500)
   await vp.screenshot({ path: `${OUT}/vida-${stage}_demo.png` })
@@ -72,6 +72,11 @@ for (const [stage, paths] of Object.entries(PAGES)) {
   // Vida's own view of the client — what an operator sees with Northwind open.
   const st = await (await fetch(`${ENV.api}/operator/demo/northwind`, { headers: ADMIN })).json()
   if (st?.data?.clientId) {
+    // A FRESH tab: Vida keeps the selected client in page state, and a tab that already showed
+    // the demo page keeps its blank selection.
+    await vp.close()
+    const fresh = await ctx(ENV.admin, ENV.adminJwt, ENV.adminUserId, ENV.adminEmail)
+    vp = await fresh.newPage()
     await vp.goto(`${ENV.admin}/vida?client=${st.data.clientId}`, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {})
     await vp.waitForTimeout(4000)
     await vp.screenshot({ path: `${OUT}/vida-${stage}_client.png` })

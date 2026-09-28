@@ -142,15 +142,34 @@ export async function setNorthwindStage(
         await put('onboarding_brief_drafts', rows.draft)
       }
     }
-    await put('programmes', rows.programme)
+    // The programme's sending window is the product's own default (never typed here).
+    const { DEFAULT_PROGRAMME_SEND_SCHEDULE } = await import('./programme-sequence')
+    await put('programmes', rows.programme ? { ...rows.programme, send_schedule: DEFAULT_PROGRAMME_SEND_SCHEDULE } : null)
     await put('icps', rows.icp)
+    await put('proof_pass_claims', rows.proofClaim)
     await put('figsy_campaigns', rows.campaign)
     await put('figsy_sequences', rows.sequence)
     await put('leads', rows.leads)
     await put('figsy_enrollments', rows.enrollments)
+    await put('figsy_knowledge', rows.offer)
     await put('figsy_sent_emails', rows.sentEmails)
     await put('figsy_replies', rows.replies)
     if (rows.meetings.length) { await writeDemoMeetings(ids.clientId, rows.meetings); counts.meetings = rows.meetings.length }
+    // ── THE FROZEN PACKAGE the client approves (people, messages, cadence) — built by the product's
+    // own `buildPreparationSnapshot` from the rows just written, and hashed by it, so the Approval
+    // screen shows exactly what a real client sees and Approve's drift check agrees with it.
+    // Sender stays null: a demo can never hold a usable mailbox (R164 A).
+    if (rows.programme) {
+      const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+      const b = await buildPreparationSnapshot(ids.programmeId)
+      if (!b.ok) throw new Error(`Could not freeze the demo programme: ${String((b as { degraded?: unknown }).degraded ?? 'unknown')}`)
+      const frozenAt = new Date((opts.now ?? new Date()).getTime() - 18 * 86_400_000).toISOString()
+      const { error } = await db.from('programmes').update({
+        review_preparation_snapshot: b.snapshot, review_preparation_hash: b.hash,
+        review_preparation_at: frozenAt, review_preparation_version: 1,
+      }).eq('id', ids.programmeId)
+      if (error) throw new Error(`Could not store the demo programme's frozen package: ${error.message}`)
+    }
     if (rows.campaign && rows.sentEmails.length) {
       await db.from('figsy_campaigns').update({
         emails_sent: rows.sentEmails.length, replies_total: rows.replies.length,

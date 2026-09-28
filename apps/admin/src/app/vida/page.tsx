@@ -2762,6 +2762,9 @@ export default function VidaConsolePage() {
     return lifecycleCopy({
       // ⚑ 28 Sep (R172 · C5) — the same test the lifecycle panel's "Paid in full (one payment)" uses.
       paidInFull: !!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref,
+      // ⚑ 28 Sep — a second stage settled by payment OR by internal authority (House, the demo).
+      secondSettled: prog?.programme?.second_paid_at && prog?.programme?.second_payment_ref ? 'paid'
+        : prog?.programme?.second_authorised_at ? 'authorised' : null,
       clientName: selectedName || selectedClient?.company_name || 'This client',
       state: lc.verdict.state,
       mode: lc.verdict.mode,

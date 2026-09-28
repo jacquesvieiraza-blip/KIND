@@ -99,3 +99,48 @@ describe('R164 · Northwind demo data', () => {
     expect(done.messages.map(m => String(m.content)).join(' ')).toContain(`target of ${NORTHWIND_MEETINGS}`)
   })
 })
+
+// ⚑ 28 Sep (R173) — the demo buys what the presenter chose, and every number follows it.
+import { northwindTarget, meetingsAt } from './demo-northwind-data'
+describe('R173 · the demo follows the chosen number of meetings', () => {
+  it('the target is the choice, between 1 and 8; anything else is the default 8', () => {
+    expect(northwindTarget(5)).toBe(5)
+    expect(northwindTarget(12)).toBe(8)
+    expect([0, -1, null, undefined, Number.NaN].map(v => northwindTarget(v as number))).toEqual([8, 8, 8, 8, 8])
+  })
+  it('at 5: priced for 5, 3 of 5 at Results, 5 of 5 at Complete — and Milla says so', () => {
+    const q = quoteProgramme(5, NORTHWIND_BAND)
+    const a = northwindRows('Approval', ids, now, { meetings: 5 })
+    expect(a.programme).toMatchObject({ meeting_target: 5, price_total_cents: q.totalCents })
+    expect(a.messages.map(m => String(m.content))).toContain('Let’s go with 5.')
+    const r = northwindRows('Results', ids, now, { meetings: 5 })
+    expect(r.meetings).toHaveLength(3)
+    expect(r.messages.map(m => String(m.content)).join(' ')).toContain('3 qualified meetings of your 5 so far')
+    const c = northwindRows('Complete', ids, now, { meetings: 5 })
+    expect(c.meetings).toHaveLength(5)
+    expect(c.programme!.delivered_meetings).toBe(5)
+    expect(c.messages.map(m => String(m.content)).join(' ')).toContain('Your fifth qualified meeting is booked. You’ve reached your target of 5')
+  })
+  it('a very small target still reads true: 1 meeting → 0 of 1 at Results, no "next one in two days", 1 of 1 at Complete', () => {
+    expect(meetingsAt('Results', 1)).toBe(0)
+    const r = northwindRows('Results', ids, now, { meetings: 1 })
+    expect(r.meetings).toHaveLength(0)
+    const said = r.messages.map(m => String(m.content)).join(' ')
+    expect(said).toContain('You have 0 qualified meetings of your 1 so far.')
+    expect(said).not.toContain('Imogen Hartley')
+    expect(northwindRows('Complete', ids, now, { meetings: 1 }).meetings).toHaveLength(1)
+  })
+  it('the default is unchanged: 8, with 3 at Results', () => {
+    expect(northwindRows('Results', ids, now)).toEqual(northwindRows('Results', ids, now, { meetings: 8 }))
+  })
+})
+
+import { poolCapacity } from '@kind/shared'
+import { NORTHWIND_MATCHED, NORTHWIND_CAST as CAST } from './demo-northwind-data'
+describe('R173 · the demo\'s market is fixed at a ceiling of exactly 8 meetings', () => {
+  it('the workable pool is 3,536 and the committed ceiling is the demo\'s 8', () => {
+    const cap = poolCapacity(NORTHWIND_MATCHED, 0, CAST.length)
+    expect(cap.workable).toBe(3536)
+    expect(cap.committed).toBe(NORTHWIND_MEETINGS)
+  })
+})

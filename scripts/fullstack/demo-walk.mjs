@@ -144,6 +144,40 @@ for (const stage of STAGES) {
   }
 }
 
+// ── ⚑ 28 Sep (R173) — THE DEMO IS CLICKED THROUGH, NOT ONLY JUMPED ─────────────────────────
+// The presses a client makes, at a target that is NOT the default, so a hard-coded 8 anywhere is
+// caught: Programme → choose 5 · accept · "Pay" → Approval (a package of 20, target 5, the demo's
+// sender line) → Approve → Results at 3 of 5, with Milla saying so.
+{
+  const stage = 'Click-through'
+  console.log(`\n── ${stage} (5 meetings) ─────────────────────────────`)
+  const post = (path, json) => call('POST', path, { headers: { authorization: `Bearer ${USER_JWT}` }, json })
+  await call('POST', '/operator/demo/northwind/stage', { headers: ADMIN, json: { stage: 'Programme' } })
+  const choose = await post('/my/programme/choose', { meetings: 5 })
+  note(stage, choose.status === 200, `choosing 5 meetings works (${choose.status}) ${choose.data?.error ?? ''}`)
+  const accept = await post('/my/programme/accept', {})
+  note(stage, accept.status === 200, `accepting works (${accept.status}) ${accept.data?.error ?? ''}`)
+  const pay = await post('/my/programme/checkout/first', { successUrl: 'https://x/milla?paid=first', cancelUrl: 'https://x/milla' })
+  note(stage, pay.status === 200 && pay.data?.data?.url === '/milla/programme', `"Accept · Pay" moves the demo on, no Stripe (${pay.status} → ${pay.data?.data?.url ?? pay.data?.message ?? ''})`)
+  const at1 = await asVida('/operator/demo/northwind')
+  note(stage, at1.data?.data?.stage === 'Approval', `the demo is at ${at1.data?.data?.stage} (expected Approval)`)
+  const review = await asClient('/my/programme/review')
+  const rv = review.data?.data
+  note(stage, rv?.total === 20 && rv?.programme?.meeting_target === 5, `the package: ${rv?.total} people, target ${rv?.programme?.meeting_target} (expected 20, 5)`)
+  note(stage, rv?.frozen?.sender_email === 'hannah@northwind-demo.invalid', `the sender line reads ${rv?.frozen?.sender_email ?? 'nothing'}`)
+  const approve = await post('/my/programme/approve', { version: rv?.frozen?.version ?? null })
+  note(stage, approve.status === 200, `"Approve" moves the demo on (${approve.status}) ${approve.data?.message ?? ''}`)
+  const at2 = await asVida('/operator/demo/northwind')
+  note(stage, at2.data?.data?.stage === 'Results', `the demo is at ${at2.data?.data?.stage} (expected Results)`)
+  const prog = (await asClient('/my/programme')).data?.data
+  note(stage, prog?.progress?.outcomesAchieved === 3 && prog?.outcome?.target === 5, `Results reads ${prog?.progress?.outcomesAchieved} / ${prog?.outcome?.target} (expected 3 / 5)`)
+  const sid = (await asClient('/milla/sessions')).data?.data?.[0]?.id
+  const msgs = sid ? ((await asClient(`/milla/sessions/${sid}/messages`)).data?.data ?? []) : []
+  note(stage, msgs.some(m => String(m.content).includes('of your 5 so far')), 'Milla\'s chat says "3 qualified meetings of your 5"')
+  // Leave the demo where every other check expects it.
+  await call('POST', '/operator/demo/northwind/stage', { headers: ADMIN, json: { stage: 'Brief' } })
+}
+
 console.log(`\n${problems.length === 0 ? '✅ every stage passed its checks' : `✗ ${problems.length} problem(s):\n  · ${problems.join('\n  · ')}`}`)
 console.log(`full reads written to ${OUT}/<Stage>.json`)
 if (problems.length > 0) process.exit(1)

@@ -18,6 +18,9 @@ cd "$(dirname "$0")/.."
 RUN_DIR="${FULLSTACK_RUN_DIR:-${TMPDIR:-/tmp}/kind-fullstack}"
 OUT="$RUN_DIR/demo-walk"
 rc=0
+# A clean slate first: a harness left running by an earlier run holds its ports, and a new
+# `up` refuses to bind rather than let a stale process answer the walk.
+bash scripts/fullstack.sh down >/dev/null 2>&1 || true
 bash scripts/fullstack.sh up || rc=1
 if [ "$rc" = "0" ]; then
   node scripts/fullstack/demo-walk.mjs "$RUN_DIR/env.json" "$OUT" || rc=1

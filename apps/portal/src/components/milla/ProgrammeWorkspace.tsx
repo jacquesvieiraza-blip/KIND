@@ -27,7 +27,7 @@
 import {
   MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
   programmeIsRunning, PROGRAMME_RUNNING_COPY, PROGRAMME_ARMED_COPY,
-  PROGRAMME_BEST_EFFORTS,
+  PROGRAMME_BEST_EFFORTS, SHORTFALL_CREDIT_EXPIRY_DAYS,
 } from '@kind/shared'
 
 export type CustomerProgramme = {
@@ -283,7 +283,9 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
               ) : null}
               {p.settlement.creditCents > 0 ? (
                 <div className="text-[12px] text-[#6b5f8c] mt-0.5">
-                  {programmeMoney(p.settlement.creditCents)} has been credited to your account toward your next programme. It is not refunded to your card.
+                  {/* ⛓️ 28 Sep (R172 · B5) — a new-terms credit is once per client and lasts 90 days (R166 ⑤);
+                      the sentence says so. Credit promised before those terms is not given a date. */}
+                  {programmeMoney(p.settlement.creditCents)} has been credited to your account toward your next programme{p.money.paysInFull ? `, and can be used for ${SHORTFALL_CREDIT_EXPIRY_DAYS} days` : ''}. It is not refunded to your card.
                 </div>
               ) : (
                 <div className="text-[12px] text-[#9b8ec4] mt-0.5">Settled — nothing is owed either way.</div>

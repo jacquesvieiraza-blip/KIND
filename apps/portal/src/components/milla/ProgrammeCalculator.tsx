@@ -33,6 +33,7 @@ import { api } from '@/lib/api'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import { programmeMoney } from '@/lib/programme-money'
+import { meetingsPhrase } from '@kind/shared'
 import { postAcceptance, type AcceptResponse } from '@/lib/programme-acceptance'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 
@@ -261,7 +262,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
         <div className="mv-hero-row">
           <div>
             <div className="mv-hero-number tabular-nums">{d?.meetings ?? meetings}</div>
-            <div className="mv-hero-caption">qualified meetings — your target</div>
+            <div className="mv-hero-caption">{(d?.meetings ?? meetings) === 1 ? 'qualified meeting' : 'qualified meetings'} — your target</div>
           </div>
           {d && (
             <div>
@@ -319,7 +320,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
                 <div className="mv-kv-row"><span>P1 · starts preparation</span><strong>{programmeMoney(d.firstPaymentCents)}</strong></div>
                 <div className="mv-kv-row"><span>P2 · on approval</span><strong>{programmeMoney(d.secondPaymentCents)}</strong></div>
               </>)}
-              <div className="mv-kv-row"><span>What you buy</span><strong>{d.meetings} qualified meetings</strong></div>
+              <div className="mv-kv-row"><span>What you buy</span><strong>{meetingsPhrase(d.meetings)}</strong></div>
             </div>
             {/* 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE POINT OF COMMITMENT. The server's
                 sentence, naming no number (founder: *"i said 400 internally. we dont disclose this."*). */}
@@ -339,13 +340,13 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
         <button onClick={() => void acceptAndPay()} disabled={busy || chosen || !d || noCapacity}
           className="mv-btn primary disabled:opacity-50">
           {internalBilling
-            ? (busy ? 'Accepting…' : `Accept ${d?.meetings ?? meetings} meetings · no payment (House)`)
+            ? (busy ? 'Accepting…' : `Accept ${meetingsPhrase(d?.meetings ?? meetings, '')} · no payment (House)`)
             : busy ? 'Opening payment…'
-              : d && d.secondPaymentCents === 0 ? `Accept ${d.meetings} meetings · Pay ${programmeMoney(d.firstPaymentCents)}`
+              : d && d.secondPaymentCents === 0 ? `Accept ${meetingsPhrase(d.meetings, '')} · Pay ${programmeMoney(d.firstPaymentCents)}`
               // ⚑ 25 Sep (R168 · P7b) — with no price yet (size still being confirmed) the button no
               // longer says "Pay P1": a client on the new terms pays once. Words only (R167).
-              : d ? `Accept ${d.meetings} meetings · Pay P1 (${programmeMoney(d.firstPaymentCents)})`
-              : `Accept ${meetings} meetings`}
+              : d ? `Accept ${meetingsPhrase(d.meetings, '')} · Pay P1 (${programmeMoney(d.firstPaymentCents)})`
+              : `Accept ${meetingsPhrase(meetings, '')}`}
         </button>
         {onWiden ? <button onClick={onWiden} disabled={busy} className="mv-btn">Widen targeting</button> : null}
         {/* ⚠️ IT SAYS WHAT THE PRESS DOES: it accepts this programme and opens the first payment.

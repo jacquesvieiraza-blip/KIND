@@ -226,6 +226,28 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // would draw an amount the checkout never took off the price.
           const walletCreditCents = Number(
             (session.metadata as Record<string, string> | null)?.walletCreditCents ?? 0)
+          // ── ⚑ 28 Sep (R172 · B8) — THE AMOUNT PAID MUST BE THE PROGRAMME'S PRICE ──────────
+          // A client could open the checkout for 1 meeting, go back, re-choose 10, and pay the old
+          // tab: the programme would be recorded as paid in full for the smaller amount. So the
+          // cash plus the credit applied must equal the programme's first payment as it stands
+          // NOW. A mismatch records nothing, starts nothing, and tells the founder (a retry cannot
+          // fix it, so Stripe gets 200). An absent amount (older payloads) is not second-guessed.
+          const paidCents = (session as unknown as { amount_total?: number | null }).amount_total
+          if (typeof paidCents === 'number') {
+            const { getProgramme } = await import('../lib/programme')
+            const prog = await getProgramme(meta.programmeId)
+            const credit = Number.isFinite(walletCreditCents) ? walletCreditCents : 0
+            if (prog && !prog.first_paid_at && paidCents + credit !== prog.first_payment_cents) {
+              console.error(`[Stripe] programme ${meta.programmeId}: paid ${paidCents}+${credit} cents but the programme's first payment is ${prog.first_payment_cents} — NOT recorded.`)
+              void sendFounderAlert('payment_failed', 'A programme payment did not match its price — not recorded', [
+                `Programme ${meta.programmeId} (client ${meta.clientId}) — Stripe session ${session.id}.`,
+                `Paid: ${paidCents} cents${credit ? ` + ${credit} cents wallet credit` : ''}. The programme now costs ${prog.first_payment_cents} cents at this stage.`,
+                'The client most likely changed their programme after opening the payment page. Nothing was started.',
+                'Decide by hand: refund in Stripe and ask them to pay again, or set the programme back to what they paid for.',
+              ], { clientId: meta.clientId ?? null, programmeId: meta.programmeId, dedupeKey: `payment_mismatch:${session.id}` })
+              res.sendStatus(200); return
+            }
+          }
           const r = await recordFirstPayment({
             programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId,
             walletCreditCents: Number.isFinite(walletCreditCents) ? walletCreditCents : 0,
@@ -1012,13 +1034,15 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       //
       // ⚠️ IDEMPOTENT. Stripe redelivers; `recordDispute` keeps the FIRST stamp and alerts once.
       if (meta.programmeId && typeof meta.programmeId === 'string') {
-        const { recordDispute } = await import('../lib/programme')
+        const { recordDispute, returnRefundedWalletCredit } = await import('../lib/programme')
         const kind = event.type === 'charge.dispute.created' ? 'dispute' as const : 'refund' as const
         const r = await recordDispute(
           meta.programmeId,
           `Stripe ${event.type} on charge ${obj.id}${meta.type ? ` (${meta.type})` : ''}.`,
           kind,
         )
+        // ⚑ 28 Sep (R172 · B4) — a refund also returns the wallet credit the payment used (once).
+        if (r.ok && kind === 'refund') await returnRefundedWalletCredit(meta.programmeId)
         if (!r.ok) {
           console.error(`[Stripe] ${event.type} — programme ${meta.programmeId} could not be stopped: ${r.reason}`)
           void sendFounderAlert('payment_failed', 'A programme payment was reversed and the programme could NOT be stopped', [

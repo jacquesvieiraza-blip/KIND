@@ -33,8 +33,10 @@ describe('#27 · ONE button runs choose → accept → P1, in that order', () =>
     // when known. With a price it still says the price it starts, word for word; with NO price
     // yet (size being confirmed) it no longer says "Pay P1", because a client on the new terms
     // pays once. Same rule — the button says what it does — for both cases.
-    expect(CALC).toContain(': d ? `Accept ${d.meetings} meetings · Pay P1 (${programmeMoney(d.firstPaymentCents)})`')
-    expect(CALC).toContain(': `Accept ${meetings} meetings`}')
+    // ⛓️ 28 Sep (R172 · B6) — same words, same price; the count now goes through `meetingsPhrase`, so
+    // one meeting is never "1 meetings".
+    expect(CALC).toContain(': d ? `Accept ${meetingsPhrase(d.meetings, \'\')} · Pay P1 (${programmeMoney(d.firstPaymentCents)})`')
+    expect(CALC).toContain(': `Accept ${meetingsPhrase(meetings, \'\')}`}')
   })
 
   it('🛑 the separate Accept and P1 cards are gone from the screen', () => {
@@ -46,7 +48,8 @@ describe('#27 · ONE button runs choose → accept → P1, in that order', () =>
 
 describe('#28 #29 #59 #76 · the panel as designed', () => {
   it('🛑 hero + slider, Capacity card with the workable pool, Payment card with P1 and P2', () => {
-    expect(CALC).toContain('qualified meetings — your target')
+    // ⛓️ 28 Sep (R172 · B6) — singular for one.
+    expect(CALC).toContain("=== 1 ? 'qualified meeting' : 'qualified meetings'} — your target")
     expect(CALC).toContain('<div className="mv-eyebrow">Capacity</div>')
     expect(CALC).toContain('<div className="mv-eyebrow">Payment</div>')
     expect(CALC).toContain('P1 · starts preparation')

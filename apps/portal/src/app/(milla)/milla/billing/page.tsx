@@ -37,7 +37,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, meetingsPhrase } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 // ⛓️ 31 Aug — ONE MONEY MODULE. `halves` used to be defined in this file and
 // `programmeMoney` imported from the workspace; the split and the way it is written down
@@ -88,7 +88,12 @@ export default function MillaBillingPage() {
     })()
   }, [])
 
-  const money = p && p.money.totalCents > 0 ? halves(p.money.totalCents) : null
+  // ⛓️ 28 Sep (R172 · B1) — ~~`halves(p.money.totalCents)`~~ divided the price on this screen. The
+  // two amounts are the STORED ones now, and a one-payment programme (R166 ③) shows ONE card.
+  const money = p && p.money.totalCents > 0
+    ? { first: p.money.firstPaymentCents ?? halves(p.money.totalCents).first, second: p.money.secondPaymentCents ?? halves(p.money.totalCents).second }
+    : null
+  const oneInFull = !!p && (p.money.paysInFull === true || (p.money.totalCents > 0 && p.money.secondPaymentCents === 0))
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
@@ -119,7 +124,7 @@ export default function MillaBillingPage() {
               )}
               <div className="text-[12.5px] text-[#6b5f8c] mt-1">
                 {p.outcome.target
-                  ? `${p.outcome.target} booked meetings · ${p.stage}`
+                  ? `${meetingsPhrase(p.outcome.target)} · ${p.stage}`
                   : p.stage}
               </div>
               {p.paused && p.pausedCopy && (
@@ -134,6 +139,24 @@ export default function MillaBillingPage() {
                 Payment 1 buys sourcing and preparation and NOTHING ELSE; a client who has
                 paid it must not think outreach has begun. Payment 2 follows the ONE programme
                 approval and is what authorises outreach. */}
+            {oneInFull ? (
+              /* ⚑ 28 Sep (R172 · B1) — ONE PAYMENT IN FULL (R166 ③): one card, never "50%". */
+              <div className="mt-3 bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold">One payment</span>
+                  <span className="text-[11px] font-bold text-[#9b8ec4]">in full</span>
+                </div>
+                <div className="text-[18px] font-extrabold text-[#1f1235] mt-1">
+                  {money ? programmeMoney(p.money.totalCents) : '—'}
+                </div>
+                <div className={`text-[12.5px] font-semibold mt-0.5 ${p.money.firstPaidAt ? 'text-[#059669]' : 'text-[#7c6f9b]'}`}>
+                  {p.money.firstPaidAt ? 'Paid' : 'Not yet paid'}
+                </div>
+                <p className="text-[12.5px] text-[#9b8ec4] mt-2 leading-relaxed">
+                  Paid once, before we start. It authorises sourcing and preparation now, and outreach once you approve the prepared programme. Nothing else is due.
+                </p>
+              </div>
+            ) : (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
                 <div className="flex items-baseline gap-2">
@@ -174,6 +197,7 @@ export default function MillaBillingPage() {
                 </p>
               </div>
             </div>
+            )}
 
             {/* ── PAYMENT EVIDENCE — STRIPE'S OWN RECORD, NOT OURS ───────────────────
                 ⚠️ WE ISSUE NOTHING HERE. Stripe issues the invoice and hosts it; this lists

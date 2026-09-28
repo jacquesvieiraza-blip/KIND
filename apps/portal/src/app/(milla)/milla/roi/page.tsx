@@ -87,7 +87,10 @@ export default function MillaRoiPage() {
                 label="Programme value"
                 value={p.money.totalCents > 0 ? programmeMoney(p.money.totalCents) : null}
                 sub={p.money.totalCents > 0
-                  ? `${p.money.firstPaidAt ? 'First 50% paid' : 'First 50% not yet paid'} · ${p.money.secondPaidAt ? 'second 50% paid' : 'second 50% not yet paid'}`
+                  // ⛓️ 28 Sep (R172 · B1) — a one-payment programme (R166 ③) is never described in halves.
+                  ? (p.money.paysInFull === true || p.money.secondPaymentCents === 0
+                      ? (p.money.firstPaidAt ? 'Paid in full' : 'One payment, not yet paid')
+                      : `${p.money.firstPaidAt ? 'First 50% paid' : 'First 50% not yet paid'} · ${p.money.secondPaidAt ? 'second 50% paid' : 'second 50% not yet paid'}`)
                   : 'No programme price has been set yet'}
                 icon={<Gem className="w-6 h-6" />}
               />

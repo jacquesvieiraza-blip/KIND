@@ -11,7 +11,7 @@
 
 import Stripe from 'stripe'
 import { stripeSdkHostOptions } from './provider-hosts'
-import { programmeStripeAmountCents, type ProgrammeStage } from '@kind/shared'
+import { programmeStripeAmountCents, meetingsPhrase, type ProgrammeStage } from '@kind/shared'
 
 const key = process.env.STRIPE_SECRET_KEY
 // ⛓️ 18 Sep (Batch 1b) — spreads to `{}` when `STRIPE_BASE_URL` is unset: production unchanged.
@@ -94,9 +94,11 @@ export async function createProgrammeCheckoutSession(params: {
           currency:    'usd',
           unit_amount: amountCents,
           product_data: {
+            // ⛓️ 28 Sep (R172 · B2) — ~~"N targeted booked meetings (first 50%)"~~ on a one-payment
+            // programme's receipt. The Terms sell QUALIFIED meetings; a band programme is paid in full.
             name: isFirst
-              ? `K.I.N.D programme — ${params.meetings} targeted booked meetings (first 50%)${credit > 0 ? ' — wallet credit applied' : ''}`
-              : `K.I.N.D programme — ${params.meetings} targeted booked meetings (second 50%, Go Live)`,
+              ? `K.I.N.D programme — ${meetingsPhrase(params.meetings)} (${params.band ? 'paid in full' : 'first 50%'})${credit > 0 ? ' — wallet credit applied' : ''}`
+              : `K.I.N.D programme — ${meetingsPhrase(params.meetings)} (second 50%, Go Live)`,
           },
         },
       }],

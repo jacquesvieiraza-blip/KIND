@@ -2111,6 +2111,52 @@ export async function settleProgrammeShortfall(params: {
   return { ok: true, creditCents }
 }
 
+/**
+ * ⚑ 28 Sep (R172 · B4) — A REFUND GIVES BACK THE WALLET CREDIT THE PAYMENT USED.
+ *
+ * 🛑 WHAT THIS FIXES. The card part of a refunded programme payment went back through Stripe;
+ * the credit part (`wallet_applied_cents`, drawn when the payment was confirmed) went nowhere, so
+ * a refunded client silently lost credit the founder had promised them (*"we refund credits to
+ * their wallet"*, 23 Sep). Called by the Stripe route for a REFUND only — a dispute is the client's
+ * bank acting, and the credit is left to the founder.
+ *
+ * ⚠️ THE LEDGER ROW FIRST, KEYED PER PROGRAMME, so a Stripe redelivery can never credit it twice
+ * (the reference is unique; a duplicate is a no-op). Never throws; tells the founder what it did.
+ */
+export async function returnRefundedWalletCredit(programmeId: string): Promise<{ returnedCents: number }> {
+  try {
+    const p = await getProgramme(programmeId)
+    const applied = Math.max(0, Number(p?.wallet_applied_cents ?? 0))
+    if (!p || applied <= 0) return { returnedCents: 0 }
+    const { error: rowErr } = await db.from('credit_transactions').insert({
+      client_id: p.client_id, type: 'wallet_topup', amount: applied / 100, plan: 'work_model',
+      reference: `programme-refund-credit:${programmeId}`,
+      note: 'Programme payment refunded — the wallet credit it used is returned',
+      created_at: new Date().toISOString(),
+    })
+    if (rowErr) {
+      if (rowErr.code === '23505') return { returnedCents: 0 }   // already returned
+      void sendFounderAlert('payment_failed', 'Refunded programme: wallet credit NOT returned', [
+        `Programme ${programmeId} (client ${p.client_id}): ${applied} cents of wallet credit could not be returned (${rowErr.message}).`,
+        'Return it by hand.',
+      ])
+      return { returnedCents: 0 }
+    }
+    const { error: incErr } = await db.rpc('increment_wallet', { p_client_id: p.client_id, p_amount: applied / 100 })
+    if (incErr) {
+      void sendFounderAlert('payment_failed', 'Refunded programme: credit ledgered but wallet not updated', [
+        `Programme ${programmeId} (client ${p.client_id}): the ${applied}-cent return is in the ledger but the wallet did not update (${incErr.message}).`,
+        'Add it to the wallet by hand. Do not re-run.',
+      ])
+      return { returnedCents: 0 }
+    }
+    return { returnedCents: applied }
+  } catch (e) {
+    console.error(`[programme] refunded wallet credit for ${programmeId} could not be returned:`, e)
+    return { returnedCents: 0 }
+  }
+}
+
 /** A chargeback cannot be refused by code. Record it, stop delivery, preserve evidence, alert. */
 export async function recordDispute(
   programmeId: string, detail: string, kind: 'dispute' | 'refund' = 'dispute',
@@ -2133,11 +2179,22 @@ export async function recordDispute(
 
   if (alreadyReversed) return { ok: true }
 
+  // ⚑ 28 Sep (R172 · B4) — the wallet credit this payment used is named here; on a REFUND the
+  // Stripe route then returns it through `returnRefundedWalletCredit` (below). This function stays
+  // what it was: it stops delivery and preserves evidence, and writes no accounting of its own.
+  const applied = Math.max(0, Number(p.wallet_applied_cents ?? 0))
+  const creditLine = applied > 0
+    ? (kind === 'refund'
+        ? `This payment also used ${applied} cents of wallet credit; it is returned to the client's wallet separately.`
+        : `This payment also used ${applied} cents of wallet credit — not returned on a dispute; decide by hand.`)
+    : ''
+
   const word = kind === 'refund' ? 'refunded' : 'disputed'
   void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [
     `Programme ${programmeId} (client ${p.client_id}) was ${word}.`,
     detail,
     'Sourcing and sending are paused. Nothing has been deleted — the programme, its batches and its ledger rows are preserved as evidence.',
+    creditLine,
   ])
   return { ok: true }
 }
@@ -2211,11 +2268,15 @@ export async function computeContribution(programmeId: string): Promise<Contribu
   // branch cannot change the answer. If it ever were set without a payment, subtracting it is
   // the conservative direction.
   const walletApplied = Math.max(0, Number(p.wallet_applied_cents ?? 0))
-  const revenueCents =
+  const paidRevenueCents =
     (p.first_paid_at ? p.first_payment_cents : 0) +
     (p.second_paid_at ? p.second_payment_cents : 0) -
     walletApplied -
     p.make_whole_cents
+  // ⚑ 28 Sep (R172 · B4) — REFUNDED OR DISPUTED MONEY IS NOT REVENUE, so it earns no partner
+  // commission. `disputed_at` is stamped by both (`recordDispute`); treating the payment as fully
+  // reversed is the conservative direction — a partial refund is corrected by hand, upward.
+  const revenueCents = p.disputed_at ? 0 : paidRevenueCents
 
   // ACTUAL provider cost, attributed to this programme by the sourcing ledger.
   const { data: rows } = await db.from('sourcing_ledger')

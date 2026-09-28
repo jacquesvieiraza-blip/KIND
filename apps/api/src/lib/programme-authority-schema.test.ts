@@ -438,6 +438,15 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     // definition of settled authority. This module performs no writes at all, and the write ban
     // below covers it unchanged.
     'apps/api/src/lib/programme-lifecycle-facts.ts',  // SELECTS internal authority for p2Authorised
+    // ⚑ 28 Sep (R164 · demo B) — THE DEMO'S PROGRAMME IS AUTHORISED, NEVER PAID.
+    //
+    // The Northwind demo needs a programme past payment (Approval, Results, Complete) without
+    // money. Recording `*_paid_at` or a payment reference would be a fake payment in the money
+    // tables; internal authority is the "no fake money" path this allowlist exists to fence.
+    // It names the columns in the rows it builds for the one `is_demo` account, and nowhere
+    // else — it is a backend decision (Vida sets the stage), never a customer surface, and the
+    // customer-surface write ban below does not list it.
+    'apps/api/src/lib/demo-northwind-data.ts',        // demo rows: authorised, never paid (R164)
   ]
 
   it('the sweep actually reads files — a zero-file scan proves nothing', () => {

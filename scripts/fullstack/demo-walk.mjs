@@ -85,8 +85,12 @@ for (const stage of STAGES) {
 
   const s = reads.summary.data?.data
   const p = reads.programme.data?.data
+  // ⚠️ THE EXPECTED NUMBERS ARE THE DEMO'S OWN DATA (`apps/api/src/lib/demo-northwind-data.ts`):
+  // 24 cast · 20 in the programme · 8 meetings bought at the growth band ($199) · 3 delivered at
+  // Results (1 still ahead) · 6 replies at Results, 11 at Complete. Change the demo → change these.
+  const lc = reads.vidaProgramme?.data?.data?.lifecycle?.verdict
   if (stage === 'Brief') {
-    note(stage, reads.summary.status === 404, 'no account yet: the summary answers 404 (Home now sends this to the Brief)')
+    note(stage, reads.summary.status === 404, 'no account yet: the summary answers 404 (Home sends this to the Brief)')
     const turns = reads.briefDraft.data?.data?.conversation?.length ?? 0
     note(stage, reads.briefDraft.status === 200 && turns === 7, `the Brief chat opens half-way through (${turns} turns)`)
     continue
@@ -95,35 +99,51 @@ for (const stage of STAGES) {
   const hist = sid ? await asClient(`/milla/sessions/${sid}/messages`) : null
   const nMsgs = hist?.data?.data?.length ?? 0
   const briefTurns = reads.briefDraft.data?.data?.conversation?.length ?? 0
-  note(stage, nMsgs > 0 && briefTurns > 0, `Milla's chat opens on history: ${briefTurns} Brief turns + ${nMsgs} messages`)
+  const minMsgs = { Proof: 1, Programme: 5, Approval: 7, Results: 12, Complete: 15 }[stage]
+  note(stage, briefTurns === 14 && nMsgs >= minMsgs, `Milla's chat opens on history: ${briefTurns} Brief turns + ${nMsgs} messages (≥ ${minMsgs})`)
   note(stage, reads.me.status === 200 && reads.me.data?.data?.is_demo === true, 'the account exists and is flagged demo (Milla shows the Demo chip)')
   note(stage, reads.summary.status === 200, `Milla Home summary loads (${reads.summary.status})`)
   note(stage, (s?.icp_versions?.length ?? 0) > 0, `Home does not bounce to the Brief (icp_versions: ${s?.icp_versions?.length})`)
-  note(stage, reads.programme.status === 200, `the programme read loads (${reads.programme.status}) stage=${p?.stage}`)
-  const vidaWord = { Proof: 'Proof', Programme: 'Programme', Approval: 'Approval', Results: 'Results', Complete: 'Complete' }[stage]
+  const millaStage = { Proof: 'Proof', Programme: 'Recommendation', Approval: 'Approval', Results: 'Live', Complete: 'Completion' }[stage]
+  note(stage, reads.programme.status === 200 && p?.stage === millaStage, `Milla's programme read is at ${p?.stage} (expected ${millaStage})`)
+  // Vida: the same stage, and never a Needs-you a demo can't clear (no mailbox, Proof history).
+  const vidaStage = { Proof: 'proof', Programme: 'recommendation', Approval: 'approval', Results: 'review', Complete: 'completion' }[stage]
+  note(stage, lc?.stage === vidaStage, `Vida's lifecycle is at ${lc?.stage} (expected ${vidaStage})`)
+  note(stage, lc?.needsYouReason !== 'sender_not_sendable', `Vida does not flag the demo's missing mailbox (${lc?.needsYouReason ?? 'no reason'})`)
+  if (stage !== 'Results') note(stage, lc?.needsYou !== true, `Vida needs nothing from a person at ${stage} (${lc?.needsYouReason ?? 'none'})`)
+  if (stage === 'Results') note(stage, lc?.needsYouReason === 'reply_needs_decision', `Vida's one Needs-you is the reply waiting for a person (${lc?.needsYouReason})`)
   if (stage === 'Proof') {
     const n = reads.forApproval.data?.data?.length ?? 0
-    note(stage, reads.forApproval.status === 200 && n >= 20, `the Proof desk shows ${n} people`)
-    note(stage, s?.proof_readiness === undefined || true, `readiness: ${JSON.stringify(s?.proof_readiness ?? s?.proofReadiness ?? null)}`)
+    note(stage, reads.forApproval.status === 200 && n === 24, `the Proof desk shows ${n} people (expected 24)`)
   }
   if (stage === 'Programme') {
     const q = reads.calculator.data?.data
-    note(stage, reads.calculator.status === 200, `the calculator loads (${reads.calculator.status}) ${reads.calculator.data?.error ?? ''} ${JSON.stringify(q)?.slice(0, 300)}`)
+    note(stage, reads.calculator.status === 200 && q?.totalCents === 159200 && q?.secondPaymentCents === 0,
+      `the calculator prices 8 meetings at $${(q?.totalCents ?? 0) / 100} in one payment (expected $1592)`)
   }
   if (stage === 'Approval') {
     const r = reads.review.data?.data
-    note(stage, reads.review.status === 200, `the approval read loads (${reads.review.status}) ${reads.review.data?.error ?? ''}`)
-    console.log(`     review: ${JSON.stringify(r)?.slice(0, 600)}`)
+    const frozen = r?.frozen
+    note(stage, reads.review.status === 200 && r?.canApprove === true, `the approval read loads and can be approved (${reads.review.status})`)
+    note(stage, frozen?.messages?.length === 3, `the frozen package holds the 3-step sequence (${frozen?.messages?.length})`)
+    note(stage, r?.total === 20, `the frozen package holds 20 people (${r?.total})`)
+    note(stage, JSON.stringify(frozen ?? {}).includes('08:30'), 'the frozen package states its sending window (weekdays 08:30–17:00)')
   }
   if (stage === 'Results' || stage === 'Complete') {
-    console.log(`     outcome: ${JSON.stringify(p?.outcome ?? p?.progress ?? null)?.slice(0, 400)}`)
+    const want = stage === 'Results' ? { met: 3, sent: 29, replies: 6, meetings: 3, upcoming: 1 } : { met: 8, sent: 38, replies: 11, meetings: 8, upcoming: 0 }
+    note(stage, p?.progress?.outcomesAchieved === want.met, `qualified meetings ${p?.progress?.outcomesAchieved} / 8 (expected ${want.met})`)
+    note(stage, p?.sending?.emailsDelivered === want.sent, `emails sent ${p?.sending?.emailsDelivered} (expected ${want.sent})`)
     const rep = reads.replies.data?.data
-    note(stage, reads.replies.status === 200, `the Inbox loads (${reads.replies.status}) · ${Array.isArray(rep) ? rep.length : JSON.stringify(rep)?.slice(0, 80)} replies`)
     const mt = reads.meetings.data?.data
-    note(stage, reads.meetings.status === 200, `the Meetings page loads (${reads.meetings.status}) · ${Array.isArray(mt) ? mt.length : '?'} meetings`)
+    if (stage === 'Results') {
+      note(stage, reads.replies.status === 200 && Array.isArray(rep) && rep.length === want.replies, `the Inbox holds ${Array.isArray(rep) ? rep.length : '?'} replies (expected ${want.replies})`)
+      note(stage, reads.meetings.status === 200 && Array.isArray(mt) && mt.length === want.meetings, `the Meetings page lists ${Array.isArray(mt) ? mt.length : '?'} meetings (expected ${want.meetings})`)
+      const up = Array.isArray(mt) ? mt.filter(m => m.state === 'BOOKED' && new Date(m.start_time).getTime() > Date.now()).length : -1
+      note(stage, up === want.upcoming, `${up} meeting still to come (expected ${want.upcoming})`)
+    }
   }
-  console.log(`     vida stage word expected at this point: ${vidaWord}; programme lifecycle: ${JSON.stringify(reads.vidaProgramme?.data?.data?.lifecycle ?? reads.vidaProgramme?.data?.data?.stage ?? null)?.slice(0, 300)}`)
 }
 
 console.log(`\n${problems.length === 0 ? '✅ every stage passed its checks' : `✗ ${problems.length} problem(s):\n  · ${problems.join('\n  · ')}`}`)
 console.log(`full reads written to ${OUT}/<Stage>.json`)
+if (problems.length > 0) process.exit(1)

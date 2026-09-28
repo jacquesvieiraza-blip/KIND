@@ -220,8 +220,14 @@ describe('④ approving spends nothing and sends nothing', () => {
   })
 
   it('the approve route is the customer-scoped one, resolved from the SESSION', () => {
+    // ⛓️ 28 Sep (R173) — the whole route, to the next one: ~~`ROUTE.slice(at, at + 1400)`~~.
+    // The Northwind demo's press (before the real approval) pushed the approval call past a
+    // fixed window — the 18 Sep lesson above, again. Bounded by the route, every check here
+    // now covers MORE of the handler, never less.
     const at = ROUTE.indexOf("myProgrammeRouter.post('/approve'")
-    const body = ROUTE.slice(at, at + 1400)
+    expect(at, 'the approve route is gone').toBeGreaterThan(-1)
+    const next = ROUTE.indexOf('\nmyProgrammeRouter.', at + 1)
+    const body = ROUTE.slice(at, next > at ? next : undefined)
     expect(body).toContain('const clientId = await getClientId(req.userId!)')
     expect(body).toContain('openProgrammeForSession(clientId)')
     // ⛓️ 11 Sep (DAY 3) — AND THE AUTHOR IS THE FOURTH ARGUMENT, from the session. An approval

@@ -89,7 +89,9 @@ vi.mock('./programme', () => ({
   },
 }))
 
-vi.mock('./programme-icp', () => ({ attachIcpToProgramme: async () => ({ ok: true }) }))
+// ⛓️ 28 Sep (A5) — choosing now attaches through `attachIcpForNextProgramme` (which copies the
+// targeting for a next programme); the stand-in answers for both names.
+vi.mock('./programme-icp', () => ({ attachIcpToProgramme: async () => ({ ok: true }), attachIcpForNextProgramme: async () => ({ ok: true }) }))
 
 import { chooseProgramme } from './client-programme-choice'
 

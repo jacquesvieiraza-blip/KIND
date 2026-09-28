@@ -239,3 +239,53 @@ export async function programmeIcps(clientId: string, programmeId: string | null
     }),
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 28 Sep (end-to-end check, A5) — THE NEXT PROGRAMME GETS ITS OWN COPY OF THE TARGETING.
+//
+// 🛑 WHAT THIS FIXES. A client's SECOND programme was paid for in full and then never started:
+// their ICP still belonged to the finished first programme, `attachIcpToProgramme` rightly
+// refuses to move it ("its existing leads carry the other programme's id"), choosing only logged
+// that refusal, and the paid P1 continuation then stopped on "No ICP is attached".
+//
+// ⚠️ THE RULE ABOVE IS KEPT, NOT BENT. Nothing is moved: the finished programme keeps its ICP
+// and every lead it produced. The new programme receives a COPY of the targeting — the fix
+// `attachIcpToProgramme`'s own refusal recommends ("Create a new ICP for this programme and
+// attach that instead") — and the old ICP stops being the client's active one.
+//
+// ⚠️ ONLY FROM A FINISHED PROGRAMME. An ICP held by a programme that is still open is refused
+// exactly as before; so is anything else `attachIcpToProgramme` refuses.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** Targeting a copy carries. Run state, provider cursors and programme links are NOT copied. */
+const CARRIED_ICP_COLUMNS = [
+  'name', 'target_category', 'target_company_type', 'target_size', 'exclusions',
+  'industries', 'job_titles', 'seniority_levels', 'company_sizes', 'geographies',
+  'tech_stack', 'keywords', 'organization_names', 'intent_signals', 'settings',
+  'campaign_intent', 'apollo_only_consented',
+  'icp_review', 'icp_review_at', 'icp_review_resolved_at', 'icp_review_resolved_by',
+] as const
+
+export async function attachIcpForNextProgramme(programmeId: string, icpId: string): Promise<AttachResult> {
+  const first = await attachIcpToProgramme(programmeId, icpId)
+  if (first.ok) return first
+
+  const { data: row, error } = await db.from('icps').select('*').eq('id', icpId).maybeSingle()
+  if (error || !row) return first
+  const icp = row as Record<string, unknown>
+  const heldBy = typeof icp.programme_id === 'string' ? icp.programme_id : null
+  if (!heldBy || heldBy === programmeId) return first
+  const holder = await getProgramme(heldBy)
+  if (!holder || !TERMINAL_STATUSES.includes(holder.status)) return first
+
+  const copy: Record<string, unknown> = { client_id: icp.client_id, is_active: true }
+  for (const k of CARRIED_ICP_COLUMNS) if (k in icp) copy[k] = icp[k]
+  const { data: made, error: insErr } = await db.from('icps').insert(copy).select('id').single()
+  const newId = (made as { id?: string } | null)?.id
+  if (insErr || !newId) {
+    return { ok: false, reason: `The targeting could not be copied for the new programme, so nothing was attached. (${insErr?.message ?? 'no id returned'})` }
+  }
+  // The finished programme's ICP stops being the active one; its row and leads are untouched.
+  await db.from('icps').update({ is_active: false }).eq('id', icpId)
+  return attachIcpToProgramme(programmeId, newId)
+}

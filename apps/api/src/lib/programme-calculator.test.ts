@@ -219,7 +219,9 @@ describe('🛑 ③ the CLIENT owns the choice, and the programme matches what th
 
   it('🛑 the ICP is attached automatically — no operator button on the healthy path', () => {
     const c = code(CHOICE)
-    expect(c).toContain('const { attachIcpToProgramme } = await import(\'./programme-icp\')')
+    // ⛓️ 28 Sep (A5) — the attach now also carries a NEXT programme's targeting, and a failure refuses.
+    expect(c).toContain('const { attachIcpForNextProgramme } = await import(\'./programme-icp\')')
+    expect(c).toContain("return { ok: false, reason: 'icp_unattached', detail: PROGRAMME_NOT_SAVED }")
     expect(c).toContain('acceptedIcpFor(clientId)')
     // Resolved BEFORE anything is written: a programme with no targeting cannot source, and
     // the P1 continuation refuses without exactly one attached ICP.

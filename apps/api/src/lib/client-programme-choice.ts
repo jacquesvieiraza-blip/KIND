@@ -51,7 +51,21 @@ const RECHOOSABLE = ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT'] as const
 
 export type ChoiceOutcome =
   | { ok: true; programme: ProgrammeRow; result: CalculatorResult; created: boolean }
-  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity' | 'price_pending' | 'over_maximum'; detail: string; committed?: number }
+  | { ok: false; reason: 'proof_incomplete' | 'invalid_target' | 'locked' | 'no_icp' | 'storage' | 'migration_required' | 'over_capacity' | 'price_pending' | 'over_maximum' | 'icp_unattached'; detail: string; committed?: number }
+
+/** ⚑ 28 Sep (A7) — what a client reads when saving their programme failed on our side. */
+export const PROGRAMME_NOT_SAVED =
+  'We could not save your programme just now. Nothing has been charged, and our team has been told — please try again in a few minutes.'
+
+/** ⚑ 28 Sep (A5 · A7) — one email + one Needs-you row per client per problem; never throws. */
+async function tellFounder(clientId: string, what: string): Promise<void> {
+  try {
+    const { sendFounderAlert } = await import('./alerts')
+    await sendFounderAlert('support_escalation', 'A client could not save their programme',
+      [`Client: ${clientId}.`, `What happened: ${what}.`, 'Nothing was charged. Vida → this client → Programme.'],
+      { clientId, dedupeKey: `choose_failed:${clientId}` })
+  } catch { /* the log line above is the record */ }
+}
 
 /**
  * Has this client finished Proof? Choosing a programme before that is out of order.
@@ -220,7 +234,10 @@ export async function chooseProgramme(
   } else {
     const created = await createProgramme(clientId, result.meetings)
     if (!created.ok || !created.programme) {
-      return { ok: false, reason: 'storage', detail: created.reason ?? 'The programme could not be created. Nothing was changed.' }
+      // ⛓️ 28 Sep (A7) — ~~`detail: created.reason`~~ put raw database text on the client's screen.
+      console.error(`[choose] programme not created for client ${clientId} — ${created.reason ?? 'no reason'}`)
+      await tellFounder(clientId, `their programme could not be created (${created.reason ?? 'no reason given'})`)
+      return { ok: false, reason: 'storage', detail: PROGRAMME_NOT_SAVED }
     }
     // The volume and the assumptions are the client's; `createProgramme` prices from the
     // canonical target and knows nothing about either.
@@ -242,12 +259,22 @@ export async function chooseProgramme(
   // a client could pay and then sit at "Working" for ever waiting for a press nobody knew was
   // needed. Best-effort here and re-proved at P1: an attach failure must not lose the
   // programme the client just chose.
+  // ⛓️ 28 Sep (end-to-end check, A5) — ~~a failed attach was only logged~~, and the client went
+  // on to pay for a programme with no targeting, which then never started. A NEXT programme now
+  // gets its own copy of the targeting (`attachIcpForNextProgramme`); and if the targeting still
+  // cannot be attached, the client is NOT sent to pay — they are told plainly, and we are told.
+  let attachFailure: string | null = null
   try {
-    const { attachIcpToProgramme } = await import('./programme-icp')
-    const att = await attachIcpToProgramme(programme.id, icp.id)
-    if (!att.ok) console.error(`[choose] ICP ${icp.id} not attached to programme ${programme.id} — ${att.reason}`)
+    const { attachIcpForNextProgramme } = await import('./programme-icp')
+    const att = await attachIcpForNextProgramme(programme.id, icp.id)
+    if (!att.ok) attachFailure = att.reason
   } catch (e) {
-    console.error(`[choose] ICP attach threw for programme ${programme.id}`, e)
+    attachFailure = e instanceof Error ? e.message : String(e)
+  }
+  if (attachFailure) {
+    console.error(`[choose] ICP ${icp.id} not attached to programme ${programme.id} — ${attachFailure}`)
+    await tellFounder(clientId, `the targeting could not be attached to their programme (${attachFailure})`)
+    return { ok: false, reason: 'icp_unattached', detail: PROGRAMME_NOT_SAVED }
   }
 
   // 🛑 THE ROW MUST MATCH WHAT THE CLIENT WAS SHOWN. "The client accepted a number" is a
@@ -265,12 +292,18 @@ export async function chooseProgramme(
 
 function storageRefusal(message: string): ChoiceOutcome {
   const missing = /calculator_assumptions|recommendation_accepted_at/.test(message)
+  // ⛓️ 28 Sep (A7) — the database's own words go to the log and to the founder, never to the
+  // client. ~~`(${message})`~~ in the client's sentence is how "violates check constraint
+  // programmes_positive_check" reached AAA Operations Studio's screen.
+  console.error(`[choose] programme not saved — ${message}`)
+  void import('./alerts').then(({ sendFounderAlert }) => sendFounderAlert('support_escalation',
+    'A client could not save their programme', [`Database said: ${message}`,
+      missing ? `Run migration ${CALCULATOR_MIGRATION} (Vida → Engine → Run).` : 'Nothing was charged; the client was told to try again shortly.'],
+    { dedupeKey: `choose_storage:${missing ? 'migration' : 'db'}` })).catch(() => {})
   return {
     ok: false,
     reason: missing ? 'migration_required' : 'storage',
-    detail: missing
-      ? `The programme could not be saved because migration ${CALCULATOR_MIGRATION} has not been run. Nothing was changed.`
-      : `The programme could not be saved (${message}). Nothing was changed.`,
+    detail: PROGRAMME_NOT_SAVED,
   }
 }
 

@@ -330,6 +330,30 @@ export async function promoteConfirmedBrief(
     catch { /* best-effort, exactly as the onboard path treats it */ }
   }
 
+  // ── 1b · ⚑ 28 Sep (end-to-end check, A2) — THEIR STATED COMPANY SIZE, WITH THE ACCOUNT. ──
+  //
+  // 🛑 WHAT THIS FIXES. R168/R170 have Milla ask the client's own headcount, and the only code
+  // that saved it lived in `/auth/onboard` — which reads the draft only while it is NOT yet
+  // promoted. The account is now opened HERE, at Confirm, and the draft is sealed a few lines
+  // down, so by the time `/auth/onboard` ran the answer was invisible to it. The size check
+  // (`ensureClientSize`, started by the confirm route right after this returns) therefore never
+  // saw the client's word: Apollo decided the band, or the price waited on a person.
+  //
+  // ⚠️ WRITTEN BEFORE WE RETURN, so the size check that runs next reads it. Fill-when-empty, so
+  // a replay never moves a size a person already saw; best-effort, so an un-migrated column can
+  // never cost a signup — the check then decides on its own, exactly as before.
+  const stated = Number((draft.facts as Record<string, unknown> | null)?.company_employees)
+  if (Number.isInteger(stated) && stated >= 1) {
+    try {
+      const { error } = await db.from('clients')
+        .update({ size_stated_employees: stated, size_stated_at: new Date().toISOString() })
+        .eq('id', clientId).is('size_stated_employees', null)
+      if (error) console.warn(`[promotion] stated company size not stored for ${clientId}: ${error.message}`)
+    } catch (e) {
+      console.warn(`[promotion] stated company size not stored for ${clientId}:`, e instanceof Error ? e.message : String(e))
+    }
+  }
+
   // ── 2 · THE CORE ICP. Also ensure: a replay must not add a second targeting record. ──
   let icpId: string | null = null
   try {
@@ -415,6 +439,21 @@ export async function promoteConfirmedBrief(
   let proofClaimId: string | null = null
   let proofNote: string | undefined
   try {
+    // ── ⚑ 28 Sep (end-to-end check, A4) — NO CLAIM WHILE THE TARGETING AWAITS A PERSON. ──
+    //
+    // 🛑 WHAT THIS FIXES. A brief born needing translation was still CLAIMED here: the claim
+    // stamps `proof_started_at`, the run then refused on the review, and when the operator
+    // resolved it `continueProofAfterReviewResolved` refused too — "this client has already
+    // entered Proof". So the client could never start Proof, and Vida said "No action needed".
+    // The proof ROUTE has always refused before the claim (S1-RT-005); this door now does the
+    // same, and the resolve in Vida is what starts their Proof. An unreadable review refuses.
+    const { data: rv, error: rvErr } = await db.from('icps')
+      .select('icp_review, icp_review_resolved_at').eq('id', icpId).maybeSingle()
+    const { icpNeedsReview } = await import('./icp-provider-translation')
+    const review = (rv ?? {}) as { icp_review?: unknown; icp_review_resolved_at?: string | null }
+    if (rvErr || icpNeedsReview(review.icp_review, review.icp_review_resolved_at ?? null)) {
+      throw new Error(rvErr ? 'review_unreadable' : 'awaiting_icp_review')
+    }
     const { claimProofAuthority } = await import('./proof-claim')
     const claim = await claimProofAuthority(clientId, icpId)
     if (claim.ok) {

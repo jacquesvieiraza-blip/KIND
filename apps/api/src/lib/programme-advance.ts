@@ -340,6 +340,42 @@ export interface AutoAdvanceOutcome {
  * must never be reached from a partial one — the two call sites are both inside their own
  * success branch, past an unjudged-remainder guard that refuses to settle at all.
  */
+/**
+ * ⚑ 28 Sep (end-to-end check, A6) — A PREPARATION THAT STOPS AFTER SOURCING TELLS THE FOUNDER.
+ *
+ * 🛑 WHAT THIS FIXES. The refusal was only ever console-logged here (and audited on the operator
+ * door), so a paid client's programme could stop between sourcing and review with Vida's board
+ * reading "Sourcing · Working", no email, and no Needs-you row — the watchdog watches
+ * `programme_prepare` work units, which nothing creates.
+ *
+ * ⚠️ THE STUCK-CLIENT PATTERN: the task FIRST, the email only when the task is new — so a
+ * programme that is retried and refused again does not email on every run. Never throws.
+ */
+async function tellPreparationStopped(programmeId: string, clientId: string | null, reason: string): Promise<void> {
+  try {
+    const { raiseOperatorTask } = await import('./operator-tasks')
+    const title = 'A paid programme stopped before review — its preparation did not complete'
+    const lines = [
+      `Programme: ${programmeId}${clientId ? ` (client ${clientId})` : ''}.`,
+      `Why: ${reason}`,
+      'What to do: Vida → this client → Programme → fix the cause, then Ready for approval.',
+    ]
+    const dedupeKey = `preparation_stopped:${programmeId}`
+    const task = await raiseOperatorTask({
+      kind: 'support_escalation', severity: 'critical', title, detail: lines.join('\n'),
+      clientId, subjectKind: 'programme_preparation', subjectId: programmeId, dedupeKey,
+      evidence: { reason },
+    })
+    if (!task.ok || ('alreadyOpen' in task && task.alreadyOpen)) return
+    const { sendFounderAlert } = await import('./alerts')
+    await sendFounderAlert('support_escalation', title, lines, {
+      clientId, programmeId, subjectKind: 'programme_preparation', subjectId: programmeId, dedupeKey,
+    })
+  } catch (e) {
+    console.error(`[programme-advance] could not tell the founder that programme ${programmeId} stopped:`, e)
+  }
+}
+
 export async function advanceAfterSettlement(
   programmeId: string, trigger: AdvanceTrigger,
 ): Promise<AutoAdvanceOutcome> {
@@ -365,6 +401,7 @@ export async function advanceAfterSettlement(
     // requirement stopped it, because that is the only thing that decides their next action —
     // `no_sender` is a mailbox to connect, not a retry.
     console.error(`[programme-advance] ${trigger} → programme ${programmeId} did NOT continue: ${r.reason}`)
+    await tellPreparationStopped(programmeId, r.report?.client_id ?? null, r.reason)
     return {
       attempted: true,
       reviewable: false,
@@ -375,6 +412,7 @@ export async function advanceAfterSettlement(
     // ⚠️ SWALLOWED HERE AND NOWHERE ELSE. See the header: the ledger has already moved.
     const why = err instanceof Error ? err.message : String(err)
     console.error(`[programme-advance] ${trigger} → programme ${programmeId} threw during continuation:`, why)
+    await tellPreparationStopped(programmeId, null, why)
     return nothing(
       `The attempt is settled and correct, but this programme could not be carried on to review (${why}). ` +
       'Nothing was sent and no accounting changed. Use Ready for approval to retry once the cause is fixed.',

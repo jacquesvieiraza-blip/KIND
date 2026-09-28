@@ -7314,6 +7314,52 @@ COMMENT ON COLUMN public.clients.size_review_reason IS
   'Why a person must set the band: free_email | no_website | domain_mismatch | not_found | lookup_failed | stated_smaller.';
 `,
   },
+  {
+    // ⚑ 28 Sep (R166 ③ · P9 fix) — ONE PAYMENT IN FULL MAY BE WRITTEN. The 28 Aug rule demanded a
+    // second payment above 0, so every band programme was refused at Accept. Same rule, second may be 0.
+    key: '20260928_programme_one_payment',
+    title: 'programmes — a one-payment programme (second payment 0) may be written (R166 ③, P9 fix)',
+    sql: `
+ALTER TABLE public.programmes DROP CONSTRAINT IF EXISTS programmes_positive_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'programmes_positive_one_payment_check') THEN
+    ALTER TABLE public.programmes ADD CONSTRAINT programmes_positive_one_payment_check CHECK (
+      meeting_target > 0 AND recommended_volume > 0
+      AND price_per_meeting_cents > 0 AND price_total_cents > 0
+      AND first_payment_cents > 0 AND second_payment_cents >= 0
+      AND sourcing_ceiling >= 0 AND sourced_used >= 0 AND sourced_reserved >= 0
+      AND make_whole_cents >= 0
+    );
+  END IF;
+END $$;
+`,
+  },
+  {
+    // ⚑ 28 Sep (end-to-end check, A3) — the 22 Sep unlimited refinement writes automatic_3+ and
+    // proof_pass 3+, but two older column rules stopped at two. Both replaced, not removed.
+    key: '20260928_proof_pass_unlimited_checks',
+    title: 'Proof passes 3 and up may be written — proof_pass_claims.authority and leads.proof_pass (A3)',
+    sql: `
+ALTER TABLE public.proof_pass_claims DROP CONSTRAINT IF EXISTS proof_pass_claims_authority_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'proof_pass_claims_authority_values_check') THEN
+    ALTER TABLE public.proof_pass_claims ADD CONSTRAINT proof_pass_claims_authority_values_check
+      CHECK (authority = 'calibrated_restart' OR authority ~ '^automatic_[1-9][0-9]*$');
+  END IF;
+END $$;
+
+ALTER TABLE public.leads DROP CONSTRAINT IF EXISTS leads_proof_pass_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_proof_pass_positive_check') THEN
+    ALTER TABLE public.leads ADD CONSTRAINT leads_proof_pass_positive_check
+      CHECK (proof_pass IS NULL OR proof_pass >= 1);
+  END IF;
+END $$;
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

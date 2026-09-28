@@ -416,7 +416,9 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
   // The thread so far: every turn whose stage has been reached, oldest first, one minute apart
   // within a day so the order is fixed.
   const turns = northwindThread(target).filter(t => stageIndex(t.from) <= at)
-  const session = { id: ids.sessionId, client_id: ids.clientId, title: 'Northwind programme', created_at: iso(28), updated_at: iso(turns[turns.length - 1].daysAgo) }
+  // ⛓️ 28 Sep — ~~`updated_at`~~: live `milla_sessions` has no such column (built by 008_milla.sql);
+  // the harness did, so only the live press found it. `demo-live-columns.test.ts` now guards this.
+  const session = { id: ids.sessionId, client_id: ids.clientId, title: 'Northwind programme', created_at: iso(28) }
   const messages = turns.map((t, n) => ({
     session_id: ids.sessionId, client_id: ids.clientId, role: t.role, content: t.content,
     created_at: new Date(now.getTime() - t.daysAgo * 86_400_000 - 3_600_000 + n * 60_000).toISOString(),

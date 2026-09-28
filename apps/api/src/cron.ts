@@ -295,6 +295,26 @@ async function detectOverdueWork(): Promise<void> {
 }
 
 /**
+ * ⚑ 28 Sep — THE STUCK-CLIENT WATCHDOG. Founder: *"if a client is stuck we need to be
+ * notified."* Emails the founder (and files one Needs-you task) once per stuck client per
+ * problem — see `lib/stuck-client-watchdog.ts`. Cron-claimed like its siblings, so two replicas
+ * never both email.
+ */
+async function watchStuckClients(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('watchdog:stuck-clients', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('watchdog:stuck-clients', claim)
+    const { runStuckClientWatchdog } = await import('./lib/stuck-client-watchdog')
+    const res = await runStuckClientWatchdog({ nowMs: Date.now() })
+    if (!res.ok) console.error(`[cron] stuck-client watchdog could not read: ${res.error ?? 'unknown'}`)
+    else if (res.found > 0) console.log(`[cron] stuck-client watchdog — ${res.found} stuck, ${res.told} newly told, ${res.alreadyOpen} already open`)
+  } catch (err) {
+    console.error('[cron] stuck-client watchdog threw', err)
+  }
+}
+
+/**
  * ⚑ 18 Sep (J5-C10) — sweep unresolved ICP reviews into Vida's Needs-you.
  *
  * ⚠️ CRON-CLAIMED, LIKE ITS SIBLING. Two replicas both sweeping would both raise, and while
@@ -557,6 +577,9 @@ export function startCrons(): void {
   // at the call site that knows how to redo that particular work — a generic retry here
   // would be exactly the concurrent second run FD-0 forbids.
   cron.schedule('*/5 * * * *', () => { void detectOverdueWork() }, { timezone: 'UTC' })
+
+  // ⚑ 28 Sep — every 10 minutes: any client stuck waiting on us → the founder is emailed, once.
+  cron.schedule('*/10 * * * *', () => { void watchStuckClients() }, { timezone: 'UTC' })
 
   // ── ⚑ 18 Sep (J5-C10) — PENDING ICP REVIEWS INTO THE ONE QUEUE ──────────────────────
   //

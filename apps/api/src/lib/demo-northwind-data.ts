@@ -343,6 +343,8 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     // `commercial_model` is not named: its default is 'programme', the only value allowed.
     plan: 'figsy', contact_email: NORTHWIND_EMAIL,
     onboarded_at: iso(30),
+    // The terms, accepted at signup like every client (Documents reads it). No IP: nobody signed up.
+    signup_terms_accepted_at: iso(30),
     // The client's own size, set once and locked — so the price is ready (R166 ②), never
     // "price pending", and no Needs-you task is raised for a person to set it.
     size_band: NORTHWIND_BAND, size_employees: NORTHWIND_EMPLOYEES,

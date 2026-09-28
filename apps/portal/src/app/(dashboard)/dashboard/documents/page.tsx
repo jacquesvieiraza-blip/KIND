@@ -54,6 +54,10 @@ function productLabel(product: string, tier: string) {
 
 export default function DocumentsPage() {
   const [company, setCompany] = useState<{ company_name?: string | null; company_registration?: string | null; vat_number?: string | null } | undefined>(undefined)
+  // ⛓️ 28 Sep (R173 · 3 of 3) — when THIS client accepted the terms: at signup (item 186). A
+  // programme client has no `subscriptions` row, so the old card told every one of them "No
+  // purchase yet … complete your first purchase on the Billing page" — after they had paid.
+  const [signupTermsAt, setSignupTermsAt] = useState<string | null>(null)
   const supabase = createClient()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [invoices, setInvoices]           = useState<Invoice[]>([])
@@ -70,6 +74,7 @@ export default function DocumentsPage() {
             // simply never read off it.
             const d = res.data as any
             setCompany({ company_name: d?.company_name ?? null, company_registration: d?.company_registration ?? null, vat_number: d?.vat_number ?? null })
+            setSignupTermsAt(typeof d?.signup_terms_accepted_at === 'string' ? d.signup_terms_accepted_at : null)
           })
           .catch(() => {}),
         api.get<{ data: { invoices: Invoice[] } }>('/stripe/invoices', session.access_token)
@@ -118,14 +123,29 @@ export default function DocumentsPage() {
             </p>
           </div>
         </div>
+      ) : signupTermsAt ? (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-green-800">Agreement on record</p>
+            <p className="text-green-700 text-sm mt-1 leading-relaxed">
+              When you created your account on{' '}
+              <strong>{new Date(signupTermsAt).toLocaleDateString('en-ZA', { dateStyle: 'long' })}</strong>,
+              you accepted K.I.N.D's Terms of Service, Privacy Policy, and Data Processing Agreement.
+              This constitutes a legally binding electronic agreement under the Electronic Communications
+              and Transactions Act (ECTA), No. 25 of 2002.
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="bg-[#F5F0FF] border border-purple-200 rounded-xl p-5 flex items-start gap-3">
           <Shield className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-blue-800">No purchase yet</p>
+            <p className="font-semibold text-blue-800">No acceptance on record</p>
             <p className="text-[#6D28D9] text-sm mt-1 leading-relaxed">
-              Your acceptance of K.I.N.D's terms will be recorded automatically when you
-              complete your first purchase on the Billing page. No manual signing required.
+              We don&apos;t hold a record of when you accepted K.I.N.D&apos;s terms. Email{' '}
+              <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a>{' '}
+              and we&apos;ll put it right.
             </p>
           </div>
         </div>
@@ -224,8 +244,8 @@ export default function DocumentsPage() {
       <div className="flex items-start gap-2 text-xs text-[#9B8EC4]">
         <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
         <p>
-          Electronic acceptance via payment is legally equivalent to a handwritten signature under
-          ECTA No. 25 of 2002. Your IP address and payment timestamp are recorded as proof of acceptance.
+          Electronic acceptance is legally equivalent to a handwritten signature under
+          ECTA No. 25 of 2002. The time of your acceptance and the IP address it came from are recorded as proof.
           Questions? Email{' '}
           <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a>.
         </p>

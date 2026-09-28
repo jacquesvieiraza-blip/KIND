@@ -75,6 +75,7 @@ for (const stage of STAGES) {
     ...(clientId ? {
       vidaProgramme: await asVida(`/operator/programme?client_id=${clientId}`),
       vidaMeetings: await asVida(`/operator/meetings?client_id=${clientId}`),
+      vidaCockpit: await asVida(`/operator/board?client_id=${clientId}`),
     } : {}),
     vidaClients: await asVida('/operator/clients'),
     vidaBoard: await asVida('/operator/lifecycle-board'),
@@ -133,6 +134,10 @@ for (const stage of STAGES) {
     const want = stage === 'Results' ? { met: 3, sent: 29, replies: 6, meetings: 3, upcoming: 1 } : { met: 8, sent: 38, replies: 11, meetings: 8, upcoming: 0 }
     note(stage, p?.progress?.outcomesAchieved === want.met, `qualified meetings ${p?.progress?.outcomesAchieved} / 8 (expected ${want.met})`)
     note(stage, p?.sending?.emailsDelivered === want.sent, `emails sent ${p?.sending?.emailsDelivered} (expected ${want.sent})`)
+    // ⛓️ 28 Sep (R173 · 3 of 3) — Vida's "Booked" is the same meetings as the client's.
+    const booked = reads.vidaCockpit?.data?.columns?.booked
+    note(stage, reads.vidaCockpit?.status === 200 && booked?.count === want.meetings && booked?.cards?.length === want.meetings,
+      `Vida's Booked reads ${booked?.count} with ${booked?.cards?.length} cards (expected ${want.meetings}, as Milla)`)
     const rep = reads.replies.data?.data
     const mt = reads.meetings.data?.data
     if (stage === 'Results') {

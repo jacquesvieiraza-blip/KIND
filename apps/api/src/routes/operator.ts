@@ -597,32 +597,31 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
       : { data: [] }
     const qualified = { count: enrollAll.count ?? 0, data: qualCards.data ?? [] }
 
-    // #493 Booked = confirmed meetings (the $3 captured). Real calendar_bookings, joined
-    // to the lead for a name.
-    // Cards include NO-SHOWS as well as confirmed: a no-show is the booking that most needs
-    // attention, and filtering to 'confirmed' made it vanish from the console entirely — so
-    // the two goodwill rebooks and the client notice could never be reached from here.
-    // The COUNT stays confirmed-only, because the pipeline column is a funnel stage.
-    const [bookedRows, confirmedCount] = await Promise.all([
-      db.from('calendar_bookings')
-        .select('id, lead_id, meeting_title, start_time, status, no_show_at, rebook_count')
-        .eq('client_id', cid).in('status', ['confirmed', 'no_show'])
-        .order('start_time', { ascending: true }).limit(SAMPLE),
-      db.from('calendar_bookings').select('id', { count: 'exact', head: true })
-        .eq('client_id', cid).eq('status', 'confirmed'),
+    // ⛓️ 28 Sep (R173 · 3 of 3) — BOOKED = THE MEETINGS TABLE, the one the client's own
+    // Results, Meetings page and target are counted from. ~~`calendar_bookings`, confirmed-only
+    // count, no-show cards~~: that table records what we asked Google to create and knows nothing
+    // of a duplicate, a spam booking or a reschedule (BUILD-003 item 2), so Vida's "Booked" read 0
+    // while the same client's Milla said "3 meetings". Same module, same exclusion rules, so the
+    // two screens cannot disagree. No-shows, reschedules and qualification are the meetings panel
+    // on the Programme tab (R141) — the card points there.
+    //
+    // ⚠️ FAILS LOUD. A storage error is `count: null`, never 0 — "no meetings" is a claim.
+    const { meetingsForClient, clientMeetingCounts } = await import('../lib/meeting-truth')
+    const [meetingRows, meetingCounts] = await Promise.all([
+      meetingsForClient({ clientId: cid, limit: SAMPLE }),
+      clientMeetingCounts([cid]),
     ])
-    const bookedLeadIds = Array.from(new Set((bookedRows.data ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    const bookedLeadIds = Array.from(new Set((meetingRows ?? []).map(m => m.leadId).filter((x): x is string => !!x)))
     const bookedLeadNames = bookedLeadIds.length > 0
       ? await db.from('leads').select('id, first_name, last_name, company').in('id', bookedLeadIds)
       : { data: [] }
     const nameById = new Map((bookedLeadNames.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
-    const bookedCards = (bookedRows.data ?? []).map((b: Record<string, unknown>) => {
-      const l = nameById.get(b.lead_id as string) as Record<string, unknown> | undefined
-      return { id: b.id, lead_id: b.lead_id, start_time: b.start_time,
-        status: b.status ?? null, no_show_at: b.no_show_at ?? null,
-        rebook_count: (b.rebook_count as number | null) ?? 0,
+    const bookedCards = (meetingRows ?? []).map(m => {
+      const l = m.leadId ? nameById.get(m.leadId) as Record<string, unknown> | undefined : undefined
+      return { id: m.id, lead_id: m.leadId, start_time: m.scheduledAt, state: m.state, rescheduled: m.rescheduled,
         first_name: l?.first_name ?? null, last_name: l?.last_name ?? null, company: l?.company ?? null }
     })
+    const bookedCount = meetingRows === null || meetingCounts === null ? null : (meetingCounts[cid] ?? 0)
 
     res.json({
       success: true,
@@ -633,7 +632,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
         sending:       { count: sending.count ?? 0,       cards: sending.data ?? [] },
         replied:       { count: replied.count ?? 0,       cards: replied.data ?? [] },
         qualified:     { count: qualified.count ?? 0,     cards: qualified.data ?? [] },
-        booked:        { count: confirmedCount.count ?? 0, cards: bookedCards },
+        booked:        { count: bookedCount, cards: bookedCards },
       },
     })
   } catch (err) { console.error('[operator/board]', err); res.status(500).json({ success: false, error: 'Failed to load board' }) }
@@ -5903,11 +5902,13 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
             db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'pending'),
             db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'enrolled'),
             db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', cid),
-            db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'confirmed'),
+            // ⛓️ 28 Sep (R173 · 3 of 3) — the meetings table, as the board. ~~calendar_bookings~~
+            (await import('../lib/meeting-truth')).clientMeetingCounts([cid]),
           ])
+          if (booked === null) throw new Error('meetings unreadable')
           return {
             sourced: sourced.count ?? 0, 'needs approval': needs.count ?? 0,
-            sending: sending.count ?? 0, replied: replied.count ?? 0, booked: booked.count ?? 0,
+            sending: sending.count ?? 0, replied: replied.count ?? 0, booked: booked[cid] ?? 0,
           }
         } catch { return null }
       })(),

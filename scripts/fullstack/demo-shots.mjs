@@ -37,7 +37,7 @@ const PAGES = {
   Programme: ['/milla', '/milla/programme'],
   Approval: ['/milla', '/milla/programme'],
   Results: ['/milla', '/milla/replies', '/milla/meetings'],
-  Complete: ['/milla', '/milla/meetings'],
+  Complete: ['/milla', '/milla/meetings', '/dashboard/documents'],
 }
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' })
@@ -60,7 +60,9 @@ for (const [stage, paths] of Object.entries(PAGES)) {
     const file = `${OUT}/milla-${stage}${path.replace(/\//g, '_')}.png`
     await page.screenshot({ path: file })
     const text = (await page.innerText('body').catch(() => '')).replace(/\s+/g, ' ')
-    const bad = ['Client not found', 'Something went wrong', 'could not be loaded', 'Failed to load', 'Server error'].filter(t => text.includes(t))
+    const bad = ['Client not found', 'Something went wrong', 'could not be loaded', 'Failed to load', 'Server error',
+      // ⛓️ 28 Sep (R173 · 3 of 3) — Documents: a programme client has accepted the terms.
+      'No purchase yet', 'No acceptance on record'].filter(t => text.includes(t))
     report.push({ stage, where: `Milla ${path} → ${new URL(page.url()).pathname}`, bad, file })
     await page.close()
   }

@@ -73,14 +73,32 @@ import { translateProviderList, PROVIDER_VOCABULARIES } from './icp-provider-tra
 // everywhere (`confirmBriefDraft`).
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-/** The account facts onboarding cannot truthfully progress without. NOT Brief facts. */
-export const ACCOUNT_FACTS = ['country'] as const
+/** The account facts onboarding cannot truthfully progress without. NOT Brief facts.
+ *
+ * ⚑ 28 Sep (R170) — `own_size` JOINS `country`. Founder, after test 2 of the end-to-end walk
+ * stalled at Price because the client was never asked their size: *"the client needs to set
+ * this in the onboarding part. this way its never a hold up. so Milla needs to capture this
+ * early … yes if a client does not we can. but we need to attempt"*. So it is resolved by an
+ * ANSWER — a headcount, or the client plainly declining — never by silence. A decline is
+ * allowed through; the company check and, failing that, a person in Vida set the band. */
+export const ACCOUNT_FACTS = ['country', 'own_size'] as const
 export type AccountFactId = (typeof ACCOUNT_FACTS)[number]
 
 /** Founder-facing words for the account class, kept beside the class rather than in the
  *  shared eleven-fact label map — which must stay a map of the ELEVEN and nothing else. */
 export const ACCOUNT_FACT_LABEL: Record<AccountFactId, string> = {
   country: 'Which country your business is based in',
+  own_size: 'Roughly how many people work at your company',
+}
+
+/** Has the client ANSWERED this account fact? A decline is an answer; silence is not. */
+function accountFactAnswered(id: AccountFactId, f: Record<string, unknown>): boolean {
+  if (id === 'own_size') {
+    const n = f.company_employees
+    return (typeof n === 'number' && Number.isFinite(n) && n >= 1) || f.company_employees_declined === true
+  }
+  const v = f[id]
+  return typeof v === 'string' && v.trim() !== ''
 }
 
 export type OnboardingState = {
@@ -171,8 +189,7 @@ export function unmappableTargetingFacts(
 
 export function onboardingState(facts: BriefDraftFacts | null | undefined): OnboardingState {
   const targeting = briefDraftFacts(facts ?? null, unmappableTargetingFacts(facts))
-  const said = (v: unknown): boolean => typeof v === 'string' && v.trim() !== ''
-  const unresolvedAccount = ACCOUNT_FACTS.filter(id => !said((facts ?? {})[id]))
+  const unresolvedAccount = ACCOUNT_FACTS.filter(id => !accountFactAnswered(id, (facts ?? {}) as Record<string, unknown>))
   return {
     state: targeting.complete && unresolvedAccount.length === 0 ? 'ready' : 'conversing',
     unresolvedTargeting: targeting.missing,

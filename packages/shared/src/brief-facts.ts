@@ -307,6 +307,11 @@ export type BriefDraftFacts = {
    * it. Never the size of the companies they want to reach — that is `company_sizes`, fact #8.
    */
   company_employees?: number | null
+  /**
+   * ⚑ 28 Sep (R170) — Account fact: true ONLY when the client plainly would not say their size.
+   * Milla must ASK; a decline is an answer and lets onboarding finish, silence does not.
+   */
+  company_employees_declined?: boolean | null
 }
 
 /**

@@ -100,7 +100,9 @@ async function dispatch(
   // 🛑 A REAL STORE, NOT A STUB. "the confirmation reads the cumulative record" is a claim
   // about state across the save and the read-back, so the double MERGES exactly as
   // `saveBriefDraft` does and answers `briefDraftFor` from the merged result.
-  const store: Record<string, unknown> = { ...(opts.held ?? {}) }
+  // ⛓️ 28 Sep (R170) — the client has already told Milla their own size in an earlier turn: it
+  // is now an account requirement, and no test here is about it (see `milla-asks-own-size`).
+  const store: Record<string, unknown> = { company_employees: 30, ...(opts.held ?? {}) }
   vi.doMock('./brief-draft', () => ({
     saveBriefDraft: async (_u: string, facts: Record<string, unknown>) => {
       saved.push({ facts }); Object.assign(store, facts); return { ok: true }
@@ -766,7 +768,7 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
     expect(PAGE).not.toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
     expect(PAGE).not.toContain('Before I can open your account I still need ')
     const ONB = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
-    expect(ONB, 'the requirement lives in the one authority now').toContain("ACCOUNT_FACTS = ['country']")
+    expect(ONB, 'the requirement lives in the one authority now').toContain("ACCOUNT_FACTS = ['country', 'own_size']") // ⛓️ 28 Sep (R170) — own size joined
   })
 
   it('🛑 14+15 · the provider and Proof gates are untouched', () => {

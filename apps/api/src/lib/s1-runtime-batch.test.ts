@@ -183,7 +183,8 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
       ...NINE,
       // 🛑 THE TWO GATE FIELDS ARE ABSENT, exactly as the live model left them: the prompt
       // never names `business.bad_fit` or `campaign_intent`, so it had no reason to fill them.
-      brief_so_far: { exclusions: LIVE_EXCLUSIONS, desired_outcome: LIVE_OUTCOME },
+      // ⛓️ 28 Sep (R170) — plus the client's own size, now an account requirement Milla must ask.
+      brief_so_far: { exclusions: LIVE_EXCLUSIONS, desired_outcome: LIVE_OUTCOME, company_employees: 30 },
     })
     const r = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
     expect(r.code, `this is the live 503 — payload: ${JSON.stringify(r.payload).slice(0, 300)}`).toBe(200)
@@ -194,7 +195,7 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
   it('🛑 and BOTH reach their canonical downstream homes — not merely the gate', async () => {
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's', ...NINE,
-      brief_so_far: { exclusions: LIVE_EXCLUSIONS, desired_outcome: LIVE_OUTCOME },
+      brief_so_far: { exclusions: LIVE_EXCLUSIONS, desired_outcome: LIVE_OUTCOME, company_employees: 30 },
     })
     const r = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
     const d = r.payload.data as Record<string, unknown>
@@ -208,7 +209,7 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's', ...NINE,
       campaign_intent: LIVE_OUTCOME,
-      brief_so_far: { exclusions: LIVE_EXCLUSIONS },
+      brief_so_far: { exclusions: LIVE_EXCLUSIONS, company_employees: 30 },
     })
     expect((await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })).code).toBe(200)
   })
@@ -217,7 +218,7 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's', ...NINE,
       business: { bad_fit: LIVE_EXCLUSIONS },
-      brief_so_far: { desired_outcome: LIVE_OUTCOME },
+      brief_so_far: { desired_outcome: LIVE_OUTCOME, company_employees: 30 },
     })
     expect((await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })).code).toBe(200)
   })
@@ -226,7 +227,7 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's', ...NINE,
       business: { bad_fit: 'THE CANONICAL ONE' }, campaign_intent: 'CANONICAL OUTCOME',
-      brief_so_far: { exclusions: 'the snapshot one', desired_outcome: 'snapshot outcome' },
+      brief_so_far: { exclusions: 'the snapshot one', desired_outcome: 'snapshot outcome', company_employees: 30 },
     })
     const d = (await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })).payload.data as Record<string, unknown>
     expect((d.business as Record<string, string>).bad_fit).toBe('THE CANONICAL ONE')
@@ -267,7 +268,8 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     expect((ed.brief_outstanding as { total: number }).total,
       'and its matched denominator').toBe(11)
     expect((ed.brief_outstanding as { account: number }).account,
-      'the account country, counted apart').toBe(1)
+      // ⛓️ 28 Sep (R170) — 1 → 2: the client's own size joined the country as an account fact.
+      'the account facts (country, own size), counted apart').toBe(2)
   })
 
   it('🛑 THE CLIENT NEVER SPEAKS APOLLO — but a size we cannot use is asked again, not completed', async () => {
@@ -615,7 +617,8 @@ describe('🛑 the existing authorities are untouched', () => {
     // ASKS the one authority — a route that cannot count cannot disagree about the count.
     expect(src).not.toContain('function briefFactsFor')
     expect(src).not.toContain('briefFacts({')
-    expect(src).toContain('onboardingState(draftFactsFromResolved(resolved))')
+    // ⛓️ 28 Sep (R170) — the same one authority, now also handed the client's own size.
+    expect(src).toContain('onboardingState(withOwnSize(draftFactsFromResolved(resolved), v, held))')
     expect(src).toContain('resolveBriefFacts')
     const onb = readFileSync(join(__dirname, 'onboarding-state.ts'), 'utf8')
     // ⛓️ 22 Sep — still the shared counter, still called exactly once; it now takes a second

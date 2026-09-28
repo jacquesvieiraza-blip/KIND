@@ -212,11 +212,14 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
     expect(store.facts.country, 'still never derived from the target markets').toBeUndefined()
 
     // ── Turn 4 — he answers it, and only then does the plan exist ───────────────────────
-    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' } })
+    // ⛓️ 28 Sep (R170) — and his own size, which Milla must now ask too; it is his answer, given
+    // in the same breath as the country, never derived from the "11–50" he wants to reach.
+    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' },
+      brief_so_far: { ...((READ_T3 as { brief_so_far?: Record<string, unknown> }).brief_so_far ?? {}), company_employees: 12 } })
     const r4 = await turn([
       { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
       { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
-      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa.' },
+      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa, about 12 of us.' },
     ])
     expect(r4.code, JSON.stringify(r4.payload)).toBe(200)
     const data = r4.payload.data as Record<string, unknown>
@@ -248,7 +251,8 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
     // ⛓️ 16 Sep (S1-ONB-001) — the record he comes back to now holds the country he gave, so
     // this test still exercises what it is named for: RE-ENTRY, and the plan coming from the
     // server's Brief rather than from the browser's transcript.
-    store.facts = { ...READ_T1.brief_so_far, ...READ_T2.brief_so_far, country: 'South Africa' }
+    // ⛓️ 28 Sep (R170) — and his own size, given with it.
+    store.facts = { ...READ_T1.brief_so_far, ...READ_T2.brief_so_far, country: 'South Africa', company_employees: 12 }
     model.reply = millaSaid(READ_T3)
     const r = await turn([{ role: 'user', content: T3 }])
     expect(r.code, JSON.stringify(r.payload)).toBe(200)
@@ -331,11 +335,14 @@ describe('🛑 F9 · Northstar — the state after every turn', () => {
       outstanding_next: ((held.payload.data as Record<string, unknown>).brief_outstanding as { next?: { id?: string } } | undefined)?.next?.id,
     })
 
-    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' } })
+    // ⛓️ 28 Sep (R170) — and his own size, which Milla must now ask too; it is his answer, given
+    // in the same breath as the country, never derived from the "11–50" he wants to reach.
+    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' },
+      brief_so_far: { ...((READ_T3 as { brief_so_far?: Record<string, unknown> }).brief_so_far ?? {}), company_employees: 12 } })
     const final = await turn([
       { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
       { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
-      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa.' },
+      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa, about 12 of us.' },
     ])
     const data = final.payload.data as Record<string, unknown>
     const icp = data.icp as Record<string, unknown>

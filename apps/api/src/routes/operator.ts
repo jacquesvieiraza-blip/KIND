@@ -6680,6 +6680,51 @@ operatorRouter.get('/nexus', async (req: Request, res: Response) => {
 //
 // Nothing here can reach a real person: the client is `is_demo`, which is a hard stop inside
 // the send path itself, and every address is `.invalid` (RFC 2606 — can never resolve).
+// ── ⚑ 28 Sep (R164 · demo B) — NORTHWIND: THE ONE CLIENT DEMO OF THE CURRENT PRODUCT ──────
+// Read its stage, set it to any of the six, open it as the client. All three live in
+// `lib/demo-northwind.ts`; these routes only speak for Vida. Setting a stage clears and rebuilds
+// ONLY the account owned by the Northwind login and flagged `is_demo` — it refuses anything else.
+operatorRouter.get('/demo/northwind', async (_req: Request, res: Response) => {
+  try {
+    const { readNorthwind, NORTHWIND_EMAIL, NORTHWIND_NAME, NORTHWIND_STAGES } = await import('../lib/demo-northwind')
+    const s = await readNorthwind()
+    res.json({ success: true, data: { ...s, email: NORTHWIND_EMAIL, name: NORTHWIND_NAME, stages: NORTHWIND_STAGES } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not read the demo' })
+  }
+})
+
+operatorRouter.post('/demo/northwind/stage', async (req: Request, res: Response) => {
+  try {
+    const { setNorthwindStage, isNorthwindStage } = await import('../lib/demo-northwind')
+    const stage = (req.body as { stage?: unknown } | undefined)?.stage
+    if (!isNorthwindStage(stage)) { res.status(400).json({ success: false, error: 'Choose one of: Brief, Proof, Programme, Approval, Results, Complete.' }); return }
+    const r = await setNorthwindStage(stage)
+    if (!r.ok) { res.status(500).json({ success: false, error: `The demo was not set to ${stage}: ${r.error}` }); return }
+    if (r.clientId) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: r.clientId, action: 'demo_reset',
+        subjectType: 'client', subjectId: r.clientId, detail: { demo: 'northwind', stage, counts: r.counts, no_money_moved: true },
+      })
+    }
+    res.json({ success: true, data: r, message: `Northwind is at ${stage}.` })
+  } catch (err) {
+    console.error('[operator/demo/northwind/stage]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to set the demo stage' })
+  }
+})
+
+operatorRouter.post('/demo/northwind/login', async (_req: Request, res: Response) => {
+  try {
+    const { northwindOpenUrl } = await import('../lib/demo-northwind')
+    const url = await northwindOpenUrl()
+    if (!url) { res.status(500).json({ success: false, error: 'Could not make a login link for the demo.' }); return }
+    res.json({ success: true, data: { open_url: url } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not open the demo' })
+  }
+})
+
 operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
   try {
     const { findMbf, findAdoptableMbf, adoptAsMbf, seedMbf, MBF_NAME } = await import('../lib/demo-mbf')

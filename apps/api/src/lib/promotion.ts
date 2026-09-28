@@ -295,6 +295,19 @@ export async function promoteConfirmedBrief(
   draft: BriefDraft,
   opts: { authEmail?: string | null } = {},
 ): Promise<PromotionResult> {
+  // ── 0 · ⚑ 28 Sep (R164 · demo B) — THE NORTHWIND DEMO LOGIN IS NEVER PROMOTED FOR REAL. ──
+  // A real promotion creates an ordinary account and starts Proof, which sources real people.
+  // The presenter walking the demo from Brief would do that on a sales call. The demo builds
+  // its own account instead: `is_demo`, the made-up cast, Proof ready. Checked BEFORE the first
+  // read so nothing below ever runs for that login.
+  const { isNorthwindLogin } = await import('./demo-northwind-data')
+  if (isNorthwindLogin(opts.authEmail)) {
+    const { promoteNorthwindBrief } = await import('./demo-northwind')
+    const d = await promoteNorthwindBrief(userId)
+    if (!d.ok) return { ok: false, reason: (d.reason ?? 'client_unwritable') as PromotionFailure, detail: d.detail }
+    return { ok: true, clientId: d.clientId, icpId: d.icpId, sealedAt: draft.confirmedAt ?? null, replayed: d.replayed === true, proofClaimId: null }
+  }
+
   // ── 1 · THE CLIENT. Read first: a replay must find the winner's row, not make a second. ──
   let clientId: string | null = null
   let existingEmail: string | null = null

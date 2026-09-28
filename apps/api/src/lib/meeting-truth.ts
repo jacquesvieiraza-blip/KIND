@@ -1111,3 +1111,35 @@ export function settlementVerdict(d: ProgrammeDelivery | null):
   }
   return { ok: true, delivered: d.delivered }
 }
+
+// ── ⚑ 28 Sep (R164 · demo B) — THE DEMO ACCOUNT'S MEETINGS, STILL THROUGH THE ONE WRITE LAYER ──
+//
+// The Northwind demo (`demo-northwind.ts`) is set to a stage by clearing its account and writing
+// the rows that stage holds — including qualified meetings, so Results and Complete show real
+// counts. Those writes live HERE, not in the demo module, so "nothing outside meeting-truth.ts
+// writes public.meetings" stays true without an exception.
+//
+// 🛑 DEMO ACCOUNTS ONLY. Both functions read `clients.is_demo` first and refuse any other client:
+// they can never create or remove a real client's meeting.
+
+async function isDemoClient(clientId: string): Promise<boolean> {
+  const { data, error } = await db.from('clients').select('is_demo').eq('id', clientId).maybeSingle()
+  if (error) throw new Error(`Could not read the account: ${error.message}`)
+  return (data as { is_demo?: boolean | null } | null)?.is_demo === true
+}
+
+/** Write a demo account's meetings. Refuses unless every row belongs to that one demo client. */
+export async function writeDemoMeetings(clientId: string, rows: Record<string, unknown>[]): Promise<void> {
+  if (rows.length === 0) return
+  if (rows.some(r => r.client_id !== clientId)) throw new Error('Demo meetings must all belong to the demo account.')
+  if (!(await isDemoClient(clientId))) throw new Error('Refused: meetings can only be seeded into a demo account.')
+  const { error } = await db.from('meetings').insert(rows as never)
+  if (error) throw new Error(`Could not write the demo meetings: ${error.message}`)
+}
+
+/** Remove a demo account's meetings (they block deleting the account: ON DELETE RESTRICT). */
+export async function clearDemoMeetings(clientId: string): Promise<void> {
+  if (!(await isDemoClient(clientId))) throw new Error('Refused: meetings can only be cleared from a demo account.')
+  const { error } = await db.from('meetings').delete().eq('client_id', clientId)
+  if (error) throw new Error(`Could not clear the demo meetings: ${error.message}`)
+}

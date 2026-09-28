@@ -112,10 +112,14 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   // rail's foot. A client still in their Brief has no client row yet, so this is simply absent
   // and the corner says "Account" — never a guessed name.
   const [companyName, setCompanyName] = useState<string | null>(null)
+  // ⚑ 28 Sep (R164 · demo B) — a demo account says so, in the same corner, so nobody watching a
+  // demo mistakes the made-up firm for a real client's portal.
+  const [isDemo, setIsDemo] = useState(false)
   useEffect(() => {
     ;(async () => {
       try {
-        const r = await api.get<{ data?: { company_name?: string | null } }>('/clients/me', await token())
+        const r = await api.get<{ data?: { company_name?: string | null; is_demo?: boolean | null } }>('/clients/me', await token())
+        setIsDemo(r?.data?.is_demo === true)
         const n = r?.data?.company_name?.trim(); if (n) setCompanyName(n)
       } catch { /* no client row yet, or unreadable — the corner says "Account" */ }
     })()
@@ -281,6 +285,9 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             top right drop down."* Same two groups, same destinations, restyled as the redesign's
             corner (initials + company ▾). */}
         <div className="hidden md:flex items-center">
+          {isDemo && (
+            <span className="mr-2 rounded-full bg-[#fef3c7] text-[#92400e] border border-[#fde68a] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">Demo</span>
+          )}
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)} className="mv-account">
               <span className="mv-account-dot">{initials}</span>

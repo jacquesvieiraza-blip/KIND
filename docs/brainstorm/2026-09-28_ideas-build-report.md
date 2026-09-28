@@ -163,3 +163,203 @@ These are outside the scope of this report and need their own cards and rulings.
 4. **The only client screen for editing knowledge is off.** The `figsy_knowledge` editor sits behind a switch that is off, and a redirect.
 5. **Pipedrive dedupe checks the person only, never the company.** HubSpot checks both.
 6. **`GET /stats/platform` counts demo and House accounts and turns errors into 0** (see 2.6).
+
+---
+---
+
+# PASS 2 (28 Sep, later): every tab re-read line by line
+
+> **Why this pass exists.** The founder's verdict on pass 1: *"u missed connecting to slack etc."* and *"you skimming past a lot… this time go critically into detail."* He was right. Pass 1 described each tab's main idea and dropped the details around it:
+> - the channel strip on every page-1 tab;
+> - the Slack/Teams/knowledge rows on the Context page;
+> - every chat button;
+> - every status label;
+> - the side menus;
+> - the numbers that don't add up.
+>
+> This pass re-reads all 40 tabs in full (chat, quick buttons, input boxes, badges, every card, footers) and checks the new items against code at `origin/main` `d489fe8b4`. **Everything is still 🔴. Report only, nothing built.**
+
+## P2-A · What pass 1 missed or got wrong
+
+| # | Where | Pass 1 said | What the page actually shows / the truth | Effect |
+|---|---|---|---|---|
+| 1 | Page 1, all 4 tabs | Slack/WhatsApp reduced to one question in 1.1 | Every tab has a **"Triggered across channels"** strip: *"Bring the offer to the client where they already are"*. Milla chat **sent**, Email **sent**, Slack **soon**, WhatsApp **soon**. | New section **6 · Channels** below. The offer engine must send through the channel layer, not just the portal. |
+| 2 | Page 2 tab 3 | Not mentioned | *"Same memory, every surface"*: Milla portal · Vida operator · Email · Slack · WhatsApp (soon). Milla: *"Vida, Slack and future WhatsApp interactions all read the same authorised context."* | Section 6 (C10). |
+| 3 | Page 3 tab 2 | "one connector per source", one line | The client's stack has five rows, **each with an authority label**: CRM = **Truth** · Email + Calendar = **Context** · Knowledge (**Glean, Drive, Notion, SharePoint**) = **Knowledge** · **Slack / Teams** = **Surface** · Website + inbound = **Signal**. M&V's stack: Milla = Strategist, Vida = Operator, FIGSY = Research, Plays = Action, Nexus = Learning. *"Data flows both ways."* | Section 6 (C4, C6–C8). The authority labels become a data field. |
+| 4 | Page 2 tab 1 | "no morning message" (implied) | Milla opens with *"Morning. Your programme is running cleanly…"*. **A daily morning brief already exists, sent by email** (`lib/morning-brief-deliver.ts`, P33). What's missing is the same brief *inside the chat*. | 2.1 is smaller than pass 1 said. |
+| 5 | Page 2 tab 2 | Lookalikes not mentioned | *"I've asked FIGSY to find more firms that look like Ashcroft."* `routes/lookalike.ts` exists, but it is **admin-only** and scores the *best client*. It does not find companies like one account. | New row 2.2b. |
+| 6 | Page 2 tab 4 | "no cost tracking" | Also: *"Context reused 78% · retrieval/cache avoided rebuild"*. **No AI call in the code uses caching** (no `cache_control` anywhere). That is a real cost saving on its own, separate from the dashboard. | New row 2.4b. |
+| 7 | Page 2 tab 4 | "two fixed models" | The page draws **three** routes: low-cost *Routine*, mid-tier *Standard*, high-reasoning *Escalated*. Today there are two (R122a). | Founder decision. |
+| 8 | Page 3 tab 5 | "no website feed" | *"Pricing page revisited"* means the **client's** website. **Apollo sells website-visitor tracking** (its tools list includes a visitor tracker), so this could come from inside R146. **Not checked on our plan.** | 3.5 may be buildable inside the Apollo-only rule. |
+| 9 | Page 4 tab 2 | "start with HubSpot" | The page shows **Salesforce as the connected CRM**; HubSpot and Pipedrive are "Available". My HubSpot-first advice departs from the drawing. | **Founder decision:** which CRM first. |
+| 10 | Page 4 tab 6 | Two plays | Milla's chat names a **third**: *"Budget-loss opportunities get a changed-economics play only where appropriate."* It is in the chat, not the cards. | Added to 4.6. |
+| 11 | Page 4 tab 9 | "loss-reason chart" | The chart has exactly **five loss reasons**: Timing · Budget · Priority · No decision · Competitor. Plus a **"Find whitespace"** button. | That is the loss-reason list each CRM's reasons map into. |
+| 12 | Page 1 | "breaks R87" | The page's own footer says: *"show the value, never invent the value… must use the client's economics plus verified M&V performance, or be explicitly labelled illustrative."* So the rule clash is only with **these demo figures**. The idea is fine if the range is worked out from the client's own numbers (`programmes.calculator_assumptions` exists). | Softer than pass 1. The pool/rate clash with R136 ③ still stands. |
+| 13 | Side menu, pages 2–5 | Not mentioned | Pages 2–5 put **"Profile"** where today's menu has **"Documents"** (today: Home · Pipeline · Meetings · Programme · Inbox · My ICP · Documents · Reports · Coaching, `MillaShell.tsx`). Every page says **"Replies"** where today says **"Inbox"** (R165). The 6-step Flow matches today's (`mvp1-stage.ts`). | A menu change → R167 GO. |
+
+## P2-B · Numbers inside the concepts that don't add up
+
+These are things to settle before anyone builds from the drawings:
+
+1. **Page 1 offer sizes follow no single rule.**
+   - +4 meetings for 650 prospects (≈162 per meeting);
+   - +8 for 1,200 (150);
+   - +10 for 900 (90).
+
+   A real offer needs one sizing rule. That rule must not reveal the pool or the rate (R136 ③).
+2. **Page 1 asks to "add more prospects" while showing thousands still remaining.** It shows 2,420, then 1,860, then 1,140 remaining, yet still offers to add 650, 1,200 and 900. If the audience is still available, the offer is really "more meetings", not "more prospects".
+3. **Page 1 badges never change.** The Meetings badge says **6** on every tab, even at 3/12 and 9/12. The Replies badge says **41** while positive replies read 11, 21 and 31. That's fine for a drawing; the real badges must read live data.
+4. **Page 1: Coaching and trigger 2 both fire at 50%** (the Coaching tab shows "6 of 12 · Trigger 2 · now"). Which one wins at 50%, or do they both show?
+5. **Page 2 tab 2:** *"Priya's current programme stays unchanged; the next batch will prioritise it."* A "next batch" usually means inside the running programme, which contradicts "unchanged". R166 fixes a programme at approval. Does team feedback change the running programme's sourcing or only the next programme?
+6. **Page 2 tab 6:** the counter is *"pulled from verified booked-meeting events"*. Under R141 a public count must be **qualified** meetings.
+7. **Page 5 tab 6:** the play is labelled *"Recommended · CRM + LinkedIn"*. R35 makes email the channel, and the only LinkedIn sender in the code is the PhantomBuster one (found in passing, pass 1).
+
+## P2-C · Every detail, page by page
+
+For each tab: every element that was skipped, and what it needs. Sections already fully covered in pass 1 are not repeated.
+
+### Page 1 · Milla expansion & coaching
+
+| Tab | Element (as shown) | What it needs | Exists today |
+|---|---|---|---|
+| all | Milla header *"Your pipeline strategist"*, status *"Running · 3 of 12"* | The running meetings count against the target | Yes. The workspace shows meetings against target (Stage 5 build) |
+| all | Chat buttons **"Review expansion offer" · "Show me the assumptions" · "Not now"** (Coaching: **"Show me coaching" · "How would the retainer work?" · "Keep this for later"**) | "Assumptions" needs a readable view of what the offer is based on. "Not now"/"Keep this for later" must record a **decline or snooze**, so Milla doesn't ask again (R69) | Client economics stored (`calculator_assumptions`); no offer state |
+| all | Milla's answer to *"What is this based on?"*: *"Meetings delivered, positive replies, remaining audience, ICP performance and the programme pace."* | Each input must come from real data. "Remaining audience" is the pool, which R136 ③ keeps hidden | Meetings, replies and pace exist; the pool must not be shown |
+| all | Input box *"Ask Milla, request leads, or give feedback…"* | none (wording only) | n/a |
+| all | Right panel header *"Live workspace… Milla updates this as you talk"* | The panel re-reads as the chat moves | Yes (R161/R171 live refresh) |
+| all | **Expansion moments** strip: *"Three planned opportunities before Complete"*, 25/50/75% with "· now" on the active one | A three-step strip in the Results panel | No |
+| all | Four tiles: target *"current programme"* · delivered *"verified by M&V"* · positive replies *"real programme signal"* · remaining audience *"still available"* | The fourth tile breaks R136 ③ | 3 of 4 exist |
+| all | *"Keep momentum moving for roughly 3 / 5 / 6 more weeks"* | A duration estimate from real pace | Pace data exists; no estimate |
+| all | Value box *"Potential opportunity · illustrative"*, *"Possible additional pipeline value"*, *"not a forecast or guarantee"* | Worked out only from the client's own economics, or not shown | Economics exist; no value calculation |
+| all | Channel strip (see section 6) | The channel layer (G) | Email only |
+| all | Buttons **"Review expansion offer" · "Discuss with Milla"** | An offer view plus a chat hand-off | No |
+| 4 | *"+ close rate"*, *"Growth layer"*, *"Higher-value conversion support"* | A close-rate claim needs outcomes after the meeting, which crosses MEETING_BOOKED | No |
+
+### Page 2 · Glean ideas
+
+| Tab | Element | What it needs | Exists today |
+|---|---|---|---|
+| 1 | Chat: *"Morning… 6 of 10 meetings booked, and there's one thing worth looking at today"* | The morning brief shown inside the chat, once a day | **Email morning brief exists** (P33) |
+| 1 | *"Review the two strongest positive replies before tomorrow's meetings. I've pulled both into the right panel"* | Rank positive replies by strength and link them to tomorrow's meetings | Reply classification exists; no ranking |
+| 1 | *"FIGSY is researching the next batch and Vida is classifying replies"* | Live job state | `automatic-work.ts` |
+| 1 | Buttons **"Show tomorrow's meetings" · "What changed today?" · "Show me the two replies"** | "What changed today?" needs a daily change log | Meetings list exists; no change log |
+| 1 | Badges **"Programme running"**, **"Shared memory active"** | Status flags | Programme status exists |
+| 1 | *"Vida classified 12 replies · 11 handled automatically · 1 soft-positive routed into tomorrow's prep"* | A route from a soft-positive reply into the meeting brief | Classification exists; no route into the brief |
+| 1 | Memory chips **43 company facts · 12 ICP learnings · 8 messaging preferences · 6 meeting outcomes**, *"not a separate profile you must maintain"* | Counts per memory type (needs E) | Pieces exist, uncounted |
+| 1 | **"Needs you 0 · M&V is handling the rest"** | Open client-action count | Partly (Needs-you exists in Vida, not as a client count) |
+| 2 | Participants with roles: **Priya Shah, Founder · commercial decisions** · **Alex Morgan, Sales Director · prospect review** · Milla *Strategy · context · coordination* · Vida *Execution · replies · operations* | A **role per team member** that limits what they may do | Invites exist; no roles, and teammates can't see the workspace (pass 1) |
+| 2 | *"I've turned that into a ranking signal, not a hard exclusion"* | Feedback as a **soft ranking weight**, separate from the ICP's hard filters | ICP filters are hard; `lead_feedback` exists |
+| 2b | *"Find more firms that look like Ashcroft"* → task **"Find 10 lookalikes to Ashcroft Legal · Running"** | Search for companies like one account (Apollo company search by the account's industry, size and location) | Admin-only `lookalike.ts`; nothing per account |
+| 2 | **"Review first 10 new prospects · assigned to Alex when FIGSY finishes · Waiting"** | A task handed to a named human when a job completes | No |
+| 2 | **"Keep law firms in · Remembered"** | A decision saved to memory (E) | No |
+| 2 | Buttons **"@Milla assign this" · "Show team decisions" · "What changed?"**; input *"Message your team and Milla…"* | @-mentions and a decision log | No |
+| 3 | Milla header *"Your persistent business memory"*, status *"Memory synced"*, *"Last updated just now"* | A timestamp on the memory | Brief versions have timestamps |
+| 3 | Scope: *"20+ employees across the next programme **and anywhere else this targeting is reused**. I've left the current live programme unchanged because you asked for this 'from now on'."* | Every change carries a scope (this programme / from now on), read from the client's words | The next-programme copy exists (`attachIcpForNextProgramme`, #2392); no scope flag |
+| 3 | Four memory rows with **provenance tags**: Ideal customer *Updated* · Strong prospect *Learned* · Messaging preference *8 signals* · Meeting learning *6 outcomes* | Each memory item records where it came from and how much evidence it has | No |
+| 3 | *"editable · history preserved"*; buttons **"Show what you remember" · "Correct my ICP" · "Show memory history"**; input *"Tell Milla something to remember or correct…"* | Edit creates a new version; history view | Versioned `meeting_briefs`, unused |
+| 4 | Vida menu: SYSTEM *Autonomous · Safe defaults · Human exceptions*; Operations: *Clients · AI operations · Needs you 0 · Meetings · Reports*; System: ***Providers · AI cost · Audit***; operator *"A. Cassidy"* | "AI operations" and "AI cost" are new Vida pages; Audit exists | `/vida/audit` exists |
+| 4 | Four routing rows with task counts: reply classification *1,204 · Routine*; opener drafting *611 · Standard, "using cached company + prospect context"*; ICP synthesis *6 · Escalated*; meeting coaching brief *3 · Escalated* | Per-task-type counts from the cost log | No |
+| 4b | *"Context reused 78%"*, *"Cache saved 31%"* | **Turn on prompt caching** for the repeated company/prospect context | **None: nothing is cached today** |
+| 4 | Vida chat: *"184 delivery actions today, 12 replies classified, zero operator exceptions"*; *"Why was the ICP synthesis expensive?"* → explanation; buttons **"Show costly tasks" · "Show exceptions" · "Run"**; input *"Ask Vida about operations…"* | Vida answers cost questions from the cost log | No cost log |
+| 4 | *"Client never sees model names"*, *"Clients buy the outcome"* | A rule (a test that model names never reach the portal) | Not checked |
+| 5 | See section 6 | | |
+| 6 | Website nav **How it works · Why M&V · Customer stories · Pricing**; button **"See who M&V finds"**; *"Proof, not promises"*; *"Pipeline without the work of building pipeline."*; *"M&V finds the people, runs the work and books the meetings."* | A copy change on a frozen site (#605) | Website frozen |
+| 6 | **184 this month · 38 active programmes · 12 customer stories** (all "demo") | Three live counts plus a stories page | Stats route live, unused, counts demo accounts |
+
+### Page 3 · Context Engine
+
+| Tab | Element | What it needs | Exists today |
+|---|---|---|---|
+| all | Milla header *"Your contextual selling strategist"*; input *"Ask Milla about the client context, account or next play…"* | Milla answers from the account context (3.7) | No |
+| 1 | Three questions: **Who?** *"identity, fit, relationship and ownership"* · **Why now?** *"social, CRM, website and commercial events"* · **What next?** *"Milla proposes the motion; Vida executes inside rules and permissions"* | | |
+| 1 | Buttons **"Show connected stack" · "Show account context" · "Show recommended play"**; *"Synchronise the truth, not the software."* | | |
+| 2 | Authority labels per source (see P2-A #3); buttons **"Show data authority" · "Show M&V stack" · "Show sync direction"** | Every stored fact carries its source and authority type | No |
+| 3 | John Smith resolved across **LinkedIn profile · john@acme.com · HubSpot Contact #4821 · Calendar attendee (3 historical meetings)**; Acme across **acme.com · CRM Account #3478 · social company page · website visitor match** | Calendar attendee history means reading the client's past calendar | Calendar is connected for booking only |
+| 3 | Sarah Jones conflict: CRM *"Sales Director"* vs social *"Sarah J. · VP Sales"* → **Hold**; buttons **"Show identity matches" · "Show conflicts" · "Review low confidence"** | A conflict list and a hold queue | No |
+| 4 | **Eight relationship states**: customer · open opportunity · closed-lost · dormant · explicit no · former customer · previously contacted · net new | One field per contact from the CRM plus our history | `crm_existing` yes/no only |
+| 4 | Six facts: Status (lost 11 months ago, reason timing) · Prior engagement (*3 meetings with Sarah, the client's AE*) · Last position (*"Email history indicates positive fit but poor timing"*) · Current owner · Suppression · Reactivation rule (*client-approved window passed*) | "Last position" needs **email history** (C7) | No |
+| 4 | Rules **Remember · Adapt · Protect**: *"If an opportunity reopens, Vida stops conflicting prospecting automatically"* | An automatic pause on CRM change | No |
+| 5 | Four signals, each with **source · freshness · strength**: GTM hiring (*Professional · Fresh · Strong*) · New CRO (*Role change · 23 days · Strong*) · Pricing page revisited (*Website · This week · Medium*) · Topic activity (*Social context · 3 people · Supportive*); Milla also names **event activity** and **CRM events** | Freshness and strength fields on every signal | No |
+| 6 | Six knowledge areas in full: **Business truth** (offer, positioning, products, pricing logic, *claims M&V may or may not make*) · **ICP learning** · **Proof + evidence** (case studies, stories, quantified outcomes, *approved proof points*) · **Objections** (*and where the product should not overclaim*) · **Client corrections** (*"No micro agencies", "use this language", "never contact this category"*) · **Connected knowledge** | A list of **approved claims and proof points** that message writing may use; an **"allowed claims"** check | `figsy_knowledge` covers most kinds; no approved-claims list |
+| 6 | *"Knowledge should be inherited, not re-entered. Every new programme starts with the accumulated context."* | | Targeting copies to the next programme (#2392); knowledge is per client already |
+| 7 | Ten parts (per the chat): identity · fit · relationship · history · signals · knowledge (*"Internal notes show the previous opportunity centred on Product X"*) · eligibility · recommended play · current action · outcome; **Confidence: High, "multiple independent sources"** | Reading **CRM notes** (4.2 scope) | No |
+| 8 | Reason chips **History · Now · Intent · Fit · Safety · Motion**; guidance *"Do not repeat the original cold sequence and do not mention every observed signal"* | A writing rule: use signals for timing, never quote them | Sequence linting exists (`sequence-quality.ts`) |
+| 8 | Vida's three steps: **Resolve the right contacts** (*"current buying committee"*) · **Prepare the new message** (*"without creepy over-personalisation"*) · **Run Message QA + eligibility** (*"truth, tone, permissions and relationship protection"*) | A buying-committee search per account | Sequence quality check plus the send check exist |
+| 9 | Pipeline **Client stack → M&V (Milla reasons, Vida acts, FIGSY researches) → Writeback** (meetings, dispositions, status, play attribution, client corrections); buttons **"Show writeback rules" · "Show conflict handling" · "Show last sync"** | Conflict handling: whose data wins | No |
+| 10 | Chain ends in the **"Client Brain"**; buttons **"Show what changed" · "Show best context pattern" · "Show what to stop"** | "Client Brain" = the Living Client Profile (E) | Nexus exists |
+
+### Page 4 · CRM Intelligence
+
+| Tab | Element | What it needs | Exists today |
+|---|---|---|---|
+| all | Milla header *"Your CRM-aware pipeline strategist"*; input *"Ask Milla about your CRM, audience or next play…"*; footer *"Illustrative concept data only · production truth and permissions would come from the client's authorised systems."* | | |
+| 1 | Buttons **"Show CRM health" · "Show suppressed people" · "Find closed-lost plays"**; *"Your CRM gives me commercial history"*, *"extended BDR team"* | CRM health = last sync time plus errors | No |
+| 2 | **Salesforce "Connected"**, HubSpot/Pipedrive "Available" (see P2-A #9) | | |
+| 2 | Four scope switches: **Contacts + companies On** · **Opportunities On** (*stage, close reason, timing*) · **Activity history Limited** (*"only the fields needed"*) · **Write-back Separate** | Four stored permissions per connection | Two switches today (read, write) |
+| 2 | Buttons **"Review permissions" · "Test sync" · "Disconnect"** | "Test sync" exists as a key test | `POST /me/crm/test` |
+| 3 | Three segments: **Never worked 8,420** *"potential prospecting pool"* · **Previously contacted 5,110** *"needs history check"* · **Closed-lost 147** | ⚠️ "Never worked" CRM contacts as a *prospecting pool* touches R73 ② (CRM imports never enter the shared pool). Using them only for the same client is a different question | Decision |
+| 3 | *"Existing customer: protected unless the client defines an approved expansion use case"* | A per-client "allow customer expansion" switch | No |
+| 4 | *"The suppression follows the person across programmes"* and *"across future programmes **and channels**"* | Opt-outs must cover every channel, not just email | The send check covers email and WhatsApp numbers (`send-gate.ts`) |
+| 4 | Buttons **"Show suppression rules" · "Review exceptions" · "Audit blocked records"** | | Vida suppression viewer exists |
+| 5 | *"'The timing wasn't right then — what has changed now?'"*; buttons **"Show the 42" · "Review new play" · "Exclude an account"** | Per-account exclusion from a play | No |
+| 6 | **Budget-loss → "changed-economics play only where appropriate"** (chat); **Dormant champions → relationship-led check-in**; cards **Review / Review / Explore** | Three plays, not two | No |
+| 7 | Buttons **"Show trigger rules" · "Pause all triggers" · "Review approvals"**; *"The trigger never means 'blast automatically'"* | A **pause-all switch** for triggers | Kill switch exists for sending |
+| 8 | Buttons **"Show blocked examples" · "Review gate rules" · "See audit trail"**; *"whatever channel rules apply"* | | |
+| 9 | Five loss reasons (P2-A #11); **"Find whitespace"** = segments that fit but were never worked | | No |
+| 10 | Writeback fields: meeting (*date, contact, programme source*) · disposition (*positive, not now, not interested, other client-approved state*) · **contact status** · play attribution (*link*); buttons **"Review writeback fields" · "Show attribution" · "Turn writeback off"** | Contact status writeback as well | Write switch exists |
+
+### Page 5 · Social Intelligence
+
+| Tab | Element | What it needs | Exists today |
+|---|---|---|---|
+| all | Milla header *"Social-aware pipeline strategist"*; input *"Ask Milla about social signals, accounts or plays…"*; footer *"…signals, permissions, attribution and contact eligibility must come from authorised sources and verified client systems."* | | |
+| 1 | Three steps **Detect → Reconcile → Decide**; *"If there is no meaningful signal… nothing changes. More data is not the goal. Better timing is."* | | |
+| 2 | LinkedIn *"Company/admin, lead and authorised engagement context where supported"* · Instagram/Meta *"business account activity, engagement and authorised lead surfaces"* · YouTube *"within platform rules"* · TikTok **Limited** · **Approved signal providers · Optional** | "Approved provider" = Apollo under R146 | Apollo |
+| 2 | Four authority labels **Authorised · Source shown · Contracted · Do not use (Vida holds)**; buttons **"Review permissions" · "Test connections" · "Show data scope"** | Same field as page 3's authority labels | No |
+| 3 | Tags per signal: *Strong timing · LinkedIn · ICP fit* / *Context signal · Public post* / *Medium · YouTube* / *Account cluster · 3 people*; *"Milla can use the language as context, not copy it blindly"*; buttons **"Show high-signal only" · "Show source detail" · "Dismiss a signal"**; per-row **Review / Open account** | Dismiss writes a "not useful" mark back into learning | No |
+| 4 | *"Score the signal, not… a magical universal lead score"* | Four separate ratings, never one number | No |
+| 5 | Three accounts with fields: Acme (*Hiring 4 GTM roles · People 3 active · CRM Lost · timing*) · Northstar (*Engagement 5 events · People 2 senior · CRM Net new*) · Vertex (*Signals 8 events · CRM Open opp · Action Protect*); buttons **"Show hot accounts" · "Open Acme Systems" · "Compare signal clusters"** | | |
+| 6 | New-role play *"only where the role change is permitted signal context"*; engaged-with-us *"directly engaged with the client's connected content or lead surface"* | | |
+| 7 | *"Uses the fresh signal only as timing/context — not as a creepy surveillance reference"* | The same writing rule as 3.8 | |
+| 8 | Six rules: **source known · use authority clear · CRM relationship clear · channel eligibility clear** (all *Required*) · identity uncertain → **Hold** · source uncertain → **Block**; buttons **"Show held signals" · "Review source authority" · "View audit trail"** | "Channel eligibility clear" = the contact may be reached on *this* channel | Send check is per channel for email and WhatsApp |
+| 9 | Chart categories **Hiring · New role · Engagement · Topic pain · General post**; learning includes *"what language buyers use"* | Store buyer phrases from replies | Reply text is stored |
+| 10 | *"Start with verified meetings and opportunities. If CRM later gives us verified revenue outcomes, we can connect the chain."*; conclusions **Keep / Reduce**; buttons **"Show best signal type" · "Show meeting attribution" · "Show CRM-linked outcomes"** | | |
+
+## 6 · Channels and connected tools: the section pass 1 missed
+
+Drawn on page 1 (all tabs), page 2 (tabs 3 and 5) and page 3 (tab 2). **All 🔴.**
+
+| # | Channel / tool | What the pages show | Exists today (code verified) | How to build | Size | Blocked by / decision | Status |
+|---|---|---|---|---|---|---|---|
+| C1 | **Milla chat** | The main surface; every other channel is *"another doorway into the same M&V context"*; *"the portal remains the full record"* | Yes | The anchor: every channel's decisions land back in the chat thread | n/a | | 🔴 (as a hub for other channels) |
+| C2 | **Email to the client** | *"Important notifications and commercial moments · Connected"*; offer *"Email · sent"* | **Yes:** client emails, the daily morning brief (P33) and server-side Notification Preferences on Milla Settings | Add the new moments (expansion offer, coaching) as email types under the same preferences | S | none | 🔴 |
+| C3 | **Slack (client workspace)** | *"Slack connected · #growth"*; **"Send test to Slack"**; **"Notification rules"**; *"approvals and important programme moments… not every notification"*; Alex **approves prospects from Slack** and *"the same decision lands back here"*; Milla interaction in Slack; offer *"Slack · soon"* | **Founder alerts only:** one `SLACK_WEBHOOK_URL` mirrors alerts to *us* (`alerts.ts`). No client Slack at all. | A Slack app with per-client install (sign-in, encrypted token, channel picker) → test message → notification rules → **interactive buttons** (signature-checked endpoint calling the existing approval route) → map the Slack user to a team member (needs 2.2 membership) → **two-way chat with Milla** (Slack events → the client's Milla thread). | L | R166 (approval is per programme, not per prospect). 2.2 (who is Alex?). **Founder:** which moments go to Slack; is chatting with Milla in Slack in scope, or notifications and approvals only? | 🔴 |
+| C4 | **Microsoft Teams** | *"Slack / Teams · Approvals, conversations and working decisions · Surface"* (page 3) | None (only Outlook mailbox and calendar connections) | The same design as C3 on the Teams app/bot platform, reusing C3's rules and approval endpoint | L | C3 first. **Founder:** do clients use Teams enough to matter? | 🔴 |
+| C5 | **WhatsApp (to the client)** | *"Future interaction surface using the same client context · Soon"*; offer *"WhatsApp · soon"*; *"future WhatsApp interactions all read the same authorised context"* | WhatsApp exists **for prospects only**: Meta webhook plus send (`routes/whatsapp.ts`, `lib/whatsapp.ts`), behind the send check. Nothing sends WhatsApp to a *client*. | A separate client-facing number or template set. Meta requires **pre-approved templates** for business-started messages (general knowledge, not tested here). Client opt-in per person; inbound client messages routed to their Milla thread. | M–L | **Founder:** one number or two (prospects vs clients)? Which moments? | 🔴 |
+| C6 | **Knowledge tools: Glean, Google Drive, Notion, SharePoint** | *"Glean, Drive, Notion, SharePoint and internal company context"*; *"enrich context without becoming a second memory"*; Glean *"Research cost, permissions and value before build · Research"* | None | Per tool: read-only sign-in → import chosen documents into the client's knowledge (E) as a "connected" kind with source and date. **Import, don't live-query**, so it never becomes a second memory. | M per tool (Glean L) | **Founder:** which first? (Recommend Google Drive: our Google sign-in pattern already exists.) Glean needs a cost study. | 🔴 |
+| C7 | **Email + calendar history** | *"Conversation history, meetings and seller activity · Context"*; used for *"Last position: email history indicates positive fit but poor timing"* and *"Calendar attendee · 3 historical meetings"* | Calendar connected **for booking only**; client email is never read | Read-only history scopes on the existing Google/Outlook connections; store only summaries per account. Google's restricted mail scopes need a security review (general knowledge, not tested). | L | Privacy (DPA and lawyer, #1473); founder: worth it? | 🔴 |
+| C8 | **Website + inbound (client's own site)** | *"Forms, engagement and authorised intent context · Signal"*; *"Pricing page revisited"* | `visitor_sessions` tracks **our** site only | Apollo's website-visitor tracker (inside R146 if our plan includes it; **not checked**) or a client form webhook into the signal store (D) | M | Whether our Apollo plan includes it | 🔴 |
+| C9 | **Notification rules** | **"Notification rules"** button; *"Only meaningful approvals, exceptions, briefings and next actions should surface there"* | **Yes, for email:** server-side preferences on Milla Settings (`programme-notifications.ts`) | Extend the same preferences into a moment × channel grid | S–M | C3/C5 | 🔴 |
+| C10 | **"Same memory, every surface"** | Milla portal · Vida operator · Email · Slack · WhatsApp all read one memory; *"a correction made once should not need to be repeated in every channel"* | Milla and Vida share data (R161/R171) | Every channel goes through foundation **G** below, which reads memory **E** | M | E, G | 🔴 |
+
+**Order:** C2 → G → C9 → C3 (notifications and approval buttons, then chat) → C6 (Drive) → C5 → C8 → C4 → C7.
+
+## Foundation G · one channel layer (new)
+
+| Foundation | Serves | Starts from | Size |
+|---|---|---|---|
+| **G · Channel layer**: one **outbound dispatcher** (event → client's rules → channel) and one **inbound router** (Slack/Teams/WhatsApp message or button → the client's Milla thread or the existing approval route) | 1.1–1.4 channel strip, 2.3 surfaces, 2.5, 3.2, C2–C10 | Client emails plus notification preferences, `alerts.ts`, signed webhooks (`lib/webhooks.ts`) | M |
+
+**Revised overall order:** A (eligibility) → E (Living Client Profile) → **G (channels)** → B (CRM) → C (writeback) → D (signals) → F (plays).
+
+## P2-D · New founder decisions this pass surfaced
+
+1. Which CRM first: Salesforce (as drawn) or HubSpot (my recommendation, since its APIs are already in use)?
+2. Slack: notifications and approval buttons only, or full chat with Milla inside Slack?
+3. WhatsApp to clients: a separate number from prospect outreach?
+4. Knowledge tools: Google Drive first? Glean parked until a cost study?
+5. Three AI routes (as drawn) or keep two (R122a)? And turn on AI caching now, which is a pure cost saving?
+6. Page 1: one sizing rule for "+N meetings"; which offer wins at 50%?
+7. Team feedback: changes the running programme, or only the next one?
+8. "Never worked" CRM contacts as a same-client prospecting pool: allowed under R73 ②?
+9. Menu: "Profile" in place of "Documents"?

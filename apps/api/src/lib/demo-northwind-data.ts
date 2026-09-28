@@ -138,6 +138,68 @@ export const NORTHWIND_SEQUENCE = [
     body: "No reply, so I'll stop here. If scheduling ever becomes the bottleneck rather than the engineers, we're a short call away." },
 ]
 
+
+// ── ⚑ 28 Sep (founder: "an empty chat seems shit. this is across all of them") — THE HISTORY ──
+//
+// A demo that opens on an empty chat looks like nobody has ever used it. So every stage opens on
+// the conversation Northwind would have had with Milla to get there. Milla's chat shows two
+// histories (`MillaConversation.tsx`): the Brief transcript (`onboarding_brief_drafts.conversation`)
+// and the latest thread (`milla_sessions` + `milla_messages`, last 20). Both are seeded here.
+// Every number said below matches the rows this file writes at that stage.
+
+type Turn = { role: 'user' | 'assistant'; content: string }
+
+/** Milla's own opening line — the same sentence a new client is greeted with. */
+const GREETING = 'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
+
+/** The whole Brief conversation, as Northwind had it. Brief stage shows the first BRIEF_SO_FAR turns. */
+export const NORTHWIND_BRIEF_CHAT: readonly Turn[] = [
+  { role: 'assistant', content: GREETING },
+  { role: 'user', content: 'Hi — I’m Hannah, I run growth at Northwind Field Software. We make scheduling and job-tracking software for field-service teams.' },
+  { role: 'assistant', content: 'Thanks, Hannah. Who are you trying to get in front of?' },
+  { role: 'user', content: 'Operations leaders at UK facilities management and maintenance firms — the ones running 20 or more engineers on the road.' },
+  { role: 'assistant', content: 'Got it. Roughly how big are those companies?' },
+  { role: 'user', content: 'Somewhere between 50 and 500 staff.' },
+  { role: 'assistant', content: 'And which roles should I look for at those companies?' },
+  { role: 'user', content: 'Operations Director, Head of Operations and Service Delivery Manager.' },
+  { role: 'assistant', content: 'Is there anyone I should leave out?' },
+  { role: 'user', content: 'Our existing customers, and councils or other public-sector bodies.' },
+  { role: 'assistant', content: 'Last one: what does a good result look like for you?' },
+  { role: 'user', content: 'Qualified meetings with ops leaders who are outgrowing spreadsheets and whiteboards.' },
+  { role: 'assistant', content: 'Here’s your brief: operations leaders at UK field-service and facilities firms with 51–500 staff, leaving out your customers and the public sector. Confirm it and I’ll find real examples for you to check before anything is spent.' },
+  { role: 'user', content: 'That’s right — confirmed.' },
+]
+/** At Brief the conversation stops at Milla's question about roles — the presenter answers live. */
+export const NORTHWIND_BRIEF_SO_FAR = 7
+
+/** The facts Milla has at that point (the rest come from the live answers). */
+const FACTS_SO_FAR = {
+  contact_name: NORTHWIND_FACTS.contact_name, company_name: NORTHWIND_FACTS.company_name,
+  website: NORTHWIND_FACTS.website, what_they_do: NORTHWIND_FACTS.what_they_do,
+  target_category: NORTHWIND_FACTS.target_category, target_company_type: NORTHWIND_FACTS.target_company_type,
+  geographies: NORTHWIND_FACTS.geographies, company_sizes: NORTHWIND_FACTS.company_sizes,
+  country: NORTHWIND_FACTS.country,
+}
+
+/** The thread after the Brief. Each turn belongs to the first stage at which it has happened. */
+export const NORTHWIND_THREAD: ReadonlyArray<Turn & { from: NorthwindStage; daysAgo: number }> = [
+  { from: 'Proof', daysAgo: 28, role: 'assistant', content: 'I’ve found your first examples: 24 people who match your brief, each with the reason I picked them. Have a look on the right and tell me which look right and which don’t.' },
+  { from: 'Programme', daysAgo: 22, role: 'user', content: 'These look strong. Imogen at Brightwell is exactly who we want to be talking to.' },
+  { from: 'Programme', daysAgo: 22, role: 'assistant', content: 'Good — I’ll keep leaning that way. Your targeting is set. Next, choose how many qualified meetings you want. You pay once, per meeting.' },
+  { from: 'Programme', daysAgo: 21, role: 'user', content: 'What counts as a qualified meeting?' },
+  { from: 'Programme', daysAgo: 21, role: 'assistant', content: 'The right person, at a company that fits your brief, who has agreed to meet you with a date set. If a meeting doesn’t meet that bar, it doesn’t count.' },
+  { from: 'Approval', daysAgo: 20, role: 'user', content: 'Let’s go with 8.' },
+  { from: 'Approval', daysAgo: 18, role: 'assistant', content: 'Your programme is ready: 20 people to start with and a three-email sequence. It’s on the right for you to check. Nothing is sent until you approve it.' },
+  { from: 'Results', daysAgo: 16, role: 'user', content: 'Approved — let’s go.' },
+  { from: 'Results', daysAgo: 15, role: 'assistant', content: 'Thanks, Hannah. Your programme is live. I’ll tell you as replies and meetings come in.' },
+  { from: 'Results', daysAgo: 11, role: 'assistant', content: 'Imogen Hartley at Brightwell Facilities replied — they’ve just taken on two new contracts and want to talk. That meeting is booked.' },
+  { from: 'Results', daysAgo: 1, role: 'user', content: 'How are we doing overall?' },
+  { from: 'Results', daysAgo: 1, role: 'assistant', content: 'You have 3 qualified meetings of your 8 so far, with the next one in two days. There are 6 replies in your Inbox: 3 keen, 1 asking to reconnect in the new year, 1 out of office and 1 not interested.' },
+  { from: 'Complete', daysAgo: 1, role: 'assistant', content: 'Your eighth qualified meeting is booked. You’ve reached your target of 8, so your programme is complete.' },
+  { from: 'Complete', daysAgo: 0, role: 'user', content: 'Brilliant. What happens next?' },
+  { from: 'Complete', daysAgo: 0, role: 'assistant', content: 'Whenever you’re ready, we can start your next programme. I keep everything I’ve learned about who says yes to you, so you won’t need to brief me again.' },
+]
+
 /** Replies. `meeting` marks the ones that became a qualified meeting (in this order). */
 export const NORTHWIND_REPLIES: ReadonlyArray<{ cast: number; classification: 'hot' | 'warm' | 'not_interested' | 'out_of_office'; body: string; daysAgo: number; meeting: number | null }> = [
   { cast: 0,  classification: 'hot', daysAgo: 12, meeting: 1, body: "Timely — we've just taken on two new contracts and the whiteboard is not coping. Can you do Tuesday afternoon?" },
@@ -160,6 +222,7 @@ export type NorthwindIds = {
   programmeId: string
   campaignId: string
   sequenceId: string
+  sessionId: string
   /** One per cast member, in cast order. */
   leadIds: readonly string[]
   /** One per NORTHWIND_REPLIES entry, in order. */
@@ -179,6 +242,8 @@ export type NorthwindRows = {
   sentEmails: Record<string, unknown>[]
   replies: Record<string, unknown>[]
   meetings: Record<string, unknown>[]
+  session: Record<string, unknown> | null
+  messages: Record<string, unknown>[]
 }
 
 export function stageIndex(stage: NorthwindStage): number {
@@ -210,8 +275,12 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
   const at = stageIndex(stage)
   const S = { proof: 1, programme: 2, approval: 3, results: 4, complete: 5 }
   const iso = (daysAgo: number, hours = 0) => new Date(now.getTime() - daysAgo * 86_400_000 + hours * 3_600_000).toISOString()
-  const empty: NorthwindRows = { client: null, draft: null, programme: null, icp: null, campaign: null, sequence: null, leads: [], enrollments: [], sentEmails: [], replies: [], meetings: [] }
-  if (at < S.proof) return empty
+  const empty: NorthwindRows = { client: null, draft: null, programme: null, icp: null, campaign: null, sequence: null, leads: [], enrollments: [], sentEmails: [], replies: [], meetings: [], session: null, messages: [] }
+  // Brief: signed in, no account — and half-way through the conversation, so the presenter
+  // picks it up live at Milla's question about roles.
+  if (at < S.proof) {
+    return { ...empty, draft: { user_id: ids.userId, facts: FACTS_SO_FAR, conversation: NORTHWIND_BRIEF_CHAT.slice(0, NORTHWIND_BRIEF_SO_FAR) } }
+  }
 
   const quote = quoteProgramme(NORTHWIND_MEETINGS, NORTHWIND_BAND)
   const hasProgramme = at >= S.approval
@@ -233,7 +302,7 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
   }
 
   const draft: Record<string, unknown> = {
-    user_id: ids.userId, facts: NORTHWIND_FACTS,
+    user_id: ids.userId, facts: NORTHWIND_FACTS, conversation: NORTHWIND_BRIEF_CHAT,
     confirmed_at: iso(29), promoted_client_id: ids.clientId, promoted_at: iso(29),
   }
 
@@ -284,8 +353,17 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     }
   })
 
+  // The thread so far: every turn whose stage has been reached, oldest first, one minute apart
+  // within a day so the order is fixed.
+  const turns = NORTHWIND_THREAD.filter(t => stageIndex(t.from) <= at)
+  const session = { id: ids.sessionId, client_id: ids.clientId, title: 'Northwind programme', created_at: iso(28), updated_at: iso(turns[turns.length - 1].daysAgo) }
+  const messages = turns.map((t, n) => ({
+    session_id: ids.sessionId, client_id: ids.clientId, role: t.role, content: t.content,
+    created_at: new Date(now.getTime() - t.daysAgo * 86_400_000 - 3_600_000 + n * 60_000).toISOString(),
+  }))
+
   if (!delivering) {
-    return { ...empty, client, draft, programme, icp, campaign, sequence, leads }
+    return { ...empty, client, draft, programme, icp, campaign, sequence, leads, session, messages }
   }
 
   // ── Delivery: every programme person was emailed; replies and meetings follow. ──
@@ -333,7 +411,9 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       // Results: the earliest meetings have happened, the latest is still to come.
       // Complete: every meeting has happened.
       const upcoming = stage === 'Results' && r.meeting === delivered
-      const scheduled = upcoming ? iso(-2, 2) : iso(Math.max(1, bookedDaysAgo - 3), 2)
+      // Held the day after booking (or half a day ago for the latest), so every meeting has its
+      // own date — never several stacked on one day.
+      const scheduled = upcoming ? iso(-2, 2) : iso(Math.max(0.5, bookedDaysAgo - 1), 2)
       return {
         client_id: ids.clientId, programme_id: ids.programmeId, campaign_id: ids.campaignId,
         lead_id: ids.leadIds[r.cast],
@@ -351,5 +431,5 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       }
     })
 
-  return { client, draft, programme, icp, campaign, sequence, leads, enrollments, sentEmails, replies, meetings }
+  return { client, draft, programme, icp, campaign, sequence, leads, enrollments, sentEmails, replies, meetings, session, messages }
 }

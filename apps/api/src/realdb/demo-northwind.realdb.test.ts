@@ -31,6 +31,8 @@ async function insert(c: Client, table: string, row: Record<string, unknown>): P
 
 async function write(c: Client, rows: NorthwindRows): Promise<void> {
   if (rows.client) await insert(c, 'clients', rows.client)
+  if (rows.session) await insert(c, 'milla_sessions', rows.session)
+  for (const r of rows.messages) await insert(c, 'milla_messages', r)
   if (rows.draft) await insert(c, 'onboarding_brief_drafts', rows.draft)
   if (rows.programme) await insert(c, 'programmes', rows.programme)
   if (rows.icp) await insert(c, 'icps', rows.icp)
@@ -63,7 +65,7 @@ describe('R164 · Northwind demo — every stage is accepted by the real schema 
     await c.query('insert into auth.users(id, email) values ($1, $2)', [userId, `northwind-${userId}@kind-demo.internal`])
     return {
       userId, clientId: randomUUID(), icpId: randomUUID(), programmeId: randomUUID(),
-      campaignId: randomUUID(), sequenceId: randomUUID(),
+      campaignId: randomUUID(), sequenceId: randomUUID(), sessionId: randomUUID(),
       leadIds: NORTHWIND_CAST.map(() => randomUUID()), replyIds: NORTHWIND_REPLIES.map(() => randomUUID()),
     }
   }
@@ -75,11 +77,16 @@ describe('R164 · Northwind demo — every stage is accepted by the real schema 
       await write(c, rows)
 
       if (stage === 'Brief') {
-        // Brief = signed in, no account yet. Nothing was written.
+        // Brief = signed in, no account yet — only the half-finished Brief conversation exists.
         const n = await c.query('select count(*)::int as n from public.clients where user_id = $1', [ids.userId])
         expect(n.rows[0].n).toBe(0)
+        const d = await c.query('select jsonb_array_length(conversation) as turns, confirmed_at from public.onboarding_brief_drafts where user_id = $1', [ids.userId])
+        expect(d.rows[0]).toEqual({ turns: 7, confirmed_at: null })
         return
       }
+      // Milla's chat opens on a history, never empty.
+      const chat = await c.query('select count(*)::int as n from public.milla_messages where client_id = $1', [ids.clientId])
+      expect(chat.rows[0].n).toBeGreaterThan(0)
       const cl = await c.query('select is_demo, proof_completed_at, size_locked_at, size_band from public.clients where id = $1', [ids.clientId])
       expect(cl.rows[0].is_demo).toBe(true)
       expect(cl.rows[0].size_locked_at).not.toBeNull()

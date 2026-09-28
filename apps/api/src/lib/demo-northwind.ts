@@ -101,7 +101,7 @@ export async function wipeNorthwind(userId: string, opts: { keepDraft?: boolean 
 function freshIds(userId: string): NorthwindIds {
   return {
     userId, clientId: randomUUID(), icpId: randomUUID(), programmeId: randomUUID(),
-    campaignId: randomUUID(), sequenceId: randomUUID(),
+    campaignId: randomUUID(), sequenceId: randomUUID(), sessionId: randomUUID(),
     leadIds: NORTHWIND_CAST.map(() => randomUUID()),
     replyIds: NORTHWIND_REPLIES.map(() => randomUUID()),
   }
@@ -130,6 +130,8 @@ export async function setNorthwindStage(
       counts[table] = Array.isArray(value) ? value.length : 1
     }
     await put('clients', rows.client)
+    await put('milla_sessions', rows.session)
+    await put('milla_messages', rows.messages)
     if (rows.draft) {
       if (opts.keepDraft) {
         const { error } = await db.from('onboarding_brief_drafts')

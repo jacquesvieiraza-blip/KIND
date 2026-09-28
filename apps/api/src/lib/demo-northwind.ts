@@ -115,13 +115,13 @@ function freshIds(userId: string): NorthwindIds {
  */
 export async function setNorthwindStage(
   stage: NorthwindStage,
-  opts: { userId?: string; keepDraft?: boolean; now?: Date } = {},
+  opts: { userId?: string; keepDraft?: boolean; now?: Date; meetings?: number | null } = {},
 ): Promise<Result> {
   try {
     const userId = opts.userId ?? await ensureNorthwindUser()
     await wipeNorthwind(userId, { keepDraft: opts.keepDraft })
     const ids = freshIds(userId)
-    const rows = northwindRows(stage, ids, opts.now ?? new Date())
+    const rows = northwindRows(stage, ids, opts.now ?? new Date(), { meetings: opts.meetings })
     const counts: Record<string, number> = {}
     const put = async (table: string, value: Record<string, unknown> | Record<string, unknown>[] | null) => {
       if (!value || (Array.isArray(value) && value.length === 0)) return
@@ -229,4 +229,19 @@ export async function promoteNorthwindBrief(userId: string): Promise<{ ok: boole
   const r = await setNorthwindStage('Proof', { userId, keepDraft: true })
   if (!r.ok) return { ok: false, reason: 'client_unwritable', detail: r.error }
   return { ok: true, clientId: r.clientId ?? undefined, icpId: r.icpId ?? undefined }
+}
+
+/**
+ * ⚑ 28 Sep (R173) — THE DEMO IS CLICKED THROUGH LIKE THE REAL THING. A real client presses
+ * "Accept N · Pay" (Stripe, then preparation, then the frozen package) and later "Approve"
+ * (then Make Live, Run, replies, meetings). A demo can never pay or send, so each press is
+ * answered by building the stage it leads to — at the number of meetings the presenter chose:
+ *   · the first payment → Approval (the frozen package of that programme);
+ *   · the approval      → Results  (the programme running, with its history).
+ * No money, no Stripe, no founder alert, no mailbox. Only the Northwind login reaches here —
+ * the caller checks `isNorthwindLogin` first.
+ */
+export async function advanceNorthwindOnPress(userId: string, press: 'first_payment' | 'approve', meetings: number | null): Promise<{ ok: boolean; error?: string }> {
+  const r = await setNorthwindStage(press === 'first_payment' ? 'Approval' : 'Results', { userId, meetings })
+  return r.ok ? { ok: true } : { ok: false, error: r.error }
 }

@@ -46,8 +46,8 @@ const STAGES = ['Brief', 'Proof', 'Programme', 'Approval', 'Results', 'Complete'
 const STAGE_NOTE: Record<(typeof STAGES)[number], string> = {
   Brief:     'Signed in, no account yet — walk the real Brief chat. Confirming it builds the demo at Proof with the made-up cast (never real people).',
   Proof:     '24 made-up people on the Proof desk, ready to approve or pass.',
-  Programme: 'Proof done — the programme calculator, priced on Northwind\u2019s size. Payment is refused for a demo; use Approval to move on.',
-  Approval:  'A programme ready to approve: 20 people and the three-email sequence. Nothing was paid.',
+  Programme: 'Proof done — the programme calculator, priced on Northwind\u2019s size (up to 8 meetings). “Accept · Pay” moves it to Approval at the number chosen — no money, no Stripe.',
+  Approval:  'A programme ready to approve: 20 people and the three-email sequence. Nothing was paid. “Approve” moves it to Results — no alert is raised.',
   Results:   'Live: emails sent, replies in the Inbox, 3 of 8 qualified meetings (one still to come).',
   Complete:  'Finished: 8 of 8 qualified meetings delivered.',
 }

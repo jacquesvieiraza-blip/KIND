@@ -290,6 +290,15 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
       }
     }
 
+    // ⚑ 28 Sep (R173) — THE DEMO'S SENDER LINE. A demo holds no mailbox (R164 A), so its frozen
+    // package records none and the screen said "Sender · Not stated" — the one card on Approval a
+    // real client never sees empty. The Northwind login is shown its display-only address
+    // (`.invalid`, never delivers). The frozen package itself is untouched.
+    if (frozen && !frozen.sender_email) {
+      const { isNorthwindLogin, NORTHWIND_SENDER } = await import('../lib/demo-northwind-data')
+      if (isNorthwindLogin(req.authEmail)) frozen.sender_email = NORTHWIND_SENDER
+    }
+
     // ── ⚑ 11 Sep (DAY 3) — THE PROSPECTS COME FROM THE FREEZE, AND ALL OF THEM CAN BE READ ──
     //
     // 🛑 THE TWO DEFECTS THIS CLOSES. The desk was a LIVE recomputation of "who is eligible
@@ -413,6 +422,17 @@ async function programmeCheckout(
   // builder refuses too (`programme-checkout.ts`), so no other door can reach Stripe for a demo.
   const { isDemoClient } = await import('../lib/demo')
   if (await isDemoClient(clientId)) {
+    // ⚑ 28 Sep (R173) — THE NORTHWIND DEMO IS CLICKED THROUGH. Its "Accept · Pay" builds the
+    // Approval stage at the meetings chosen and sends the screen there, as a paid client's
+    // return from Stripe would — no Stripe session, no money. Any other demo is refused as before.
+    const { isNorthwindLogin } = await import('../lib/demo-northwind-data')
+    if (stage === 'programme_first' && isNorthwindLogin(req.authEmail)) {
+      const { advanceNorthwindOnPress } = await import('../lib/demo-northwind')
+      const r = await advanceNorthwindOnPress(req.userId!, 'first_payment', p.meeting_target)
+      if (!r.ok) { res.status(503).json({ success: false, error: 'demo_unavailable', message: `The demo could not move on: ${r.error}. Nothing was charged.` }); return }
+      res.json({ success: true, data: { url: '/milla/programme', demo: true } })
+      return
+    }
     res.status(409).json({
       success: false, error: 'demo_account',
       message: 'This is a demo account, so there is nothing to pay and nothing is ever charged.',
@@ -837,6 +857,20 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
 
     const p = await openProgrammeForSession(clientId)
     if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
+
+    // ⚑ 28 Sep (R173) — THE NORTHWIND DEMO'S APPROVE moves it to Results (the programme running,
+    // with its history) — no approval record, no founder task, no email, no Make Live. Only the
+    // Northwind login; every other client (demo or real) goes through the real approval below.
+    {
+      const { isNorthwindLogin } = await import('../lib/demo-northwind-data')
+      if (isNorthwindLogin(req.authEmail)) {
+        const { advanceNorthwindOnPress } = await import('../lib/demo-northwind')
+        const r = await advanceNorthwindOnPress(req.userId!, 'approve', p.meeting_target)
+        if (!r.ok) { res.status(503).json({ success: false, error: 'demo_unavailable', message: `The demo could not move on: ${r.error}. Nothing was approved.` }); return }
+        res.json({ success: true, data: { approved_at: new Date().toISOString(), demo: true } })
+        return
+      }
+    }
 
     // ⚠️ THE VERSION THE CLIENT WAS LOOKING AT, sent back with the press. See `frozen.version`
     // above and the refusal in `approveProgrammeAsCustomer`.

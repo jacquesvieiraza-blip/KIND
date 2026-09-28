@@ -72,7 +72,13 @@ export async function clientCapacityFor(clientId: string, icp: IcpRow): Promise<
     .select('id', { count: 'exact', head: true })
     .eq('client_id', clientId)
 
-  const preview = await previewCount(icp, 'client')
+  // ⚑ 28 Sep (R173) — THE NORTHWIND DEMO'S MARKET IS FIXED, and asks no provider: a demo must
+  // read the same every time and never depend on real data (`NORTHWIND_MATCHED`).
+  const { data: who } = await db.from('clients').select('is_demo, company_name').eq('id', clientId).maybeSingle()
+  const { NORTHWIND_NAME, NORTHWIND_MATCHED } = await import('./demo-northwind-data')
+  const isNorthwind = (who as { is_demo?: boolean | null; company_name?: string | null } | null)?.is_demo === true
+    && (who as { company_name?: string | null }).company_name === NORTHWIND_NAME
+  const preview = isNorthwind ? { count: NORTHWIND_MATCHED, error: null } : await previewCount(icp, 'client')
   const matched = typeof preview?.count === 'number' ? preview.count : 0
   const cap = poolCapacity(matched, excluded ?? 0, worked ?? 0)
 

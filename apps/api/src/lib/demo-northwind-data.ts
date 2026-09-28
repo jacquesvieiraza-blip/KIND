@@ -41,6 +41,11 @@ export const NORTHWIND_EMAIL = 'northwind@kind-demo.internal'
 export const NORTHWIND_NAME = 'Northwind Field Software'
 /** Every prospect address ends here. `.invalid` can never resolve. */
 export const NORTHWIND_MARKER = 'northwind-demo.invalid'
+/**
+ * ⚑ 28 Sep (R173) — the mailbox the demo's Approval screen names as the sender. DISPLAY ONLY: a
+ * demo holds no mailbox (R164 A) and `.invalid` can never deliver; nothing sends from it.
+ */
+export const NORTHWIND_SENDER = `hannah@${NORTHWIND_MARKER}`
 export const NORTHWIND_EMPLOYEES = 64
 export const NORTHWIND_BAND: SizeBand = bandForEmployees(NORTHWIND_EMPLOYEES) as SizeBand
 /** The meetings the demo programme buys. Priced by `quoteProgramme`, never typed. */
@@ -117,6 +122,15 @@ export const NORTHWIND_CAST: readonly Cast[] = [
   { first: 'Leo',     last: 'Grant',     title: 'Operations Director',        seniority: 'director', company: 'Thornbury Drainage',     industry: 'Building Maintenance', size: '98',  score: 70 },
 ]
 
+/**
+ * ⚑ 28 Sep (R173) — THE DEMO'S MARKET SIZE, FIXED. A real client's slider stops at the capacity
+ * of their targeting, from a live provider count. The demo must be the same every time and must
+ * never depend on real data, so Northwind's count is this number — chosen so the workable pool
+ * (this, less the 24 already on its desk) is 3,536 and the ceiling is exactly 8 meetings, the
+ * same the live site showed the founder on 28 Sep. Never shown to the client (R136 ③).
+ */
+export const NORTHWIND_MATCHED = 3560
+
 /** The first N of the cast are the ones the programme contacts from Approval on. */
 export const NORTHWIND_PROGRAMME_PEOPLE = 20
 
@@ -182,23 +196,45 @@ const FACTS_SO_FAR = {
 }
 
 /** The thread after the Brief. Each turn belongs to the first stage at which it has happened. */
-export const NORTHWIND_THREAD: ReadonlyArray<Turn & { from: NorthwindStage; daysAgo: number }> = [
-  { from: 'Proof', daysAgo: 28, role: 'assistant', content: 'I’ve found your first examples: 24 people who match your brief, each with the reason I picked them. Have a look on the right and tell me which look right and which don’t.' },
-  { from: 'Programme', daysAgo: 22, role: 'user', content: 'These look strong. Imogen at Brightwell is exactly who we want to be talking to.' },
-  { from: 'Programme', daysAgo: 22, role: 'assistant', content: 'Good — I’ll keep leaning that way. Your targeting is set. Next, choose how many qualified meetings you want. You pay once, per meeting.' },
-  { from: 'Programme', daysAgo: 21, role: 'user', content: 'What counts as a qualified meeting?' },
-  { from: 'Programme', daysAgo: 21, role: 'assistant', content: 'The right person, at a company that fits your brief, who has agreed to meet you with a date set. If a meeting doesn’t meet that bar, it doesn’t count.' },
-  { from: 'Approval', daysAgo: 20, role: 'user', content: 'Let’s go with 8.' },
-  { from: 'Approval', daysAgo: 18, role: 'assistant', content: 'Your programme is ready: 20 people to start with and a three-email sequence. It’s on the right for you to check. Nothing is sent until you approve it.' },
-  { from: 'Results', daysAgo: 16, role: 'user', content: 'Approved — let’s go.' },
-  { from: 'Results', daysAgo: 15, role: 'assistant', content: 'Thanks, Hannah. Your programme is live. I’ll tell you as replies and meetings come in.' },
-  { from: 'Results', daysAgo: 11, role: 'assistant', content: 'Imogen Hartley at Brightwell Facilities replied — they’ve just taken on two new contracts and want to talk. That meeting is booked.' },
-  { from: 'Results', daysAgo: 1, role: 'user', content: 'How are we doing overall?' },
-  { from: 'Results', daysAgo: 1, role: 'assistant', content: 'You have 3 qualified meetings of your 8 so far, with the next one in two days. There are 6 replies in your Inbox: 3 keen, 1 asking to reconnect in the new year, 1 out of office and 1 not interested.' },
-  { from: 'Complete', daysAgo: 1, role: 'assistant', content: 'Your eighth qualified meeting is booked. You’ve reached your target of 8, so your programme is complete.' },
-  { from: 'Complete', daysAgo: 0, role: 'user', content: 'Brilliant. What happens next?' },
-  { from: 'Complete', daysAgo: 0, role: 'assistant', content: 'Whenever you’re ready, we can start your next programme. I keep everything I’ve learned about who says yes to you, so you won’t need to brief me again.' },
-]
+type ThreadTurn = Turn & { from: NorthwindStage; daysAgo: number }
+
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
+
+/**
+ * ⚑ 28 Sep (R173) — every number Milla says is the number the demo holds, for the target chosen.
+ * Worked out from the same replies and meetings the rows are built from, never typed.
+ */
+export function northwindThread(target: number = NORTHWIND_MEETINGS): ThreadTurn[] {
+  const d = meetingsAt('Results', target)
+  const inbox = NORTHWIND_REPLIES.filter(r => r.meeting === null || r.meeting <= d)
+  const n = (k: string) => inbox.filter(r => r.classification === k).length
+  const parts = [
+    n('hot') ? `${n('hot')} keen` : null,
+    n('warm') ? `${n('warm')} asking to reconnect in the new year` : null,
+    n('out_of_office') ? `${n('out_of_office')} out of office` : null,
+    n('not_interested') ? `${n('not_interested')} not interested` : null,
+  ].filter(Boolean) as string[]
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? ''
+  const progress = `You have ${d} qualified meeting${d === 1 ? '' : 's'} of your ${target} so far${d > 0 ? ', with the next one in two days' : ''}. There are ${inbox.length} replies in your Inbox: ${list}.`
+  const turns: Array<ThreadTurn | null> = [
+    { from: 'Proof', daysAgo: 28, role: 'assistant', content: `I’ve found your first examples: ${NORTHWIND_CAST.length} people who match your brief, each with the reason I picked them. Have a look on the right and tell me which look right and which don’t.` },
+    { from: 'Programme', daysAgo: 22, role: 'user', content: 'These look strong. Imogen at Brightwell is exactly who we want to be talking to.' },
+    { from: 'Programme', daysAgo: 22, role: 'assistant', content: 'Good — I’ll keep leaning that way. Your targeting is set. Next, choose how many qualified meetings you want. You pay once, per meeting.' },
+    { from: 'Programme', daysAgo: 21, role: 'user', content: 'What counts as a qualified meeting?' },
+    { from: 'Programme', daysAgo: 21, role: 'assistant', content: 'The right person, at a company that fits your brief, who has agreed to meet you with a date set. If a meeting doesn’t meet that bar, it doesn’t count.' },
+    { from: 'Approval', daysAgo: 20, role: 'user', content: `Let’s go with ${target}.` },
+    { from: 'Approval', daysAgo: 18, role: 'assistant', content: `Your programme is ready: ${NORTHWIND_PROGRAMME_PEOPLE} people to start with and a three-email sequence. It’s on the right for you to check. Nothing is sent until you approve it.` },
+    { from: 'Results', daysAgo: 16, role: 'user', content: 'Approved — let’s go.' },
+    { from: 'Results', daysAgo: 15, role: 'assistant', content: 'Thanks, Hannah. Your programme is live. I’ll tell you as replies and meetings come in.' },
+    d >= 1 ? { from: 'Results', daysAgo: 11, role: 'assistant', content: 'Imogen Hartley at Brightwell Facilities replied — they’ve just taken on two new contracts and want to talk. That meeting is booked.' } : null,
+    { from: 'Results', daysAgo: 1, role: 'user', content: 'How are we doing overall?' },
+    { from: 'Results', daysAgo: 1, role: 'assistant', content: progress },
+    { from: 'Complete', daysAgo: 1, role: 'assistant', content: `Your ${ORDINAL[target - 1]} qualified meeting is booked. You’ve reached your target of ${target}, so your programme is complete.` },
+    { from: 'Complete', daysAgo: 0, role: 'user', content: 'Brilliant. What happens next?' },
+    { from: 'Complete', daysAgo: 0, role: 'assistant', content: 'Whenever you’re ready, we can start your next programme. I keep everything I’ve learned about who says yes to you, so you won’t need to brief me again.' },
+  ]
+  return turns.filter((t): t is ThreadTurn => t !== null)
+}
 
 /** Replies. `meeting` marks the ones that became a qualified meeting (in this order). */
 export const NORTHWIND_REPLIES: ReadonlyArray<{ cast: number; classification: 'hot' | 'warm' | 'not_interested' | 'out_of_office'; body: string; daysAgo: number; meeting: number | null }> = [
@@ -258,10 +294,21 @@ export function isNorthwindStage(v: unknown): v is NorthwindStage {
   return typeof v === 'string' && (NORTHWIND_STAGES as readonly string[]).includes(v)
 }
 
+/**
+ * ⚑ 28 Sep (R173) — THE DEMO BUYS WHAT THE PRESENTER CHOSE. The Programme screen lets them pick
+ * a number; clicking through (Accept → Approval) builds the programme at that number. Between 1
+ * and 8: the cast has eight replies that become meetings, and 8 is also where the live pool caps
+ * Northwind's targeting. Anything else (or nothing) is the default 8.
+ */
+export function northwindTarget(meetings?: number | null): number {
+  const n = Math.floor(Number(meetings))
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, NORTHWIND_MEETINGS) : NORTHWIND_MEETINGS
+}
+
 /** Meetings delivered at a stage — Results shows progress, Complete shows the target met. */
-export function meetingsAt(stage: NorthwindStage): number {
-  if (stage === 'Complete') return NORTHWIND_MEETINGS
-  if (stage === 'Results') return NORTHWIND_RESULTS_MEETINGS
+export function meetingsAt(stage: NorthwindStage, target: number = NORTHWIND_MEETINGS): number {
+  if (stage === 'Complete') return target
+  if (stage === 'Results') return Math.min(NORTHWIND_RESULTS_MEETINGS, Math.max(0, target - 1))
   return 0
 }
 
@@ -273,8 +320,9 @@ export function meetingsAt(stage: NorthwindStage): number {
  * walks the real Brief chat; `promoteConfirmedBrief` hands the demo login to this file instead
  * of the real promotion, so confirming never sources real people (see `demo-northwind.ts`).
  */
-export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Date): NorthwindRows {
+export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Date, opts: { meetings?: number | null } = {}): NorthwindRows {
   const at = stageIndex(stage)
+  const target = northwindTarget(opts.meetings)
   const S = { proof: 1, programme: 2, approval: 3, results: 4, complete: 5 }
   const iso = (daysAgo: number, hours = 0) => new Date(now.getTime() - daysAgo * 86_400_000 + hours * 3_600_000).toISOString()
   const empty: NorthwindRows = { client: null, draft: null, programme: null, icp: null, campaign: null, sequence: null, leads: [], enrollments: [], sentEmails: [], replies: [], meetings: [], session: null, messages: [], offer: null, proofClaim: null }
@@ -284,10 +332,10 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     return { ...empty, draft: { user_id: ids.userId, facts: FACTS_SO_FAR, conversation: NORTHWIND_BRIEF_CHAT.slice(0, NORTHWIND_BRIEF_SO_FAR) } }
   }
 
-  const quote = quoteProgramme(NORTHWIND_MEETINGS, NORTHWIND_BAND)
+  const quote = quoteProgramme(target, NORTHWIND_BAND)
   const hasProgramme = at >= S.approval
   const delivering = at >= S.results
-  const delivered = meetingsAt(stage)
+  const delivered = meetingsAt(stage, target)
 
   const client: Record<string, unknown> = {
     id: ids.clientId, user_id: ids.userId, company_name: NORTHWIND_NAME, is_demo: true,
@@ -365,7 +413,7 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
 
   // The thread so far: every turn whose stage has been reached, oldest first, one minute apart
   // within a day so the order is fixed.
-  const turns = NORTHWIND_THREAD.filter(t => stageIndex(t.from) <= at)
+  const turns = northwindThread(target).filter(t => stageIndex(t.from) <= at)
   const session = { id: ids.sessionId, client_id: ids.clientId, title: 'Northwind programme', created_at: iso(28), updated_at: iso(turns[turns.length - 1].daysAgo) }
   const messages = turns.map((t, n) => ({
     session_id: ids.sessionId, client_id: ids.clientId, role: t.role, content: t.content,

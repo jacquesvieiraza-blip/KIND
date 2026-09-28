@@ -76,6 +76,8 @@ const HELD_BUT_ONE: Record<string, unknown> = {
   job_titles:          ['Founder', 'CEO', 'Managing Director'],
   desired_outcome:     'qualified new-business meetings',
   country:             'United Kingdom',
+  // ⛓️ 28 Sep (R170) — the client's own size is now an account requirement too; not a Brief fact.
+  company_employees:   30,
 }
 
 /** The final item, given by the customer in the turn under test. */

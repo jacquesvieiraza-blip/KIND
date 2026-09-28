@@ -52,8 +52,11 @@ const ELEVEN: Record<string, unknown> = {
   job_titles:          ['Founder', 'CEO', 'Managing Director'],
   exclusions:          'no recruitment agencies, no software companies',
   desired_outcome:     'qualified new-business meetings',
+  // ⛓️ 28 Sep (R170) — the client's own size is now an account fact too. It is held here so
+  // every case below still isolates the COUNTRY, which is what this file is about.
+  company_employees:   30,
 }
-/** The eleven plus the one account fact. This is READY. */
+/** The eleven plus the account facts. This is READY. */
 const READY_FACTS = { ...ELEVEN, country: 'United Kingdom' }
 
 type Dispatched = {
@@ -199,15 +202,19 @@ describe('Ⓐ the authority is pure, and it is the only definition of ready', ()
   it('targeting is listed before the account class, always', async () => {
     const { onboardingState } = await authority()
     const s = onboardingState({ contact_name: 'D' })
-    expect(s.unresolvedLabels[s.unresolvedLabels.length - 1]).toBe('Which country your business is based in')
-    expect(s.unresolvedLabels.length).toBe(10 + 1)
+    // ⛓️ 28 Sep (R170) — the account class is now country THEN own size; still after targeting.
+    expect(s.unresolvedLabels[s.unresolvedLabels.length - 2]).toBe('Which country your business is based in')
+    expect(s.unresolvedLabels[s.unresolvedLabels.length - 1]).toBe('Roughly how many people work at your company')
+    expect(s.unresolvedLabels.length).toBe(10 + 2)
   })
 
   it('🛑 COUNTRY IS NOT A TWELFTH BRIEF FACT', async () => {
     const { onboardingState, ACCOUNT_FACTS } = await authority()
     expect(BRIEF_FACTS.length, 'the canonical count is eleven and stays eleven').toBe(11)
     expect([...BRIEF_FACTS]).not.toContain('country')
-    expect([...ACCOUNT_FACTS]).toEqual(['country'])
+    // ⛓️ 28 Sep (R170) — own size joined the ACCOUNT class, and still not the eleven.
+    expect([...ACCOUNT_FACTS]).toEqual(['country', 'own_size'])
+    expect([...BRIEF_FACTS]).not.toContain('own_size')
     // And the denominator every surface reads is still eleven.
     expect(onboardingState(ELEVEN).targeting.total).toBe(11)
   })
@@ -367,7 +374,8 @@ describe('Ⓘ canonical Brief progress and account readiness are separate number
     const o = outstandingOf(r)!
     expect(o.total, 'the canonical denominator').toBe(11)
     expect(o.remaining, 'the canonical Brief facts ALONE — never 12').toBe(11)
-    expect(o.account, 'the account class, counted separately').toBe(1)
+    // ⛓️ 28 Sep (R170) — 1 → 2: country and the client's own size.
+    expect(o.account, 'the account class, counted separately').toBe(2)
     // 🛑 AND THE CUSTOMER CAN NEVER BE TOLD "12". The portal renders `remaining` verbatim.
     expect(o.remaining).toBeLessThanOrEqual(o.total)
   })
@@ -454,7 +462,8 @@ describe('Ⓓ there is ONE readiness definition, and everything calls it', () =>
       .not.toContain('@kind/db')
     expect(DRAFT, 'brief-draft re-exports it rather than redefining it').toContain("} from './onboarding-state'")
     expect(DRAFT, 'mayConfirmBrief delegates').toMatch(/mayConfirmBrief[\s\S]{0,900}onboardingState\(/)
-    expect(ICPS, 'the chat gate').toContain('onboardingState(draftFactsFromResolved(resolved))')
+    // ⛓️ 28 Sep (R170) — the same one authority, now also handed the client's own size.
+    expect(ICPS, 'the chat gate').toContain('onboardingState(withOwnSize(draftFactsFromResolved(resolved), v, held))')
     expect(ICPS, 'the prompt block').toContain('onboardingState(draft.facts).unresolvedLabels')
     expect(MILLA, 'the portal boundary').toContain('onboardingState(draft?.facts ?? null)')
   })

@@ -135,7 +135,8 @@ describe('Milla asks, and sign-up keeps the answer', () => {
     const icps = read('../routes/icps.ts')
     expect(icps).toContain("company_employees:   { type: 'integer', minimum: 1,")
     expect(icps).toContain('company_employees:   statedEmployees,')
-    expect(icps).toContain('ASK HOW MANY PEOPLE WORK AT THEIR OWN COMPANY (R168)')
+    // ⛓️ 28 Sep (R170) — the heading now names both rulings; the ask itself is unchanged.
+    expect(icps).toContain('ASK HOW MANY PEOPLE WORK AT THEIR OWN COMPANY (R168 · R170)')
     expect(icps).toMatch(/It is THEIR company, NOT the size of the companies they want to\s+reach/)
   })
 

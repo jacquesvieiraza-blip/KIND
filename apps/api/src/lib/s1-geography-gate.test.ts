@@ -106,6 +106,8 @@ const ELEVEN = (geographies: string[]) => ({
   job_titles: ['Founder'], seniority_levels: ['C-Suite'],
   exclusions: 'No recruitment agencies.', desired_outcome: 'Qualified conversations.',
   country: 'United Kingdom',
+  // ⛓️ 28 Sep (R170) — the client's own size is now an account requirement too; not a Brief fact.
+  company_employees: 30,
 })
 
 const seedDraft = (geographies: string[], over: Row = {}) => {

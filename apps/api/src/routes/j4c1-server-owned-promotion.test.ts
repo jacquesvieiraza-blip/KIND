@@ -195,6 +195,8 @@ const ELEVEN = {
   job_titles: ['Managing Director'], seniority_levels: ['owner'],
   exclusions: 'no competitors of ours', desired_outcome: 'book qualified meetings',
   country: 'United Kingdom',
+  // ⛓️ 28 Sep (R170) — the client's own size is now an account requirement too; not a Brief fact.
+  company_employees: 30,
 }
 
 function seedDraft(facts: Row = ELEVEN, over: Row = {}) {

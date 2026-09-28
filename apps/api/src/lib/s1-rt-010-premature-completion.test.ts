@@ -43,6 +43,8 @@ import { BRIEF_FACTS } from '@kind/shared'
  *  back by the country instead of by the fact each test is actually named for. */
 const CEDAR_10: Record<string, unknown> = {
   country:             'United Kingdom',
+  // ⛓️ 28 Sep (R170) — the client's own size is now an account requirement too; not a Brief fact.
+  company_employees:   30,
   contact_name:        'Daniel Brooks',
   company_name:        'Cedar Peak Advisory',
   website_none:        true,

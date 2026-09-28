@@ -120,6 +120,9 @@ const TEN: Record<string, unknown> = {
   // it every confirm below would be held back by the country rather than by the Brief fact
   // each case is actually named for.
   country: 'United Kingdom',
+  // ⛓️ 28 Sep (R170) — `company_employees` added for the same reason: the client's own size is
+  // now an account requirement too (Milla must ask it), and not a twelfth Brief fact.
+  company_employees: 30,
   contact_name: 'Ellis Warner',
   company_name: 'Redmayne & Co.',
   website: 'https://redmayne.co.uk',

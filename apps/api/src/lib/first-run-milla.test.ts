@@ -49,6 +49,10 @@ beforeEach(() => {
   anthropicBox.lastParams = null
   anthropicBox.lastOptions = null
   for (const k of Object.keys(draftBox.facts)) delete draftBox.facts[k]
+  // ⛓️ 28 Sep (R170) — every client here has already told Milla their own size in an earlier
+  // turn: it is now an account requirement, and no test in this file is about it (the size
+  // rule has its own suite, `milla-asks-own-size.test.ts`).
+  draftBox.facts.company_employees = 30
   draftBox.writable = true
 })
 
@@ -418,7 +422,8 @@ describe('required client data is never fabricated or defaulted', () => {
     expect(welcomeCode).toMatch(/: !serverReady \? \(briefNext/)
     expect(welcomeCode).toContain(": !proposed ? ")
     const onb = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
-    expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country']")
+    // ⛓️ 28 Sep (R170) — the client's own size joined the country in the one authority.
+    expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country', 'own_size']")
     expect(onb, 'company name is still one of the canonical eleven, counted there')
       // ⛓️ 22 Sep — same shared counter, called once, now with a second argument naming the
       // facts answered in words we could not use. Company name is unaffected by that rule and

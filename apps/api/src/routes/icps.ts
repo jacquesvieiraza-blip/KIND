@@ -3951,6 +3951,8 @@ const millaReplyTool = (profileRequired: boolean) => ({
           // ⚑ 25 Sep (R168 ④ · P7b) — THEIR OWN headcount, which sets their price band. Never the
           // size of the companies they want to reach (that is `company_sizes`).
           company_employees:   { type: 'integer', minimum: 1, description: 'Roughly how many people work at THEIR OWN company, as a whole number, only from what they told you. Never the size of the companies they want to reach.' },
+          // ⚑ 28 Sep (R170) — a plain decline is an answer; not having asked is not.
+          company_employees_declined: { type: 'boolean', description: 'true ONLY when you asked how many people work at their company and they plainly would not say. Never set this because you have not asked yet.' },
           what_they_do:        { type: 'string', maxLength: 1200 },
           target_category:     { type: 'string', maxLength: 200, description: "Their own words for the kind of company to reach." },
           geographies:         { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
@@ -4090,6 +4092,7 @@ const BriefSoFar = z.object({
   // ⚑ 25 Sep (R168 ④ · P7b) — their OWN headcount. A value that is not a usable whole number is
   // DROPPED, never refused: one unreadable answer must not cost the client the turn.
   company_employees:   statedEmployees,
+  company_employees_declined: z.boolean().optional(),
   what_they_do:        clampedStr(1200),
   target_category:     clampedStr(200),
   geographies:         boundedList(8),
@@ -4305,6 +4308,22 @@ function draftFactsFromResolved(r: ReturnType<typeof resolveBriefFacts>): Record
   return out
 }
 
+/**
+ * ⚑ 28 Sep (R170) — THE CLIENT'S OWN SIZE, AS THE GATE MUST SEE IT. It is not one of the
+ * resolved Brief facts, so the projection above never carries it; it lives only in
+ * `brief_so_far` and the stored draft. Read from both (this turn wins), so the gate counts the
+ * answer the moment it is given and never asks twice for one it already holds.
+ */
+function withOwnSize(
+  facts: Record<string, unknown>, v: z.infer<typeof MillaReplyInput>, held: Record<string, unknown>,
+): Record<string, unknown> {
+  const said = { ...held, ...((v.brief_so_far ?? {}) as Record<string, unknown>) }
+  const out = { ...facts }
+  if (typeof said.company_employees === 'number') out.company_employees = said.company_employees
+  if (said.company_employees_declined === true) out.company_employees_declined = true
+  return out
+}
+
 // ⛓️ 16 Sep (S1-ONB-001) — ~~`briefFactsFor(resolved)`~~ STOOD HERE and is deleted, which is
 // the strongest form of "one authority": this route no longer counts the eleven at all. It
 // projects a resolution into the stored shape (above) and ASKS `onboardingState`. A route that
@@ -4396,7 +4415,7 @@ const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> =
     // has always counted, unchanged), and at the confirm and onboard doors it is handed the
     // draft. One definition of ready; the input differs because what those callers HAVE
     // differs. The wider persist above is what makes the two converge.
-    const ready = onboardingState(draftFactsFromResolved(resolved))
+    const ready = onboardingState(withOwnSize(draftFactsFromResolved(resolved), v, held))
     if (ready.state !== 'ready') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -4655,11 +4674,13 @@ I speaking to?" is a normal thing to ask.
 they have one, take it; if they say they have none, set "website_none" and move on. What you
 may never do is finish without having asked. The mobile stays genuinely optional.
 
-⚠️ ASK HOW MANY PEOPLE WORK AT THEIR OWN COMPANY (R168). "Roughly how many people work
+⚠️ ASK HOW MANY PEOPLE WORK AT THEIR OWN COMPANY (R168 · R170). "Roughly how many people work
 there?" belongs near the start, with the company name. It sets their price, so record it in
 "brief_so_far" as "company_employees" — a whole number, their own answer, never a guess and
 never from their website. It is THEIR company, NOT the size of the companies they want to
-reach — that is a different fact. If they would rather not say, move on: we check it ourselves.
+reach — that is a different fact. You may not finish without having asked: if they skip it,
+ask once more, lightly. Only if they plainly would rather not say, set
+"company_employees_declined": true and move on — we check it ourselves.
 
 ⚠️ THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED. It is NOT where their customers are.
 Those are different facts and they are often different countries. NEVER copy it from the
@@ -5540,7 +5561,7 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // account requirement last, because it is the one the client answers about themselves.
       const baseReply = MillaReplyInput.safeParse(replyInput)
       const st = baseReply.success
-        ? onboardingState(draftFactsFromResolved(resolvedBriefFor(baseReply.data, held)))
+        ? onboardingState(withOwnSize(draftFactsFromResolved(resolvedBriefFor(baseReply.data, held)), baseReply.data, held))
         : null
       const nextTargeting = st?.unresolvedTargeting[0] ?? null
       const nextAccount   = st?.unresolvedAccount[0] ?? null

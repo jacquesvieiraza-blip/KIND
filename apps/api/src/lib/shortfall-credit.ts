@@ -18,7 +18,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { db } from '@kind/db'
 
-export const SHORTFALL_CREDIT_EXPIRY_DAYS = 90
+// ⛓️ 28 Sep (R172 · B5) — the number now lives in `@kind/shared`, so the client's own sentence and
+// this stamp read the same 90. Re-exported: existing importers are unaffected.
+import { SHORTFALL_CREDIT_EXPIRY_DAYS } from '@kind/shared'
+export { SHORTFALL_CREDIT_EXPIRY_DAYS }
 
 export type CreditExpiry = { grantedAt: string | null; expiresAt: string | null; expiringCents: number }
 

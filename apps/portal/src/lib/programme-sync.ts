@@ -57,7 +57,10 @@ export function millaChangeLines(prev: MillaSyncFacts, next: MillaSyncFacts): Mi
     if (lines) out.push({ key, kind, ...(param ? { param } : {}), lines })
   }
   if (!prev.firstAt && next.firstAt) add(`sync-first-${next.firstAt}`, 'first')
-  if (!prev.secondAt && next.secondAt) add(`sync-second-${next.secondAt}`, 'second')
+  // ⛓️ 28 Sep (R172 · B3) — a ONE-payment programme (R166 ③) records P1 and P2 in the same write,
+  // and "fully authorised — it goes live next" would skip the client's own approval. When both
+  // land in the same change, only the first notice is said (it already says "until you approve").
+  if (!prev.secondAt && next.secondAt && !(!prev.firstAt && next.firstAt)) add(`sync-second-${next.secondAt}`, 'second')
   if (!prev.wentLiveAt && next.wentLiveAt) add(`sync-live-${next.wentLiveAt}`, 'live')
   if (!prev.paused && next.paused) add(`sync-paused-${next.stage}-${Date.now()}`, 'paused')
   if (prev.paused && !next.paused) add(`sync-resumed-${next.stage}-${Date.now()}`, 'resumed')

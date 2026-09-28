@@ -110,7 +110,10 @@ describe('BILLING — PROGRAMME PAYMENTS, AND WHAT EACH AUTHORISES', () => {
   it('a programme with no price shows no figure — never $0', () => {
     // "$0" reads as a decision somebody made about this client.
     expect(BILLING).toContain('No programme price has been set yet.')
-    expect(BILLING).toContain('p.money.totalCents > 0 ? halves(p.money.totalCents) : null')
+    // ⛓️ 28 Sep (R172 · B1) — the amounts are the STORED ones now (halves only as a fallback), and a
+    // one-payment programme shows one card; the no-price rule is unchanged.
+    expect(BILLING).toContain('const money = p && p.money.totalCents > 0')
+    expect(BILLING).toContain(': null\n  const oneInFull')
   })
 
   it('🛑 PAYMENT 1 AUTHORISES SOURCING AND PREPARATION ONLY', () => {

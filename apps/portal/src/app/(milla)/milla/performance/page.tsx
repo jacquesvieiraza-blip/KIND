@@ -160,7 +160,10 @@ export default function MillaPerformancePage() {
                 </div>
               ) : (
                 <PreLiveState
-                  what="Outreach starts once the programme is approved and the second payment lands. From then on this is where its performance appears."
+                  // ⛓️ 28 Sep (R172 · B1) — one-payment programmes (R166 ③) have no second payment to wait for.
+                  what={p.money.paysInFull === true || p.money.secondPaymentCents === 0
+                    ? 'Outreach starts once you approve the prepared programme. From then on this is where its performance appears.'
+                    : 'Outreach starts once the programme is approved and the second payment lands. From then on this is where its performance appears.'}
                   measures={['Replies', 'Meetings booked', 'Outreach activity', 'Progress against target']}
                 />
               )}

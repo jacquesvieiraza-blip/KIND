@@ -408,3 +408,17 @@ export function partnerCommissionCents(programmeContributionCents: number): numb
   if (programmeContributionCents <= 0) return 0
   return Math.round((programmeContributionCents * PROGRAMME_PARTNER_COMMISSION_PCT) / 100)
 }
+
+/**
+ * ⚑ 28 Sep (R172 · B6) — "1 qualified meeting", "2 qualified meetings". Never "1 meetings".
+ * Every client-facing count of meetings goes through this, so the plural is decided once.
+ */
+export function meetingsPhrase(n: number, kind: 'qualified' | '' = 'qualified'): string {
+  return `${n} ${kind ? `${kind} ` : ''}meeting${n === 1 ? '' : 's'}`
+}
+
+/**
+ * ⚑ 28 Sep (R172 · B5) — the shortfall credit lasts this many days (R166 ⑤: "Once only, 90 days,
+ * new programmes"). Here so the client's own sentence and the stamp read ONE number.
+ */
+export const SHORTFALL_CREDIT_EXPIRY_DAYS = 90

@@ -1132,7 +1132,12 @@ export async function runIcpJob(
   // ⚠️ `programmeIdForRun`, NOT `icp.programme_id`. That is the identity the sourcing gate
   // above already VALIDATED — attached ICP, live authority, not a free-proof run. Re-reading
   // the column here would reserve against a programme the gate had refused.
-  const pool = await servePoolLeads(icp, clientId, runCap, programmeIdForRun
+  // ⛓️ 28 Sep (R164 · demo B) — A DEMO IS SERVED NOBODY. ~~`servePoolLeads(icp, clientId, runCap, …)`~~
+  // for every client, demos included (#453 "pool-only"): the pool is REAL people, so a demo
+  // presenter pressing "Show another sample" or asking Milla to widen the targeting put real
+  // strangers' names on a sales call — the thing R164 ("made-up sample people") rules out. A
+  // demo's people are its fixed made-up cast (`demo-northwind-data.ts`); a demo run finds none.
+  const pool = await servePoolLeads(icp, clientId, isDemo ? 0 : runCap, programmeIdForRun
     ? async (eligible: number) => {
       const { data: poolGrant } = await db.rpc('try_reserve_programme_sourcing', {
         p_programme_id: programmeIdForRun, p_requested: eligible,
@@ -1212,8 +1217,8 @@ export async function runIcpJob(
     // and *"do not expose provider/pool terminology to Milla client UI"* admits no exception
     // for a demo: a demo is the version a prospect is shown. The operational truth (reused,
     // sourced, cost avoided) is in the `stage=pool_counters` log, where it belongs.
-    relaxed = 'Demo run — these examples came from people we already have, at no cost.'
-    console.log(`[icp] demo run for client ${clientId} — ${pool.served} pool leads served at $0, PDL skipped.`)
+    relaxed = 'This is a demo account, so no new people are found — the examples you have are the demo’s own.'
+    console.log(`[icp] demo run for client ${clientId} — nobody served (demo accounts never source), PDL skipped.`)
   } else if (cursor.exhausted) {
     // #366 — PDL already told us, on a previous run, that this exact query has nobody left.
     // Re-asking cannot produce a different answer, so we do not spend the grant on it. The

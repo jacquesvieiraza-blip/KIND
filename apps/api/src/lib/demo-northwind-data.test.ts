@@ -3,11 +3,11 @@ import { describe, it, expect } from 'vitest'
 import { quoteProgramme } from '@kind/shared'
 import {
   NORTHWIND_BAND, NORTHWIND_CAST, NORTHWIND_EMAIL, NORTHWIND_MEETINGS, NORTHWIND_REPLIES, NORTHWIND_STAGES,
-  northwindRows, stageIndex, type NorthwindIds,
+  NORTHWIND_RESULTS_MEETINGS, NORTHWIND_BRIEF_SO_FAR, northwindRows, stageIndex, type NorthwindIds,
 } from './demo-northwind-data'
 
 const ids: NorthwindIds = {
-  userId: 'u', clientId: 'c', icpId: 'i', programmeId: 'p', campaignId: 'k', sequenceId: 's',
+  userId: 'u', clientId: 'c', icpId: 'i', programmeId: 'p', campaignId: 'k', sequenceId: 's', sessionId: 'm',
   leadIds: NORTHWIND_CAST.map((_, n) => `l${n}`), replyIds: NORTHWIND_REPLIES.map((_, n) => `r${n}`),
 }
 const now = new Date('2026-09-28T09:00:00Z')
@@ -69,5 +69,33 @@ describe('R164 · Northwind demo data', () => {
       expect(reply.lead_id).toBe(m.lead_id)
       expect(reply.classification).toBe('hot')
     }
+  })
+
+  it('no stage opens on an empty chat, and the thread only grows', () => {
+    const brief = northwindRows('Brief', ids, now)
+    expect((brief.draft!.conversation as unknown[]).length).toBe(NORTHWIND_BRIEF_SO_FAR)
+    expect(brief.draft!.confirmed_at).toBeUndefined()
+    let prev = 0
+    for (const stage of NORTHWIND_STAGES.slice(1)) {
+      const r = northwindRows(stage, ids, now)
+      expect(r.messages.length, stage).toBeGreaterThan(prev)
+      expect(r.messages.length, `${stage}: Milla shows the last 20`).toBeLessThanOrEqual(20)
+      const times = r.messages.map(m => String(m.created_at))
+      expect([...times].sort()).toEqual(times)
+      prev = r.messages.length
+    }
+  })
+
+  it('every number Milla says in the chat is the number the demo holds', () => {
+    const r = northwindRows('Results', ids, now)
+    const said = r.messages.map(m => String(m.content)).join(' ')
+    expect(said).toContain(`${NORTHWIND_RESULTS_MEETINGS} qualified meetings of your ${NORTHWIND_MEETINGS}`)
+    expect(said).toContain(`${r.replies.length} replies in your Inbox`)
+    const keen = r.replies.filter(x => x.classification === 'hot').length
+    expect(said).toContain(`${keen} keen`)
+    const proof = northwindRows('Proof', ids, now)
+    expect(proof.messages.map(m => String(m.content)).join(' ')).toContain(`${proof.leads.length} people`)
+    const done = northwindRows('Complete', ids, now)
+    expect(done.messages.map(m => String(m.content)).join(' ')).toContain(`target of ${NORTHWIND_MEETINGS}`)
   })
 })

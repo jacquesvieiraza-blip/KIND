@@ -631,7 +631,8 @@ describe('⑥ 1 · 4 · 5 · 23 · 27 · 29 · what the rest of the system is wi
     // proved behaviourally in `programme-attribution.test.ts`.
     expect(ICPS).toContain("db.rpc('try_reserve_programme_sourcing', {")
     // The identity is the one the sourcing gate VALIDATED, not a re-read of the ICP column.
-    const at = ICPS.indexOf('const pool = await servePoolLeads(icp, clientId, runCap, programmeIdForRun')
+    // ⛓️ 28 Sep (R164) — the cap is `isDemo ? 0 : runCap` (a demo is served nobody); the authority callback is unchanged.
+    const at = ICPS.indexOf('const pool = await servePoolLeads(icp, clientId, isDemo ? 0 : runCap, programmeIdForRun')
     expect(at, 'the pool serve no longer carries the programme authority callback').toBeGreaterThan(-1)
     const block = ICPS.slice(at, at + 900)
     expect(block, 'the pool serve no longer reserves entitlement before it admits candidates')

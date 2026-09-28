@@ -87,6 +87,21 @@ describe('C5 · Vida never says a second payment is due on a paid-in-full progra
     expect(admin('app/vida/page.tsx')).toContain('paidInFull: !!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref,')
     expect(src('programme-advance.ts')).toContain("'until it is approved, paid in full and made live.'")
   })
+  // ⚑ 28 Sep — the demo walk found C5's test too narrow: a second stage settled by INTERNAL
+  // authority (House, the Northwind demo) has no payment reference, and the card still said
+  // "Second payment · Not yet authorised" for a programme whose second stage was authorised.
+  it('a second stage settled by payment or by internal authority is never "Not yet authorised"', () => {
+    const copy = admin('lib/vida-lifecycle-copy.ts')
+    const page = admin('app/vida/page.tsx')
+    expect(page).toContain(": prog?.programme?.second_authorised_at ? 'authorised' : null,")
+    expect(page).toContain("secondSettled: prog?.programme?.second_paid_at && prog?.programme?.second_payment_ref ? 'paid'")
+    // The settled branch is decided BEFORE the "Not yet authorised" wording can be reached.
+    const settled = copy.indexOf("] : i.secondSettled ? [")
+    const notYet = copy.indexOf("value: approved ? 'Awaiting the client' : 'Not yet authorised'")
+    expect(settled).toBeGreaterThan(-1)
+    expect(settled).toBeLessThan(notYet)
+    expect(copy).toContain("value: i.secondSettled === 'paid' ? 'Paid' : 'Authorised internally'")
+  })
 })
 
 describe('C6 · "told" means an email left', () => {

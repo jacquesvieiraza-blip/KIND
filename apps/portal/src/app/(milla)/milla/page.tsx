@@ -412,6 +412,17 @@ export default function MillaHomePage() {
         api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok),
         api.get<{ data: CustomerProgramme }>('/my/programme', tok),
       ])
+      // ⚑ 28 Sep — "NO ACCOUNT YET" GOES TO THE BRIEF, NEVER TO "Client not found".
+      // A signed-in person with no client row is still in their Brief (the account is created
+      // when they confirm it). Every read here answers 404 'Client not found' for them, and this
+      // screen used to render that sentence under "Your programme" with nothing to do — the
+      // founder hit it opening the demo at Brief. Same rule the one conversation already
+      // follows (MillaConversation: a 404 is a thread that does not exist yet, not a failure).
+      // Only 404 — a 5xx or a network failure is a failure and is shown as one.
+      if (sr.status === 'rejected' && (sr.reason as { status?: number } | null)?.status === 404) {
+        router.replace('/milla/welcome')
+        return
+      }
       // ⚠️ A FAILED PROGRAMME READ IS NOT AN EMPTY PROGRAMME. `/my/programme` answers 503 with
       // the locked sentence; that sentence is rendered, never "you have no programme".
       if (pr.status === 'fulfilled') { setProg(pr.value.data); setProgFailed(null) }

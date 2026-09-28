@@ -379,6 +379,14 @@ async function proofStartedFor(clientId: string): Promise<boolean | null> {
  * sender alarm on every client at once, and a wall of false exceptions is how a real one gets
  * missed. `unreadable` is the safety module's own word for that, and it is not a client's fault.
  */
+/** ⚑ 28 Sep (R164) — is this a demo account? Unreadable reads as NOT a demo: the alert stays. */
+async function isDemoClient(clientId: string): Promise<boolean> {
+  try {
+    const { data } = await db.from('clients').select('is_demo').eq('id', clientId).maybeSingle()
+    return (data as { is_demo?: boolean | null } | null)?.is_demo === true
+  } catch { return false }
+}
+
 async function senderSendableFor(clientId: string): Promise<{ sendable: boolean; detail: string | null }> {
   try {
     const { programmeSenderSafety } = await import('./programme-sender')
@@ -724,9 +732,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   }
 
   const campaignId = await campaignIdFor(p.id)
-  const [counts, sender] = await Promise.all([
+  const [counts, sender, isDemo] = await Promise.all([
     countsFor(p.id, clientId, campaignId).catch(() => ({ ...NO_COUNTS })),
     senderSendableFor(clientId),
+    isDemoClient(clientId),
   ])
   const senderSendable = sender.sendable
 
@@ -862,7 +871,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     readinessReady,
     sends: counts.sends,
     repliesAwaitingDecision: counts.repliesAwaitingDecision,
-    senderSendable, killSwitchOff, operatorRunEnabled,
+    senderSendable, isDemo, killSwitchOff, operatorRunEnabled,
     remainingEntitlement: entitlementRemaining,
     hasNewerProgramme,
     reviewPackageStale,
@@ -883,7 +892,8 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
 
   return {
     verdict, counts, replyAwaiting, humanBlockers, stoppedDetail, providerCapacity,
-    senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
+    // A demo's missing mailbox is its design, not a stop to explain (R164).
+    senderSendable, senderDetail: isDemo ? null : sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
     frozenPackage,
     // ⚑ 16 Sep (A1b) — A PROGRAMME CLIENT IS NEVER A PROOF EXCEPTION. Proof belongs to
     // prospects, and a programme's own sourcing failures are `sourcing_exception`'s job.
@@ -1014,16 +1024,19 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
   const completedProof = new Set<string>()
   /** ⚑ 16 Sep (A1b) — clients whose latest run failed AND who carry the gate's footprint. */
   const noEligibleProof = new Set<string>()
+  /** ⚑ 28 Sep (R164) — demo accounts: their missing mailbox is not a Needs-you (read below). */
+  const demoClients = new Set<string>()
   let proofFactsRead = true
   try {
     const { data, error } = await db.from('clients')
-      .select('id, proof_review_requested_at, proof_review_resolved_at, proof_completed_at')
+      .select('id, proof_review_requested_at, proof_review_resolved_at, proof_completed_at, is_demo')
       .in('id', ids)
     if (error) throw new Error(error.message)
     for (const r of ((data ?? []) as {
       id: string; proof_review_requested_at: string | null
-      proof_review_resolved_at: string | null; proof_completed_at: string | null
+      proof_review_resolved_at: string | null; proof_completed_at: string | null; is_demo?: boolean | null
     }[])) {
+      if (r.is_demo === true) demoClients.add(r.id)
       if (r.proof_review_requested_at && !r.proof_review_resolved_at) escalatedProof.add(r.id)
       if (r.proof_completed_at) completedProof.add(r.id)
     }
@@ -1365,6 +1378,7 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
       readinessReady: true,
       sends, repliesAwaitingDecision,
       senderSendable: hasInbox.has(clientId) ? sendable.has(clientId) : false,
+      isDemo: demoClients.has(clientId),
       killSwitchOff, operatorRunEnabled,
       remainingEntitlement: entitlementRemaining,
       hasNewerProgramme: rows.some(r => r.id !== p.id && String(r.created_at ?? '') > String(p.created_at ?? '')),

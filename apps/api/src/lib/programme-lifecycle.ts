@@ -288,6 +288,13 @@ export type LifecycleFacts = {
   repliesAwaitingDecision: number
   /** The programme's sending mailbox can actually send. */
   senderSendable: boolean
+  /**
+   * ⚑ 28 Sep (R164 · demo B) — a DEMO account (`clients.is_demo`). It can never hold a mailbox
+   * and can never send (R164 A), so "no sending mailbox — needs you" is not an exception on it;
+   * it is the design. Only the sender verdict reads this; everything else is judged as normal.
+   * Optional and false by default, so no real client's lifecycle can change.
+   */
+  isDemo?: boolean
   /** `AUTO_OUTREACH_ENABLED === 'true'` — i.e. the kill-switch is OFF. */
   killSwitchOff: boolean
   /** `FIGSY_OPERATOR_SEND_ENABLED === 'true'`. */
@@ -512,7 +519,7 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // which is the honest answer, because until somebody presses Run no send path will
     // consider it (`authorityFor` refuses `programme_not_run`).
     if (!p.run) {
-      if (!f.senderSendable) return verdict('review_sender', 'live', 'sender_not_sendable')
+      if (!f.senderSendable && f.isDemo !== true) return verdict('review_sender', 'live', 'sender_not_sendable')
       if (p.paused) return verdict('blocked', 'live', 'human_blocker')
       // 🛑 THE KILL-SWITCH IS NOT A TO-DO. With it ON, Run cannot start — and an operator
       // cannot fix that from this screen, so the client must NOT appear in Needs you. The
@@ -523,7 +530,7 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     if (f.sends > 0) {
       // Review. The sender is asked FIRST: a paused sender is why nothing is moving, and a
       // reply queued behind it is a smaller truth wearing the bigger one's urgency.
-      if (!f.senderSendable) return verdict('review_sender', 'review', 'sender_not_sendable')
+      if (!f.senderSendable && f.isDemo !== true) return verdict('review_sender', 'review', 'sender_not_sendable')
       if (p.paused) return verdict('blocked', 'review', 'human_blocker')
       if (f.repliesAwaitingDecision > 0) return verdict('review_reply', 'review', 'reply_needs_decision')
       return verdict('review', 'review', null)
@@ -534,7 +541,7 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // be minutes or a whole send-window away. Vida WATCHES — there is no task, because there
     // is nothing for an operator to press. A sender that has stopped, or a pause, is still a
     // real interruption and is reported as one.
-    if (!f.senderSendable) return verdict('review_sender', 'live', 'sender_not_sendable')
+    if (!f.senderSendable && f.isDemo !== true) return verdict('review_sender', 'live', 'sender_not_sendable')
     if (p.paused) return verdict('blocked', 'live', 'human_blocker')
     return verdict('review', 'live', null)
   }

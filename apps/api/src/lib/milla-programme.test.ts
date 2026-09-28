@@ -722,7 +722,7 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
     // idle whatever their stage says (DRAFT and none are both 'Proof'). This assertion is
     // STRICTER than the one it replaces: it requires both refusals ahead of `needsGoLive`.
     expect(CHAT_CODE, 'sendState reads campaign_status at every stage again')
-      .toMatch(/if \(!prog \|\| !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,400}?if \(prog\.hasProgramme === false\) return idle[\s\S]{0,200}?if \(needsGoLive\)/)
+      .toMatch(/if \(!prog \|\| !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,400}?if \(prog\.hasProgramme === false\) return idle[\s\S]{0,1400}?if \(needsGoLive && prog\.hasProgramme !== true\)/)  // ⛓️ 28 Sep: a finished programme is answered first, and go-live never applies with a programme
     // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
     // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
     // Approval — which is the whole finding.

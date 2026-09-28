@@ -30,6 +30,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import { programmeMoney } from '@/lib/programme-money'
 import { postAcceptance, type AcceptResponse } from '@/lib/programme-acceptance'
@@ -106,6 +107,10 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [chosen, setChosen] = useState(false)
+  // ⚑ 28 Sep (R171) — bumped every 20s and on return to the tab, so a price set in Vida (the
+  // company size a person confirmed) reaches this screen without the client reloading.
+  const [freshness, setFreshness] = useState(0)
+  useLiveRefresh(() => setFreshness(n => n + 1))
 
   const query = useMemo(() => {
     const q = new URLSearchParams({ meetings: String(meetings) })
@@ -117,18 +122,22 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
 
   // ⚠️ THE QUOTE IS A READ AND WRITES NOTHING, so it is safe to re-run as the client moves the
   // slider. Nothing is created until they press the button below.
+  // ⚑ 28 Sep (R171) — the query the shown quote answers. A background re-read of that SAME
+  // quote that fails keeps what is on screen; only the client's own move may show an error.
+  const quotedFor = useRef<string | null>(null)
   useEffect(() => {
     let live = true
+    const background = quotedFor.current === query
     ;(async () => {
       try {
         const r = await api.get<CalcPayload>(`/my/programme/calculator?${query}`, await token())
-        if (live) { setCalc(r); setErr(null) }
+        if (live) { setCalc(r); setErr(null); quotedFor.current = query }
       } catch (e) {
-        if (live) setErr(e instanceof Error ? e.message : 'That did not load — try once more.')
+        if (live && !background) setErr(e instanceof Error ? e.message : 'That did not load — try once more.')
       }
     })()
     return () => { live = false }
-  }, [query])
+  }, [query, freshness])
 
   // ⚠️ ONCE PER SCREEN, NOT PER KEYSTROKE — `[]`, deliberately. A provider call behind every
   // slider movement is the cost this split exists to avoid. A failure leaves `capacity` null,

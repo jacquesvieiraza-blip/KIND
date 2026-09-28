@@ -8,6 +8,7 @@
 // Same panel style as the meetings panel beside it (R167: no UI redesign).
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useState } from 'react'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { SIZE_BANDS, SIZE_REVIEW_REASON_COPY, sizeBandLabel, type SizeBand, type SizeReviewReason } from '@kind/shared'
 
 type Size = {
@@ -35,6 +36,9 @@ export default function ClientSizePanel({ clientId }: { clientId: string }) {
     } catch (e) { setError(e instanceof Error ? e.message : 'The size could not be loaded.') }
   }, [clientId])
   useEffect(() => { setSize(null); setBand(''); setEmployees(''); setNote(''); setMsg(null); void load() }, [load])
+  // ⚑ 28 Sep (R171) — re-read every 20s and on return to the tab: the company check finishing, or
+  // what the client told Milla, shows here without reopening the client. Never touches the form.
+  useLiveRefresh(load)
 
   const check = useCallback(async () => {
     setBusy(true); setMsg(null)

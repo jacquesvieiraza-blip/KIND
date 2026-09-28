@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 
 // #507 — MILLA MEETINGS tab: the client's booked meetings (their calendar), from live
 // calendar_bookings. Meetings are REPORTED here — never a money condition.
@@ -27,6 +28,8 @@ export default function MillaMeetingsPage() {
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to load meetings') }
   }, [])
   useEffect(() => { load() }, [load])
+  // ⚑ 28 Sep (R171) — re-read every 20s and on return to the tab: what Vida records shows here.
+  useLiveRefresh(load)
 
   const now = Date.now()
   const upcoming = (meetings ?? []).filter(m => m.start_time && new Date(m.start_time).getTime() >= now && m.status === 'confirmed')

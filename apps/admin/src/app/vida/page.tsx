@@ -11,6 +11,7 @@ import {
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { VIDA_SYNC_MS, vidaFacts, sameVidaFacts, vidaChangeLines } from '@/lib/vida-programme-sync'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
 // ⚑ 13 Sep (B2) — the two historical-classification controls, rendered only when the
@@ -318,14 +319,17 @@ export default function VidaConsolePage() {
   const [cockpitError, setCockpitError] = useState<string | null>(null)
   const [cockpitBusy, setCockpitBusy] = useState(false)
 
-  const loadCockpit = useCallback(async (clientId: string) => {
-    setCockpitLoading(true); setCockpitError(null)
+  // ⚑ 28 Sep (R171) — `quiet`: a background re-read. It replaces the data when it arrives and
+  // never shows a spinner or an error over what is already on screen.
+  const loadCockpit = useCallback(async (clientId: string, quiet = false) => {
+    if (!quiet) { setCockpitLoading(true); setCockpitError(null) }
     try {
       const j = await fetch(`/api/proxy/operator/cockpit?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Failed to load cockpit')
+      if (quiet && selectedRef.current !== clientId) return
       setCockpit(j.data)
-    } catch (e) { setCockpitError(e instanceof Error ? e.message : 'Failed to load cockpit') }
-    setCockpitLoading(false)
+    } catch (e) { if (!quiet) setCockpitError(e instanceof Error ? e.message : 'Failed to load cockpit') }
+    if (!quiet) setCockpitLoading(false)
   }, [])
 
   // ⚑ 30 Aug (BUILD-003 PR3) — PROGRAMME TRUTH. Loaded separately from the cockpit so a
@@ -570,7 +574,17 @@ export default function VidaConsolePage() {
         const next = ((j?.data ?? null) as ProgrammeTruth | null)?.programme ?? null
         if (!next || next.client_id !== clientId) return
         const shown = progRef.current?.programme ?? null
-        if (!shown || shown.client_id !== clientId) return
+        // ⚑ 28 Sep (R171) — the client chose a programme in Milla while this panel showed none:
+        // load it, and say so. ⛓️ WAS ~~`if (!shown …) return`~~, which left the panel empty.
+        if (!shown) {
+          // Only when the panel has LOADED and said "no programme" — never mid-load or after a failed read.
+          if (!progRef.current || progRef.current.programme !== null) return
+          await loadProgramme(clientId)
+          const who = (syncClients.current ?? []).find(c => c.id === clientId)?.company_name ?? 'The client'
+          syncSay.current('vida', `${who} chose a programme in Milla — it is on the Programme tab now.`)
+          return
+        }
+        if (shown.client_id !== clientId) return
         // P1/P2 "in place" = paid or internally authorised, resolved HERE (this page is on the
         // internal-authority allowlist); the sync module only compares what it is handed.
         const source = (x: NonNullable<ProgrammeTruth['programme']>) => ({
@@ -578,7 +592,13 @@ export default function VidaConsolePage() {
           first_at: x.first_paid_at ?? x.first_authorised_at, second_at: x.second_paid_at ?? x.second_authorised_at,
         })
         const before = vidaFacts(source(shown)), after = vidaFacts(source(next))
-        if (!before || !after || sameVidaFacts(before, after)) return
+        if (!before || !after) return
+        // ⚑ 28 Sep (R171) — ANY other change (targets, counts, notes) reloads the panel silently;
+        // only the status moves below are also said, as before (R161).
+        if (sameVidaFacts(before, after)) {
+          if (JSON.stringify(shown) !== JSON.stringify(next)) await loadProgramme(clientId)
+          return
+        }
         await loadProgramme(clientId)
         const name = (syncClients.current ?? []).find(c => c.id === clientId)?.company_name ?? 'The client'
         for (const line of vidaChangeLines(before, after, name)) syncSay.current('vida', line)
@@ -1588,6 +1608,10 @@ export default function VidaConsolePage() {
     loadCockpit(selected)
     loadProgramme(selected)
   }, [selected, loadCockpit, loadProgramme])
+
+  // ⚑ 28 Sep (R171) — the open client's cockpit (Inbox, leads, Proof, meetings) re-reads every
+  // 20s and on return to the tab, quietly: what the client does in Milla shows here unasked.
+  useLiveRefresh(() => { const id = selectedRef.current; return id ? loadCockpit(id, true) : undefined }, !!selected)
 
   // ⚑ 30 Aug (BUILD-003 PR4) — POOL AND EXCEPTIONS LOAD WHEN THEIR TAB IS OPENED.
   //

@@ -4569,6 +4569,14 @@ export default function VidaConsolePage() {
                     <p key={i} className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ {d}</p>
                   ))}
 
+                  {/* ⛓️ 28 Sep (R166 ② · R168 ④) — THE COMPANY SIZE BOX, SHOWN BEFORE ANY PROGRAMME EXISTS.
+                      WAS inside the has-a-programme branch (P7), so for exactly the client who
+                      needs it — no programme yet, their price waiting on their size — it did not
+                      appear, and nothing else in Vida could set the band. Found on the founder's
+                      end-to-end walk (AAA Operations Studio). Same component, same place in the
+                      tab's existing style (R167); it simply no longer waits for a programme. */}
+                  {selected && <ClientSizePanel clientId={selected} />}
+
                   {/* ── ⚑ 3 Sep (C2) · THE COMMERCIAL MODEL ────────────────────────────────
                       🛑 THIS PANEL REPLACES AN INFERENCE. The sentence that used to stand
                       below — the one that named the retired per-lead model whenever a programme
@@ -4997,7 +5005,6 @@ export default function VidaConsolePage() {
                     </div>
 
                     {/* ⚑ 25 Sep (R141 · R166 · P5a) — every meeting qualified against the seven conditions, with evidence. */}
-                    {selected && <ClientSizePanel clientId={selected} />}
                     {selected && <MeetingQualifyPanel clientId={selected} />}
 
                     <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">

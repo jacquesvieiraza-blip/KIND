@@ -238,6 +238,21 @@ export async function awaitingIcpTranslationFor(clientId: string): Promise<boole
 }
 
 /**
+ * ⚑ 28 Sep (R166 ② · R168 ④) — IS THIS CLIENT'S PRICE WAITING ON A PERSON TO SET THEIR SIZE?
+ * True when the size check parked them for a person (`size_review_reason`) and no band is locked.
+ * Fails soft to `null`, like every read in this file.
+ */
+export async function sizeAwaitingPersonFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('size_review_reason, size_locked_at').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    const r = data as unknown as { size_review_reason: string | null; size_locked_at: string | null }
+    return !!r.size_review_reason && !r.size_locked_at
+  } catch { return null }
+}
+
+/**
  * ⚑ 16 Sep (MVP1 · A1b) — THE EVIDENCE BEHIND THE EXCEPTION, in the gate's own words.
  *
  * 🛑 A NEEDS-YOU WITH NO EVIDENCE IS AN ALARM, NOT A TASK. An operator told only "we could not
@@ -651,6 +666,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     const [
       proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
       proofNoEligibleSet, proofException, providerCapacity, awaitingIcpTranslation,
+      sizeAwaitingPerson,
     ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
@@ -669,11 +685,13 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // ⚑ 19 Sep — the fact that makes an untranslated ICP visible. Without it this client
       // reads as an ordinary calm Proof, which is how seven of them went unnoticed.
       awaitingIcpTranslationFor(clientId),
+      // ⚑ 28 Sep — the client at the calculator whose price waits on a person.
+      sizeAwaitingPersonFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
         programme: null, proofStarted, proofCalibrationFailed, proofCompleted, proofNoEligibleSet,
-        awaitingIcpTranslation,
+        awaitingIcpTranslation, sizeAwaitingPerson,
         preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
@@ -924,6 +942,21 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     }
     awaitingRead = true
   } catch { /* no ICP read → every client without a programme reads as Signup */ }
+
+  // ⚑ 28 Sep (R166 ② · R168 ④) — WHOSE PRICE WAITS ON A PERSON, read once for the whole board
+  // (never per client). A failed read asserts nothing (`sizeRead` stays false → `null`).
+  const sizeWaiting = new Set<string>()
+  let sizeRead = false
+  try {
+    const { data, error } = await db.from('clients')
+      .select('id, size_review_reason, size_locked_at').in('id', ids)
+    if (!error) {
+      for (const r of ((data ?? []) as { id: string; size_review_reason: string | null; size_locked_at: string | null }[])) {
+        if (r.size_review_reason && !r.size_locked_at) sizeWaiting.add(r.id)
+      }
+      sizeRead = true
+    }
+  } catch { /* unreadable → no client is flagged for it */ }
 
   // ── 🛑 10 Sep — THE CLIENT-LEVEL PROOF FACTS, READ ONCE FOR THE WHOLE BOARD ──────────
   //
@@ -1255,6 +1288,8 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
         // ⚑ 19 Sep (R135) — the rail's half of the repair. Without this the client is in the
         // list but not in Needs you, which is how seven of them went unnoticed for days.
         awaitingIcpTranslation: awaitingRead ? awaitingTranslation.has(clientId) : null,
+        // ⚑ 28 Sep — the rail's half: a client whose price waits on a person is in Needs you.
+        sizeAwaitingPerson: sizeRead ? sizeWaiting.has(clientId) : null,
         preparationStopped: false, preparing: false, humanBlockers: [], readinessReady: false,
         sends: 0, repliesAwaitingDecision: 0, senderSendable: true,
         killSwitchOff, operatorRunEnabled, remainingEntitlement: 0,

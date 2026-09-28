@@ -2760,6 +2760,8 @@ export default function VidaConsolePage() {
   const lcCopy = useMemo(() => {
     if (!lc) return null
     return lifecycleCopy({
+      // ⚑ 28 Sep (R172 · C5) — the same test the lifecycle panel's "Paid in full (one payment)" uses.
+      paidInFull: !!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref,
       clientName: selectedName || selectedClient?.company_name || 'This client',
       state: lc.verdict.state,
       mode: lc.verdict.mode,
@@ -2836,7 +2838,7 @@ export default function VidaConsolePage() {
         restartUsedAt: null, resolvedAt: null, attempts: [], whatChanged: null, unreadable: true,
       } : null,
     })
-  }, [lc, selectedName, selectedClient?.company_name, calib, calErr])
+  }, [lc, selectedName, selectedClient?.company_name, calib, calErr, prog])
 
   /**
    * ⚑ 9 Sep — THE ACCOUNT CARD, AND IT EXISTS BECAUSE THE ROW STOPPED CARRYING THESE.

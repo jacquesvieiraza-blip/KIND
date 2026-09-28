@@ -253,6 +253,21 @@ export async function sizeAwaitingPersonFor(clientId: string): Promise<boolean |
 }
 
 /**
+ * ⚑ 28 Sep (R172 · C1) — DID THIS CLIENT'S LATEST PROOF RUN FAIL OR GO SILENT? The newest
+ * `proof_run` work unit is `failed` or `stuck`. Fails soft to `null`, like every read here.
+ */
+export async function proofRunFailedFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await db.from('automatic_work')
+      .select('state').eq('kind', 'proof_run').eq('client_id', clientId)
+      .order('requested_at', { ascending: false }).limit(1).maybeSingle()
+    if (error) return null
+    const st = (data as { state?: string } | null)?.state
+    return st === 'failed' || st === 'stuck'
+  } catch { return null }
+}
+
+/**
  * ⚑ 16 Sep (MVP1 · A1b) — THE EVIDENCE BEHIND THE EXCEPTION, in the gate's own words.
  *
  * 🛑 A NEEDS-YOU WITH NO EVIDENCE IS AN ALARM, NOT A TASK. An operator told only "we could not
@@ -666,7 +681,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     const [
       proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
       proofNoEligibleSet, proofException, providerCapacity, awaitingIcpTranslation,
-      sizeAwaitingPerson,
+      sizeAwaitingPerson, proofRunFailed,
     ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
@@ -687,11 +702,13 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       awaitingIcpTranslationFor(clientId),
       // ⚑ 28 Sep — the client at the calculator whose price waits on a person.
       sizeAwaitingPersonFor(clientId),
+      // ⚑ 28 Sep (R172 · C1) — a failed or silent Proof run is a task with a Retry button.
+      proofRunFailedFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
         programme: null, proofStarted, proofCalibrationFailed, proofCompleted, proofNoEligibleSet,
-        awaitingIcpTranslation, sizeAwaitingPerson,
+        awaitingIcpTranslation, sizeAwaitingPerson, proofRunFailed,
         preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
@@ -955,6 +972,25 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
         if (r.size_review_reason && !r.size_locked_at) sizeWaiting.add(r.id)
       }
       sizeRead = true
+    }
+  } catch { /* unreadable → no client is flagged for it */ }
+
+  // ⚑ 28 Sep (R172 · C1) — WHOSE LATEST PROOF RUN FAILED OR WENT SILENT, one read for the board.
+  // Newest first, so the first row seen per client is their latest run. Unreadable → `null`.
+  const proofFailed = new Set<string>()
+  let proofRunRead = false
+  try {
+    const { data, error } = await db.from('automatic_work')
+      .select('client_id, state, requested_at').eq('kind', 'proof_run').in('client_id', ids)
+      .order('requested_at', { ascending: false }).limit(2000)
+    if (!error) {
+      const seen = new Set<string>()
+      for (const r of ((data ?? []) as { client_id: string | null; state: string }[])) {
+        if (!r.client_id || seen.has(r.client_id)) continue
+        seen.add(r.client_id)
+        if (r.state === 'failed' || r.state === 'stuck') proofFailed.add(r.client_id)
+      }
+      proofRunRead = true
     }
   } catch { /* unreadable → no client is flagged for it */ }
 
@@ -1290,6 +1326,8 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
         awaitingIcpTranslation: awaitingRead ? awaitingTranslation.has(clientId) : null,
         // ⚑ 28 Sep — the rail's half: a client whose price waits on a person is in Needs you.
         sizeAwaitingPerson: sizeRead ? sizeWaiting.has(clientId) : null,
+        // ⚑ 28 Sep (R172 · C1) — and a failed Proof run is in Needs you, with Retry Proof.
+        proofRunFailed: proofRunRead ? proofFailed.has(clientId) : null,
         preparationStopped: false, preparing: false, humanBlockers: [], readinessReady: false,
         sends: 0, repliesAwaitingDecision: 0, senderSendable: true,
         killSwitchOff, operatorRunEnabled, remainingEntitlement: 0,

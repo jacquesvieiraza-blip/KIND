@@ -126,14 +126,24 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
   // ⚑ 28 Sep (R171) — the query the shown quote answers. A background re-read of that SAME
   // quote that fails keeps what is on screen; only the client's own move may show an error.
   const quotedFor = useRef<string | null>(null)
+  // ⚑ 28 Sep (R172 · C9) — the screen could not be priced yet (a person was setting their size).
+  // The first quote to arrive AFTER that is the moment Milla says the price is ready — once.
+  const waitedForPrice = useRef(false)
+  const { keepNotice } = useMillaConversation()
+  const keepNoticeRef = useRef(keepNotice)
+  useEffect(() => { keepNoticeRef.current = keepNotice }, [keepNotice])
   useEffect(() => {
     let live = true
     const background = quotedFor.current === query
     ;(async () => {
       try {
         const r = await api.get<CalcPayload>(`/my/programme/calculator?${query}`, await token())
-        if (live) { setCalc(r); setErr(null); quotedFor.current = query }
+        if (!live) return
+        const firstPrice = quotedFor.current === null && waitedForPrice.current
+        setCalc(r); setErr(null); quotedFor.current = query
+        if (firstPrice) { waitedForPrice.current = false; keepNoticeRef.current('price-ready', 'price_ready') }
       } catch (e) {
+        if (live && quotedFor.current === null) waitedForPrice.current = true
         if (live && !background) setErr(e instanceof Error ? e.message : 'That did not load — try once more.')
       }
     })()

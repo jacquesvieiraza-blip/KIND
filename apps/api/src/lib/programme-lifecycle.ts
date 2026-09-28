@@ -69,6 +69,8 @@ export type LifecycleState =
    * modelling a new exception on a broken one would have shipped the same defect twice.
    */
   | 'signup' | 'proof' | 'proof_calibration_failed' | 'proof_exception' | 'proof_awaiting_translation' | 'recommendation'
+  // ⚑ 28 Sep (R172 · C1) — their latest Proof run FAILED or went silent: a person retries it.
+  | 'proof_failed'
   // ⚑ 28 Sep (R166 ② · R168 ④) — at the calculator, but their price waits on a person setting their size.
   | 'recommendation_size_pending'
   | 'sourcing' | 'sourcing_exception'
@@ -166,6 +168,8 @@ export type NeedsYouReason =
    * buy. The client is told "A person is on it" — this is that person's task.
    */
   | 'size_awaiting_person'
+  // ⚑ 28 Sep (R172 · C1) — the latest Proof run failed or is stuck.
+  | 'proof_run_failed'
 
 /**
  * Everything the derivation is allowed to look at.
@@ -265,6 +269,11 @@ export type LifecycleFacts = {
    * `null` (unreadable) reads as no block, like every other fact here.
    */
   sizeAwaitingPerson?: boolean | null
+  /**
+   * ⚑ 28 Sep (R172 · C1) — their LATEST Proof run is `failed` or `stuck` (automatic_work). Before
+   * this, Vida read "Proof · No action needed" while the watchdog emailed "restart their Proof".
+   */
+  proofRunFailed?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -332,6 +341,8 @@ const MODE_OF: Record<LifecycleState, VidaMode> = {
   // ⚑ 19 Sep — the client is parked waiting for a human to translate their targeting. Nothing
   // searches until somebody does, so this is a task and never an ambient state.
   proof_awaiting_translation: 'Needs you',
+  // ⚑ 28 Sep (R172 · C1) — the run failed; a person retries it. A task, never ambient.
+  proof_failed: 'Needs you',
   recommendation: 'No action needed',
   // ⚑ 28 Sep — the client cannot be priced until a person sets their size: a task, never ambient.
   recommendation_size_pending: 'Needs you',
@@ -434,6 +445,11 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // the other is noise. See the field's own note for what this cost.
     if (f.awaitingIcpTranslation === true) {
       return verdict('proof_awaiting_translation', 'proof', 'icp_awaiting_translation')
+    }
+    // ⚑ 28 Sep (R172 · C1) — THE LATEST RUN FAILED OR WENT SILENT. After translation (nothing can
+    // have run without it), before the zero-eligible exception (that one is a run that finished).
+    if (f.proofRunFailed === true) {
+      return verdict('proof_failed', 'proof', 'proof_run_failed')
     }
     if (f.proofNoEligibleSet === true) {
       return verdict('proof_exception', 'proof', 'proof_no_eligible_set')

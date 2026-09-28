@@ -2002,6 +2002,21 @@ export async function settleProgrammeShortfall(params: {
   }
   if (already) return { ok: true, alreadySettled: true, creditCents: (p as unknown as { shortfall_credit_cents?: number }).shortfall_credit_cents ?? 0 }
 
+  // ── ⚑ 28 Sep (R172 · C7) — NOT WHILE THE PROGRAMME IS STILL WORKING TOWARDS ITS TARGET ──────
+  // Settle credits the shortfall — the meetings NOT delivered. Pressed while outreach is still
+  // running and sourcing room remains, it credited meetings the programme was still booking. It
+  // may be settled once the target is met, the sourcing room is used up, or the founder has
+  // paused it to close it (and anything not LIVE — nothing is still working then).
+  const roomLeft = p.sourcing_ceiling - p.sourced_used - p.sourced_reserved
+  const stillWorking = p.status === 'LIVE' && !p.paused_at && roomLeft > 0 && deliveredMeetings < p.meeting_target
+  if (stillWorking) {
+    return {
+      ok: false,
+      reason: `This programme is still working towards its target (${deliveredMeetings} of ${p.meeting_target} meetings, ${roomLeft} people of sourcing room left). ` +
+        'Settle it when it reaches the target or runs out of sourcing room — or pause it first if you are closing it early. Nothing was credited.',
+    }
+  }
+
   // What they actually received, and what that leaves owing against money we actually hold.
   const collectedCents =
     (p.first_paid_at ? p.first_payment_cents : 0) + (p.second_paid_at ? p.second_payment_cents : 0)

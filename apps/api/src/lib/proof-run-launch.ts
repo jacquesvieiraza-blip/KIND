@@ -386,11 +386,17 @@ export type ProofRetry =
 export async function retryProofAfterZeroEligible(
   clientId: string,
   icpId: string,
+  // ⚑ 28 Sep (R172 · C1) — THE SECOND STATE THIS DOOR ANSWERS: the route has just observed (and
+  // CAS-claimed) this ICP's latest `proof_run` as `failed` or `stuck`. That is persisted truth of
+  // the same kind — a run that produced nothing the client could use — and its claim was released,
+  // so the ladder still decides the authority below. Without it, the only restart the stuck-client
+  // email points at refused every ordinary failure ("not in a zero-eligible exception").
+  opts: { recoveringFailedRun?: boolean } = {},
 ): Promise<ProofRetry> {
   // ① THE STATE, asked of the one reader that defines it. Imported at call time to keep this
   // module free of a static edge into the lifecycle facts gatherer.
   const { proofNoEligibleSetFor } = await import('./programme-lifecycle-facts')
-  const inException = await proofNoEligibleSetFor(clientId)
+  const inException = opts.recoveringFailedRun === true ? true : await proofNoEligibleSetFor(clientId)
   if (inException !== true) {
     return {
       started: false, reason: 'not_in_exception',

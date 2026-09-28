@@ -106,7 +106,8 @@ const HEADLINE: Record<StuckProblem, string> = {
   review_hold: 'their programme is held for review',
 }
 const ACTION: Record<StuckProblem, string> = {
-  proof: 'Vida → this client → Proof. The reason is above; once it is fixed, restart their Proof there.',
+  // ⛓️ 28 Sep (R172 · C1) — the button this names now exists for every failed or stuck run.
+  proof: 'Vida → this client → Retry Proof. The reason is above; fix it first if it is ours, then press Retry Proof.',
   paid_not_started: 'Vida → this client → Programme. The reason is above; restart the preparation there once it is fixed.',
   price_waiting: 'Vida → this client → Client tools → Programme → "Company size": check it and set their band.',
   review_hold: 'Vida → this client → Programme → "Resolve review" once you have looked at it.',
@@ -115,7 +116,9 @@ const ACTION: Record<StuckProblem, string> = {
 /** The one key per client per problem — while its task is open, nothing is repeated. */
 export const stuckDedupeKey = (f: StuckFinding): string => `stuck:${f.problem}:${f.clientId}:${f.subjectId}`
 
-export type WatchdogResult = { ok: boolean; found: number; told: number; alreadyOpen: number; error?: string }
+// ⚑ 28 Sep (R172 · C6) — `unmailed`: the task was filed but the EMAIL did not go (no key, no inbox,
+// a provider error). Counted apart, because "told" must mean an email left, not that we tried.
+export type WatchdogResult = { ok: boolean; found: number; told: number; alreadyOpen: number; unmailed?: number; error?: string }
 
 /** Read, decide, and tell the founder — once per client per problem. Never throws. */
 export async function runStuckClientWatchdog(opts: { nowMs: number }): Promise<WatchdogResult> {
@@ -159,6 +162,7 @@ export async function runStuckClientWatchdog(opts: { nowMs: number }): Promise<W
     const { sendFounderAlert } = await import('./alerts')
     let told = 0
     let alreadyOpen = 0
+    let unmailed = 0
     for (const f of findings) {
       const who = nameOf.get(f.clientId) || `client ${f.clientId.slice(0, 8)}`
       const title = `A client is stuck — ${who}: ${HEADLINE[f.problem]}`
@@ -180,12 +184,16 @@ export async function runStuckClientWatchdog(opts: { nowMs: number }): Promise<W
       })
       if (!task.ok) continue                              // unrecorded → not emailed (no loop)
       if ('alreadyOpen' in task && task.alreadyOpen) { alreadyOpen++; continue }
-      await sendFounderAlert('support_escalation', title, lines, {
+      const sent = await sendFounderAlert('support_escalation', title, lines, {
         clientId: f.clientId, subjectKind: `stuck_${f.problem}`, subjectId: f.subjectId, dedupeKey,
       })
-      told++
+      if (sent?.emailOk === true) told++
+      else {
+        unmailed++
+        console.error(`[watchdog] ${who} is stuck (${f.problem}) — the task is filed but NO EMAIL was sent. Check RESEND_API_KEY and FOUNDER_EMAIL.`)
+      }
     }
-    return { ok: true, found: findings.length, told, alreadyOpen }
+    return { ok: true, found: findings.length, told, alreadyOpen, unmailed }
   } catch (err) {
     return { ok: false, found: 0, told: 0, alreadyOpen: 0, error: err instanceof Error ? err.message : String(err) }
   }

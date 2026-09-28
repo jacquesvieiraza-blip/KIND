@@ -10,7 +10,8 @@
 
 import { MILLA_STAGES } from './programme-stage'
 
-export const MILLA_NOTICE_KINDS = ['new_version', 'first', 'second', 'live', 'paused', 'resumed', 'stage'] as const
+// ⛓️ 28 Sep (R172 · C9) — + 'price_ready': their price was waiting on a person, and it is now set.
+export const MILLA_NOTICE_KINDS = ['new_version', 'first', 'second', 'live', 'paused', 'resumed', 'stage', 'price_ready'] as const
 export type MillaNoticeKind = (typeof MILLA_NOTICE_KINDS)[number]
 
 /** The client-facing stage names a `stage` notice may carry — Milla's own list; anything else is refused. */
@@ -38,6 +39,7 @@ export function millaNoticeLines(kind: MillaNoticeKind, param?: string | number 
     case 'first':   return ['Your programme is authorised — I’m finding and preparing your people now. Nothing is sent until you approve.']
     case 'second':  return ['Your programme is fully authorised. It goes live next — nothing is sent until then.']
     case 'live':    return ['Your programme is now live.']
+    case 'price_ready': return ['Your price is ready — it’s on the right now. Move the slider to choose how many meetings, and nothing is charged until you accept.']
     case 'paused':  return ['Your programme is paused. Nothing is being sent.']
     case 'resumed': return ['Your programme has resumed.']
     case 'stage': {

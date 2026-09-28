@@ -308,7 +308,7 @@ async function watchStuckClients(): Promise<void> {
     const { runStuckClientWatchdog } = await import('./lib/stuck-client-watchdog')
     const res = await runStuckClientWatchdog({ nowMs: Date.now() })
     if (!res.ok) console.error(`[cron] stuck-client watchdog could not read: ${res.error ?? 'unknown'}`)
-    else if (res.found > 0) console.log(`[cron] stuck-client watchdog — ${res.found} stuck, ${res.told} newly told, ${res.alreadyOpen} already open`)
+    else if (res.found > 0) console.log(`[cron] stuck-client watchdog — ${res.found} stuck, ${res.told} newly told, ${res.alreadyOpen} already open${res.unmailed ? `, ${res.unmailed} NOT EMAILED (check RESEND_API_KEY / FOUNDER_EMAIL)` : ''}`)
   } catch (err) {
     console.error('[cron] stuck-client watchdog threw', err)
   }

@@ -134,10 +134,21 @@ export async function sendManualReply(
   // (classification 'sent_reply'), not an inbound provider event — there is no provider
   // message id and no delivery id, because no provider delivered anything to us. Keying it
   // on something synthetic would be inventing an identity to satisfy a column.
-  await db.from('figsy_replies').insert({
+  // ⛓️ 28 Sep (R172 · C8) — the insert's answer is now READ. It was ignored, and the database refused
+  // 'sent_reply' (fixed by 20260928_reply_classification_sent_reply), so the email left and the
+  // record of it vanished without a word. The email has gone either way; a lost record is alerted.
+  const { error: recErr } = await db.from('figsy_replies').insert({
     client_id: clientId, from_email: resolved.inbox.email, subject: reSubject, body: replyBody,
     classification: 'sent_reply', processed_at: new Date().toISOString(), lead_id: reply.lead_id,
   })
+  if (recErr) {
+    console.error(`[manual-reply] the reply was SENT but not recorded for client ${clientId}: ${recErr.message}`)
+    void import('./alerts').then(({ sendFounderAlert }) => sendFounderAlert('audit_dropped',
+      'A reply you sent was not recorded', [
+        `Client ${clientId}: the email went out from ${resolved.inbox.email}, but its record could not be saved (${recErr.message}).`,
+        'Run pending migrations (Vida → Engine → Run) if this names a check constraint.',
+      ], { clientId, dedupeKey: `manual_reply_unrecorded:${clientId}` })).catch(() => {})
+  }
 
   return { ok: true, sent: true, resendId: sent.id ?? undefined }
 }

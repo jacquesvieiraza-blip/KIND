@@ -277,7 +277,9 @@ describe('Ⓔ · Vida can see it and act on it', () => {
   it('the route DELEGATES — it does not grow its own copy of the Proof start', () => {
     const src = codeOnly(readFileSync(join(REPO, 'apps/api/src/routes/operator.ts'), 'utf8'))
     expect(src).toMatch(/operatorRouter\.post\('\/proof-retry\/:clientId'/)
-    expect(src).toMatch(/retryProofAfterZeroEligible\(clientId, icpId\)/)
+    // ⛓️ 28 Sep (R172 · C1) — still ONE delegated call; it now also says whether the route observed
+    // a failed or stuck run (the second state the shared door answers).
+    expect(src).toMatch(/retryProofAfterZeroEligible\(clientId, icpId, \{ recoveringFailedRun: [^}]+\}\)/)
     // 🛑 THE ROUTE MUST NOT CLAIM AUTHORITY ITSELF. A second claim site is a second opinion
     // about the ladder; the shared function is the one door.
     expect(src).not.toMatch(/claimProofAuthority/)

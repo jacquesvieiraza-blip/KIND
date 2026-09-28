@@ -162,6 +162,12 @@ export interface AlertSubject {
    * Passing `null` still means "never dedupe".
    */
   dedupeKey?: string | null
+  /**
+   * ⚑ 28 Sep (R172 · C4) — `false` when the caller has ALREADY raised its own task, of a DIFFERENT
+   * class, for this condition (e.g. `icp_review_pending`). The email still goes; no second task
+   * row is filed, so one condition stays one row that closes with it. Default: a mirror is filed.
+   */
+  mirrorTask?: boolean
 }
 
 export async function sendFounderAlert(
@@ -228,7 +234,7 @@ export async function sendFounderAlert(
   // path that breaks the path it rides on is worse than one that reports nothing.
   let taskOk = false
   let taskId: string | undefined
-  try {
+  if (about?.mirrorTask !== false) try {
     // ⛓️ 18 Sep (J2-C1) — THE TASK NOW KNOWS WHO IT IS ABOUT, WHEN THE CALLER KNOWS.
     //
     // WHAT THIS REPLACED, and the sentence that justified it:

@@ -23,6 +23,7 @@
 // when the truth is that sending has not been authorised.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -36,7 +37,7 @@ import { Users, MessageSquare, CalendarCheck } from 'lucide-react'
 // read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
 // ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
 // zero"). The type was the last place still claiming a number was always available.
-type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null; totals_scope?: TotalsScope }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -93,7 +94,7 @@ export default function MillaAnalyticsPage() {
               <ValueCard
                 label="Replies"
                 value={live ? (o === null ? null : o.replies_total) : null}
-                sub={live ? 'all time' : 'once outreach starts'}
+                sub={live ? (o?.totals_scope === 'programme' ? 'this programme' : o?.totals_scope === 'account' ? 'all time' : 'none yet') : 'once outreach starts'}
                 icon={<MessageSquare className="w-4.5 h-4.5" />}
                 tone="amber"
               />

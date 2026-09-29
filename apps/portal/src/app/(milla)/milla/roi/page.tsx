@@ -21,6 +21,7 @@
 // correctly told the founder she needs a target outcome to measure against.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -35,7 +36,7 @@ import { Gem, Target, CalendarCheck, MessageSquare, HelpCircle } from 'lucide-re
 // read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
 // ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
 // zero"). The type was the last place still claiming a number was always available.
-type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null; totals_scope?: TotalsScope }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -128,13 +129,13 @@ export default function MillaRoiPage() {
             {live && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                 <ValueCard
-                  label="Replies, all time"
+                  label={totalsLabel('Replies', o?.totals_scope)}
                   value={o === null ? null : o.replies_total}
                   icon={<MessageSquare className="w-4.5 h-4.5" />}
                   tone="amber"
                 />
                 <ValueCard
-                  label="Meetings, all time"
+                  label={totalsLabel('Meetings', o?.totals_scope)}
                   value={o === null ? null : o.meetings_total}
                   icon={<CalendarCheck className="w-4.5 h-4.5" />}
                   tone="emerald"

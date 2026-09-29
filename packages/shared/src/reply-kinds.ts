@@ -13,6 +13,17 @@
 
 export const REPLY_NEEDS_NOBODY = ['opt_out', 'unsubscribe', 'out_of_office', 'not_interested', 'cold'] as const
 
+/**
+ * ⚑ 29 Sep (R174 · 6c) — OUR OWN REPLY. When an operator answers a prospect, the email is
+ * recorded in the same replies table with this classification. It is not a reply FROM a
+ * prospect, so it is never counted as one — not in Milla's totals, not in the replies waiting
+ * on a decision. (It was: a client's "Replies" went up when WE wrote back.)
+ */
+export const OUR_SENT_REPLY = 'sent_reply'
+export function isOurOwnReply(classification: string | null | undefined): boolean {
+  return classification === OUR_SENT_REPLY
+}
+
 const QUIET_LABEL: Record<string, string> = {
   opt_out: 'opted out', unsubscribe: 'opted out', out_of_office: 'out of office',
   not_interested: 'not interested', cold: 'not interested',
@@ -27,6 +38,7 @@ export function replyInboxState(r: { classification: string | null; qualified_at
   { label: string; tone: 'done' | 'quiet' | 'needs' } {
   if (r.meeting_booked_at) return { label: 'booked', tone: 'done' }
   if (r.qualified_at) return { label: 'qualified', tone: 'done' }
+  if (isOurOwnReply(r.classification)) return { label: 'our reply', tone: 'quiet' }
   if (replyNeedsNobody(r.classification)) return { label: QUIET_LABEL[String(r.classification)] ?? 'no action', tone: 'quiet' }
   return { label: 'needs you', tone: 'needs' }
 }

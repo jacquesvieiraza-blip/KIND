@@ -249,9 +249,13 @@ describe('① one account, two histories', () => {
     expect(state.meetings).toHaveLength(1)
   })
 
-  it('the ALL-TIME report figures still read history — it counts where it belongs', async () => {
+  // ⛓️ 29 Sep (R174 · 6c) — ~~the all-time report figures still read history~~. The founder locked
+  // "this programme's numbers only": a client in a free Proof has no programme, so the report's
+  // totals are none, and say so (`totals_scope: 'none'`). History is still kept (asserted above).
+  it('the report figures are this programme’s — a Proof has none, and says so', async () => {
     const s = await buildMillaSummaryData(C)
-    expect(s.replies_total).toBe(1)
+    expect(s.replies_total).toBe(0)
+    expect(s.totals_scope).toBe('none')
   })
 })
 

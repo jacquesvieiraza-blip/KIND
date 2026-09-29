@@ -169,18 +169,25 @@ async function runJob(opts: {
 }, rec: Rec) {
   jctx.opts = opts as Record<string, any>
   jctx.rec = rec
+  // ⚑ 29 Sep — THIS RUN'S MOCKS WRITE TO THIS RUN'S RECORDER, AND ONLY THIS ONE. The proof route
+  // starts a fire-and-forget run; under full-suite load it can still be running when the NEXT
+  // test replaces `jctx.rec`, and it then recorded its RPCs into that test (seen twice in one
+  // day: a release of 20 where 12 was expected, a reservation where none was allowed). The
+  // mocks now close over the recorder and options of the run that installed them.
+  const R = rec
+  const O = opts as Record<string, any>
   vi.resetModules()
 
   vi.doMock('@kind/db', () => {
     const singleFor = (t: string) => {
-      if (t === 'icps') return jctx.opts.icpMissing ? null : ICP_ROW
+      if (t === 'icps') return O.icpMissing ? null : ICP_ROW
       if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0, commercial_model: null }
       return null
     }
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
       for (const m of ['select', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
-      q.eq = (col: string, val: unknown) => { jctx.rec.eqs.push({ table, col, val }); return q }
+      q.eq = (col: string, val: unknown) => { R.eqs.push({ table, col, val }); return q }
       // ⛓️ C2 — `.limit()` IS NO LONGER TERMINAL. `openProgrammeFor` ends on
       // `.limit(1).maybeSingle()` and the commercial-model resolver calls it, so what `limit`
       // returns must be BOTH awaitable (every existing caller here, unchanged) and chainable to
@@ -189,8 +196,8 @@ async function runJob(opts: {
         if (table === 'lead_pool') {
           // servePoolLeads pulls a buffer of max(cap*5, 50) then .slice(0, cap). Recording
           // n lets the test read back the cap the proof path actually handed the pool.
-          if (typeof n === 'number') jctx.rec.poolCap = n >= 50 ? Math.round(n / 5) : null
-          const rows = Array.from({ length: jctx.opts.pool ?? 0 }, (_, i) => ({
+          if (typeof n === 'number') R.poolCap = n >= 50 ? Math.round(n / 5) : null
+          const rows = Array.from({ length: O.pool ?? 0 }, (_, i) => ({
             email_norm: `pool${i}@acme.co`, first_name: 'P', last_name: String(i),
             title: 'CTO', seniority: 'C-Suite', company: 'Acme', industry: 'SaaS',
             company_size: '11-50', country: 'United Kingdom', linkedin_url: null,
@@ -212,7 +219,7 @@ async function runJob(opts: {
       q.single      = async () => ({ data: singleFor(table), error: null })
       q.maybeSingle = async () => ({ data: singleFor(table), error: null })
       q.update      = (patch: Record<string, unknown>) => {
-        if (table === 'leads') jctx.rec.leadUpdates.push(patch)
+        if (table === 'leads') R.leadUpdates.push(patch)
         const chain: Record<string, unknown> = {}
         for (const m of ['eq', 'in', 'is', 'neq']) chain[m] = () => chain
         ;(chain as { then: unknown }).then = (r: (v: unknown) => void) => r({ error: null })
@@ -220,10 +227,10 @@ async function runJob(opts: {
       }
       q.upsert = async () => ({ error: null })
       q.insert = (rows?: unknown) => {
-        if (table === 'leads') jctx.rec.leadInserts += Array.isArray(rows) ? rows.length : 1
+        if (table === 'leads') R.leadInserts += Array.isArray(rows) ? rows.length : 1
         return {
           select: () => ({
-            single: async () => ({ data: { id: `lead-${jctx.rec.leadInserts}` }, error: null }),
+            single: async () => ({ data: { id: `lead-${R.leadInserts}` }, error: null }),
             then:   (r: (v: unknown) => void) => r({
               data: Array.isArray(rows) ? rows.map((_, i) => ({ id: `lead-${i}` })) : [], error: null,
             }),
@@ -235,7 +242,7 @@ async function runJob(opts: {
       // real money; no rows at all is a prospect.
       q.then = (r: (v: unknown) => void) => r({
         data: table === 'credit_transactions'
-          ? (jctx.opts.funded === 'real' ? [{ type: 'purchase', reference: 'cs_live_123' }] : [])
+          ? (O.funded === 'real' ? [{ type: 'purchase', reference: 'cs_live_123' }] : [])
           : [],
         count: 0, error: null,
       })
@@ -245,34 +252,34 @@ async function runJob(opts: {
       db: {
         from: (t: string) => makeQuery(t),
         rpc: async (fn: string, args: Record<string, unknown>) => {
-          jctx.rec.rpcs.push({ fn, args })
+          R.rpcs.push({ fn, args })
           // ── ⛓️ 12 Sep (S2-AUDIT-001) — THE LEDGER, STANDING IN FOR THE OLD COUNTER ────────
           // The route claims through `claim_proof_authority` now. The old RPC branch is kept
           // beside it so a rollback needs no fixture change; this one mirrors the SAME rule —
           // two automatic passes then refuse — so every assertion below is unchanged.
           if (fn === 'claim_proof_authority') {
-            const pass = jctx.opts.pass ?? 1
+            const pass = O.pass ?? 1
             if (pass <= 0) return { data: { ok: false, reason: 'exhausted' }, error: null }
             return { data: {
               ok: true, claim_id: 'claim-1', authority: `automatic_${pass}`, pass, kind: 'automatic', reason: 'granted',
             }, error: null }
           }
           if (fn === 'settle_proof_claim')         return { data: { ok: true, status: args.p_status }, error: null }
-          if (fn === 'try_claim_proof_pass')       return { data: jctx.opts.pass ?? 1, error: null }
+          if (fn === 'try_claim_proof_pass')       return { data: O.pass ?? 1, error: null }
           // The corrected contract (22 Aug round 2): reserve returns jsonb with the
           // reservation's identity, and release must address that identity.
-          if (fn === 'try_reserve_proof_records' && jctx.opts.reserveNoAnswer) return { data: null, error: null }
+          if (fn === 'try_reserve_proof_records' && O.reserveNoAnswer) return { data: null, error: null }
           if (fn === 'try_reserve_proof_records')  return { data: {
-            granted: jctx.opts.reserve ?? 10,
-            reservation_id: (jctx.opts.reserve ?? 10) > 0 ? 'res-1' : null,
-            reason: jctx.opts.reserveReason ?? ((jctx.opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
+            granted: O.reserve ?? 10,
+            reservation_id: (O.reserve ?? 10) > 0 ? 'res-1' : null,
+            reason: O.reserveReason ?? ((O.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
           }, error: null }
           // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
           // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
           // we no longer incur. Both are answered here so the harness keeps working whichever
           // path a case drives.
-          if (fn === 'try_reserve_programme_sourcing') return { data: jctx.opts.grant ?? 10, error: null }
-          if (fn === 'try_spend_sourcing')         return { data: jctx.opts.grant ?? 10, error: null }
+          if (fn === 'try_reserve_programme_sourcing') return { data: O.grant ?? 10, error: null }
+          if (fn === 'try_spend_sourcing')         return { data: O.grant ?? 10, error: null }
           return { data: null, error: null }
         },
         auth: { admin: {
@@ -291,7 +298,7 @@ async function runJob(opts: {
 
   vi.doMock('./alerts', () => ({
     sendFounderAlert: async (_k: string, subject: string, lines: string[]) => {
-      jctx.rec.alerts.push({ subject, lines })
+      R.alerts.push({ subject, lines })
     },
   }))
 
@@ -302,7 +309,7 @@ async function runJob(opts: {
     return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
   })
 
-  const contacts = Array.from({ length: jctx.opts.contacts ?? 0 }, (_, i) => ({
+  const contacts = Array.from({ length: O.contacts ?? 0 }, (_, i) => ({
     id: `pdl_${i}`, first_name: 'A', last_name: 'B', email: null, email_status: null,
     linkedin_url: null, title: null, seniority: null, country: null,
     organization_name: null, organization: null,
@@ -313,7 +320,7 @@ async function runJob(opts: {
   // free-proof run reaching it is the defect this file now guards. Mocked so the guard reads
   // WHETHER it was called, and so no test can ever touch a real enrichment path.
   vi.doMock('./lead-delivery', () => ({
-    enrichAndDeliverLeads: async (_clientId: string, ids: string[]) => { jctx.rec.enrich.push(ids); return 0 },
+    enrichAndDeliverLeads: async (_clientId: string, ids: string[]) => { R.enrich.push(ids); return 0 },
   }))
 
   vi.doMock('./apollo', () => ({
@@ -323,9 +330,9 @@ async function runJob(opts: {
   }))
 
   const { runIcpJob } = await import('../routes/icps')
-  return runIcpJob('icp-1', 'c1', 'u1', jctx.opts.maxLeads ?? 20,
+  return runIcpJob('icp-1', 'c1', 'u1', O.maxLeads ?? 20,
     // The route claims the pass and hands the claim over; a run without it is normal.
-    ...(jctx.opts.proof ? [{ proofPass: jctx.opts.proof }] as const : []))
+    ...(O.proof ? [{ proofPass: O.proof }] as const : []))
 }
 
 /**
@@ -1705,5 +1712,17 @@ describe('the desk cannot spend a pass it has not earned', () => {
     expect(c).toContain('setRefineBusy(false)')
     // …and no background retry is introduced on any path.
     expect(strip(c)).not.toMatch(/setTimeout|setInterval|requestAnimationFrame/)
+  })
+})
+
+// ⚑ 29 Sep — the flake guard: the job mocks must close over their OWN run's recorder. A mock that
+// reads the shared `jctx` lets a previous test's background run write into the current test.
+describe('the job mocks record into their own run only', () => {
+  it('nothing after the mocks are installed reads the shared context', () => {
+    const src = readFileSync(__filename, 'utf8')
+    const from = src.indexOf('  const R = rec\n')
+    const to = src.indexOf('async function runProofRoute(')
+    expect(from).toBeGreaterThan(-1)
+    expect(src.slice(from, to)).not.toMatch(/jctx\.(rec|opts)/)
   })
 })

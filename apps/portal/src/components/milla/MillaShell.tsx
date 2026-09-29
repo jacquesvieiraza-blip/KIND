@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
@@ -52,6 +53,9 @@ type Summary = {
    */
   meetings_booked: number | null
   recent_replies: { name: string; classification: string }[]
+  /** ⚑ 29 Sep (R174 · 7a) — the badges: this programme's totals (null = could not be counted). */
+  badge_meetings?: number | null
+  badge_replies?: number | null
 }
 
 async function token(): Promise<string | undefined> {
@@ -96,8 +100,11 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
   const [navOpen, setNavOpen] = useState(false)
   const [cover, setCover] = useState(false)
 
-  useEffect(() => {
-    ;(async () => {
+  // ⚑ 29 Sep (R174 · 7a) — ON THE SHARED TICK, AND AT ONCE AFTER A PRESS. ⛓️ WAS a mount-only
+  // read, so the stage name, the stage bar, the badges and the latest-inbox list sat on whatever
+  // they said when the page opened (the founder's Pipeline read "Results" at Complete).
+  const loadRail = useCallback(async () => {
+    {
       const tok = await token()
       // ⚠️ SETTLED SEPARATELY. The rail's live counts and the programme stage are different
       // facts; one failing must not blank the other.
@@ -111,8 +118,10 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
       // Programme page follows, and the reason a 503 there renders the locked sentence
       // instead of an empty programme.
       if (pr.status === 'fulfilled') setStage(pr.value.data.stage)
-    })()
+    }
   }, [])
+  useEffect(() => { void loadRail() }, [loadRail])
+  useLiveRefresh(loadRail)
   // ⚑ 24 Sep — WHOSE PORTAL THIS IS, as the redesign draws it in the top-right corner and the
   // rail's foot. A client still in their Brief has no client row yet, so this is simply absent
   // and the corner says "Account" — never a guessed name.
@@ -248,13 +257,15 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
   const RAIL: [string, string, string, string, number | undefined][] = [
     ['Workspace', '/milla', 'Home', '⌂', undefined],
     ['Workspace', '/milla/pipeline', 'Pipeline', '↗', undefined],
-    ['Workspace', '/milla/meetings', 'Meetings', '◫', s?.meetings_booked || undefined],
+    // ⚑ 29 Sep (R174 · 7a) — THIS PROGRAMME'S TOTALS. ⛓️ WAS `meetings_booked` (this calendar
+    // month only) and, for Inbox, `recent_replies.length` (the rail's four, so it never passed 4).
+    ['Workspace', '/milla/meetings', 'Meetings', '◫', s?.badge_meetings || undefined],
     ['Workspace', '/milla/programme', 'Programme', '◇', undefined],
     // #644 — THE REPLY IS THE OUTCOME THE CLIENT IS PAYING FOR, so it keeps a permanent home here,
     // badged with the same live count the old "Recent replies" list was built from.
     // ⛓️ 25 Sep (R165) — CALLED "INBOX", NOT "REPLIES" (founder: *"this also needs to be lablled
     // inbox. not replies."*). Same route, same badge.
-    ['Workspace', '/milla/replies', 'Inbox', '✉', s?.recent_replies?.length || undefined],
+    ['Workspace', '/milla/replies', 'Inbox', '✉', s?.badge_replies || undefined],
     ['Your programme', '/milla/icp', 'My ICP', '◎', undefined],
     ['Your programme', '/milla/documents', 'Documents', '□', undefined],
     ['Your programme', '/milla/reports', 'Reports', '↗', undefined],

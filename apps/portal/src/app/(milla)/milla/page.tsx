@@ -1,5 +1,6 @@
 'use client'
 
+import { useLiveRefresh, announceProgrammeChanged } from '@/lib/use-live-refresh'
 import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { ProofCalibration, type ProofCalibrationState } from '@/components/milla/ProofCalibration'
 // ⚡ 18 Sep (J5-C11 · LR 17) — the client's words are not acknowledged until they are stored.
@@ -459,6 +460,8 @@ export default function MillaHomePage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  // ⚑ 29 Sep (R174 · 7a) — and on the shared tick / after a press, like every other Milla screen.
+  useLiveRefresh(load)
   // ⚑ 25 Sep (R161) — Home hears what happened in Vida without a refresh, through the SAME hook
   // the Programme screen uses. The founder tested the two-way sync from here, and Home never
   // re-read anything.
@@ -1237,6 +1240,7 @@ export default function MillaHomePage() {
         } finally {
           await loadCalibration()
           await load()
+          announceProgrammeChanged()
         }
       }
 

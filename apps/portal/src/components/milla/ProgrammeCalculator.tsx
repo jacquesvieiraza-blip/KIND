@@ -30,7 +30,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, PRESS_TIMEOUT_MS } from '@/lib/api'
-import { useLiveRefresh } from '@/lib/use-live-refresh'
+import { useLiveRefresh, announceProgrammeChanged } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import { programmeMoney } from '@/lib/programme-money'
 import { meetingsPhrase } from '@kind/shared'
@@ -224,6 +224,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
       }
       setChosen(true)
       onChosen?.()
+      announceProgrammeChanged()  // ⚑ 29 Sep (R174 · 7a)
       // ⚑ 24 Sep (R152) — House: accepted, and nothing to pay. Vida authorises P1 internally.
       if (internalBilling) { setBusy(false); return }
       const r = await api.post<{ data: { url: string } }>('/my/programme/checkout/first', {

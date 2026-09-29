@@ -259,6 +259,9 @@ export default function ProgrammeApproval({
       // that holds it opens the second payment in `onApproved`, after the approval is stored — so
       // the client presses once, and approval and payment stay separate, ordered acts.
       onApproved(r.data?.approved_at ?? null)
+      // ⚑ 29 Sep (R174 · 7a) — every screen re-reads the new stage at once.
+      const { announceProgrammeChanged } = await import('@/lib/use-live-refresh')
+      announceProgrammeChanged()
     } catch (e) {
       // ⚠️ THE SERVER'S SENTENCE, NOT A CHEERFUL ONE OF OURS. It is the thing that knows why.
       setError(e instanceof Error && e.message && e.message.length < 240

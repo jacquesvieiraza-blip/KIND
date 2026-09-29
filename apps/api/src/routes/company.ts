@@ -616,6 +616,12 @@ companyRouter.post('/provision', async (req: AuthRequest, res) => {
   try {
     const client = await getClientForUser(req.userId!)
     if (!client) { res.status(404).json({ success: false, error: 'No client account found' }); return }
+    // ⚑ 29 Sep (R174 ② · 1f) — a demo account never sends an invite.
+    {
+      const { demoCheck, demoRefusal } = await import('../lib/demo-guard')
+      const refuse = demoRefusal(await demoCheck(client.id))
+      if (refuse) { res.status(refuse.status).json({ success: false, error: refuse.error }); return }
+    }
     if (client.company_id) { res.json({ success: true, data: { company_id: client.company_id, already: true } }); return }
 
     const name = z.object({ name: z.string().min(1).max(200).optional() }).parse(req.body ?? {}).name
@@ -698,6 +704,12 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
     const ctx = await resolveContext(req.userId!)
     if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
     if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner or a manager can add reps' }); return }
+    // ⚑ 29 Sep (R174 ② · 1f) — a demo account never sends an invite.
+    {
+      const { demoCheck, demoRefusal } = await import('../lib/demo-guard')
+      const refuse = demoRefusal(await demoCheck(ctx.clientId))
+      if (refuse) { res.status(refuse.status).json({ success: false, error: refuse.error }); return }
+    }
 
     const { email, budget } = z.object({
       email:  z.string().email(),

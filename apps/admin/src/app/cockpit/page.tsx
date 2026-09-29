@@ -447,7 +447,7 @@ export default async function AdminPage() {
       <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />
 
       <p className="text-xs text-gray-400 pt-1">
-        Full client list → <a href="/clients" className="text-[#7C3AED] hover:underline">Clients</a> · targets → <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel</a> · money → <a href="/revenue" className="text-[#7C3AED] hover:underline">Finance</a>.
+        Full client list → <a href="/clients" className="text-[#7C3AED] hover:underline">Clients</a> · money → <a href="/revenue" className="text-[#7C3AED] hover:underline">Finance</a>.
       </p>
     </div>
   )

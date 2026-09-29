@@ -10,12 +10,17 @@ import {
   TrendingUp,
   ChevronDown,
 } from 'lucide-react'
-import { PROGRAMME_ANCHOR_1_USD, PROGRAMME_ANCHOR_10_USD, PROGRAMME_FLOOR_USD, PROOF_READY_TARGET } from '@kind/shared'
+import { BAND_PRICE_PER_MEETING_USD, SIZE_BANDS, SHORTFALL_CREDIT_EXPIRY_DAYS, PROOF_READY_TARGET } from '@kind/shared'
 
 // #706 — every account is on the programme (R124 · R137): the Brief and a free Proof come
-// before any payment (R138). Every price below is read from the shared curve (R81 · R141),
-// never typed — `usd` renders 450 → "450", 437.5 → "437.50".
+// before any payment (R138).
+// ⛓️ 29 Sep (R174 · 4a) — ~~the R81 per-meeting curve, paid half at the start and half at
+// approval, and the credit bundles~~: a sales call read those off this page. Today (R166) the
+// price is FLAT per qualified meeting by the client's own company size, paid ONCE, and a
+// shortfall is credit once only, for a new programme, valid 90 days. Every number is read from
+// `@kind/shared`, never typed (the working method, rule 7).
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`
+const BAND_LINE = SIZE_BANDS.map(b => `${b.label} (${b.min}${b.max ? `–${b.max}` : '+'} employees) ${usd(BAND_PRICE_PER_MEETING_USD[b.key])}`).join(' · ')
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -314,14 +319,12 @@ Click "New Campaign" → describe their offer in plain English → show sequence
     {
       step: 5,
       time: '3 min',
-      title: 'Billing — Credit Top-Up Flow',
+      title: 'Pricing — one payment, by company size',
       nav: 'Navigate to: Billing',
-      script: `"Quick note on pricing — it's a credit model. You top up when you need more. No monthly retainer trap. No 12-month contract. Credits don't expire."
+      script: `"You start with your Brief and a free Proof — no payment. After that, the programme is priced per qualified meeting, flat, set by your company size: ${BAND_LINE}. You pick how many meetings; you pay once, when you accept, before we source anyone. No retainer, no contract."
 
-Show credit bundle tiers.
-
-"You start with your Brief and a free Proof — no payment. After that, the programme is priced per qualified meeting: ${usd(PROGRAMME_ANCHOR_1_USD)} for one, easing to ${usd(PROGRAMME_ANCHOR_10_USD)} at ten and a ${usd(PROGRAMME_FLOOR_USD)} floor from fifty — paid half at the start and half at approval."`,
-      action: 'Show credit tier cards and top-up flow',
+"The number of meetings is a target, not a guarantee. If we deliver fewer, the shortfall is credit — once, for a new programme, valid ${SHORTFALL_CREDIT_EXPIRY_DAYS} days."`,
+      action: 'Show the programme calculator on the demo (Programme stage)',
     },
     {
       step: 6,
@@ -395,7 +398,7 @@ function ObjectionContent() {
     },
     {
       objection: "It's too expensive.",
-      response: `"Compared to what — what were you expecting? [Let them answer.] Let's put this in context: one new client closed from KIND pays for [X months] of subscription. You said your average deal is [amount from discovery]. If KIND gets you one extra deal in 90 days, it's already ROI positive. We also have the credit model — you top up when you need to. Want to start on the Starter tier and scale up as you see results?"`,
+      response: `"Compared to what — what were you expecting? [Let them answer.] Let's put this in context: you choose the number of meetings, and you pay only for those — flat, by your company size. You said your average deal is [amount from discovery]. If one of those meetings closes, the programme has paid for itself. Want to start small — a handful of meetings — and add more once you see them land?"`,
       tag: 'Price',
     },
     {
@@ -487,14 +490,10 @@ function ProposalContent() {
       <div>
         <h4 className="font-semibold text-gray-800 mb-3">Pricing</h4>
         <Table
-          headers={['Tier', 'Credits', 'Best for', 'Price']}
-          rows={[
-            ['Starter', '500 credits', '5–15 leads/week', 'R[X]'],
-            ['Growth', '1,500 credits', '15–40 leads/week', 'R[X]'],
-            ['Pro', '5,000 credits', '40+ leads/week', 'R[X]'],
-          ]}
+          headers={['Company size', 'Employees', 'Price per qualified meeting']}
+          rows={SIZE_BANDS.map(b => [b.label, `${b.min}${b.max ? `–${b.max}` : '+'}`, usd(BAND_PRICE_PER_MEETING_USD[b.key])])}
         />
-        <p className="text-xs text-gray-400 mt-2">Credits are flexible — top up as needed, never expire, no long-term contract.</p>
+        <p className="text-xs text-gray-400 mt-2">Flat per meeting — no volume discount. Paid once, when the client accepts, before sourcing. The size is their own company&apos;s, never chosen.</p>
       </div>
 
       <div>
@@ -515,9 +514,9 @@ function ProposalContent() {
         <h4 className="font-semibold text-green-800">Risk Reversal</h4>
         <ul className="space-y-1.5 text-sm text-green-700">
           <li>{`Your Brief and a free ${PROOF_READY_TARGET}-person Proof come before any payment`}</li>
-          <li>Credit model — pay per use, no monthly lock-in</li>
-          <li>No long-term contract — cancel any time</li>
-          <li>The meeting count is a target, not a guarantee — any qualified meeting we don&#39;t deliver is credited to your wallet for your next programme</li>
+          <li>One payment for the programme — no retainer, no monthly lock-in</li>
+          <li>No long-term contract</li>
+          <li>{`The meeting count is a target, not a guarantee — a shortfall is credit once, for a new programme, valid ${SHORTFALL_CREDIT_EXPIRY_DAYS} days`}</li>
         </ul>
       </div>
 

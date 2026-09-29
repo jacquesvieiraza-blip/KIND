@@ -36,7 +36,9 @@ describe('#706 — Vida AE playbook: no trial, no typed price', () => {
   it('reads its programme prices from the shared curve', () => {
     const s = src()
     expect(s).toMatch(/from '@kind\/shared'/)
-    expect(s).toContain('PROGRAMME_ANCHOR_1_USD')
-    expect(s).toContain('PROGRAMME_FLOOR_USD')
+    // ⛓️ 29 Sep (R174 · 4a) — ~~`PROGRAMME_ANCHOR_1_USD` / `PROGRAMME_FLOOR_USD`~~ (the R81 curve, superseded
+    // for new programmes by R166): the flat price per meeting by company size, still read, never typed.
+    expect(s).toContain('BAND_PRICE_PER_MEETING_USD')
+    expect(s).toContain('SHORTFALL_CREDIT_EXPIRY_DAYS')
   })
 })

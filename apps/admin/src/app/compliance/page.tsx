@@ -16,26 +16,33 @@ interface Cert {
   badgeColor: string
 }
 
+// ⛓️ 29 Sep (R174 · 4a) — THE CLAIMS, UPDATED (founder: "update claims"). GDPR and CCPA were
+// hand-typed as DONE ("Already complete. No action required."). What the repository can show:
+// the three documents exist (apps/website/trust.html, dpa.html, dpa-us.html) and opt-outs are
+// enforced in the send gate. What it cannot show: where the data is hosted, or a deletion/access
+// route a person can use — and nobody independent has reviewed any of it. So both read
+// SELF-ASSESSED, and only what can be checked is ticked.
 const CERTIFICATIONS: Cert[] = [
   {
     id: 'gdpr',
     name: 'GDPR',
     subtitle: 'EU/UK Data Protection',
-    status: 'done',
+    status: 'in-progress',
     trigger: 'Regulatory requirement',
     cost: '£0',
-    timeline: 'Complete',
-    description: 'EU/UK data protection regulation. Not a third-party certification — a compliance claim backed by documented controls and published policies.',
+    timeline: 'Self-assessed — not independently reviewed',
+    description: 'EU/UK data protection regulation. Not a third-party certification — a compliance position backed by published policies. Self-assessed: the documents are published; no solicitor or auditor has reviewed them.',
     whyItMatters: 'Required for any EU/UK client. Signals seriousness to enterprise buyers worldwide.',
     currentReadiness: [
       { item: 'trust.html published — Articles 6(1)(f), 17, 13/14', done: true },
       { item: 'dpa.html published — Data Processing Agreement', done: true },
       { item: 'Standard Contractual Clauses (SCCs) included', done: true },
-      { item: 'Data stored in eu-west-1 (Dublin, Ireland) — documented', done: true },
+      { item: 'Data stored in eu-west-1 (Dublin, Ireland) — stated in the documents; confirm in the Supabase project settings', done: false },
       { item: 'Legitimate interest basis documented', done: true },
-      { item: 'Data subject rights (deletion, access) implemented', done: true },
+      { item: 'Opt-out honoured before every send (the send gate)', done: true },
+      { item: 'Deletion and access requests — handled by the team on request; there is no self-serve route', done: false },
     ],
-    nextStep: 'Optional: third-party GDPR compliance assessment from a UK/EU solicitor (~£500–1,500) for enterprise sales conversations.',
+    nextStep: 'Before telling a client K.I.N.D is GDPR compliant: confirm the hosting region, write down how a deletion/access request is handled, and have a UK/EU solicitor review it (~£500–1,500).',
     accentColor: 'text-emerald-400',
     badgeColor: 'border-emerald-400/30 bg-emerald-400/5',
   },
@@ -43,19 +50,19 @@ const CERTIFICATIONS: Cert[] = [
     id: 'ccpa',
     name: 'CCPA',
     subtitle: 'California Consumer Privacy Act',
-    status: 'done',
+    status: 'in-progress',
     trigger: 'Regulatory requirement',
     cost: '£0',
-    timeline: 'Complete',
+    timeline: 'Self-assessed — not independently reviewed',
     description: 'California Consumer Privacy Act. Applies to businesses serving California residents. K.I.N.D is below the revenue/record thresholds currently but compliance is built in.',
     whyItMatters: 'Required for US market. Any California-based prospect or investor will check this.',
     currentReadiness: [
       { item: 'trust.html — CCPA rights documented', done: true },
       { item: 'dpa-us.html — US state laws catch-all (VCDPA, CPA, etc.)', done: true },
-      { item: 'Opt-out mechanism implemented', done: true },
-      { item: 'Data deletion on request implemented', done: true },
+      { item: 'Opt-out honoured before every send (the send gate)', done: true },
+      { item: 'Deletion on request — handled by the team; there is no self-serve route', done: false },
     ],
-    nextStep: 'Already complete. No action required.',
+    nextStep: 'Self-assessed. Before telling a client K.I.N.D is CCPA compliant, write down how a deletion request is handled and have it reviewed.',
     accentColor: 'text-blue-400',
     badgeColor: 'border-blue-400/30 bg-blue-400/5',
   },

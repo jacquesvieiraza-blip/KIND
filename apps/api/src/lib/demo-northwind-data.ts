@@ -26,12 +26,22 @@
 //     takes a real mailbox (R164 PR A, `demo-safety-locks.test.ts`).
 //   · Every address ends in `.invalid` (RFC 2606: can never resolve), and the login is on
 //     `kind-demo.internal` — both refused by the SMTP seam.
-//   · No payment is recorded. The programme is authorised internally (`*_authorised_at`, the
-//     "no fake money" columns, 2 Sep) — never `*_paid_at`, never a payment reference.
+//   · ~~No payment is recorded. The programme is authorised internally (`*_authorised_at`, the
+//     "no fake money" columns, 2 Sep) — never `*_paid_at`, never a payment reference.~~
+//     ⛓️ 29 Sep (R174 ⑧ · PR 8b): the demo reads PAID IN FULL, like a real paying client —
+//     "Not yet paid" on Billing and "Authorised internally" in Vida were not the product. The
+//     reference says in words that nothing was charged (`NORTHWIND_NO_CHARGE_REF`), it is never
+//     a Stripe id, and the demo is out of every money number by the one real-clients rule (8c).
 //   · Every company and person below is invented. None is a real firm.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { MVP1_MILLA_STAGES, type Mvp1MillaStage, quoteProgramme, bandForEmployees, type SizeBand } from '@kind/shared'
+
+/** ⚑ 29 Sep (R174 ⑧ · PR 8b) — the demo's payment reference: plainly not a charge, never a Stripe id.
+ *  ⚠️ ONE PER PROGRAMME: `programmes_first_ref_uidx` makes every payment reference unique, so a
+ *  shared constant would collide the moment two demo programmes exist (an overlapping reset). */
+export const NORTHWIND_NO_CHARGE_REF = 'demo-no-charge'
+export const northwindNoChargeRef = (programmeId: string): string => `${NORTHWIND_NO_CHARGE_REF}:${programmeId}`
 
 export type NorthwindStage = Mvp1MillaStage
 export const NORTHWIND_STAGES: readonly NorthwindStage[] = MVP1_MILLA_STAGES
@@ -375,9 +385,12 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     size_band: NORTHWIND_BAND,
     sourcing_ceiling: quote.recommendedVolume, sourced_used: NORTHWIND_CAST.length,
     recommendation_accepted_at: iso(20),
-    // ⚠️ AUTHORISED, NEVER PAID. No payment reference, no Stripe id, no `*_paid_at`: nothing in
-    // the money path can mistake the demo for revenue (`programmes_p1/p2_authority_xor`).
-    first_authorised_at: iso(20), second_authorised_at: iso(20),
+    // ⛓️ 29 Sep (R174 ⑧ · PR 8b) — WAS authorised, never paid. Now paid in full in ONE payment, as
+    // a real banded programme is (the same reference settles both halves — `paysInFull`), with a
+    // reference that says no charge was taken. Never `*_authorised_at` as well: the two are
+    // exclusive (`programmes_p1/p2_authority_xor`). No payment intent — there was no charge.
+    first_paid_at: iso(20), first_payment_ref: northwindNoChargeRef(ids.programmeId),
+    second_paid_at: iso(20), second_payment_ref: northwindNoChargeRef(ids.programmeId),
     approved_at: delivering ? iso(16) : null,
     went_live_at: delivering ? iso(15) : null,
     run_at: delivering ? iso(15) : null,

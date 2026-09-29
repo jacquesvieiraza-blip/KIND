@@ -34,12 +34,16 @@ describe('R164 · Northwind demo data', () => {
     })
   })
 
-  it('no money is ever recorded: authorised, never paid, no payment reference', () => {
+  // ~~it('no money is ever recorded: authorised, never paid, no payment reference', …)~~
+  // ⛓️ 29 Sep (R174 ⑧ · PR 8b): the demo reads paid in full, like a real client, with a reference
+  // that says no charge — and is kept out of every money number (demo-paid-in-full.test.ts). What
+  // stays true: no Stripe payment intent is ever recorded, because nothing was ever charged.
+  it('no charge is ever recorded: no payment intent, and the reference says no charge', () => {
     for (const stage of NORTHWIND_STAGES) {
       const p = northwindRows(stage, ids, now).programme
       if (!p) continue
-      for (const k of Object.keys(p)) expect(k).not.toMatch(/paid_at|payment_ref|intent_id/)
-      expect(p.first_authorised_at).toBeTruthy()
+      for (const k of Object.keys(p)) expect(k).not.toMatch(/intent_id/)
+      expect(String(p.first_payment_ref)).toMatch(/^demo-no-charge:/)
     }
   })
 

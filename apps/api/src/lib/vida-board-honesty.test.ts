@@ -239,13 +239,14 @@ describe('Vida renders the honest sentence', () => {
     expect(src).toContain('money_in_usd')
   })
 
-  it('a comped account still shows $0 in and says COMPED — now proven by the ledger, not a ternary', () => {
+  it('the retired "$ in · comped" line is gone with the fallback card (⛓️ 29 Sep, R174 · 5c)', () => {
     // #619 special-cased comp to 0 in the render. #623 made that special case redundant:
     // `moneyInUsd` returns 0 for a manual_grant on its own, because a comp is not cash. The
     // two agree independently (asserted in money-in.test.ts), which is stronger than a ternary
     // — the render can no longer disagree with the ledger about what a comp is worth.
-    expect(src).toContain("funded_via === 'comp' &&")
-    expect(src).toContain('· comped')
+    // ⛓️ 29 Sep (R174 · 5c) — ~~the "$ in" line and its comped suffix render~~: they left with the fallback
+    // card. The ledger rule (a comp is not cash) is still asserted in money-in.test.ts.
+    expect(src).not.toContain("funded_via === 'comp' &&")
   })
 
   // ⛓️ RETARGETED 9 Sep — THE COLD STATE MOVED FROM THE ROW TO THE CLIENT'S TRUTH PANEL.

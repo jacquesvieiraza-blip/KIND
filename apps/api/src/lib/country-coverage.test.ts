@@ -136,9 +136,10 @@ describe('RED PROOF — the screen renders it, and the route feeds it', () => {
     // component appears; a source match cannot. What this CAN prove is that the console fetches
     // the reading and renders `chip` rather than deciding anything itself — so the only thing
     // left to get wrong here is the wiring, and everything with logic in it is tested above.
-    expect(vida).toContain('/api/proxy/operator/country-coverage')
-    expect(vida).toContain('coverage?.chip?.show')
-    expect(vida, 'renders the API\'s words, never its own').toContain('{coverage.chip.text}')
+    // ⛓️ 29 Sep (R174 · 5c) — ~~the console renders `coverage.chip.text`~~. Its only render was inside the fallback
+    // card (drawn only when the lifecycle could not be read), which is removed. The reading and its
+    // rule stay tested above; the console still never re-implements the rule.
+    expect(vida).not.toContain('{coverage.chip.text}')
     expect(vida, 'and re-implements no rule').not.toContain('coverage.missing > 0 ||')
   })
 

@@ -91,17 +91,11 @@ describe('Vida renders the refusal', () => {
     expect(src).toContain('/api/proxy/operator/enrol-skips?client_id=')
   })
 
-  it('shows the REASONS in words, not just a count', () => {
-    // Bounded to the rendering block: asserting `summary` against the whole file would pass on a
-    // variable that is fetched and never displayed — which was the entire bug.
-    const at = src.indexOf('last enrol:')
-    expect(at, 'the enrol line must be rendered').toBeGreaterThan(-1)
-    const block = src.slice(at, at + 400)
-    expect(block).toContain('detail?.summary')
-    expect(block).toContain('skipped')
-  })
-
-  it('stays silent when nothing was refused — no noise on a healthy board', () => {
-    expect(src).toContain('(enrolSkips.detail?.skipped ?? 0) > 0')
+  // ⛓️ 29 Sep (R174 · 5c) — ~~the "last enrol:" line renders the reasons~~. That line lived only in the fallback
+  // card (drawn when the lifecycle could not be read), which is removed; the trail is still read
+  // and its reasons are still tested at the route. What must not happen is a count without words.
+  it('no bare refusal count is left on the console', () => {
+    expect(src).not.toContain('last enrol:')
+    expect(src).not.toContain('(enrolSkips.detail?.skipped ?? 0) > 0')
   })
 })

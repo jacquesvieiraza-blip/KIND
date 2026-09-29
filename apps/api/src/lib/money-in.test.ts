@@ -130,19 +130,11 @@ describe('Vida renders the counted figure, not a sum', () => {
   const src = stripCommentsForEnvScan(
     readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8'))
 
-  it('the count arithmetic is GONE from the money line', () => {
-    // Bounded to the "$ in" line rather than the whole file: the constant is still legitimately
-    // used by the flow rail and the chase message, so a file-wide assertion would be wrong.
-    const at = src.indexOf('</b> in{selectedWork.funded_via')
-    expect(at, 'the "$ in" line must exist').toBeGreaterThan(-1)
-    const line = src.slice(Math.max(0, at - 400), at)
-    expect(line).not.toContain('PACK_PRICE_USD + Math.max(')
-    expect(line).not.toContain('LEAD_PRICE_USD')
-    expect(line).toContain('money_in_usd')
-  })
-
-  it('still shows the #619 comped suffix — this fix must not undo that one', () => {
-    expect(src).toContain("funded_via === 'comp' &&")
-    expect(src).toContain('· comped')
+  // ⛓️ 29 Sep (R174 · 5c) — ~~the money line renders `money_in_usd`, and a comp says "· comped"~~. The line was in
+  // the fallback card, which showed retired money exactly when the lifecycle could not be read; it
+  // is removed. Programme money is on the Programme tab and the money screens (R174 · 4e).
+  it('the retired money line is gone, and its arithmetic cannot come back', () => {
+    expect(src).not.toContain('</b> in{selectedWork.funded_via')
+    expect(src).not.toContain('PACK_PRICE_USD + Math.max(')
   })
 })

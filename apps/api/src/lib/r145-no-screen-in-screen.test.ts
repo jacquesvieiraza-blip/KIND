@@ -19,7 +19,8 @@ const CONV = code('../../../admin/src/components/vida/VidaConversation.tsx')
 
 describe('no screen in a screen — Vida', () => {
   it('🛑 the old next-action card is only a fallback when the panel cannot render', () => {
-    expect(PAGE).toContain('{selectedWork && !lcCopy && (')
+    // ⛓️ 29 Sep (R174 · 5c) — ~~kept as the fallback~~: the fallback card is removed outright (R174 · 5c).
+    expect(PAGE).not.toContain('{selectedWork && !lcCopy && (')
   })
 
   it('🛑 the right column is Vida\'s conversation alone', () => {

@@ -271,6 +271,24 @@ function fullName(f: string | null, l: string | null): string {
   return [f, l].filter(Boolean).join(' ').trim() || 'Unknown lead'
 }
 
+
+// ⚑ 29 Sep (R174 · 2a) — THE THREE PAUSE REASONS the API accepts (`PauseReason`, lib/programme.ts),
+// in plain words. Only one of them is a commercial signal, which is why the kind is recorded.
+type PauseReasonKey = 'client' | 'quality' | 'icp_change'
+const PAUSE_REASONS: { key: PauseReasonKey; label: string }[] = [
+  { key: 'client', label: 'The client asked' },
+  { key: 'quality', label: 'Quality concern' },
+  { key: 'icp_change', label: 'Targeting (ICP) change' },
+]
+function pauseReasonLabel(k: string): string {
+  return PAUSE_REASONS.find(r => r.key === k)?.label ?? k
+}
+function askPauseReason(): PauseReasonKey | null {
+  const a = prompt(`Why are you pausing?\n${PAUSE_REASONS.map((r, i) => `${i + 1} — ${r.label}`).join('\n')}\n\nType 1, 2 or 3.`)
+  const n = Number((a ?? '').trim())
+  return PAUSE_REASONS[n - 1]?.key ?? null
+}
+
 export default function VidaConsolePage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   // ⚑ 4 Sep — THE SELECTED CLIENT IS THE SHELL'S, because the conversation is scoped to it.
@@ -288,6 +306,7 @@ export default function VidaConsolePage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   // PR2 — the one proof-review action: which client is being resolved, and what to say after.
   const [proofBusy, setProofBusy] = useState<string | null>(null)
+  const [pauseReason, setPauseReason] = useState<PauseReasonKey | ''>('')
   const [proofMsg, setProofMsg] = useState<string | null>(null)
   const [work, setWork] = useState<WorkRow[] | null>(null)
   // #620 — the last enrol run that REFUSED somebody, for the selected client. Null is the good
@@ -969,7 +988,7 @@ export default function VidaConsolePage() {
    * changes the programme rather than the mailbox — and an operator reaching for "reconnect"
    * must not pause by accident.
    */
-  const pauseProgramme = useCallback(async () => {
+  const pauseProgramme = useCallback(async (given?: PauseReasonKey) => {
     // 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, AND BEFORE THE CONFIRMATION. The dialog names the
     // SELECTED client; asking it over another client's programme is the misleading half of
     // this defect, so the refusal happens before the operator can agree to anything.
@@ -977,7 +996,11 @@ export default function VidaConsolePage() {
     if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
     const say = forThisProgramme(setLcMsg)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
-    if (!confirm(`Pause ${who}'s programme?\n\nOutreach stops. Nobody loses their place in the sequence, nothing is refunded and nothing is unwound.`)) return
+    // ⚑ 29 Sep (R174 · 2a) — THE SERVER REQUIRES ONE OF THREE REASONS, and Vida sent none, so
+    // every Pause was refused. The Programme tab picks it; anywhere else it is asked here.
+    const reason = given ?? askPauseReason()
+    if (!reason) return
+    if (!confirm(`Pause ${who}'s programme? Reason: ${pauseReasonLabel(reason)}.\n\nOutreach stops. Nobody loses their place in the sequence, nothing is refunded and nothing is unwound.`)) return
     // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
     //
     // ⛓️ WHAT STOOD HERE: ~~`finally { setLcBusy(null) }`~~ — unconditional, and that is a race
@@ -993,13 +1016,37 @@ export default function VidaConsolePage() {
     setLcBusy('pause'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/pause`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'The programme was not paused.')
       say('Paused. Outreach has stopped and nobody lost their place.')
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : 'The programme was not paused.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  // ⚑ 29 Sep (R174 · 2a) — RESUME. The API has had it all along; nothing in Vida called it, so a
+  // paused programme could only be un-paused by hand in the database. Same ownership check and
+  // busy discipline as Pause; resuming does not send anything by itself — every other gate
+  // (kill-switch, sender, payment, Run) still decides.
+  const resumeProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Resume ${who}'s programme?\n\nSourcing and sending may start again — every other gate (kill-switch, sender, payment, Run) still applies. Nothing is sent by resuming.`)) return
+    const settleBusy = forThisProgramme(setLcBusy)
+    setLcBusy('resume'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/resume`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not resumed.')
+      say('Resumed. Nothing was sent by resuming — every other gate still applies.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not resumed.')
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
@@ -4677,7 +4724,7 @@ export default function VidaConsolePage() {
                       </span>
                       {prog.programme.paused_at && (
                         <p className="text-[12px] text-amber-800 mt-1">
-                          Paused {fmtDate(prog.programme.paused_at)}{prog.programme.pause_reason ? ` — ${prog.programme.pause_reason}` : ''}.
+                          Paused {fmtDate(prog.programme.paused_at)}{prog.programme.pause_reason ? ` — ${pauseReasonLabel(prog.programme.pause_reason)}` : ''}.
                           Pause stops new sourcing AND new sending.
                         </p>
                       )}
@@ -4749,6 +4796,25 @@ export default function VidaConsolePage() {
                           <button onClick={() => lifecycle('go-live', 'Make live')} disabled={lcBusy !== null}
                             className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
                             {lcBusy === 'go-live' ? '…' : 'Make programme live'}</button>
+                        )}
+                        {/* ⚑ 29 Sep (R174 · 2a) — PAUSE WITH ITS REASON, AND RESUME, on the Programme tab. */}
+                        {!['COMPLETED', 'CANCELLED'].includes(prog.programme.status) && !prog.programme.paused_at && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <select id="vida-pause-reason" value={pauseReason} onChange={e => setPauseReason(e.target.value as PauseReasonKey | '')}
+                              aria-label="Why pause"
+                              className="text-[12.5px] border border-[#e3daf7] rounded-lg px-2 py-1.5 bg-white">
+                              <option value="">Pause — why?</option>
+                              {PAUSE_REASONS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                            </select>
+                            <button onClick={() => { if (pauseReason) void pauseProgramme(pauseReason) }} disabled={lcBusy !== null || !pauseReason}
+                              className="text-[12.5px] font-bold text-amber-800 bg-white border border-amber-300 rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                              {lcBusy === 'pause' ? '…' : 'Pause'}</button>
+                          </span>
+                        )}
+                        {prog.programme.paused_at && !['COMPLETED', 'CANCELLED'].includes(prog.programme.status) && (
+                          <button onClick={() => void resumeProgramme()} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'resume' ? '…' : 'Resume'}</button>
                         )}
                         {canRewriteMessages() && (
                           <button onClick={() => void rewriteMessages()} disabled={lcBusy !== null}

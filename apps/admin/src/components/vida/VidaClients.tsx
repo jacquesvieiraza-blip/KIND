@@ -9,6 +9,7 @@ import {
 } from '@/lib/vida-rail-refresh'
 import { useSearchParams } from 'next/navigation'
 import { panelView, loadError } from '@kind/shared'
+import { clientRowStage } from '@/lib/vida-words'
 // J7-C1 — the one rule for what an empty Needs-you list is allowed to claim.
 import { needsYouEmptyState } from '@/lib/vida-needs-you-state'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
@@ -78,7 +79,7 @@ type WorkRow = ClientRow & { cold: ColdState; next: NextAction }
  * the row does not compute a stage from a status and the panel does not compute one either.
  * Two derivations would disagree eventually, and the one nobody would notice is this one.
  */
-type LifecycleRow = { client_id: string; stage_label: string; needs_you: boolean }
+type LifecycleRow = { client_id: string; stage: string; stage_label: string; needs_you: boolean }
 
 function initials(name: string | null): string {
   const n = (name ?? '').trim()
@@ -378,7 +379,8 @@ export function VidaClients({ open, onNeedsYouCount }: { open: boolean; onNeedsY
                 )}
               </span>
               <span className="text-[11.5px] block truncate text-[#9b8ec4]">
-                {lcRow?.stage_label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                {/* ⚑ 29 Sep (R174 ⑥ · PR 6b) — one of the six (R127) first; the sub-state underneath. */}
+                {lcRow ? clientRowStage(lcRow) : ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
                 {you && <span className="text-[#EC4899] font-bold"> · needs you</span>}
               </span>
             </span>

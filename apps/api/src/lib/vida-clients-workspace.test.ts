@@ -429,7 +429,10 @@ describe('⑥ Needs you is a filter on the client list, not a screen', () => {
 
 describe('⑦ the client row is name · stage · needs you, and nothing else', () => {
   it('the stage word comes from the server\'s own verdict', () => {
-    expect(LIST).toContain('lcRow?.stage_label')
+    // ~~expect(LIST).toContain('lcRow?.stage_label')~~
+    // ⛓️ 29 Sep (R174 ⑥ · PR 6b): still the server's own verdict (its `stage`), now printed as
+    // one of the six (R127) with the finer step after it — see vida-words.test.ts.
+    expect(LIST).toContain('{lcRow ? clientRowStage(lcRow) :')
   })
 
   it('🛑 the metrics came off the row', () => {
@@ -448,7 +451,9 @@ describe('⑦ the client row is name · stage · needs you, and nothing else', (
     const rowAt = LIST.indexOf('{visible.map(c => {')
     const row = LIST.slice(rowAt, LIST.indexOf('</button>', rowAt))
     expect(row).toContain('c.company_name')
-    expect(row).toContain('stage_label')
+    // ~~expect(row).toContain('stage_label')~~
+    // ⛓️ 29 Sep (R174 ⑥ · PR 6b): the stage is printed through clientRowStage (one of the six).
+    expect(row).toContain('clientRowStage(lcRow)')
     expect(row).toContain('· needs you')
   })
 })

@@ -82,7 +82,7 @@ export default function VidaAuditPage() {
       <div className="flex items-start justify-between gap-4 max-w-5xl">
         <div>
           <h1 className="text-2xl font-bold text-[#1f1235]">Operator audit log</h1>
-          <p className="text-sm text-[#7c6f9b] mt-0.5">Every approve-on-behalf and pass, attributed to the operator who took it · newest first</p>
+          <p className="text-sm text-[#7c6f9b] mt-0.5">Every action taken for a client, with the operator who took it · newest first</p>
         </div>
         <select
           value={filter}

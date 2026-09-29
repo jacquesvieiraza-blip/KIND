@@ -667,6 +667,8 @@ export async function meetingsForClient(filter: {
   clientId: string
   /** When present, ONLY this programme's meetings. Absent = the whole client (legacy). */
   programmeId?: string
+  /** ⚑ 29 Sep (R174 · 5e) — when present, ONLY this lead's meetings (Vida's lead record). */
+  leadId?: string
   limit?: number
 }): Promise<MeetingListRow[] | null> {
   let q = db.from('meetings')
@@ -675,6 +677,7 @@ export async function meetingsForClient(filter: {
     .is('excluded_reason', null)
     .is('superseded_by', null)
   if (filter.programmeId) q = q.eq('programme_id', filter.programmeId)
+  if (filter.leadId) q = q.eq('lead_id', filter.leadId)
 
   const { data, error } = await q
     .order('scheduled_at', { ascending: false })

@@ -644,7 +644,7 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     for (const fn of [
       'const openQualifyConfirm = useCallback(() => {',
       'const qualifySourcedLeads = useCallback(async () => {',
-      'const pauseProgramme = useCallback(async () => {',
+      'const pauseProgramme = useCallback(async (given?: PauseReasonKey) => {',
       'const refreezePackage = useCallback(async () => {',
       'const lifecycle = useCallback(async (action: string, label: string) => {',
       'const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {',
@@ -680,18 +680,23 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // the SELECTED client, so both pass the same gate.
       'const resolveReview = useCallback(async () => {',
       'const raiseCeiling = useCallback(async () => {',
+      // ⛓️ 29 Sep (R174 · 2a) — A THIRTEENTH, REGISTERED HERE. `resumeProgramme` posts
+      // `POST /programmes/:id/resume` (the route existed; nothing in Vida called it). It targets
+      // `prog.programme.id` while its dialog names the SELECTED client, so it passes the same gate.
+      'const resumeProgramme = useCallback(async () => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
-    // Twelve call sites, and no thirteenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
-    // 9 → 10 on 24 Sep (rewrite messages); 10 → 12 on 25 Sep (resolve review, raise limit).
-    expect(code.split('programmeActionId()').length - 1).toBe(12)
+    // Thirteen call sites, and no fourteenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
+    // 9 → 10 on 24 Sep (rewrite messages); 10 → 12 on 25 Sep (resolve review, raise limit);
+    // 12 → 13 on 29 Sep (resume).
+    expect(code.split('programmeActionId()').length - 1).toBe(13)
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {
     const code = codeOnly(PAGE)
     for (const fn of [
-      'const pauseProgramme = useCallback(async () => {',
+      'const pauseProgramme = useCallback(async (given?: PauseReasonKey) => {',
       'const refreezePackage = useCallback(async () => {',
       'const lifecycle = useCallback(async (action: string, label: string) => {',
       'const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {',
@@ -700,6 +705,8 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // ⛓️ 25 Sep (P3b) — both new dialogs name the client, so the gate must come first.
       'const resolveReview = useCallback(async () => {',
       'const raiseCeiling = useCallback(async () => {',
+      // ⛓️ 29 Sep (R174 · 2a) — Resume's dialog names the client, so the gate comes first.
+      'const resumeProgramme = useCallback(async () => {',
     ]) {
       const body = fnBody(code, fn)
       const gate = body.indexOf('programmeActionId()')
@@ -713,7 +720,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     const code = codeOnly(PAGE)
     const FINALIZERS: [string, string][] = [
       ['const qualifySourcedLeads = useCallback(async () => {',                        'settleBusy(false)'],
-      ['const pauseProgramme = useCallback(async () => {',                             'settleBusy(null)'],
+      ['const pauseProgramme = useCallback(async (given?: PauseReasonKey) => {',       'settleBusy(null)'],
+      // ⛓️ 29 Sep (R174 · 2a) — Resume settles through the same generation-scoped writer.
+      ['const resumeProgramme = useCallback(async () => {',                            'settleBusy(null)'],
       ['const refreezePackage = useCallback(async () => {',                            'settleBusy(null)'],
       ['const lifecycle = useCallback(async (action: string, label: string) => {',     'settleBusy(null)'],
       ['const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {', 'settleBusy(null)'],
@@ -757,8 +766,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     // ⛓️ 23 Sep (MVP1 Stage 6) — EIGHT: `settleProgramme` credits a wallet on a programme id and
     // carries the same generation-scoped finalizer.
     // ⛓️ 24 Sep — NINE: `rewriteMessages` is a programme-id action with the same finalizer.
+    // ⛓️ 29 Sep (R174 · 2a) — TEN: `resumeProgramme` is a programme-id action with the same finalizer.
     expect(settlers.filter(x => x === 'settleBusy'),
-      'a programme-id action lost its generation-scoped finalizer').toHaveLength(9)
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(10)
     // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
     // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
     // with the guarded four but is likewise not a programme-id action — it posts

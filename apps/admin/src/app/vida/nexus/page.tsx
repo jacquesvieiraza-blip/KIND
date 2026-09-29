@@ -29,6 +29,16 @@ const CONF: Record<string, { label: string; c: string; bg: string }> = {
   confident: { label: 'Confident',      c: '#059669', bg: '#ecfdf5' },
 }
 
+
+// ⚑ 29 Sep (R174 ② · 1g) — WHAT THE SWITCH REALLY DOES. It used to say "Nothing tunes until
+// Phase 2 ships". False: once on AND the confidence gate is met, `figsy.ts` (#511t2) folds this
+// client's booked-meeting pattern into every NEW email it writes, and `scoring.ts` (#511t3)
+// scores NEW people toward that pattern — which also moves what sourcing spends on.
+const AUTOTUNE_TRUTH =
+  'Off by default. When on — and once the confidence gate is met — Nexus changes how this client\'s new emails are written and how new people are scored, toward the kind of buyer who has booked with them. Emails already sent are not changed.'
+const AUTOTUNE_CONFIRM =
+  'Turn on auto-tune for this client?\n\nOnce the confidence gate is met, Nexus will change how their NEW emails are written and how NEW people are scored (which also changes who is sourced). Emails already sent are not changed. You can turn it off at any time.'
+
 export default function VidaNexusPage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -62,6 +72,8 @@ export default function VidaNexusPage() {
 
   async function toggleAutotune(enabled: boolean) {
     if (!selected) return
+    // ⚑ 29 Sep (R174 ② · 1g) — turning it ON changes real work, so it is asked, not clicked.
+    if (enabled && !window.confirm(AUTOTUNE_CONFIRM)) return
     setToggling(true)
     try {
       const res = await fetch('/api/proxy/operator/nexus/autotune', {
@@ -163,7 +175,7 @@ export default function VidaNexusPage() {
                         }>{tune.state}</span>
                       </div>
                       <p className="text-[11.5px] text-[#9b8ec4] mt-0.5">{tune.reason}</p>
-                      <p className="text-[10.5px] text-[#c3bad9] mt-0.5">Off by default. Enabling lets Nexus tune this client&apos;s copy/targeting — behind the confidence gate. Nothing tunes until Phase 2 ships.</p>
+                      <p className="text-[10.5px] text-[#c3bad9] mt-0.5">{AUTOTUNE_TRUTH}</p>
                     </div>
                     <button disabled={toggling} onClick={() => toggleAutotune(!tune.enabled)}
                       className={`shrink-0 text-[12px] font-bold rounded-lg py-2 px-4 disabled:opacity-50 ${tune.enabled ? 'text-[#5c5279] border border-[#ece5fb] bg-white' : 'text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899]'}`}>

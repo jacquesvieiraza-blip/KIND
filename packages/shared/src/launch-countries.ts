@@ -233,3 +233,19 @@ export function launchTargetRefusal(country: string): string {
   // No article here either — see `openCountriesPhrase()`.
   return `We can't target ${String(country).trim()} yet — right now we source and send in ${openCountriesPhrase()} only. Remove it to save your targeting, and we'll tell you the moment it opens up.`
 }
+
+/**
+ * ⚑ 29 Sep (R174 · fix) — THE CHOICES FOR A CLIENT'S OWN COUNTRY (Settings → Business Profile).
+ *
+ * ⛓️ Settings offered `SUPPORTED_COUNTRIES` — the ten-country African list the old ICP builder
+ * suggested — and defaulted to "South Africa". A UK or US client saw "South Africa", and pressing
+ * Save wrote it over their real country. Now: their saved country first (always kept, whatever
+ * it is), then the launch countries, then the rest; and no default — an unknown country stays
+ * empty rather than being guessed.
+ */
+export function clientCountryOptions(saved: string | null | undefined): string[] {
+  const own = (saved ?? '').trim()
+  const rest = ['United States', 'United Kingdom', 'South Africa', 'Ireland', 'Canada', 'Australia',
+    'New Zealand', 'Germany', 'France', 'Netherlands', 'Nigeria', 'Kenya', 'Ghana', 'Egypt']
+  return [...new Set([...(own ? [own] : []), ...rest])]
+}

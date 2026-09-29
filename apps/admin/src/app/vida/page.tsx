@@ -301,6 +301,9 @@ function shortfallCreditWords(onePayment: boolean, verb: 'is' | 'was'): string {
     : `${verb} credit toward another programme — on the terms they bought, it does not expire`
 }
 
+/** ⚑ 29 Sep (R174 · 4i) — what the view-only Campaign tab says about itself. */
+const CAMPAIGN_VIEW_NOTE = 'View only. The campaign is made from the approved ICP when the programme goes live; pause and resume are on the Programme tab.'
+
 export default function VidaConsolePage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   // ⚑ 4 Sep — THE SELECTED CLIENT IS THE SHELL'S, because the conversation is scoped to it.
@@ -2497,24 +2500,6 @@ export default function VidaConsolePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCampaign?.id])
 
-  // Sourced column — the operator NEVER spends (#493, invariant #1). The only actions are
-  // SURFACE the masked lead to the client for their own 👍 in Milla ("send"), or PASS it.
-  async function act(leadId: string, kind: 'surface' | 'pass') {
-    if (!selected) return
-    setActing(leadId)
-    try {
-      const res = await fetch(`/api/proxy/operator/leads/${encodeURIComponent(leadId)}/${kind}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: selected }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
-      await loadBoard(selected)
-      if (people) await loadPeople(selected, activeCampaign?.id)
-    } catch (e) {
-      setBoardError(e instanceof Error ? e.message : 'Action failed')
-    } finally { setActing(null) }
-  }
-
   // K.I.N.D OWNS GO (22 Aug) — activate a client's ICP on their behalf.
   //
   // Activation is what makes an ICP live and, for a never-run ICP, starts its first sourcing
@@ -2654,7 +2639,8 @@ export default function VidaConsolePage() {
         return true
       },
       buildIcp: () => { setIcpFresh(true); setIcpChat([]); setIcpProposal(null); setTab('ICP'); setIcpMode('chat') },
-      buildCampaign: () => { setTab('Campaign'); if (!activeCampaign) suggestCampaign() },
+      // ⚑ 29 Sep (R174 · 4i) — the Campaign tab is view-only; the campaign is made at go-live.
+      buildCampaign: () => { setTab('Campaign') },
       draftSequence: () => { setTab('Sequence'); suggestSequence() },
     })
   })
@@ -3979,13 +3965,10 @@ export default function VidaConsolePage() {
                         is nothing to assign. Everyone sourced goes to the client; the client
                         picks; their 👍 is what puts someone into the campaign. */}
                     <b className="text-[13.5px]">{people.length} people · {people.filter(p => p.in_campaign).length} working</b>
+                    {/* ⚑ 29 Sep (R174 · 4i) — VIEW-ONLY. The client's 👍 in Milla is the only thing
+                        that moves a person here; Vida no longer sends or passes people one by one. */}
                     <p className="text-[11.5px] text-[#9b8ec4] mt-1">
-                      Everyone here went to the client, scored, with the top 20 recommended.
-                      {programmeModel
-                        ? 'Their 👍 starts the work — nothing is charged, and you don’t assign anyone.'
-                        : unresolvedModel
-                          ? 'Their 👍 starts the work — you don’t assign anyone.'
-                          : 'Their 👍 charges $4 and starts the work — you don’t assign anyone.'}
+                      Everyone here went to the client, scored, with the top 20 recommended. Their 👍 starts the work — this list is to look at, not to change.
                     </p>
                     {saveMsg && <p className={`text-[12.5px] font-semibold mt-1 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </div>
@@ -4009,12 +3992,7 @@ export default function VidaConsolePage() {
                           ? <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">in campaign</span>
                           : p.enrolled
                             ? <span className="text-[11px] font-extrabold text-[#9b8ec4] bg-[#f7f4fd] border border-[#eee7f7] rounded-full px-2 py-0.5">working</span>
-                            : (<>
-                              <button onClick={() => act(p.id, 'surface')} disabled={acting !== null}
-                                className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
-                              <button onClick={() => act(p.id, 'pass')} disabled={acting !== null}
-                                className="text-[12.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
-                            </>)}
+                            : <span className="text-[11px] font-extrabold text-[#9b8ec4] bg-[#f7f4fd] border border-[#eee7f7] rounded-full px-2 py-0.5">with the client</span>}
                       </div>
                     </div>
                   ))}
@@ -4044,151 +4022,14 @@ export default function VidaConsolePage() {
                           </div>
                         ))}
                     </div>
-                  ) : campEdit ? (
-                    <div>
-                      <button onClick={() => setCampEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
-                      <b className="text-[14px] block mb-2">{campEdit.id ? 'Edit campaign' : 'New campaign'}</b>
-                      <label className="block mb-2">
-                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Name</span>
-                        <input value={campEdit.name} onChange={e => setCampEdit({ ...campEdit, name: e.target.value })}
-                          placeholder="e.g. SA logistics COOs"
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
-                      </label>
-                      <label className="block mb-2">
-                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Who it hunts, and why now</span>
-                        <textarea value={campEdit.campaign_intent} rows={3}
-                          onChange={e => setCampEdit({ ...campEdit, campaign_intent: e.target.value })}
-                          placeholder="This is the brief every email is written from — be specific."
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed mt-0.5 outline-none focus:border-[#7C3AED]" />
-                      </label>
-                      <label className="block mb-3">
-                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Daily send cap</span>
-                        <input type="number" min={1} max={500} value={campEdit.daily_send_limit}
-                          onChange={e => setCampEdit({ ...campEdit, daily_send_limit: e.target.value })}
-                          placeholder="blank = platform default"
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
-                      </label>
-                      {/* V7 — THE SEND WINDOW. Real, not decorative: settings.send_days /
-                          send_hour_utc were write-only until this PR; the send cron now
-                          honours them. No days picked = any day; no hour = any hour. */}
-                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[13px] block mb-1.5">When it may send</b>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {DAY_LABELS.map(([key, label]) => {
-                            const on = campEdit.send_days.includes(key)
-                            return (
-                              <button key={key} type="button"
-                                onClick={() => setCampEdit({
-                                  ...campEdit,
-                                  send_days: on ? campEdit.send_days.filter(d => d !== key) : [...campEdit.send_days, key],
-                                })}
-                                className={`text-[12.5px] font-bold rounded-lg border px-2.5 py-1 ${on ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#5c5279] bg-white border-[#ece5fb] hover:border-[#d9c9f7]'}`}>
-                                {label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        <label className="flex items-center gap-2 text-[12.5px] text-[#5c5279]">
-                          Not before
-                          <select value={campEdit.send_hour_utc}
-                            onChange={e => setCampEdit({ ...campEdit, send_hour_utc: e.target.value })}
-                            className="border border-[#ece5fb] rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#7C3AED]">
-                            <option value="">any hour</option>
-                            {Array.from({ length: 24 }, (_, h) => (
-                              <option key={h} value={String(h)}>{String(h).padStart(2, '0')}:00 UTC</option>
-                            ))}
-                          </select>
-                        </label>
-                        <p className="text-[11.5px] text-[#9b8ec4] mt-1.5">
-                          {campEdit.send_days.length === 0 && !campEdit.send_hour_utc.trim()
-                            ? 'Any day, any hour — the daily cap and kill-switch still apply.'
-                            : `Sends only ${campEdit.send_days.length ? DAY_LABELS.filter(([k]) => campEdit.send_days.includes(k)).map(([, l]) => l).join(' · ') : 'any day'}${campEdit.send_hour_utc.trim() ? `, from ${String(campEdit.send_hour_utc).padStart(2, '0')}:00 UTC` : ''}. Anything due outside it waits — nothing is lost.`}
-                        </p>
-                      </div>
-
-                      {/* V7 — A/B SUBJECT VARIANTS. ab_subject_b IS read by the engine
-                          (lib/figsy.ts picks a variant) and the #511 auto-tune cron scores
-                          them, so filling B is what switches the test on. */}
-                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[13px] block">Subject A/B test</b>
-                        <p className="text-[11.5px] text-[#9b8ec4] mb-1.5">
-                          Step 1&rsquo;s own subject is variant A. Add B to start testing; C–E are optional.
-                        </p>
-                        {([['ab_subject_b', 'B'], ['ab_subject_c', 'C'], ['ab_subject_d', 'D'], ['ab_subject_e', 'E']] as [keyof CampEdit, string][]).map(([key, letter]) => (
-                          <label key={String(key)} className="flex items-center gap-2 mb-1">
-                            <span className="w-4 text-[12px] font-extrabold text-[#b3a9cc]">{letter}</span>
-                            <input value={String(campEdit[key] ?? '')} maxLength={200}
-                              onChange={e => setCampEdit({ ...campEdit, [key]: e.target.value })}
-                              placeholder={letter === 'B' ? 'e.g. quick question about {{company}}' : 'optional'}
-                              className="flex-1 border border-[#ece5fb] rounded-lg px-2.5 py-1.5 text-[13px] outline-none focus:border-[#7C3AED]" />
-                          </label>
-                        ))}
-                      </div>
-
-                      {/* V8 — Auto-Pilot vs Co-Pilot. Co-Pilot writes approve_before_send, so
-                          every email stops at the Approvals tab before it reaches a prospect. */}
-                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[13px] block mb-1.5">How it sends</b>
-                        {([[true, 'Co-Pilot', 'Every email waits for you on the Approvals tab.'], [false, 'Auto-Pilot', 'Sends flow on schedule. Kill-switch and caps still apply.']] as [boolean, string, string][]).map(([mode, label, hint]) => (
-                          <label key={label} className={`flex items-start gap-2 rounded-lg px-2.5 py-2 mb-1 cursor-pointer border ${campEdit.copilot_mode === mode ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-transparent hover:bg-[#faf8ff]'}`}>
-                            <input type="radio" name="pilot" checked={campEdit.copilot_mode === mode}
-                              onChange={() => setCampEdit({ ...campEdit, copilot_mode: mode })}
-                              className="mt-0.5 accent-[#7C3AED]" />
-                            <span>
-                              <b className="text-[13px] block">{label}</b>
-                              <span className="text-[12px] text-[#9b8ec4]">{hint}</span>
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => saveCampaign()} disabled={cockpitBusy || !campEdit.name.trim()}
-                          className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
-                          {cockpitBusy ? 'Saving…' : campEdit.id ? 'Save changes' : 'Create campaign'}
-                        </button>
-                        <button onClick={() => setCampEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
-                      </div>
-                      {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
-                    </div>
                   ) : (<>
-                    {/* V6 — Vida proposes; the operator approves. Never auto-created behind us. */}
-                    {cockpit.campaigns.length === 0 && !proposal && (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-3">
-                        <b className="text-[13.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
-                        <p className="text-[12.5px] text-amber-700 mt-1">{programmeModel
-                          ? 'Approvals are blocked while no campaign is active. Nothing is charged on this plan either way.'
-                          : unresolvedModel
-                            ? 'Approvals are blocked while no campaign is active.'
-                            : 'Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.'}</p>
-                        <div className="flex gap-2 mt-2.5">
-                          <button onClick={suggestCampaign} disabled={cockpitBusy}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
-                            {cockpitBusy ? 'Thinking…' : '✨ Suggest a campaign'}
-                          </button>
-                          <button onClick={() => openCampEditor()} disabled={cockpitBusy}
-                            className="border border-amber-300 bg-white text-amber-800 rounded-lg px-3 py-2 text-[13.5px] font-bold disabled:opacity-60">Write it myself</button>
-                          <button onClick={startCampaign} disabled={cockpitBusy}
-                            className="text-[12.5px] font-bold text-amber-800 underline disabled:opacity-60">Just unblock them</button>
-                        </div>
-                      </div>
-                    )}
-                    {proposal && (
-                      <div className="rounded-xl border border-[#e4dcf7] bg-[#faf8ff] px-4 py-3 mb-3">
-                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Vida proposes · from ICP “{proposal.icp_name}”</span>
-                        <b className="text-[14px] block mt-1">{proposal.name}</b>
-                        <p className="text-[12.5px] text-[#5c5279] leading-relaxed mt-1">{proposal.campaign_intent}</p>
-                        <div className="flex gap-2 mt-2.5">
-                          <button onClick={() => saveCampaign({ name: proposal.name, campaign_intent: proposal.campaign_intent, copilot_mode: true })}
-                            disabled={cockpitBusy}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
-                            {cockpitBusy ? 'Creating…' : 'Approve & create'}
-                          </button>
-                          <button onClick={() => openCampEditor()} disabled={cockpitBusy}
-                            className="border border-[#ece5fb] bg-white rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Edit first</button>
-                          <button onClick={() => setProposal(null)} className="text-[12.5px] font-bold text-[#9b8ec4]">Discard</button>
-                        </div>
-                        <p className="text-[11.5px] text-[#9b8ec4] mt-2">New campaigns start in Co-Pilot — every email stops at Approvals until you switch it.</p>
-                      </div>
+                    {/* ⚑ 29 Sep (R174 · 4i) — VIEW-ONLY. On the programme the campaign is made from the
+                        approved ICP when the programme goes live, and it is paused and resumed on the
+                        Programme tab. Writing, suggesting, running or pausing a campaign here was the
+                        old per-client path; what stays is looking — who is in it, and step 1. */}
+                    <p className="text-[11.5px] text-[#9b8ec4] mb-2.5">{CAMPAIGN_VIEW_NOTE}</p>
+                    {cockpit.campaigns.length === 0 && (
+                      <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">No campaign yet — it is made from the approved ICP when the programme goes live.</p>
                     )}
                     {cockpit.campaigns.map(c => (
                       <div key={c.id} className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
@@ -4200,21 +4041,10 @@ export default function VidaConsolePage() {
                           <span className={`ml-auto shrink-0 text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                          <button onClick={() => openCampEditor(c)} disabled={cockpitBusy}
-                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Edit</button>
                           <button onClick={() => openEnrollments(c)} disabled={cockpitBusy}
                             className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Who&rsquo;s in it</button>
-                          {/* V12 — test before a real prospect ever sees it. */}
                           <button onClick={() => testCampaign(c.id, false)} disabled={cockpitBusy}
                             className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview step 1</button>
-                          <button onClick={() => testCampaign(c.id, true)} disabled={cockpitBusy}
-                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Email me a test</button>
-                          {/* V13 — run / pause. */}
-                          {c.status === 'active'
-                            ? <button onClick={() => setCampaignStatus(c.id, 'paused')} disabled={cockpitBusy}
-                                className="text-[12.5px] font-bold text-[#9b8ec4] border border-[#ece5fb] rounded-lg px-2.5 py-1 disabled:opacity-50">Pause</button>
-                            : <button onClick={() => setCampaignStatus(c.id, 'active')} disabled={cockpitBusy}
-                                className="text-[12.5px] font-bold text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899] rounded-lg px-2.5 py-1 disabled:opacity-50">Run it</button>}
                         </div>
                       </div>
                     ))}
@@ -4228,10 +4058,6 @@ export default function VidaConsolePage() {
                         <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{testResult.preview.body}</p>
                         {testResult.sent && <p className="text-[12px] font-semibold text-emerald-700 mt-2">Emailed to {testResult.to}.</p>}
                       </div>
-                    )}
-                    {cockpit.campaigns.length > 0 && (
-                      <button onClick={suggestCampaign} disabled={cockpitBusy}
-                        className="mt-1 text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">✨ Suggest another campaign</button>
                     )}
                     {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </>)

@@ -357,7 +357,9 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   { file: 'apps/portal/src/app/(dashboard)/AgentColumn.tsx', what: 'pathname regexes ×3', klass: 'B', why: 'URL routing; the subject is the address bar, not a sentence' },
   // ⛓️ 29 Sep (R174 · 2a) — ×5 → ×7: the Pause / Resume controls ask whether the programme's
   // status is COMPLETED or CANCELLED. Enum membership, same class.
-  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab / send-day .includes ×7', klass: 'B', why: 'enum membership on operator state' },
+  // ⛓️ 29 Sep (R174 · 4i) — ×7 → ×5: the campaign editor's two send-day checks left with the
+  // editor (the Campaign tab is view-only). Nothing new reads a customer's words.
+  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab .includes ×5', klass: 'B', why: 'enum membership on operator state' },
 
   { file: 'apps/api/src/routes/icps.ts',            what: '/check constraint|violates/i.test(error.message)', klass: 'B', why: 'matches a DATABASE error string, never a customer sentence' },
   { file: 'apps/api/src/routes/icps.ts',            what: '/column|schema cache/i.test(icpUpdateErr.message)', klass: 'B', why: 'same — a Postgres error' },
@@ -417,7 +419,7 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/portal/src/app/(milla)/milla/chat/page.tsx': 0,
       'apps/portal/src/lib/get-help-state.ts': 0,
       'apps/admin/src/components/vida/VidaConversation.tsx': 0,
-      'apps/admin/src/app/vida/page.tsx': 7,
+      'apps/admin/src/app/vida/page.tsx': 5,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left
     }
     const RE = /\.match\(|\.test\(|new RegExp|toLowerCase\(\)|\.includes\(/g
     for (const [file, n] of Object.entries(EXPECTED)) {

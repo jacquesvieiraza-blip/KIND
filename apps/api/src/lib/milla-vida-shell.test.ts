@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 const PORTAL = join(__dirname, '../../../portal/src')
@@ -619,7 +619,9 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
   it('🛑 EVERY NON-RETIRED DESTINATION IS STILL REACHABLE, and the 11 tabs still WRAP', () => {
     const nav = read(join(ADMIN, 'lib/vida-nav.ts'))
     const RETIRED = ['/vida/ops', '/vida/compliance', '/vida/outreach']
-    for (const href of ['/vida', '/vida/queue', '/vida/bookings', '/vida/suppression', '/vida/audit',
+    // ⛓️ 29 Sep (R174 ① · 4i) — '/vida/queue' left the menu by the founder's decision ("approvals
+    // tab"); its page still exists and is asserted below, so it is not a lost destination.
+    for (const href of ['/vida', '/vida/bookings', '/vida/suppression', '/vida/audit',
       '/vida/reports', '/vida/nexus', '/vida/demo', '/vida/system', '/vida/sending', '/vida/engine',
       '/vida/cockpit', '/vida/clients-admin', '/vida/money-path', '/vida/billing', '/vida/revenue',
       '/vida/gtm', '/vida/unibox', '/vida/health', '/vida/founder',
@@ -627,6 +629,8 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
       expect(RETIRED, 'this list must not contain a retired route').not.toContain(href)
       expect(nav, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
     }
+    expect(nav, 'the Lead queue is back on the menu').not.toContain("href: '/vida/queue'")
+    expect(existsSync(join(ADMIN, 'app/vida/queue/page.tsx')), 'the Lead queue page was deleted').toBe(true)
     // ⛓️ 16 Sep (MVP1 · A2) — RE-POINTED TO WHERE THE LIST LIVES, AND STILL ELEVEN.
     //
     // The DUTY is unchanged: prove no operator destination went missing. What moved is the

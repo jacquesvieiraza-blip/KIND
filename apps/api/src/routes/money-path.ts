@@ -327,6 +327,29 @@ moneyPathRouter.patch('/client/:id/demo', async (req: Request, res: Response) =>
       res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid payload' })
       return
     }
+    // ⚑ 29 Sep (R174 ② · 1f) — the switch cannot undo the demo's safety or hide a paying client.
+    // Un-demoing Northwind would lift every R164 lock at once (it could then be charged, send and
+    // be alerted on); marking a client who has paid for a programme as a demo would silently drop
+    // real money from every business number.
+    {
+      const { data: cur, error: readErr } = await db.from('clients')
+        .select('id, company_name, is_demo').eq('id', req.params.id).maybeSingle()
+      if (readErr) { res.status(503).json({ success: false, error: 'This client could not be read, so nothing was changed.' }); return }
+      if (!cur) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+      const { NORTHWIND_NAME } = await import('../lib/demo-northwind-data')
+      if (parsed.data.is_demo === false && (cur as { is_demo?: boolean }).is_demo === true
+          && (cur as { company_name?: string }).company_name === NORTHWIND_NAME) {
+        res.status(409).json({ success: false, error: 'Northwind is the demo account and stays a demo — un-demoing it would let it be charged and send. Nothing was changed.' }); return
+      }
+      if (parsed.data.is_demo === true) {
+        const { data: paid, error: payErr } = await db.from('programmes').select('id')
+          .eq('client_id', req.params.id).not('first_paid_at', 'is', null).limit(1)
+        if (payErr) { res.status(503).json({ success: false, error: 'Payments could not be read, so nothing was changed.' }); return }
+        if ((paid ?? []).length > 0) {
+          res.status(409).json({ success: false, error: 'This client has paid for a programme — marking it a demo would hide real revenue. Nothing was changed.' }); return
+        }
+      }
+    }
     const { error, data } = await db
       .from('clients')
       .update({ is_demo: parsed.data.is_demo })

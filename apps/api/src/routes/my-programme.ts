@@ -1008,6 +1008,11 @@ myProgrammeRouter.post('/meetings/challenge', async (req: AuthRequest, res) => {
       res.status(code).json({ success: false, error: r.message, code: r.reason })
       return
     }
+    // ⚑ 29 Sep (R174 ② · 1f) — the demo's challenge is recorded (it looks real) but never pages anyone.
+    {
+      const { demoCheck } = await import('../lib/demo-guard')
+      if ((await demoCheck(clientId)) === 'demo') { res.json({ success: true, data: { challenged_at: r.challengedAt } }); return }
+    }
     const { sendFounderAlert } = await import('../lib/alerts')
     // ⚠️ An existing alert class, not a new one: a client asking for a person is exactly what
     // `support_escalation` files in Vida Needs-you.

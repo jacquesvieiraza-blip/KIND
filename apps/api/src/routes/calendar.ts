@@ -408,6 +408,13 @@ calendarRouter.get('/connect', requireAuth, async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // ⚑ 29 Sep (R174 ② · 1f) — a demo account never binds a real Google account.
+    {
+      const { demoCheck, demoRefusal } = await import('../lib/demo-guard')
+      const refuse = demoRefusal(await demoCheck(clientId))
+      if (refuse) { res.status(refuse.status).json({ success: false, error: refuse.error }); return }
+    }
+
     // #368 — signed, short-lived CSRF state (was raw base64(clientId)).
     const url = await getAuthUrl(signOAuthState(clientId))
     res.json({ success: true, url })

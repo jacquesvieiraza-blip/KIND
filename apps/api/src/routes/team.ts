@@ -42,6 +42,12 @@ router.post('/invite', async (req: AuthRequest, res): Promise<void> => {
 
   const clientId = await ownerClientId(req.userId!)
   if (!clientId) { res.status(404).json({ error: 'No workspace for this user' }); return }
+  // ⚑ 29 Sep (R174 ② · 1f) — a demo account never sends an invite.
+  {
+    const { demoCheck, demoRefusal } = await import('../lib/demo-guard')
+    const refuse = demoRefusal(await demoCheck(clientId))
+    if (refuse) { res.status(refuse.status).json({ error: refuse.error }); return }
+  }
 
   const token = crypto.randomBytes(32).toString('hex')
   const supabase = db()

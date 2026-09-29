@@ -735,6 +735,12 @@ programmeRouter.post('/:id/settle-shortfall', guard(async (req: Request, res: Re
     res.status(400).json({ success: false, error: 'Delivered meetings must be a whole number of at least 0.' })
     return
   }
+  // ⚑ 29 Sep (R174 ② · 1f) — a demo programme is never settled (it would credit a wallet and change the demo).
+  {
+    const { programmeDemoCheck, demoRefusal } = await import('../lib/demo-guard')
+    const refuse = demoRefusal(await programmeDemoCheck(req.params.id))
+    if (refuse) { res.status(refuse.status).json({ success: false, error: refuse.error }); return }
+  }
   const r = await settleProgrammeFromRecord({
     programmeId: req.params.id,
     confirmedDelivered: confirmed,

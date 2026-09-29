@@ -246,14 +246,14 @@ export default function ProgrammeApproval({
     setBusy(true); setError(null)
     try {
       const { createClient } = await import('@/lib/supabase/client')
-      const { api } = await import('@/lib/api')
+      const { api, PRESS_TIMEOUT_MS } = await import('@/lib/api')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       // ⚠️ THE VERSION THEY ARE LOOKING AT, from the payload that drew this screen. If the
       // package has moved on since, the server refuses and Milla re-renders the current one —
       // it never silently approves something the client has not read.
       const r = await api.post<{ data: { approved_at: string | null } }>(
-        '/my/programme/approve', { version: data.frozen?.version ?? null }, session?.access_token)
+        '/my/programme/approve', { version: data.frozen?.version ?? null }, session?.access_token, PRESS_TIMEOUT_MS)
       // ── ⚑ 24 Sep (R145 step 5 · #32) — "APPROVE vN AND PAY P2" IS ONE PRESS, IN TWO ACTS ──────
       // This screen records the DECISION and nothing else (④: approving spends nothing). The page
       // that holds it opens the second payment in `onApproved`, after the approval is stored — so

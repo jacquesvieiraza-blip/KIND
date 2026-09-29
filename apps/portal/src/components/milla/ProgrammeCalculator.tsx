@@ -29,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, PRESS_TIMEOUT_MS } from '@/lib/api'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import { programmeMoney } from '@/lib/programme-money'
@@ -230,7 +230,7 @@ export function ProgrammeCalculator({ onChosen, startAt, onWiden, alreadyAccepte
         // ⚑ #30 — back to the ONE screen, told the payment arrived (see `paidReturn`).
         successUrl: `${window.location.origin}/milla?paid=first`,
         cancelUrl: window.location.href,
-      }, tk)
+      }, tk, PRESS_TIMEOUT_MS)
       if (!r.data?.url) throw new Error('We could not start the payment. Nothing was charged.')
       window.location.href = r.data.url
     } catch (e) {

@@ -175,7 +175,9 @@ describe('the doors', () => {
 
   it('Vida draws the button only for a package awaiting approval that was never approved, and outside the six lifecycle moves', () => {
     const vida = read('../../../admin/src/app/vida/page.tsx')
-    expect(vida).toContain("return !!p && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true")
+    // ~~expect(vida).toContain("return !!p && p.status === 'READY_FOR_APPROVAL' && …")~~
+    // ⛓️ 29 Sep (R174 ⑧ · PR 8d): the same rule, and never on the demo (demo-realism.test.ts).
+    expect(vida).toContain("return !!p && !selectedIsDemo() && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true")
     expect(vida).toContain('{canRewriteMessages() && (')
     // Its own function, like the re-freeze: never a seventh `lifecycle()` move.
     expect(vida).toContain('const rewriteMessages = useCallback')

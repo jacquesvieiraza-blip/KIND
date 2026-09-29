@@ -2347,6 +2347,18 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 // — because for programme state there was nowhere. These routes are that nowhere, filled in.
 //
 // ⚠️ READ-ONLY except for the ONE reversible action at the end of this block.
+// ⚑ 29 Sep (R174 · 4e) — WHAT EACH PROGRAMME WAS BOUGHT FOR AND WHAT WAS PAID, in one read
+// (`lib/programme-money.ts`). Revenue, Billing, Money Path and Reports read this.
+operatorRouter.get('/programme-money', async (_req: Request, res: Response) => {
+  try {
+    const { programmeMoneyBook } = await import('../lib/programme-money')
+    res.json({ success: true, data: await programmeMoneyBook() })
+  } catch (err) {
+    console.error('[operator/programme-money]', err)
+    res.status(503).json({ success: false, error: 'Programme money could not be read. Nothing is shown rather than a wrong number.' })
+  }
+})
+
 operatorRouter.get('/programme', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

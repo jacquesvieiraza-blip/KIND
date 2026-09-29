@@ -2359,6 +2359,17 @@ operatorRouter.get('/programme-money', async (_req: Request, res: Response) => {
   }
 })
 
+// ⚑ 29 Sep (R174 · 5f) — live programmes at risk, from programme signals (Cockpit reads it).
+operatorRouter.get('/programme-risk', async (_req: Request, res: Response) => {
+  try {
+    const { programmesAtRisk } = await import('../lib/programme-risk')
+    res.json({ success: true, data: await programmesAtRisk() })
+  } catch (err) {
+    console.error('[operator/programme-risk]', err)
+    res.status(503).json({ success: false, error: 'Which programmes are at risk could not be read.' })
+  }
+})
+
 operatorRouter.get('/programme', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

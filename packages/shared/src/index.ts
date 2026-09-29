@@ -31,6 +31,7 @@ export * from './programme-calculator'
 // be settled BEFORE either of the other two is allowed to quote a number.
 export * from './programme-capacity'
 export * from './programme-stage'
+export * from './reply-kinds'   // ⚑ 29 Sep (R174 · 5h)
 // ⚑ MVP1 — the SIX visible stages per console, projected from the engine truth above. One
 // vocabulary for both apps (C41); it decides nothing and stores nothing. See its header.
 export * from './mvp1-stage'

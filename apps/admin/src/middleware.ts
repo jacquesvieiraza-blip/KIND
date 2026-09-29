@@ -100,7 +100,7 @@ export async function middleware(request: NextRequest) {
     const LEGACY_TO_VIDA: Record<string, string> = {
       clients: 'clients-admin', unibox: 'unibox', revenue: 'revenue', ops: 'ops',
       compliance: 'compliance', outreach: 'outreach', cockpit: 'cockpit', billing: 'billing',
-      health: 'health', 'money-path': 'money-path', gtm: 'gtm', founder: 'founder',
+      health: 'system', 'money-path': 'money-path', gtm: 'gtm', founder: 'founder',   // ⛓️ 29 Sep (R174 · 5g) — health → system
     }
     // ⚑ 29 Sep (R174 · 4a) — THE OLD PAGES, REDIRECTED INTO VIDA (NOT DELETED). Each quoted
     // retired prices, fake numbers or a model that no longer exists, and was one typed address
@@ -110,9 +110,13 @@ export async function middleware(request: NextRequest) {
     const RETIRED_TO_VIDA: Record<string, string> = {
       messages: 'unibox', command: 'cockpit', cmo: 'gtm',
       activation: 'gtm', activity: 'gtm', cohorts: 'gtm', analytics: 'gtm',
-      agents: 'health', status: 'health', launch: 'health', smoketest: 'health',
+      agents: 'system', status: 'system', launch: 'system', smoketest: 'system',   // ⛓️ 29 Sep (R174 · 5g) — was 'health'
       roadmap: 'cockpit', scalability: 'cockpit', docs: 'cockpit', 'data-moat': 'cockpit',
       'terms-library': 'compliance',
+    }
+    // ⚑ 29 Sep (R174 · 5g) — Vida's Health screen merged into System (the file is kept, R116).
+    if (pathname === '/vida/health' || pathname.startsWith('/vida/health/')) {
+      return NextResponse.redirect(new URL('/vida/system', base))
     }
     if (RETIRED_TO_VIDA[seg]) {
       return NextResponse.redirect(new URL(`/vida/${RETIRED_TO_VIDA[seg]}`, base))

@@ -625,12 +625,15 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
     for (const href of ['/vida', '/vida/bookings', '/vida/suppression', '/vida/audit',
       '/vida/reports', '/vida/nexus', '/vida/demo', '/vida/system', '/vida/sending', '/vida/engine',
       '/vida/cockpit', '/vida/clients-admin', '/vida/money-path', '/vida/billing', '/vida/revenue',
-      '/vida/gtm', '/vida/unibox', '/vida/health', '/vida/founder',
+      // ⛓️ 29 Sep (R174 · 5g) — '/vida/health' merged into System; it redirects there (asserted below).
+      '/vida/gtm', '/vida/unibox', '/vida/founder',
       '/vida/governed-documents', '/vida/partners']) {
       expect(RETIRED, 'this list must not contain a retired route').not.toContain(href)
       expect(nav, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
     }
     expect(nav, 'the Lead queue is back on the menu').not.toContain("href: '/vida/queue'")
+    expect(nav, 'Health is back on the menu').not.toContain("href: '/vida/health'")
+    expect(read(join(ADMIN, 'middleware.ts')), 'Health no longer lands on System').toContain("return NextResponse.redirect(new URL('/vida/system', base))")
     expect(existsSync(join(ADMIN, 'app/vida/queue/page.tsx')), 'the Lead queue page was deleted').toBe(true)
     // ⛓️ 16 Sep (MVP1 · A2) — RE-POINTED TO WHERE THE LIST LIVES, AND STILL ELEVEN.
     //

@@ -975,7 +975,9 @@ adminRouter.get('/cron-runs', async (_req: Request, res: Response) => {
       .select('job, started_at, finished_at, ok, note')
       .order('started_at', { ascending: false })
       .limit(1000)
-    if (error || !data) { res.json({ success: true, data: { jobs: [] } }); return }
+    // ⛓️ 29 Sep (R174 · 5g) — ~~an unreadable table answered `{ jobs: [] }`~~, which the screen could
+    // only show as "no jobs". A failed read now says it failed; System prints "could not be read".
+    if (error || !data) { res.status(503).json({ success: false, error: `cron_runs could not be read${error ? `: ${error.message}` : ''}` }); return }
 
     const seen = new Map<string, { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }>()
     for (const row of data as { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }[]) {
@@ -985,7 +987,7 @@ adminRouter.get('/cron-runs', async (_req: Request, res: Response) => {
     res.json({ success: true, data: { jobs } })
   } catch (err) {
     console.error('[admin/cron-runs]', err)
-    res.json({ success: true, data: { jobs: [] } })
+    res.status(503).json({ success: false, error: 'cron_runs could not be read' })
   }
 })
 
@@ -998,11 +1000,13 @@ adminRouter.get('/errors', async (_req: Request, res: Response) => {
       .select('id, route, method, status, message, created_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    if (error || !data) { res.json({ success: true, data: { errors: [] } }); return }
+    // ⛓️ 29 Sep (R174 · 5g) — ~~an unreadable table answered `{ errors: [] }`~~, which rendered as
+    // "No errors captured — clean". A failed read now says it failed.
+    if (error || !data) { res.status(503).json({ success: false, error: `error_events could not be read${error ? `: ${error.message}` : ''}` }); return }
     res.json({ success: true, data: { errors: data } })
   } catch (err) {
     console.error('[admin/errors]', err)
-    res.json({ success: true, data: { errors: [] } })
+    res.status(503).json({ success: false, error: 'error_events could not be read' })
   }
 })
 

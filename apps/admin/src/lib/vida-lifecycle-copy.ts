@@ -22,7 +22,13 @@
 // 🛑 No batch id, no RPC, no status enum, no column name, no provider. The operator is looking
 // at a client's programme, and a screen that says `READY_FOR_APPROVAL` or `batch_id` is
 // describing us to somebody who is trying to think about them.
+//
+// ⚑ 29 Sep (R174 ⑥ · PR 6b) — THE STAGE TILE PRINTS ONE OF THE SIX (R127), the caption under
+// it is the sub-state. It used to print the eight engine words (Recommendation, Sourcing,
+// Live, Review, Completion), so the tile and the ribbon above it named different stages.
 // ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { mvp1VidaStage } from '@kind/shared'
 
 export type LifecycleState =
   | 'signup' | 'proof' | 'recommendation'
@@ -403,7 +409,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What do we know about them?', 'Anything blocking?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Signup', caption: 'Just arrived' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('signup'), caption: 'Just arrived' },
           // ⚑ 10 Sep (C03) — "Milla will ask" was unconditional and sometimes already false:
           // a client can state their outcome at onboarding, before any programme exists.
           { kind: 'fact', label: 'Outcome',
@@ -446,7 +452,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
       }
       const notes = [...new Set([...(att(1)?.notes ?? []), ...(att(2)?.notes ?? [])])]
       const cards: PanelCard[] = [
-        { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Calibration handed to a person' },
+        { kind: 'fact', label: 'Stage', value: mvp1VidaStage('proof'), caption: 'Calibration handed to a person' },
         { kind: 'fact', label: 'Why', value: 'Two attempts, still wrong',
           caption: cal?.why ?? 'Both automatic attempts were used and the targeting is still not right.' },
         { kind: 'fact', label: 'Desired outcome',
@@ -582,7 +588,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         messages,
         chips: ['Why were they all set aside?', 'What should I change?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'We produced nothing to show' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('proof'), caption: 'We produced nothing to show' },
           { kind: 'note', label: 'What happened', tone: 'exception',
             body: breakdown
               ? `Every sourced prospect failed a hard criterion: ${breakdown}. Nothing was shown to the client.`
@@ -625,7 +631,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What could we not translate?', 'What did the client say?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Blocked before any search' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('proof'), caption: 'Blocked before any search' },
           { kind: 'fact', label: 'Searched', value: 'Nothing yet',
             caption: 'No attempt claimed, no records bought — a retry costs them nothing' },
           { kind: 'fact', label: 'Client sees',
@@ -646,7 +652,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What are they calibrating?', 'Anything blocking?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Targeting is being calibrated' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('proof'), caption: 'Targeting is being calibrated' },
           { kind: 'fact', label: 'Desired outcome',
             value: target ? `${target} booked meetings` : i.outcomeStated ? 'In their words' : 'Being agreed',
             // ⚑ 10 Sep (C03) — during Proof there is no target and the client HAS said what
@@ -674,7 +680,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Why did it fail?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'The latest run failed or went silent' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('proof'), caption: 'The latest run failed or went silent' },
           { kind: 'fact', label: 'Their attempt', value: 'Still available', caption: 'The failed run released it' },
           { kind: 'fact', label: 'Waiting on', value: 'Us' },
           vidaCard('Needs you'),
@@ -691,7 +697,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Why could we not confirm their size?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Recommendation', caption: 'Their price is waiting on their size' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('recommendation'), caption: 'Their price is waiting on their size' },
           { kind: 'fact', label: 'Client sees', value: 'A person is on it', caption: 'No price and no payment until the band is set' },
           { kind: 'fact', label: 'Waiting on', value: 'Us' },
           vidaCard('Needs you'),
@@ -708,7 +714,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Why this programme size?', 'What happens when they accept?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Recommendation', caption: 'The client is reviewing it' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('recommendation'), caption: 'The client is reviewing it' },
           { kind: 'fact', label: 'Outcome target', value: target ? `${target} booked meetings` : 'Not stated yet' },
           {
             kind: 'stats', label: 'Recommended programme',
@@ -743,7 +749,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         messages,
         chips: [c.rejected > 0 ? `Why were ${n(c.rejected)} rejected?` : 'How is it going?', 'When will it be ready?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Sourcing', caption: 'Qualified prospects are being prepared' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('sourcing'), caption: 'Qualified prospects are being prepared' },
           { kind: 'fact', label: 'Outcome target', value: target ? `${target} booked meetings` : 'Not stated yet' },
           { kind: 'stats', label: 'Current batch', stats: [
             { value: n(c.sourced), label: 'Sourced' },
@@ -785,7 +791,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         messages,
         chips: ['Try again now', 'What is holding it up?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Sourcing', caption: 'Qualification did not finish' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('sourcing'), caption: 'Qualification did not finish' },
           { kind: 'note', label: c.stillToCheck > 0 ? 'Qualification paused' : 'Preparation stopped', body: stopped, tone: 'exception' },
           { kind: 'stats', label: 'Current batch', stats: [
             { value: n(c.qualified), label: 'Qualified' },
@@ -822,7 +828,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What changed?', 'What does the client see?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('approval'), caption: 'With the client in Milla' },
           { kind: 'fact', tone: 'exception', label: 'Why they are stuck',
             value: 'The package moved after it was frozen',
             caption: 'Approval is refused until a new version is published' },
@@ -854,7 +860,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
             ],
         chips: ['What is the client seeing?', 'What happens after approval?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('approval'), caption: 'With the client in Milla' },
           // ── ⚑ 11 Sep (DAY 3 HOLD) — READ FROM THE FROZEN PACKAGE, NOT FROM LIVE COUNTS ──
           //
           // 🛑 THESE NUMBERS ARE WHAT THE CLIENT IS LOOKING AT. Taking them from live
@@ -935,7 +941,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What runs first?', 'Show me the schedule'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Live', caption: 'Ready to make live' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('live'), caption: 'Ready to make live' },
           { kind: 'ticks', label: 'Complete', ticks: [
             { label: 'Client approval', done: true }, { label: i.paidInFull ? 'Paid in full' : 'Second payment', done: true },
             { label: `Prospects ready — ${n(c.enrolled)}`, done: c.enrolled > 0 },
@@ -959,7 +965,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Who goes first?', 'Show me the schedule'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Live', caption: 'Live — ready to run' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('live'), caption: 'Live — ready to run' },
           { kind: 'stats', label: 'Ready to run', stats: [
             { value: n(c.enrolled), label: 'Prospects enrolled' },
             { value: i.senderSendable ? 'Healthy' : 'Not ready', label: 'Sender' },
@@ -1000,7 +1006,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Show me the replies', 'How are we tracking?'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Review', caption: 'Outreach is running' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('review'), caption: 'Outreach is running' },
           { kind: 'stats', label: 'Progress', stats: [
             { value: n(c.enrolled), label: 'In campaign' }, { value: n(c.sends), label: 'Emails sent' },
             { value: n(c.replies), label: 'Replies' }, { value: n(c.positive), label: 'Positive' },
@@ -1033,7 +1039,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Show me the reply', 'Draft a response', 'Book the call'],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Review', caption: 'Outreach is running' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('review'), caption: 'Outreach is running' },
           { kind: 'note', label: 'Needs a decision',
             body: `${named} — waiting on an answer. No automated reply goes out for them while this waits for you. Everyone else continues.`,
             tone: 'exception' },
@@ -1066,7 +1072,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['Reconnect the mailbox', "What happens to today's sends?"],
         cards: [
-          { kind: 'fact', label: 'Stage', value: 'Review', caption: 'Sending is paused' },
+          { kind: 'fact', label: 'Stage', value: mvp1VidaStage('review'), caption: 'Sending is paused' },
           // ⚑ 10 Sep (I2) — the gate's own sentence when there is one, which names the actual
           // remedy (press Test connection, retire the duplicate box, resolve the shared address)
           // rather than sending every sender failure to "reconnect the mailbox".
@@ -1119,7 +1125,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         messages.push(`I've stopped all future sends for this programme and kept the results and open replies intact.`)
       }
       const cards: PanelCard[] = [
-        { kind: 'fact', label: 'Stage', value: 'Completion', caption: 'Closed cleanly' },
+        { kind: 'fact', label: 'Stage', value: mvp1VidaStage('completion'), caption: 'Closed cleanly' },
         { kind: 'stats', label: 'Final outcome', stats: [
           { value: n(c.meetings), label: 'Meetings booked' },
           { value: String(target ?? '—'), label: 'Target' },

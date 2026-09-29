@@ -4961,7 +4961,7 @@ export default function VidaConsolePage() {
                         <div key={`${f.icp_id}-${i}`} className="border border-amber-300 bg-amber-50/60 rounded-xl px-3 py-2 mb-1.5">
                           <b className="text-[12.5px] block">ICP {f.icp_id.slice(0, 8)} · {fmtDate(f.created_at)}</b>
                           <span className="text-[12px] text-amber-900">
-                            The run crashed. The prospect was shown the recovery copy and promised a human. Client {f.client_id?.slice(0, 8) ?? 'unknown'}. Re-run sourcing from the People tab (it previews the cost first).
+                            The run crashed. The prospect was shown the recovery copy and promised a human. Client {f.client_id?.slice(0, 8) ?? 'unknown'}. Open the client — their page says what happens next.
                           </span>
                         </div>
                       ))}

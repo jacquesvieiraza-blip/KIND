@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { killSwitchChipLabel } from '@/lib/vida-lifecycle-copy'
 import {
   programmeSourceRequest, sourcingChipLabel, sourcingConfirmQuestion,
   type ProgrammeSourcingAction,
@@ -490,7 +491,8 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
               <span key={s} className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-[#b45309] bg-[#fffbeb] border-[#fcd34d]">{s}</span>
             ))}
             {surface.outreachEnabled === false && (
-              <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
+              // ⚑ 29 Sep (R174 ⑥ · PR 6b) — state first (R116): never a bare "OFF" next to sending.
+              <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending blocked · {killSwitchChipLabel(surface.outreachEnabled)}</span>
             )}
           </div>
         )}

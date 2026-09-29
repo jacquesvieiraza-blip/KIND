@@ -17,6 +17,7 @@
 // delivered. Same panel, same style (R167: no UI redesign).
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useState } from 'react'
+import { meetingStateWord } from '@/lib/vida-words'
 
 type Condition = { key: string; label: string }
 type Reply = { id: string; received_at: string | null; processed_at: string | null; classification: string; snippet: string }
@@ -131,7 +132,7 @@ export default function MeetingQualifyPanel({ clientId }: { clientId: string }) 
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
               <b>{who}</b>
               <span className="text-[#6b5f8c]">{[m.lead?.job_title, m.lead?.company].filter(Boolean).join(' · ')}</span>
-              <span className="text-[#9b8ec4]">{m.state} · {when(m.scheduled_at)}</span>
+              <span className="text-[#9b8ec4]">{meetingStateWord(m.state)} · {when(m.scheduled_at)}</span>
               {m.qualified_at
                 ? <span className="ml-auto text-[11.5px] font-bold text-emerald-700">Qualified {when(m.qualified_at)} by {m.qualified_by} · challenge until {when(m.challenge_deadline_at)}</span>
                 : open !== m.id && <button onClick={() => start(m)} className="ml-auto text-[12px] font-bold text-[#5b21b6] border border-[#d8c8f5] rounded-lg px-2 py-1">Qualify</button>}

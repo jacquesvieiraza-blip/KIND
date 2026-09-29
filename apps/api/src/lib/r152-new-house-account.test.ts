@@ -26,7 +26,10 @@ describe('R152 · the new House login', () => {
 
   it('🛑 every House check in both apps reads the ONE list — no second typed address', () => {
     for (const f of ['./real-clients.ts', './provider-boundary.ts', './house-client.ts',
-      '../../../admin/src/lib/revenue-exclusions.ts', '../../../admin/src/app/clients/page.tsx']) {
+      // ⛓️ 29 Sep (R174 · 5d) — ~~'../../../admin/src/app/clients/page.tsx'~~: Client admin no longer
+      // identifies House itself; it reads the server's `house_or_demo` and programme-money's
+      // `excluded`, which come from `resolveHouseUserIds` — so it names no House check to pin.
+      '../../../admin/src/lib/revenue-exclusions.ts']) {
       const c = code(f)
       expect(c, f).not.toMatch(/=== HOUSE_ACCOUNT_EMAIL/)
       expect(c, f).not.toContain("'hello@get-kind.com'")

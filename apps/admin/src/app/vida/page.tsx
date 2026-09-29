@@ -4382,7 +4382,7 @@ export default function VidaConsolePage() {
                     <div className="flex gap-2">
                       <button onClick={saveSequence} disabled={cockpitBusy || !seqEdit.name.trim()}
                         className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
-                        {cockpitBusy ? 'Saving…' : seqEdit.id ? 'Save changes' : 'Approve & save'}
+                        {cockpitBusy ? 'Saving…' : seqEdit.id ? 'Save changes' : 'Save'}
                       </button>
                       <button onClick={suggestSequence} disabled={cockpitBusy}
                         className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#7C3AED] disabled:opacity-50">✨ Redraft</button>

@@ -102,6 +102,21 @@ export async function middleware(request: NextRequest) {
       compliance: 'compliance', outreach: 'outreach', cockpit: 'cockpit', billing: 'billing',
       health: 'health', 'money-path': 'money-path', gtm: 'gtm', founder: 'founder',
     }
+    // ⚑ 29 Sep (R174 · 4a) — THE OLD PAGES, REDIRECTED INTO VIDA (NOT DELETED). Each quoted
+    // retired prices, fake numbers or a model that no longer exists, and was one typed address
+    // away. They land on the Vida screen that does that job today; the files stay in the repo.
+    // `/proposals` and `/visitors` are KEPT (founder: "propsals and visitors"), `/playbook` is
+    // rewritten to today's prices, not redirected.
+    const RETIRED_TO_VIDA: Record<string, string> = {
+      messages: 'unibox', command: 'cockpit', cmo: 'gtm',
+      activation: 'gtm', activity: 'gtm', cohorts: 'gtm', analytics: 'gtm',
+      agents: 'health', status: 'health', launch: 'health', smoketest: 'health',
+      roadmap: 'cockpit', scalability: 'cockpit', docs: 'cockpit', 'data-moat': 'cockpit',
+      'terms-library': 'compliance',
+    }
+    if (RETIRED_TO_VIDA[seg]) {
+      return NextResponse.redirect(new URL(`/vida/${RETIRED_TO_VIDA[seg]}`, base))
+    }
     if (LEGACY_TO_VIDA[seg]) {
       const rest = pathname.slice(seg.length + 1) // keep /:id etc.
       return NextResponse.redirect(new URL(`/vida/${LEGACY_TO_VIDA[seg]}${rest}${request.nextUrl.search}`, base))

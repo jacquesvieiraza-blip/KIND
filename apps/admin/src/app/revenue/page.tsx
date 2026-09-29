@@ -315,7 +315,7 @@ export default async function RevenuePage() {
       <MrrOverTime />
 
       {/* Targets moved → Sales Channel (target-based sales). See /command → Targets. */}
-      <p className="text-xs text-gray-400 -mt-2">🎯 KPI progress, monthly revenue targets &amp; core KPIs now live in <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel → Targets</a> (target‑based sales).</p>
+      {/* ⛓️ 29 Sep (R174 · 4a) — the link to the retired Sales Channel page (/command) is removed. */}
 
       {/* Scenario Tracker */}
       <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
@@ -479,7 +479,7 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400">Retention cohorts → <a href="/cohorts" className="text-[#7C3AED] hover:underline">Cohorts</a> · targets → <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel</a>.</p>
+      {/* ⛓️ 29 Sep (R174 · 4a) — the link to the retired Cohorts page is removed. */}
     </main>
   )
 }

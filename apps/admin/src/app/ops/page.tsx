@@ -83,7 +83,7 @@ export default function OpsPage() {
 
       <p className="text-xs text-gray-400">
         The live trigger queue these mirror is on the <Link href="/" className="text-[#7C3AED] hover:underline">Cockpit</Link> (Needs-you-now).
-        Onboarding progress per client is live on <Link href="/activation" className="text-[#7C3AED] hover:underline">Activation</Link>.
+        {/* ⛓️ 29 Sep (R174 · 4a) — the link to the retired Activation page is removed. */}
       </p>
     </div>
   )

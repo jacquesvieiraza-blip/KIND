@@ -86,6 +86,8 @@ vi.mock('./admin', () => ({ adminKeyValid: () => true }))
 vi.mock('../lib/real-clients', () => ({
   getExcludedClientIds: async () => new Set<string>(),
   resolveHouseUserIds: async () => new Set(state.houseUserIds),
+  // ⛓️ 29 Sep (R152 · fix): the House decision reads the LOGIN only (house-one-login.test.ts).
+  resolveHouseLoginUserIds: async () => new Set(state.houseUserIds),
 }))
 vi.mock('../lib/operator-audit', () => ({
   writeOperatorAudit: async (e: Row) => { state.audit.push(e) },

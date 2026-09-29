@@ -184,7 +184,8 @@ describe('GAP 2 · S5-D · every House PROTECTION path uses one canonical identi
   it('the cold-check exemption resolves House the canonical way, and fails OPEN', () => {
     const internal = src('apps/api/src/routes/internal.ts')
     expect(internal).toMatch(/decideHouseClient/)
-    expect(internal).toMatch(/resolveHouseUserIds/)
+    // ~~expect(internal).toMatch(/resolveHouseUserIds/)~~ ⛓️ 29 Sep (R152 · fix): the House LOGIN only.
+    expect(internal).toMatch(/resolveHouseLoginUserIds/)
     // Fails open = nobody gains an exemption when House cannot be resolved.
     expect(internal).toMatch(/let houseClientId: string \| null = null/)
   })

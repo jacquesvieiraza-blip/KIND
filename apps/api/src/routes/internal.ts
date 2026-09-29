@@ -1744,10 +1744,10 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
     let houseClientId: string | null = null
     try {
       const { decideHouseClient } = await import('../lib/house-client')
-      const { resolveHouseUserIds } = await import('../lib/real-clients')
+      const { resolveHouseLoginUserIds } = await import('../lib/real-clients')
       const { data: allClients } = await db.from('clients').select('id, user_id, company_name, is_demo')
       const decision = decideHouseClient({
-        houseUserIds: [...await resolveHouseUserIds()],
+        houseUserIds: [...await resolveHouseLoginUserIds()],   // ⚑ 29 Sep (R152 · fix) — the House login only
         clients: (allClients ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
       })
       if (decision.action === 'adopt') houseClientId = decision.clientId

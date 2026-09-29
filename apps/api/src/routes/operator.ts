@@ -7543,10 +7543,10 @@ operatorRouter.post('/house-client', async (req: Request, res: Response) => {
     const {
       decideHouseClient, HOUSE_CLIENT_NAME, HOUSE_CLIENT_ID_NOTICE, HOUSE_ACCOUNT_EMAIL,
     } = await import('../lib/house-client')
-    const { resolveHouseUserIds } = await import('../lib/real-clients')
+    const { resolveHouseLoginUserIds } = await import('../lib/real-clients')
     const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
 
-    const houseUserIds = [...await resolveHouseUserIds()]
+    const houseUserIds = [...await resolveHouseLoginUserIds()]   // ⚑ 29 Sep (R152 · fix) — the House login only
     const { data: clientRows, error: clientsErr } = await db.from('clients')
       .select('id, user_id, company_name, is_demo')
     if (clientsErr) {
@@ -7675,7 +7675,7 @@ operatorRouter.post('/house-client', async (req: Request, res: Response) => {
 operatorRouter.get('/house-audit', async (_req: Request, res: Response) => {
   try {
     const { decideHouseClient } = await import('../lib/house-client')
-    const { resolveHouseUserIds } = await import('../lib/real-clients')
+    const { resolveHouseLoginUserIds } = await import('../lib/real-clients')
     const { auditRows, auditHeadline, coldCronWouldAct } = await import('../lib/house-audit')
     const { secretState } = await import('../lib/inbox-secret')
 
@@ -7683,7 +7683,7 @@ operatorRouter.get('/house-audit', async (_req: Request, res: Response) => {
     // matching the display name. `house-client.ts` is explicit that the name is "A LABEL ONLY —
     // nothing matches on it", and two resolvers that can disagree about which row is Client
     // Zero is exactly the #584 shape this audit exists to clean up after.
-    const houseUserIds = [...await resolveHouseUserIds()]
+    const houseUserIds = [...await resolveHouseLoginUserIds()]   // ⚑ 29 Sep (R152 · fix) — the House login only
     const { data: clientRows } = await db.from('clients').select('id, user_id, company_name, is_demo')
     const decision = decideHouseClient({
       houseUserIds,
@@ -7786,8 +7786,9 @@ operatorRouter.get('/house-audit', async (_req: Request, res: Response) => {
  */
 async function resolveHouseClientId(): Promise<string | null> {
   const { decideHouseClient } = await import('../lib/house-client')
-  const { resolveHouseUserIds } = await import('../lib/real-clients')
-  const houseUserIds = [...await resolveHouseUserIds()]
+  // ⚑ 29 Sep (R152 · fix) — the House LOGIN only; the retired address is for exclusion, not for this.
+  const { resolveHouseLoginUserIds } = await import('../lib/real-clients')
+  const houseUserIds = [...await resolveHouseLoginUserIds()]
   const { data } = await db.from('clients').select('id, user_id, company_name, is_demo')
   const decision = decideHouseClient({
     houseUserIds,

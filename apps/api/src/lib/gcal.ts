@@ -229,6 +229,8 @@ export async function createMeeting(params: {
   leadName:     string; clientEmail:  string; title:     string
   start:        string; end:          string; description: string
   idempotencyKey?: string   // (audit fix) stable across retries → deterministic event id
+  /** ⚑ 29 Sep (R174 · 1c) — a test booking: the event lands in the client's calendar, nobody is invited, no email is sent. */
+  testBooking?: boolean
 }): Promise<{ eventId: string; meetLink: string | null }> {
   const google = await loadGoogle()
   const auth     = await getCalendarClient(params.accessToken, params.refreshToken)
@@ -251,14 +253,14 @@ export async function createMeeting(params: {
     const { data: event } = await calendar.events.insert({
       calendarId:            'primary',
       conferenceDataVersion: 1,
-      sendUpdates:           'all',
+      sendUpdates:           params.testBooking ? 'none' : 'all',
       requestBody: {
         ...(eventId ? { id: eventId } : {}),
         summary:     params.title,
         description: params.description,
         start:       { dateTime: params.start },
         end:         { dateTime: params.end },
-        attendees: [
+        attendees: params.testBooking ? [] : [
           { email: params.leadEmail, displayName: params.leadName },
           { email: params.clientEmail },
         ],

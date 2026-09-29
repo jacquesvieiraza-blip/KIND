@@ -917,6 +917,38 @@ operatorRouter.get('/clients/:id/capacity', async (req: Request, res: Response) 
 })
 
 
+// ⚑ 29 Sep (R174 ② · 1c) — THE TEST BOOKING: the client's own throwaway test person (created
+// once, `.invalid`, never sourced or enrolled) and the booking link for it. Booking through it
+// puts an event in the client's calendar with nobody invited, and records or counts nothing.
+operatorRouter.post('/clients/:id/test-booking-link', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client' }); return }
+    const { ensureTestBookingLead } = await import('../lib/test-booking')
+    const t = await ensureTestBookingLead(client.id)
+    if (!t.ok) { res.status(503).json({ success: false, error: `The test person could not be made (${t.error}). Nothing was issued.` }); return }
+    const { data: c } = await db.from('clients')
+      .select('calendar_booking_enabled, booking_url, google_calendar_refresh_token')
+      .eq('id', client.id).maybeSingle()
+    const { bookingUrlForLead } = await import('../lib/booking-token')
+    const url = bookingUrlForLead(c ?? null, t.leadId, client.id)
+    const blocked =
+      !process.env.PORTAL_URL        ? 'PORTAL_URL is not set — the link would be a dead URL, so none is issued'
+      : !process.env.ADMIN_SECRET_KEY ? 'ADMIN_SECRET_KEY is not set — tokens cannot be signed'
+      : !c?.calendar_booking_enabled  ? 'This client has not connected Google Calendar (calendar_booking_enabled is false)'
+      : !c?.google_calendar_refresh_token ? 'No refresh token stored — the connection needs redoing'
+      : null
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'booking_link_issued',
+      subjectType: 'lead', subjectId: t.leadId, detail: { issued: !!url && !blocked, blocked, test: true },
+    })
+    res.json({ success: true, url: blocked ? null : url, blocked, lead: { id: t.leadId, name: 'Booking Test', company: 'K.I.N.D booking test' } })
+  } catch (err) {
+    console.error('[operator/test-booking-link]', err)
+    res.status(500).json({ success: false, error: 'Failed to issue a test booking link' })
+  }
+})
+
 operatorRouter.get('/leads/:id/booking-link', async (req: Request, res: Response) => {
   try {
     const { client_id } = (req.query ?? {}) as { client_id?: string }
@@ -927,9 +959,19 @@ operatorRouter.get('/leads/:id/booking-link', async (req: Request, res: Response
     // authorization on a public page, so minting one across a tenant boundary would be
     // handing out a key to somebody else's calendar.
     const { data: lead } = await db.from('leads')
-      .select('id, first_name, last_name, company')
+      .select('id, first_name, last_name, company, email')
       .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found for this client' }); return }
+    // ⚑ 29 Sep (R174 ② · 1c) — A REAL PERSON IS NEVER A TEST. Booking through this link invited
+    // the real prospect and counted the meeting. Only the tool's own test person is allowed:
+    // POST /operator/clients/:id/test-booking-link creates it.
+    {
+      const { isTestBookingEmail } = await import('../lib/test-booking')
+      if (!isTestBookingEmail((lead as { email?: string | null }).email)) {
+        res.status(409).json({ success: false, error: 'A test booking link is only issued for the test person — use "Make a test booking link". A real prospect would be invited and the meeting counted.' })
+        return
+      }
+    }
 
     const { data: c } = await db.from('clients')
       .select('calendar_booking_enabled, booking_url, google_calendar_refresh_token')

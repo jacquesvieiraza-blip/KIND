@@ -56,35 +56,22 @@ export default function VidaBookingsPage() {
   // ⚠️ A PICKER, NOT A TEXT BOX. The first version asked for a lead UUID — and no screen in
   // Vida renders one, so it meant "go and query the database". A tool that needs an id a human
   // cannot see is not a tool.
-  const [recentLeads, setRecentLeads] = useState<{ id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null }[] | null>(null)
   // ⚠️ A SEPARATE ERROR STATE, BECAUSE [] AND "BROKEN" ARE DIFFERENT ANSWERS. The first version
   // mapped every failure to an empty array, so a failing query rendered as "This client has no
   // leads yet" on every client — the founder reported no data when the truth was a broken
   // request. A screen that cannot tell "none" from "broken" sends somebody looking in the
   // wrong place.
-  const [leadsError, setLeadsError] = useState<string | null>(null)
-  const [linkLeadId, setLinkLeadId] = useState('')
   const [linkResult, setLinkResult] = useState<{ url: string | null; blocked: string | null; lead?: { name: string | null; company: string | null } } | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
 
-  useEffect(() => {
-    if (!selected) { setRecentLeads(null); return }
-    setLinkResult(null); setLinkLeadId('')
-    setLeadsError(null)
-    fetch(`/api/proxy/operator/clients/${selected}/recent-leads`)
-      .then(r => r.json())
-      .then(j => {
-        if (!j?.success) { setLeadsError(j?.error ?? 'Could not load leads'); setRecentLeads([]); return }
-        setRecentLeads(j.data ?? [])
-      })
-      .catch(e => { setLeadsError(e instanceof Error ? e.message : 'Could not reach the engine'); setRecentLeads([]) })
-  }, [selected])
+  useEffect(() => { setLinkResult(null) }, [selected])
 
   async function issueLink() {
-    if (!selected || !linkLeadId.trim() || linkBusy) return
+    if (!selected || linkBusy) return
     setLinkBusy(true); setLinkResult(null)
     try {
-      const r = await fetch(`/api/proxy/operator/leads/${linkLeadId.trim()}/booking-link?client_id=${selected}`)
+      // ⚑ 29 Sep (R174 ② · 1c) — the tool's own test person, never a real prospect.
+      const r = await fetch(`/api/proxy/operator/clients/${encodeURIComponent(selected)}/test-booking-link`, { method: 'POST' })
       const j = await r.json()
       if (!j?.success) { setLinkResult({ url: null, blocked: j?.error ?? 'Could not issue a link' }); return }
       setLinkResult({ url: j.url ?? null, blocked: j.blocked ?? null, lead: j.lead })
@@ -212,30 +199,14 @@ export default function VidaBookingsPage() {
             <div className="mx-[22px] mt-3 border border-[#ece5fb] rounded-xl p-3.5 bg-[#faf8ff]">
               <b className="text-[12.5px] text-[#4c4368]">Test a real booking</b>
               <p className="text-[10.5px] text-[#9b8ec4] mt-0.5 leading-relaxed">
-                Pick any lead for this client to get their prospect booking link. Open it, pick a slot,
-                and the meeting lands in their connected Google Calendar — the same page a real prospect uses.
+                Makes a link for this client's own <b>test person</b> (never a real prospect). Open it, pick a slot,
+                and a TEST event lands in their connected Google Calendar — nobody is invited, and nothing is
+                recorded or counted as a meeting.
               </p>
-              <div className="flex gap-2 mt-2.5">
-                <select value={linkLeadId} onChange={e => setLinkLeadId(e.target.value)}
-                  className="flex-1 text-[12px] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 bg-white">
-                  <option value="">
-                    {leadsError ? `Could not load leads — ${leadsError}`
-                      : recentLeads === null ? 'Loading leads…'
-                      : recentLeads.length === 0 ? 'This client has no leads yet'
-                      : 'Pick a lead…'}
-                  </option>
-                  {(recentLeads ?? []).map(l => (
-                    <option key={l.id} value={l.id}>
-                      {[l.first_name, l.last_name].filter(Boolean).join(' ') || 'Unnamed'}
-                      {l.job_title ? ` · ${l.job_title}` : ''}{l.company ? ` · ${l.company}` : ''}
-                    </option>
-                  ))}
-                </select>
-                <button onClick={() => void issueLink()} disabled={!linkLeadId.trim() || linkBusy}
-                  className="text-[12px] font-bold text-white bg-[#7C3AED] rounded-lg px-3 py-1.5 disabled:opacity-40">
-                  {linkBusy ? 'Issuing…' : 'Get link'}
-                </button>
-              </div>
+              <button onClick={() => void issueLink()} disabled={linkBusy}
+                className="mt-2.5 text-[12px] font-bold text-white bg-[#7C3AED] rounded-lg px-3 py-1.5 disabled:opacity-40">
+                {linkBusy ? 'Making…' : 'Make a test booking link'}
+              </button>
               {linkResult?.blocked && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-2.5">
                   {linkResult.blocked}
@@ -247,7 +218,7 @@ export default function VidaBookingsPage() {
                     className="text-[12px] font-bold text-[#7C3AED] underline break-all">{linkResult.url}</a>
                   <p className="text-[10.5px] text-[#9b8ec4] mt-1">
                     {linkResult.lead?.name || 'This lead'}{linkResult.lead?.company ? ` · ${linkResult.lead.company}` : ''}
-                    {' '}— opens the real prospect page. Booking there is a real calendar event.
+                    {' '}— the real booking page, for the test person. The event is marked TEST and invites nobody.
                   </p>
                 </div>
               )}

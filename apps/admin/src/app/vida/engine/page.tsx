@@ -131,7 +131,6 @@ export default function VidaEnginePage() {
   // last run said. The same rule as `rls`/`rlsErr` below: a ledger that could not be read
   // must render as "not known", never as an empty and therefore reassuring list.
   const [migState, setMigState] = useState<MigState | null>(null)
-  const [demoMsg, setDemoMsg] = useState<string | null>(null)
   // #552 — the mailbox-details form, and the result of asking the mailbox whether it will
   // let us in. Keyed by inbox id so two open cards can't overwrite each other's answer.
   const [cred, setCred] = useState<CredForm | null>(null)
@@ -352,21 +351,6 @@ export default function VidaEnginePage() {
       // Only offer the password box when the server actually rejected credentials — offering
       // it on a network failure would send you chasing the wrong problem.
       if (/password|credential|authentication|Tenant or user not found/i.test(msg)) setNeedsPw(true)
-    }
-    setBusy(null)
-  }
-
-  // MBF — the demo account. Builds it the first time, and rebuilds it to the identical
-  // state every time after, which is the reset you run between demos. Invented people on
-  // .invalid addresses, is_demo so nothing can ever send, no money moved.
-  async function resetDemo() {
-    if (!confirm('Rebuild MBF to its starting state?\n\nEverything currently in the demo account is wiped and replaced with the fixed cast. Real clients are untouched.')) return
-    setBusy('demo'); setDemoMsg(null)
-    try {
-      const j = await fetch('/api/proxy/operator/demo/mbf/reset', { method: 'POST' }).then(r => r.json())
-      setDemoMsg(j?.success ? j.message : (j?.error || 'Could not reset the demo'))
-    } catch (err) {
-      setDemoMsg(err instanceof Error ? err.message : 'Could not reset the demo')
     }
     setBusy(null)
   }
@@ -857,21 +841,8 @@ export default function VidaEnginePage() {
         )}
       </div>
 
-      {/* MBF — one button, before a demo or after you've broken it mid-pitch. */}
-      <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl px-4 py-3 mb-4">
-        <b className="text-[13px] text-[#1f1235] block">MBF — the demo account</b>
-        <p className="text-[11.5px] text-[#5c5279] mt-1 leading-relaxed">
-          40 invented people, 12 already being worked, 22 waiting to be picked, 6 replies and 2 meetings booked.
-          The same cast every time, so the script never changes. Nothing can send — the account is
-          flagged demo and every address is <code className="px-1 bg-white rounded">.invalid</code>.
-        </p>
-        <button onClick={resetDemo} disabled={busy === 'demo'}
-          className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
-          {busy === 'demo' ? 'Rebuilding…' : 'Build / reset MBF'}
-        </button>
-        {demoMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 leading-relaxed">{demoMsg}</p>}
-      </div>
-
+      {/* ⛓️ 29 Sep (R174 · 4a) — ~~the MBF demo card and its rebuild button~~ removed (founder:
+          "remove MBF"). The one demo is Northwind (R164), reset from Vida → Demo. */}
       {/* Kept as an EXPLANATION only — the Run control lives in the always-present card
           above, so it can never disappear with the condition that spawned it. */}
       {e?.migration_pending && (

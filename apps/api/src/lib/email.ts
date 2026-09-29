@@ -40,8 +40,8 @@ export function isRealRecipient(to: string | string[]): boolean {
     if (domain.endsWith('.internal')) return false        // *.internal — non-routable
     if (domain.startsWith('kind-demo.')) return false      // demo client domain
     if (a.includes('@example.')) return false              // RFC-2606 reserved
-    // `.invalid` — RFC 2606, guaranteed never to resolve, and the TLD EVERY MBF demo address
-    // uses (`mbf-demo.invalid`, see lib/demo-mbf-data.ts). It was missing from a list whose
+    // `.invalid` — RFC 2606, guaranteed never to resolve, and the TLD every demo address uses
+    // (⛓️ 29 Sep: the MBF demo that introduced it is removed; the booking test person, 1c, uses it). It was missing from a list whose
     // stated job is "any transactional send to a non-deliverable address is dropped", so the
     // one domain the demo actually uses was the one this backstop let through.
     //

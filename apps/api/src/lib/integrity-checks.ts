@@ -24,6 +24,8 @@
 // it was reported to the founder as a working tool. Splitting them means the judgement half
 // can be proven without a database.
 
+import { NORTHWIND_NAME } from './demo-northwind-data'
+
 /** How bad is it. `unknown` is for a check that could not run — never silently "clean". */
 export type Severity = 'critical' | 'high' | 'medium' | 'clean' | 'unknown'
 
@@ -163,7 +165,15 @@ export function countsAsDoubleGrant(purchaseCount: number, approvalCount: number
 }
 
 /**
- * Is this account the MBF demo?
+ * ⛓️ 29 Sep (R174 · 4a) — ~~Is this account the MBF demo?~~ MBF is removed (founder: *"remove MBF"*);
+ * the one demo is Northwind (R164). Kept for its callers' history below, and answers for Northwind.
+ */
+export function isTheDemoAccount(companyName: string | null | undefined): boolean {
+  return typeof companyName === 'string' && companyName.trim() === NORTHWIND_NAME
+}
+
+/**
+ * Is this account the MBF demo? (retired — see `isTheDemoAccount`)
  *
  * Matched on the NAME CONTAINING "MBF", not on the exact string `MBF Holdings`. The live
  * account is called "MBF Demo", so an exact match reported *"the MBF demo account does not

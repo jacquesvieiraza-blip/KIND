@@ -88,7 +88,8 @@ describe('both sides of the till derive the price — neither types it', () => {
     // because the historical record of #562 legitimately discusses the old $99 — deleting
     // that history is not the goal; shipping it as a live price is what must not happen.
     const files = [
-      'lib/onboarding-pack.ts', 'lib/client-step.ts', 'lib/demo-mbf.ts',
+      // ⛓️ 29 Sep (R174 · 4a) — ~~'lib/demo-mbf.ts'~~ removed with the MBF demo.
+      'lib/onboarding-pack.ts', 'lib/client-step.ts',
       'routes/stripe.ts', 'routes/auth.ts', 'routes/operator.ts', 'routes/internal.ts',
     ]
     for (const f of files) {

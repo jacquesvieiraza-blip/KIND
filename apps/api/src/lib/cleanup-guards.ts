@@ -131,7 +131,7 @@ export function wipeClientCheck(a: {
     return { ok: false, why: 'That is the house account (Client Zero) — the account our own outreach runs from, and the one whose history the audit exists to protect. It is never wipeable from here.' }
   }
   if (a.demoClientIds.includes(c.clientId)) {
-    return { ok: false, why: 'That is the demo account. MBF is how the product gets SOLD, and `demo-mbf.ts` rebuilds it on demand — use the demo reset, not a delete.' }
+    return { ok: false, why: 'That is the demo account. The demo is how the product gets SOLD, and Vida → Demo rebuilds it on demand — use the demo reset, not a delete.' }
   }
   if (c.disposition !== 'eligible') {
     return { ok: false, why: `Refusing — ${c.reason}.` }

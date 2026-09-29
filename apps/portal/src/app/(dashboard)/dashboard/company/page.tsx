@@ -301,13 +301,16 @@ export default function CompanyPage() {
         <Building2 className="w-7 h-7" />
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Run your whole team from one place</h1>
-      <p className="text-gray-500 mb-6">Turn your account into a company workspace: give every rep their own FIGSY, fund one budget pool, and approve their credit requests — all from an owner command centre.</p>
+      {/* ⛓️ 29 Sep (R174 · 4c) — ~~"fund one budget pool, and approve their credit requests"~~ and
+          ~~"you only pay for the usage each rep consumes"~~: the retired credit model. The programme
+          is bought as a programme; this workspace is where the team lives (R97/R98/R101). */}
+      <p className="text-gray-500 mb-6">Turn your account into a company workspace: add your team, give each rep their own seat, and see everyone&apos;s work in one place — all from an owner command centre.</p>
       <button onClick={provision} disabled={provisioning}
         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-60" style={{ background: BRAND }}>
         {provisioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
         Set up my company workspace
       </button>
-      <p className="text-xs text-gray-400 mt-3">You stay the owner · seats are free · you only pay for the usage each rep consumes.</p>
+      <p className="text-xs text-gray-400 mt-3">You stay the owner.</p>
     </div>
   )
   if (!data) return <div className="max-w-md mx-auto text-center py-20 text-gray-500">Couldn't load your company workspace. Refresh to try again.</div>
@@ -638,14 +641,15 @@ export default function CompanyPage() {
                           <button key={k} disabled={!can_manage || busy === s.id} onClick={() => toggleAgent(s, k)}
                             className={`text-[11px] font-semibold px-2 py-1 rounded-lg border transition-colors disabled:opacity-60 ${on ? 'text-white border-transparent' : 'text-gray-500 border-gray-200 hover:border-violet-300'}`}
                             style={on ? { background: '#10b981' } : undefined}>
-                            {on ? '✓ ' : '+ '}{label} <span className="opacity-70">${AGENT_PRICE[k]}</span>
+                            {/* ⚑ 29 Sep (R174 · 4c) — the monthly add-on price only where the retired economics still apply. */}
+                            {on ? '✓ ' : '+ '}{label}{econ && <span className="opacity-70"> ${AGENT_PRICE[k]}</span>}
                           </button>
                         )
                       })}
                     </div>
                     {(() => {
                       const extra = (s.enabled_agents ?? []).filter(a => a !== 'figsy').reduce((n, a) => n + (AGENT_PRICE[a] ?? 0), 0)
-                      return extra > 0 ? <p className="text-[10px] text-gray-400 mt-1.5">+${extra}/mo on the company bill</p> : null
+                      return econ && extra > 0 ? <p className="text-[10px] text-gray-400 mt-1.5">+${extra}/mo on the company bill</p> : null
                     })()}
                   </div>
                 )}
@@ -774,7 +778,9 @@ export default function CompanyPage() {
           <p className="text-sm text-gray-500">
             {totals?.economics_hidden_reason === 'mixed'
               ? 'Seats on this account are on different plans, so there is no single company credit pool to manage.'
-              : 'Your programme is billed as one price in two halves. There is no credit pool or per-seat budget to manage.'}
+              // ⛓️ 29 Sep (R174 · 4c) — ~~"billed as one price in two halves"~~: new programmes are one payment
+              // (R166 ③) and older ones keep their halves, so the sentence names neither.
+              : 'Your programme is billed on its own terms — see Programme. There is no credit pool or per-seat budget to manage.'}
           </p>
         </div>
       )}

@@ -3,12 +3,14 @@
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { loginForInvite } from '@/lib/invite-return'
 
 function AcceptInviteInner() {
   const params = useSearchParams()
   const router = useRouter()
   const token = params.get('token')
   const [status, setStatus] = useState<'loading' | 'accepting' | 'done' | 'no-token' | 'login-required' | 'error'>('loading')
+  const [reason, setReason] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) { setStatus('no-token'); return }
@@ -18,8 +20,10 @@ function AcceptInviteInner() {
       if (!user) { setStatus('login-required'); return }
       setStatus('accepting')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-      // Try a company-seat invite first (rep joining a company), then fall back
-      // to a team-member invite (teammate on one account).
+      // ⚑ 29 Sep (R174 ① · 4d) — ONE KIND OF INVITE: the Command Centre seat, which gives the
+      // colleague their own seat. ⛓️ WAS: a fall-back to the old team invite, which wrote a row
+      // nothing reads — accepted, and no access — and which also hid the seat's own refusal
+      // (e.g. "already has a workspace") behind "expired or already used". The reason is shown.
       try {
         const companyRes = await fetch(`${apiUrl}/company/accept-invite`, {
           method: 'POST',
@@ -28,19 +32,14 @@ function AcceptInviteInner() {
         })
         if (companyRes.ok) {
           setStatus('done')
-          setTimeout(() => router.push('/dashboard'), 1500)
+          setTimeout(() => router.push('/milla'), 1500)
           return
         }
-      } catch { /* fall through to team accept */ }
-
-      // #266: accepting user is taken from the auth token server-side, not a spoofable user_id param
-      const res = await fetch(`${apiUrl}/team/accept?token=${token}`, {
-        headers: { Authorization: `Bearer ${data.session!.access_token}` },
-      })
-      if (res.ok) {
-        setStatus('done')
-        setTimeout(() => router.push('/dashboard'), 1500)
-      } else {
+        const body = await companyRes.json().catch(() => ({}))
+        setReason(companyRes.status === 404 ? null : (body?.error ?? null))
+        setStatus('error')
+      } catch {
+        setReason('Could not reach K.I.N.D — check your connection and open the link again.')
         setStatus('error')
       }
     })
@@ -62,7 +61,7 @@ function AcceptInviteInner() {
           <h1 className="text-xl font-bold text-gray-900 mb-2">Accept your invitation</h1>
           <p className="text-gray-500 text-sm mb-4">Log in or create an account to join the workspace.</p>
           <a
-            href={`/login?redirect=/invite/accept?token=${token}`}
+            href={loginForInvite(token!)}
             className="block w-full py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
           >
             Log in to accept
@@ -70,7 +69,7 @@ function AcceptInviteInner() {
         </>
       )}
       {status === 'no-token' && <p className="text-red-500 text-sm">Invalid invite link.</p>}
-      {status === 'error' && <p className="text-red-500 text-sm">This invite has expired or already been used.</p>}
+      {status === 'error' && <p className="text-red-500 text-sm">{reason ?? 'This invite has expired or already been used.'}</p>}
     </div>
   )
 }

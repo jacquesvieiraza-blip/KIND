@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { v2Enabled } from '@/lib/flags'
 import { Zap, Eye, EyeOff } from 'lucide-react'
+import { inviteReturn, callbackToInvite } from '@/lib/invite-return'
 
 // Brand glyphs (lucide has no brand logos).
 function GoogleG() {
@@ -21,6 +22,8 @@ function GoogleG() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // ⚑ 29 Sep (R174 ① · 4d) — an invited colleague goes back to their invite, not to the Brief.
+  const backToInvite = inviteReturn(searchParams.get('redirect'))
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,7 +51,9 @@ function LoginForm() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=/milla/welcome` },
+        options: backToInvite
+          ? { redirectTo: callbackToInvite(window.location.origin, backToInvite) }
+          : { redirectTo: `${window.location.origin}/auth/callback?next=/milla/welcome` },
       })
       // On success the browser redirects to the provider; we only land here on error.
       if (error) {
@@ -132,7 +137,7 @@ function LoginForm() {
             // NAME ARE DELIBERATELY UNCHANGED — a rename here would silently drop the
             // consent evidence for anyone mid-signup when the deploy lands.
             if (agreed) { try { localStorage.setItem('kind_terms_accepted', '1') } catch { /* ignore */ } }
-            router.push('/milla/welcome')
+            router.push(backToInvite ?? '/milla/welcome')
             router.refresh()
           }
         }
@@ -143,6 +148,9 @@ function LoginForm() {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         setError(error.message)
+      } else if (backToInvite) {
+        router.push(backToInvite)
+        router.refresh()
       } else {
         try {
           const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'

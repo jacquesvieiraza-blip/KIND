@@ -119,9 +119,14 @@ describe('the gate comes before every real-world action', () => {
     expect(g, `no demo gate after ${from}`).toBeGreaterThan(-1)
     expect(g, `the demo gate must come before ${action}`).toBeLessThan(a)
   }
-  it('team invite: before the invite row and the email', () => {
-    before(src('team.ts'), "router.post('/invite'", 'demoRefusal(await demoCheck(clientId))', ".from('client_members')")
-    before(src('team.ts'), "router.post('/invite'", 'demoRefusal(await demoCheck(clientId))', 'resend.emails.send')
+  // ⛓️ 29 Sep (R174 ① · 4d) — ~~the demo gate comes before the invite row and the email~~. The
+  // team invite is retired for EVERY account (it gave nobody access): it writes nothing and
+  // sends nothing, so there is no write left for a demo gate to stand in front of.
+  it('team invite: writes nothing and sends nothing, for anyone', () => {
+    const route = src('team.ts').slice(src('team.ts').indexOf("router.post('/invite'"), src('team.ts').indexOf("router.get('/accept'"))
+    expect(route).toContain('res.status(410).json({ error: TEAM_INVITE_MOVED })')
+    expect(route).not.toContain(".from('client_members')")
+    expect(route).not.toContain('emails.send')
   })
   it('company: before the company is made and before a seat invite', () => {
     before(src('company.ts'), "companyRouter.post('/provision'", 'demoRefusal(await demoCheck(client.id))', ".from('companies')")

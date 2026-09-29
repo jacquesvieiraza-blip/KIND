@@ -184,7 +184,7 @@ export async function middleware(request: NextRequest) {
         'roi':        '/milla/roi',
         'referral':   '/milla/referral',
         'documents':  '/milla/documents',
-        'team':       '/milla/teams',
+        'team':       '/milla/command-centre', // ⛓️ 29 Sep (R174 ① · 4d) — ~~/milla/teams~~
         'knowledge':  '/milla/icp',
         'messages':   '/milla/chat',
       }
@@ -195,6 +195,11 @@ export async function middleware(request: NextRequest) {
   // ⚑ 29 Sep (R174 · 4b) — TWO OLD MILLA SCREENS, REDIRECTED (the files are kept). "My campaign"
   // named Vida to the client, drew a made-up progress bar and was not scoped to the programme;
   // its job is the Programme screen. "Usage" duplicated Performance (founder: fold it in — "yes").
+  // ⚑ 29 Sep (R174 ① · 4d) — Teams Hub is redirected to Command Centre, where the team lives
+  // (founder: "yes my team to command cente"). The file is kept (R116).
+  if (pathname === '/milla/teams' || pathname.startsWith('/milla/teams/')) {
+    return NextResponse.redirect(new URL('/milla/command-centre', base))
+  }
   if (pathname === '/milla/campaign' || pathname.startsWith('/milla/campaign/')) {
     return NextResponse.redirect(new URL('/milla/programme', base))
   }

@@ -204,7 +204,7 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
   const ROI: [string, string, React.ElementType][] = [
     ['/milla/performance', 'Performance', TrendingUp], ['/milla/analytics', 'Analytics', LineChart],
     ['/milla/roi', 'Your ROI', Gem], ['/milla/command-centre', 'Command Centre', LayoutGrid],
-    ['/milla/teams', 'Teams Hub', Users],
+    // ⛓️ 29 Sep (R174 ① · 4d) — ~~Teams Hub~~: the team lives in Command Centre.
   ]
 
   // ⚑ 4 Sep — WHAT THE PHONE'S COVER BAR IS CALLED. Longest prefix wins, so /milla/icp does
@@ -215,7 +215,7 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
     ['/milla/replies', 'Inbox'], ['/milla/icp', 'My ICP'], ['/milla/documents', 'Documents'],
     ['/milla/reports', 'Reports'], ['/milla/coaching', 'Coaching'], ['/milla/performance', 'Performance'],
     ['/milla/analytics', 'Analytics'], ['/milla/roi', 'Your ROI'], ['/milla/command-centre', 'Command Centre'],
-    ['/milla/teams', 'Teams Hub'], ['/milla/settings', 'Settings'], ['/milla/billing', 'Billing'],
+    ['/milla/settings', 'Settings'], ['/milla/billing', 'Billing'],
     ['/milla/referral', 'Referral'],
   ]
   const sectionLabel = SECTION_LABEL

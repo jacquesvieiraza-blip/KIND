@@ -51,7 +51,8 @@ function RecordInner() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!leadId) { setError('No lead_id — open a record from a lead card.'); return }
+    // ⚑ 29 Sep (R174 · fix) — plain words, not the query parameter's name.
+    if (!leadId) { setError('No prospect chosen — open a client, then a prospect, to see their record.'); return }
     setLoading(true); setError(null)
     fetch(`/api/proxy/operator/record?lead_id=${encodeURIComponent(leadId)}`)
       .then(r => r.json()).then(j => {

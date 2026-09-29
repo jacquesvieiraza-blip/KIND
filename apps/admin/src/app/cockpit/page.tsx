@@ -348,6 +348,12 @@ function ActionQueue({ atRisk, pastDue }: { atRisk: ChurnRiskEntry[]; pastDue: P
   )
 }
 
+// ⚑ 29 Sep (R174 · fix) — HISTORY IS NOT AN ALARM. This block is the OLD subscription model, kept
+// as history (5f). With no subscriptions its maths is always negative, and it painted that red as
+// "burning" — a verdict about a model we no longer sell. Plain grey figures, the minus sign in the
+// right place ("−$352", never "$-352").
+const usdSigned = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString()}`
+
 // ── UNIT ECONOMICS — is a client profitable? ─────────────────────────────────
 function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: number }) {
   // Revenue is REAL. Cost stack is an ESTIMATE until Xero connects — labelled as such.
@@ -374,7 +380,7 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Margin per paying client (avg)</h3>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Revenue / client / mo</span><span className="font-semibold text-gray-900">${perClientRev.toLocaleString()}</span></div>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Est. cost (inbox+data+AI+infra)</span><span className="text-gray-400">– ${estCostPerClient}</span></div>
-          <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Margin / client / mo</span><span className={`font-bold ${estMarginPerClient >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>${estMarginPerClient.toLocaleString()} ({marginPct}%)</span></div>
+          <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Margin / client / mo</span><span className="font-bold text-gray-600">{usdSigned(estMarginPerClient)} ({marginPct}%)</span></div>
         </div>
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Aggregate</h3>
@@ -385,7 +391,7 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
               UK Ltd and had never been modelled anywhere until 4 Aug. */}
           <div className="flex justify-between text-[11px] py-0.5"><span className="text-gray-400">· platform</span><span className="text-gray-400">${PLATFORM_FLOOR_USD}</span></div>
           <div className="flex justify-between text-[11px] py-0.5 border-b border-dashed border-purple-50"><span className="text-gray-400">· company (ICO · Companies House · accountant · software · insurance)</span><span className="text-gray-400">${COMPANY_FLOOR_USD}</span></div>
-          <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Net</span><span className={`font-bold ${net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{net >= 0 ? '+' : ''}${net.toLocaleString()} {net >= 0 ? '· profitable' : '· burning'}</span></div>
+          <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Net</span><span className="font-bold text-gray-600">{usdSigned(net)}</span></div>
         </div>
       </div>
     </div>

@@ -1135,8 +1135,9 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
       if (repeat) {
         cards.push({
           kind: 'note', label: 'Repeat opportunity',
-          body: `${n(i.programme?.entitlementRemaining ?? 0)} qualified prospects of entitlement remain. A next programme can be prepared from the same targeting or a new outcome.`,
-          tone: 'exception',
+          // ⛓️ 29 Sep (R174 · fix): ~~"…of entitlement remain", tone: 'exception'~~ — an opportunity
+          // is not an exception (it rendered red), and "entitlement" is our word, not the operator's.
+          body: `${n(i.programme?.entitlementRemaining ?? 0)} qualified prospects are still available for this client. A next programme can be prepared from the same targeting or a new outcome.`,
         })
       }
       cards.push(

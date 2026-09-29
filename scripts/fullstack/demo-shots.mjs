@@ -43,6 +43,8 @@ const MILLA_PAGES = ['/milla', '/milla/programme', '/milla/pipeline', '/milla/re
   '/milla/performance', '/milla/analytics', '/milla/roi', '/milla/reports', '/milla/coaching', '/milla/billing',
   '/milla/usage', '/milla/documents', '/milla/icp', '/milla/campaign', '/milla/settings', '/milla/referral',
   '/milla/command-centre', '/milla/chat', '/dashboard/documents']
+// Pages that deliberately live elsewhere now (4b, 4d) — the sweep expects the move, nothing else.
+const MILLA_MOVED = { '/milla/campaign': '/milla/programme', '/milla/usage': '/milla/performance', '/milla/teams': '/milla/command-centre', '/dashboard/documents': '/milla/documents' }
 const PAGES = {
   Brief: ['/milla', '/milla/welcome'],
   Proof: MILLA_PAGES, Programme: MILLA_PAGES, Approval: MILLA_PAGES, Results: MILLA_PAGES, Complete: MILLA_PAGES,
@@ -78,7 +80,9 @@ const redTextOn = (page) => page.evaluate(() => {
     const m = getComputedStyle(el).color.match(/\d+/g)
     if (!m) continue
     const [r, g, b] = m.map(Number)
-    if (r >= 150 && g < 90 && b < 90) out.push(own.slice(0, 80))
+    // ⛓️ 29 Sep (R174 · fix): ~~r >= 150 && g < 90 && b < 90~~ caught Milla's ORANGE labels
+    // ("interested", the amber reply chips) as red. Red is red: strong, with little green or blue.
+    if (r >= 180 && g < 70 && b < 70) out.push(own.slice(0, 80))
   }
   return out.slice(0, 3)
 })
@@ -91,7 +95,15 @@ const open = async (c, url, wait) => {
   const page = await c.newPage()
   await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {})
   await page.waitForTimeout(wait)
-  const text = (await page.innerText('body').catch(() => '')).replace(/\s+/g, ' ')
+  // ⚑ 29 Sep (R174 · fix) — WHAT A PERSON READS, not the code a page shows them to copy: Settings
+  // prints the website form's code in a <pre>, and its "Something went wrong" string is a message
+  // that code shows a visitor, not an error on this page.
+  const text = (await page.evaluate(() => {
+    const b = document.body.cloneNode(true)
+    b.querySelectorAll('pre, code, script, style, textarea').forEach(n => n.remove())
+    document.documentElement.appendChild(b); b.style.position = 'absolute'; b.style.left = '-99999px'
+    const t = b.innerText; b.remove(); return t
+  }).catch(() => '')).replace(/\s+/g, ' ')
   return { page, text }
 }
 
@@ -112,7 +124,14 @@ for (const [stage, paths] of Object.entries(PAGES)) {
     // ⚑ 8b — once there is a programme, Billing reads paid, never "Not yet paid".
     if (path === '/milla/billing' && ['Approval', 'Results', 'Complete'].includes(stage) && text.includes('Not yet paid')) bad.push('Billing says "Not yet paid"')
     if (text.trim().length < 20) bad.push('the page is blank')
-    report.push({ stage, where: `Milla ${path} → ${new URL(page.url()).pathname}`, bad, file })
+    // ⚑ 29 Sep (R174 · fix) — A PAGE MUST LAND WHERE IT WAS ASKED FOR. The sweep read whatever
+    // was on screen, and for weeks that was the Brief: the harness could not tell who was signed
+    // in, so every Milla page past Brief bounced to /milla/welcome and still "passed". Past the
+    // Brief, landing on the Brief is a failure; anywhere else must be the page or its known move.
+    const landed = new URL(page.url()).pathname
+    const want = MILLA_MOVED[path] ?? path
+    if (stage === 'Brief' ? landed !== '/milla/welcome' : landed !== want) bad.push(`landed on ${landed}, expected ${stage === 'Brief' ? '/milla/welcome' : want}`)
+    report.push({ stage, where: `Milla ${path} → ${landed}`, bad, file })
     await page.close()
   })
   // Vida: the demo open on every tab — a FRESH context each stage, because Vida keeps the selected

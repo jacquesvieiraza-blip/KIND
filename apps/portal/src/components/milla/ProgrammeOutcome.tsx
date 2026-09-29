@@ -37,7 +37,9 @@ function replyPill(c: string): { label: string; tone: string } {
   // wrong_person · referral · out_of_office · other. Words only — no new claim about any reply.
   switch (c) {
     case 'hot':                                return { label: 'Interested', tone: 'good' }
-    case 'warm':                               return { label: 'Warm · needs a reply', tone: 'red' }
+    // ⛓️ 29 Sep (R174 · fix): ~~'Warm · needs a reply', red~~ — "warm" is our classifier's word and
+    // red read as an error; everywhere else in Milla this reply is "interested", and we answer it.
+    case 'warm':                               return { label: "Interested · we're replying", tone: 'warn' }
     case 'referral':                           return { label: 'Referral', tone: 'good' }
     case 'out_of_office':                      return { label: 'Parked · follow-up', tone: 'warn' }
     case 'cold': case 'opt_out': case 'unsubscribe': case 'wrong_person': return { label: 'Closed', tone: '' }

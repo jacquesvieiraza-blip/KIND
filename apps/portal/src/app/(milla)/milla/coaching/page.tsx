@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { replyWord } from '@kind/shared'
 import { createClient } from '@/lib/supabase/client'
 
 type Meeting = {
@@ -94,7 +95,8 @@ export default function MillaCoachingPage() {
             {m.their_words && (
               <div className="mt-2.5 bg-[#fffbeb] border border-[#fde68a] rounded-xl px-3.5 py-2.5">
                 <span className="text-[10px] font-extrabold uppercase tracking-wide text-[#b45309]">
-                  Their own words{m.signal ? ` · ${m.signal}` : ''}
+                  {/* ⚑ 29 Sep (R174 · fix) — the signal in words, not the classifier's code ("hot"). */}
+                  Their own words{m.signal ? ` · ${replyWord(m.signal)}` : ''}
                 </span>
                 <p className="text-[12.5px] text-[#5c4a1f] leading-relaxed mt-1 whitespace-pre-wrap">{m.their_words}</p>
               </div>

@@ -25,7 +25,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { SUPPORTED_COUNTRIES, MILLA_FAILURE_COPY, PROGRAMME_BEST_EFFORTS, PARTNERS_FROZEN } from '@kind/shared'
+import { clientCountryOptions, MILLA_FAILURE_COPY, PROGRAMME_BEST_EFFORTS, PARTNERS_FROZEN } from '@kind/shared'
 import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users, Truck } from 'lucide-react'
 import { ValueCard, ProgressBar, PreLiveState } from '@/components/milla/ProgrammeStat'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -520,7 +520,7 @@ export default function MillaSettingsPage() {
   // merely hidden from the markup. A field left in state is a field the next edit re-renders,
   // and this PATCHes `/clients/me`: keeping them here would mean every profile save still sent
   // K.I.N.D's internal sourcing volume back from a customer's browser.
-  const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '', company_registration: '', vat_number: '' })
+  const [form, setForm] = useState({ company_name: '', industry: '', country: '', website: '', phone: '', company_registration: '', vat_number: '' })
   const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false, crm_dedup_enabled: false })
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
@@ -579,7 +579,7 @@ export default function MillaSettingsPage() {
       try {
         const res = await api.get<{ data: ClientData & { id: string } }>('/clients/me', session.access_token)
         const c = res.data
-        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
+        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || '', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
         // ⚑ 29 Sep (R174 ② · 1e) — the saved key never reaches the browser; only whether one exists.
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         setCrmKeySaved((c as { crm_api_key_set?: boolean }).crm_api_key_set === true)
@@ -659,7 +659,9 @@ export default function MillaSettingsPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setSaving(false); return }
     try {
-      await api.patch('/clients/me', form, session.access_token)
+      // An empty country is not sent: saving the rest of the profile must never blank it.
+      const { country, ...rest } = form
+      await api.patch('/clients/me', country ? form : rest, session.access_token)
       setSaved(true)
       setUnsavedProfile(false)
       setTimeout(() => setSaved(false), 3000)
@@ -804,7 +806,9 @@ export default function MillaSettingsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
             <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
               className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]">
-              {SUPPORTED_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {/* ⚑ 29 Sep (R174 · fix) — their own country first; never a guessed default. */}
+              {!form.country && <option value="">Choose your country…</option>}
+              {clientCountryOptions(form.country).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

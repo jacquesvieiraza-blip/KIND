@@ -522,6 +522,7 @@ export default function MillaSettingsPage() {
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
   const [crmTesting, setCrmTesting] = useState(false)
+  const [crmKeySaved, setCrmKeySaved] = useState(false)
   const [crmTestResult, setCrmTestResult] = useState<{ success: boolean; error?: string } | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [crmSaveError, setCrmSaveError] = useState<string | null>(null)
@@ -577,7 +578,9 @@ export default function MillaSettingsPage() {
         const res = await api.get<{ data: ClientData & { id: string } }>('/clients/me', session.access_token)
         const c = res.data
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
-        setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
+        // ⚑ 29 Sep (R174 ② · 1e) — the saved key never reaches the browser; only whether one exists.
+        setCrm({ crm_type: c.crm_type || 'none', crm_api_key: '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
+        setCrmKeySaved((c as { crm_api_key_set?: boolean }).crm_api_key_set === true)
         setSignerName((c as { signer_name?: string | null }).signer_name || '')
         setBookingUrl((c as { booking_url?: string | null }).booking_url || '')
         // R2 (#27) + D1 — the three server-backed notification switches. `null` is preserved
@@ -749,7 +752,7 @@ export default function MillaSettingsPage() {
   }
 
   async function handleCrmTest() {
-    if (crm.crm_type === 'none' || !crm.crm_api_key) return
+    if (crm.crm_type === 'none' || (!crm.crm_api_key && !crmKeySaved)) return
     setCrmTesting(true)
     setCrmTestResult(null)
     const { data: { session } } = await supabase.auth.getSession()
@@ -757,7 +760,7 @@ export default function MillaSettingsPage() {
     try {
       const res = await api.post<{ success: boolean; error?: string }>(
         '/clients/me/crm/test',
-        { crm_type: crm.crm_type, crm_api_key: crm.crm_api_key },
+        { crm_type: crm.crm_type, ...(crm.crm_api_key ? { crm_api_key: crm.crm_api_key } : {}) },
         session.access_token,
       )
       setCrmTestResult(res)
@@ -951,7 +954,7 @@ export default function MillaSettingsPage() {
                     type={showCrmKey ? 'text' : 'password'}
                     value={crm.crm_api_key}
                     onChange={e => { setCrm({ ...crm, crm_api_key: e.target.value }); setCrmTestResult(null); setUnsavedCrm(true) }}
-                    placeholder={crm.crm_type === 'hubspot' ? 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'Your Pipedrive API key'}
+                    placeholder={crmKeySaved ? 'A key is saved — paste a new one to replace it' : crm.crm_type === 'hubspot' ? 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'Your Pipedrive API key'}
                     className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] font-mono"
                   />
                   <button type="button" onClick={() => setShowCrmKey(s => !s)}
@@ -970,7 +973,7 @@ export default function MillaSettingsPage() {
                 <button
                   type="button"
                   onClick={handleCrmTest}
-                  disabled={crmTesting || !crm.crm_api_key}
+                  disabled={crmTesting || (!crm.crm_api_key && !crmKeySaved)}
                   className="px-4 py-2 border border-purple-100/80 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 rounded-lg transition-colors"
                 >
                   {crmTesting ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Testing…</span> : 'Test connection'}

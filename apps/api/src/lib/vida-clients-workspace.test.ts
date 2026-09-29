@@ -401,9 +401,14 @@ describe('⑥ Needs you is a filter on the client list, not a screen', () => {
     expect(row).toContain("href: '/vida'")
   })
 
+  // ⛓️ 29 Sep (R174 · 5b) — ~~the layout fetches `lifecycle-board` and shows `meta.needs_you`~~.
+  // That total left out escalations and proof reviews, so the badge disagreed with the list. The
+  // count still comes from the server's verdicts — the LIST's own read of them — and a failed
+  // read still shows no badge.
   it('the count comes from the server, and a failed read shows NO badge', () => {
-    expect(LAYOUT).toContain("fetch('/api/proxy/operator/lifecycle-board')")
-    expect(LAYOUT).toContain('setNeedsYouCount(null)')
+    expect(LAYOUT).toContain('onNeedsYouCount={setNeedsYouCount}')
+    expect(LIST).toContain('const needsYouTotal = boardLoaded && !boardError ? needsYouIds.length : null')
+    expect(LIST).toContain("...Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),\n    ...escalated, ...proofReview,")
     // A badge reading "0" is a permanent claim that something was counted and found empty.
     expect(LAYOUT).toContain('count !== null && count > 0')
   })

@@ -31,7 +31,10 @@ import {
 // be pushed into the log as a Vida bubble ("Command failed"), so the operator read a transport
 // fault as something she had said. A notice renders in the margin, in the console's voice.
 type CmdMsg = { role: 'operator' | 'vida' | 'notice'; text: string; link?: string | null }
-type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
+// ⚑ 29 Sep (R174 · 5b) — ⛓️ WAS `{ send_gate, money_gate, unsent_sourced, replies_to_triage }`,
+// client-wide, two of them the retired per-lead gates. Now what is really stuck, from the page's
+// programme counts: emails waiting on us, replies waiting on a decision, and human blockers.
+type Blockers = { drafts: number; repliesToDecide: number | null; stuck: string[] }
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
 /**
@@ -432,8 +435,12 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         {surface?.blockers && (
           <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
             <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
-            {([['Send gate', surface.blockers?.send_gate], ['Money gate', surface.blockers?.money_gate], ['Unsent sourced', surface.blockers?.unsent_sourced], ['To triage', surface.blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
-              <span key={label} className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
+            {([['Emails to approve', surface.blockers.drafts], ['Replies to decide', surface.blockers.repliesToDecide]] as [string, number | null][])
+              .filter(([, n]) => n !== null).map(([label, n]) => (
+              <span key={label} className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n} {label}</span>
+            ))}
+            {surface.blockers.stuck.map(s => (
+              <span key={s} className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-[#b45309] bg-[#fffbeb] border-[#fcd34d]">{s}</span>
             ))}
             {surface.outreachEnabled === false && (
               <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>

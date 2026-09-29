@@ -83,12 +83,13 @@ function displayName(email: string): string {
  * client-only; called in the layout it would have taken every Command Centre page with it.
  */
 function ClientsRail({
-  navLink, openClients, toggleClients, groupHead,
+  navLink, openClients, toggleClients, groupHead, onNeedsYouCount,
 }: {
   navLink: (item: NavItem, needsFiltering: boolean) => React.ReactNode
   openClients: boolean
   toggleClients: () => void
   groupHead: (title: string, open: boolean, toggle: () => void, count?: number) => React.ReactNode
+  onNeedsYouCount: (n: number | null) => void
 }) {
   const needsFiltering = useSearchParams().get('needs') === '1'
   return (
@@ -98,7 +99,7 @@ function ClientsRail({
       {/* ⚠️ THE CLIENT LIST IS THE ONE FOLD, because it is the one unbounded thing in the
           rail. Collapsed it still says who is selected. */}
       {groupHead('Clients', openClients, toggleClients)}
-      <VidaClients open={openClients} />
+      <VidaClients open={openClients} onNeedsYouCount={onNeedsYouCount} />
     </>
   )
 }
@@ -154,14 +155,10 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   // disagree about whether somebody is needed, so neither of them decides it — both render
   // `deriveLifecycle`'s verdict. A badge computed in a browser is a second opinion, and the
   // one that would be wrong is the one nobody opens to check.
+  // ⛓️ 29 Sep (R174 · 5b) — ~~the badge read `lifecycle-board`'s `meta.needs_you` here~~: that total
+  // leaves out the escalations and proof reviews the Needs-you LIST shows, so the two disagreed.
+  // The list reports its own count (`onNeedsYouCount`); a failed read still shows no badge.
   const [needsYouCount, setNeedsYouCount] = useState<number | null>(null)
-  useEffect(() => {
-    fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
-      .then(j => { if (j?.success) setNeedsYouCount(Number(j.meta?.needs_you ?? 0)) })
-      // ⚠️ A FAILED READ SHOWS NO BADGE. It must never show a stale or invented number: an
-      // operator who trusts a count that is not real is worse off than one with no count.
-      .catch(() => setNeedsYouCount(null))
-  }, [pathname])
 
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
@@ -403,6 +400,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
                   openClients={openClients}
                   toggleClients={() => setOpenClients(o => !o)}
                   groupHead={groupHead}
+                  onNeedsYouCount={setNeedsYouCount}
                 />
               </Suspense>
             ) : (

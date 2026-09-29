@@ -375,6 +375,9 @@ function LeadCaptureFormSection({ clientId }: { clientId: string }) {
   )
 }
 
+/** ⚑ 29 Sep (R174 ① · 4d) — what Settings says about the team now. */
+const TEAM_MOVED_NOTE = 'Your team is in Command Centre → Seats. An invite from there gives your colleague their own seat.'
+
 function TeamSection({ clientId, userRole }: { clientId: string; userRole: string }) {
   const [members, setMembers] = useState<{id:string;email:string;role:string;accepted_at:string|null}[]>([])
   const [email, setEmail] = useState('')
@@ -1124,10 +1127,14 @@ export default function MillaSettingsPage() {
       </div>
       )}
 
-      {/* Team */}
+      {/* ⚑ 29 Sep (R174 ① · 4d) — TEAM LIVES IN COMMAND CENTRE. ⛓️ WAS the Team section, whose
+          invite wrote a row nothing reads: the colleague accepted and got no access. Command
+          Centre's seat invite gives them their own seat, so there is one place to add someone. */}
       {clientId && (
         <div className="border-t border-gray-100 pt-6" id="team">
-          <TeamSection clientId={clientId} userRole={userRole} />
+          <h2 className="text-base font-semibold text-gray-900">Team</h2>
+          <p className="text-sm text-gray-500 mt-1 mb-3">{TEAM_MOVED_NOTE}</p>
+          <a href="/milla/command-centre" className="inline-block text-sm font-semibold text-[#7C3AED] hover:underline">Open Command Centre →</a>
         </div>
       )}
     </div>

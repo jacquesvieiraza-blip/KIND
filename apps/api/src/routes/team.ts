@@ -1,7 +1,5 @@
 import { Router } from 'express'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
-import crypto from 'crypto'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 
 const router = Router()
@@ -26,59 +24,17 @@ async function ownerClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
-// POST /team/invite — invite a teammate to the CALLER'S OWN workspace.
-// Body: { email, role }. client_id is derived from auth, never trusted from the body.
-router.post('/invite', async (req: AuthRequest, res): Promise<void> => {
-  const { email, role = 'member' } = req.body
-  if (!email) { res.status(400).json({ error: 'email required' }); return }
+// ⚑ 29 Sep (R174 ① · 4d) — POST /team/invite IS RETIRED: IT GAVE NOBODY ACCESS.
+//
+// ⛓️ WAS: an invite that wrote a `client_members` row and emailed a link. Nothing in the product
+// reads `client_members` except this file, so the colleague accepted and could see nothing —
+// an invite that looked sent and gave no access. "My team" lives in Command Centre now (founder:
+// "yes my team to command cente"), whose seat invite gives the colleague their own seat. This
+// route writes nothing and sends nothing, for anyone, and says where to go instead.
+export const TEAM_INVITE_MOVED = 'Team invites are made in Command Centre → Seats now — that invite gives your colleague their own seat.'
 
-  // #402 (AR-65) — validate the role instead of trusting the body. 'owner' is never
-  // invitable (no inviting a second owner / privilege escalation), and an unknown string
-  // must not reach the DB. Allowed invite roles: admin, member, viewer.
-  const INVITABLE_ROLES = ['admin', 'member', 'viewer']
-  if (!INVITABLE_ROLES.includes(role)) {
-    res.status(400).json({ error: `Invalid role. Must be one of: ${INVITABLE_ROLES.join(', ')}` }); return
-  }
-
-  const clientId = await ownerClientId(req.userId!)
-  if (!clientId) { res.status(404).json({ error: 'No workspace for this user' }); return }
-  // ⚑ 29 Sep (R174 ② · 1f) — a demo account never sends an invite.
-  {
-    const { demoCheck, demoRefusal } = await import('../lib/demo-guard')
-    const refuse = demoRefusal(await demoCheck(clientId))
-    if (refuse) { res.status(refuse.status).json({ error: refuse.error }); return }
-  }
-
-  const token = crypto.randomBytes(32).toString('hex')
-  const supabase = db()
-
-  const { error } = await supabase
-    .from('client_members')
-    .upsert({
-      client_id: clientId,
-      email: email.toLowerCase(),
-      role,
-      invite_token: token,
-      invited_at: new Date().toISOString(),
-    }, { onConflict: 'client_id,email' })
-
-  if (error) { res.status(500).json({ error: error.message }); return }
-
-  // Send invite email if Resend available
-  if (process.env.RESEND_API_KEY) {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const portalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.get-kind.com'
-    await resend.emails.send({
-      from: 'K.I.N.D <hello@get-kind.com>',
-      to: email,
-      subject: "You've been invited to KIND",
-      html: `<p>You've been invited to join a KIND workspace.</p>
-             <p><a href="${portalUrl}/invite/accept?token=${token}">Accept invitation</a></p>
-             <p>This link expires in 7 days.</p>`,
-    }).catch(() => {}) // Don't fail if email fails
-  }
-
-  res.json({ ok: true, token })
+router.post('/invite', async (_req: AuthRequest, res): Promise<void> => {
+  res.status(410).json({ error: TEAM_INVITE_MOVED })
 })
 
 // GET /team/accept?token=xxx — accept an invite. The accepting user is taken from

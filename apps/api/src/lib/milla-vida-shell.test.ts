@@ -589,7 +589,8 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
   // the filter moved to the Clients rail as a URL. Each is asserted at its new home below.
   it('CLIENT SWITCHING SURVIVES, and nothing the row carried became unreachable', () => {
     expect(layout).toContain("import { VidaClients } from '@/components/vida/VidaClients'")
-    expect(layout).toContain('<VidaClients open={openClients} />')
+    // ⛓️ 29 Sep (R174 · 5b) — the list now also reports its Needs-you count to the rail badge.
+    expect(layout).toContain('<VidaClients open={openClients} onNeedsYouCount={onNeedsYouCount} />')
     expect(clients, 'selecting a client no longer scopes the conversation').toContain('setSelected(c.id, c.company_name)')
     // What the approved row still carries.
     expect(clients, 'the actor dot is gone').toContain("bg-[#EC4899]")

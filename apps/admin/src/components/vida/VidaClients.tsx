@@ -87,7 +87,9 @@ function initials(name: string | null): string {
   return ((parts[0]?.[0] ?? 'C') + (parts[1]?.[0] ?? parts[0]?.[1] ?? 'L')).toUpperCase()
 }
 
-export function VidaClients({ open }: { open: boolean }) {
+// ⚑ 29 Sep (R174 · 5b) — `onNeedsYouCount`: the rail's badge is the number of clients THIS list
+// shows under Needs you, so the badge and the list can never disagree.
+export function VidaClients({ open, onNeedsYouCount }: { open: boolean; onNeedsYouCount?: (n: number | null) => void }) {
   const { selected, selectedName, setSelected, selectedDraft, setSelectedDraft } = useVidaConversation()
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [work, setWork] = useState<WorkRow[] | null>(null)
@@ -278,6 +280,16 @@ export function VidaClients({ open }: { open: boolean }) {
   // a real retry, Make Live, a usable Run, a reply waiting on a person, a stopped sender, or a
   // blocker only a human can clear. Everything else is Vida working, and silence is correct.
   const needsYou = (id: string) => lifecycle[id]?.needs_you === true || escalated.has(id)
+  // ⚑ 29 Sep (R174 · 5b) — THE BADGE COUNTS WHAT THE FILTER SHOWS. ⛓️ WAS the layout's own read
+  // of the lifecycle board's `needs_you` total, which leaves out escalations and proof reviews —
+  // so the badge said 2 and the list showed 4. One rule now, the list's. An unread board is no
+  // badge, never a 0.
+  const needsYouIds = Array.from(new Set([
+    ...Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),
+    ...escalated, ...proofReview,
+  ]))
+  const needsYouTotal = boardLoaded && !boardError ? needsYouIds.length : null
+  useEffect(() => { onNeedsYouCount?.(needsYouTotal) }, [needsYouTotal, onNeedsYouCount])
   // ⚠️ THE SELECTED CLIENT IS NEVER FILTERED OUT of the list they are looking at.
   const visible = needsFilter
     ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)

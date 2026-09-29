@@ -359,7 +359,9 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // status is COMPLETED or CANCELLED. Enum membership, same class.
   // ⛓️ 29 Sep (R174 · 4i) — ×7 → ×5: the campaign editor's two send-day checks left with the
   // editor (the Campaign tab is view-only). Nothing new reads a customer's words.
-  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab .includes ×5', klass: 'B', why: 'enum membership on operator state' },
+  // ⛓️ 29 Sep (R174 · 5b) — ×5 → ×6: `programmeCount` asks whether a count's name is in the
+  // server's `unreadable` list. Membership of a list of field names, same class.
+  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab / unreadable-count .includes ×6', klass: 'B', why: 'enum membership on operator state' },
 
   { file: 'apps/api/src/routes/icps.ts',            what: '/check constraint|violates/i.test(error.message)', klass: 'B', why: 'matches a DATABASE error string, never a customer sentence' },
   { file: 'apps/api/src/routes/icps.ts',            what: '/column|schema cache/i.test(icpUpdateErr.message)', klass: 'B', why: 'same — a Postgres error' },
@@ -419,7 +421,7 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/portal/src/app/(milla)/milla/chat/page.tsx': 0,
       'apps/portal/src/lib/get-help-state.ts': 0,
       'apps/admin/src/components/vida/VidaConversation.tsx': 0,
-      'apps/admin/src/app/vida/page.tsx': 5,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left
+      'apps/admin/src/app/vida/page.tsx': 6,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left · (5b) +1, `programmeCount`
     }
     const RE = /\.match\(|\.test\(|new RegExp|toLowerCase\(\)|\.includes\(/g
     for (const [file, n] of Object.entries(EXPECTED)) {

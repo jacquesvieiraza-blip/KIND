@@ -57,8 +57,12 @@ describe('① Vida\'s Booked is the meetings table — the client\'s own meeting
 
   it('it says when the meetings could not be read, and the tile shows "?" rather than 0', () => {
     expect(tab).toContain('Meetings could not be read')
-    expect(vida).toContain("['Booked', cols ? cols.booked.count : 0, 'Bookings']")
-    expect(vida).toContain("{n ?? '?'} {label}")
+    // ⛓️ 29 Sep (R174 · 5b) — ~~`['Booked', cols ? cols.booked.count : 0, 'Bookings']`~~: the chip is
+    // now "Meetings", from the programme's own counts (`programmeCount`), and an unreadable count
+    // is still "?" — the lifecycle names `meetings` as unreadable instead of passing a silent 0.
+    expect(vida).toContain("['Meetings', programmeCount(lc, 'meetings'), 'Bookings']")
+    expect(vida).toContain("{n === undefined ? '—' : n ?? '?'} {label}")
+    expect(code('api/src/lib/programme-lifecycle-facts.ts')).toContain("out.unreadable.push('meetings')")
   })
 })
 

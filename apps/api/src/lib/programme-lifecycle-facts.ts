@@ -503,10 +503,13 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
     if (counts === null) {
       console.error(`[lifecycle-facts] meetings unreadable for programme ${programmeId} — rendering 0, which is NOT the same fact`)
       out.meetings = 0
+      // ⚑ 29 Sep (R174 · 5b) — and NAMED as unreadable, so Vida's chips print "?" rather than a
+      // 0 that reads as a verdict on the programme. The derivation still gets its safe 0.
+      out.unreadable.push('meetings')
     } else {
       out.meetings = counts.booked
     }
-  } catch { out.meetings = 0 }
+  } catch { out.meetings = 0; out.unreadable.push('meetings') }
 
   // ── REPLIES, THROUGH THIS PROGRAMME'S OWN LEADS ──────────────────────────────────────
   // 🛑 POSITIVE ATTRIBUTION, NOT `client_id`. This is the read that put a retired programme's

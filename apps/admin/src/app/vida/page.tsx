@@ -302,6 +302,42 @@ function shortfallCreditWords(onePayment: boolean, verb: 'is' | 'was'): string {
 }
 
 /** ⚑ 29 Sep (R174 · 4i) — what the view-only Campaign tab says about itself. */
+/** ⚑ 29 Sep (R174 · 5b) — one programme count: undefined = no programme, null = unreadable. */
+type ProgrammeCounts = { counts: object & { unreadable?: string[] }; programme: unknown } | null
+function programmeCount(lc: ProgrammeCounts, key: string): number | null | undefined {
+  if (!lc || !lc.programme) return undefined
+  if (lc.counts.unreadable?.includes(key)) return null
+  const v = (lc.counts as Record<string, unknown>)[key]
+  return typeof v === 'number' ? v : null
+}
+
+/** ⚑ 29 Sep (R174 · 5b) — the pipeline, in the programme's order, from the programme's counts. */
+function pipelineChips(lc: ProgrammeCounts): [string, number | null | undefined, CockpitTab | null][] {
+  return [
+    ['Sourced', programmeCount(lc, 'sourced'), 'People'],
+    ['Qualified', programmeCount(lc, 'qualified'), 'People'],
+    ['In the sequence', programmeCount(lc, 'enrolled'), 'Campaign'],
+    ['Emails sent', programmeCount(lc, 'sends'), 'Campaign'],
+    ['Replied', programmeCount(lc, 'replies'), 'Inbox'],
+    ['Meetings', programmeCount(lc, 'meetings'), 'Bookings'],
+  ]
+}
+
+/**
+ * ⚑ 29 Sep (R174 · 5b) — THE BLOCKERS STRIP SHOWS WHAT IS REALLY STUCK. ⛓️ WAS four client-wide
+ * counts, two of them the retired per-lead gates ("Money gate", "Unsent sourced") that no
+ * programme client passes through. Now: emails waiting on us, replies waiting on a decision
+ * (the programme's own count, the Inbox badge's number), and each blocker only a person can clear.
+ */
+function blockerStrip(b: Blockers, lc: ({ counts: object & { unreadable?: string[] }; programme: unknown; humanBlockers?: { detail: string }[]; senderSendable?: boolean; senderDetail?: string | null }) | null): StripBlockers {
+  const stuck = [
+    ...((lc?.programme && lc.humanBlockers) ? lc.humanBlockers.map(h => h.detail) : []),
+    ...(lc?.programme && lc.senderSendable === false ? [lc.senderDetail || 'The mailbox cannot send.'] : []),
+  ]
+  return { drafts: b.send_gate, repliesToDecide: programmeCount(lc, 'repliesAwaitingDecision') ?? null, stuck }
+}
+type StripBlockers = { drafts: number; repliesToDecide: number | null; stuck: string[] }
+
 const CAMPAIGN_VIEW_NOTE = 'View only. The campaign is made from the approved ICP when the programme goes live; pause and resume are on the Programme tab.'
 
 export default function VidaConsolePage() {
@@ -480,6 +516,8 @@ export default function VidaConsolePage() {
         sourced: number; qualified: number; rejected: number; stillToCheck: number
         enrolled: number; sends: number; replies: number; positive: number; meetings: number
         repliesAwaitingDecision: number
+        /** ⚑ 29 Sep (R174 · 5b) — the counts above that are a placeholder, not a fact. */
+        unreadable?: string[]
       }
       programme: null | {
         id: string; status: string; meetingTarget: number | null
@@ -2601,7 +2639,8 @@ export default function VidaConsolePage() {
 
   useEffect(() => {
     conversation.publish({
-      blockers,
+      // ⚑ 29 Sep (R174 · 5b) — the strip's figures, from the same programme counts as the chips.
+      blockers: blockers ? blockerStrip(blockers, lc) : null,
       outreachEnabled: status ? status.outreach_enabled : null,
       boardError,
       // ⚑ 7 Sep (HOUSE-008) — the programme truth this panel already fetched, turned into the
@@ -3463,18 +3502,16 @@ export default function VidaConsolePage() {
               {/* Pipeline at a glance — every stage, click through to the tab that works it. */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
                 <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
-                {([
-                  ['Sourced', cols?.sourced.count ?? 0, 'People'],
-                  ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
-                  ['Sending', cols?.sending.count ?? 0, 'Campaign'],
-                  ['Replied', cols?.replied.count ?? 0, 'Inbox'],
-                  ['Qualified', cols?.qualified.count ?? 0, null],
-                  // ⛓️ 28 Sep (R173 · 3 of 3) — unreadable meetings show "?", never 0.
-                  ['Booked', cols ? cols.booked.count : 0, 'Bookings'],
-                ] as [string, number | null, CockpitTab | null][]).map(([label, n, goTo]) => (
+                {/* ⚑ 29 Sep (R174 · 5b) — ONE SET OF NUMBERS. ⛓️ WAS the board's own client-wide
+                    counts: "Qualified" was every enrolment ever (so "20 Qualified" sat beside "3
+                    Booked"), "Sending" counted people before anything was sent, and none of it was
+                    this programme's. Every chip now reads the programme's own counts — the same
+                    object the stage panel and the tab badges read — so they cannot disagree. "?"
+                    is a count we could not read; "—" is a client with no programme yet. */}
+                {pipelineChips(lc).map(([label, n, goTo]) => (
                   <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
-                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n === null || n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
-                    {n ?? '?'} {label}
+                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n === null || (typeof n === 'number' && n > 0) ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
+                    {n === undefined ? '—' : n ?? '?'} {label}
                   </button>
                 ))}
               </div>
@@ -3839,11 +3876,14 @@ export default function VidaConsolePage() {
                     for an operator to do, what was sourced is the evidence they need. */}
                 {cockpitTabsFor({ stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null }).map(t => {
                   const on = shownTab === t
-                  const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
+                  // ⚑ 29 Sep (R174 · 5b) — the badges read the programme's own counts too (via
+                  // `programmeCount`), so a badge can never disagree with the chip above it.
+                  // Approvals is the co-pilot queue — emails waiting on us — which is its own fact.
+                  const n = t === 'Inbox' ? (programmeCount(lc, 'repliesAwaitingDecision') ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
-                    : t === 'People' ? (cols?.sourced.count ?? 0)
+                    : t === 'People' ? (programmeCount(lc, 'sourced') ?? 0)
                     : t === 'Asks' ? unansweredAsks
-                    : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0   // null → no badge; the tab itself says it could not read
+                    : t === 'Bookings' ? (programmeCount(lc, 'meetings') ?? 0) : 0   // unreadable → no badge; the tab itself says it could not read
                   return (
                     <button key={t} onClick={() => setTab(t)}
                       className={`shrink-0 px-2.5 py-2 text-[13px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${on ? 'border-[#7C3AED] text-[#1f1235] bg-[#faf8ff]' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'}`}>

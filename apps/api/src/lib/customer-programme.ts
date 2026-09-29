@@ -20,7 +20,7 @@
 
 import { db } from '@kind/db'
 import {
-  millaStage, type MillaStage, STAGE_QUICK_ACTION, MILLA_FAILURE_COPY,
+  millaStage, type MillaStage, STAGE_QUICK_ACTION, pausedCopyFor,
   type EngineProgrammeStatus,
 } from '@kind/shared'
 
@@ -288,7 +288,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
             'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
             // ⚑ 16 Sep (MVP1 · D2) — `run_at` IS THE AUTHORITY, and it was never selected. Without it the
             // client's screen could not tell an armed programme from a started one.
-            'approved_at, went_live_at, run_at, paused_at, ' +
+            'approved_at, went_live_at, run_at, paused_at, pause_reason, ' +
             'review_required_at, review_resolved_at, created_at, ' +
             // ⚑ 23 Sep (MVP1 Stage 6) — the R136 ④ settlement, shown on a finished programme.
             'shortfall_credited_at, shortfall_credit_cents, delivered_meetings')
@@ -459,7 +459,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     },
     programmeId: (p.id as string | null) ?? null,
     paused: Boolean(p.paused_at),
-    pausedCopy: p.paused_at ? MILLA_FAILURE_COPY.sourcingPaused : null,
+    // ⚑ 29 Sep (R174 · 2d) — the reason, in plain words; no reason keeps the locked sentence.
+    pausedCopy: p.paused_at ? pausedCopyFor(p.pause_reason as string | null) : null,
     reviewOpen,
     // Option C: only a meetings programme exists in the engine today. A non-meeting outcome
     // is captured in conversation and routed to a human — it never reaches this row, so a

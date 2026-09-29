@@ -47,8 +47,13 @@ describe('#38 #80 · the "ask Milla" buttons work, and "Pause sending" is a requ
     expect(CHAT).toContain('sendRef.current = (t: string) => { void send(t) }')
   })
 
-  it('🛑 "Pause sending" asks us — nothing here stops a send by itself', () => {
-    expect(OUT).toContain("onClick={() => ask('Please pause my programme')}>Pause sending</button>")
+  // ⛓️ 29 Sep (R174 · 2d) — ~~'🛑 "Pause sending" asks us — nothing here stops a send by itself'~~
+  // (`onClick={() => ask('Please pause my programme')}`). Asking a Milla who cannot act left sending
+  // running; the founder locked the client's pause as "Immediately". It now makes the one press,
+  // and this screen still posts nothing itself — the press lives in `lib/pause-programme.ts`.
+  it('"Pause sending" makes the one pause press — this screen posts nothing itself', () => {
+    expect(OUT).toContain('onClick={() => void pressPause()}')
+    expect(OUT).toContain("import { PAUSE_CONFIRM, pauseMyProgramme } from '@/lib/pause-programme'")
     expect(OUT).not.toMatch(/api\.post|fetch\(/)
   })
 })

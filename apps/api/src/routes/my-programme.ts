@@ -988,6 +988,44 @@ myProgrammeRouter.get('/meetings', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 29 Sep (R174 · 2d) — THE CLIENT'S "PAUSE SENDING" PAUSES, AT ONCE ────────────────────
+//
+// ⛓️ THE BUTTON USED TO TYPE "Please pause my programme" INTO THE CHAT. Milla cannot do
+// anything, so it became a generic "said something in Milla" alert — throttled to one per client
+// per 15 minutes — and sending carried on until somebody read it. Founder, locking the plan: the
+// client's pause works "Immediately".
+//
+// Pause is the SAME `pauseProgramme` Vida uses, with the reason the client's press can only mean:
+// they asked. It stops new sourcing and new sending, keeps everything else, and only an operator
+// resumes it. Every press that pauses pages the founder with an urgent `support_escalation`
+// (never de-duplicated, never throttled) and the lifecycle turns it into a Needs-you. A demo
+// pauses on its screen and pages nobody. No `:id`: the programme is the session's own.
+myProgrammeRouter.post('/pause', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'There is no running programme to pause.' }); return }
+    if (p.paused_at) { res.json({ success: true, data: { paused: true, already: true } }); return }
+    const { pauseProgramme } = await import('../lib/programme')
+    const r = await pauseProgramme(p.id, 'client')
+    if (!r.ok) { res.status(409).json({ success: false, error: 'not_paused', message: `${r.reason} Nothing was changed.` }); return }
+    const { isDemoClient } = await import('../lib/demo')
+    if (!(await isDemoClient(clientId))) {
+      const { data: c } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
+      const { sendFounderAlert } = await import('../lib/alerts')
+      await sendFounderAlert('support_escalation', `Pause requested — ${(c as { company_name?: string } | null)?.company_name ?? 'a client'}`, [
+        'The client pressed Pause in Milla. Their programme is PAUSED NOW: nothing new is sourced or sent.',
+        'Talk to them, then resume it in Vida → the client → Programme → Resume.',
+      ]).catch(err => console.error('[my-programme/pause] the pause landed but the alert failed:', err))
+    }
+    res.json({ success: true, data: { paused: true } })
+  } catch (err) {
+    console.error('[my-programme/pause]', err)
+    res.status(503).json({ success: false, error: 'unavailable', message: 'We could not pause just now. Nothing was changed — please try again.' })
+  }
+})
+
 // ⚠️ NO `:id` IN THE PATH. This router's standing guard (customer-programme-approval ⑤) is that
 // no customer route takes an id in its path. The meeting is named in the body, and
 // `challengeMeeting` refuses any meeting whose `client_id` is not the session's.

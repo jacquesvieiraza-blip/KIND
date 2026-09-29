@@ -183,6 +183,12 @@ export type LifecycleFacts = {
   programme: null | {
     status: string
     paused: boolean
+    /**
+     * ⚑ 29 Sep (R174 · 2d) — THE CLIENT PAUSED IT THEMSELVES (`pause_reason = 'client'`). Only a
+     * person can talk to them and resume it, so it is a Needs-you at EVERY stage — including the
+     * two where an operator's own pause deliberately is not. Optional: absent reads as false.
+     */
+    pausedByClient?: boolean
     approved: boolean
     /** P2 authority — internal authorisation OR a real second payment. Never inferred. */
     secondAuthorised: boolean
@@ -555,7 +561,7 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     if (p.paused || f.humanBlockers.length > 0 || !f.readinessReady) {
       // Everything is bought and something a person must fix is in the way. This is the one
       // place a blocker genuinely stops the launch, so it is a task — unless it is only a pause.
-      return verdict('blocked', 'live', f.humanBlockers.length > 0 ? 'human_blocker' : null)
+      return verdict('blocked', 'live', f.humanBlockers.length > 0 || p.pausedByClient === true ? 'human_blocker' : null)
     }
     return verdict('live_ready_to_make_live', 'live', 'make_live_required')
   }
@@ -564,7 +570,7 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
   if (p.status === 'READY_FOR_APPROVAL') {
     // 🛑 NEVER A TASK. The client is acting in Milla; Vida cannot approve for them, and an
     // unopened review is not an operator failure. (The reminder is post-launch.)
-    if (p.paused) return verdict('blocked', 'approval', null)
+    if (p.paused) return verdict('blocked', 'approval', p.pausedByClient === true ? 'human_blocker' : null)
     // ── ⚑ 11 Sep (DAY 3) — EXCEPT WHEN THEY CANNOT APPROVE AT ALL ────────────────────
     //
     // 🛑 WAITING ON A CLIENT IS NOT A TASK; A CLIENT WHO IS STUCK IS. If the prepared work has

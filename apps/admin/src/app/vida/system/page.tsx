@@ -18,6 +18,7 @@
 // It runs on a BUTTON, never on page load: it makes real network calls to Stripe, Resend,
 // Anthropic and the rest, so it is slow on purpose and must be asked for.
 
+import SystemHistory from '@/components/vida/SystemHistory'
 import { useState } from 'react'
 
 type RowState = 'CHECKED-OK' | 'CHECKED-BROKEN' | 'NOT-MEASURED'
@@ -224,6 +225,10 @@ export default function VidaSystemPage() {
             </div>
           </div>
         ))}
+
+        {/* ⚑ 29 Sep (R174 · 5g) — Health merged in: job history and captured errors. */}
+        <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] pt-2">History</div>
+        <SystemHistory />
 
         <p className="text-[11px] text-[#9b8ec4] border-t border-[#eee7f7] pt-3">
           This describes the environment this API is running in. Grey rows are <b>not failures</b> — they are things

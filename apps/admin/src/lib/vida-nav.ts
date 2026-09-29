@@ -96,7 +96,7 @@ export const COMMAND_CENTRE: NavGroup[] = [
   { title: 'System', items: [
     { href: '/vida/system', label: 'System',    icon: '🩺' },
     { href: '/vida/engine', label: 'Engine',    icon: '📡' },
-    { href: '/vida/health', label: 'Health',    icon: '❤️' },
+    // ⛓️ 29 Sep (R174 · 5g) — ~~Health~~: merged into System (job history and errors live there).
     { href: '/vida/audit',  label: 'Audit log', icon: '📋' },
   ] },
   { title: 'Growth', items: [

@@ -5967,7 +5967,18 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
     // ⚠️ EVERY LOOKUP FAILS SOFT AND SAYS SO. `null` reaches the prompt as "could not be
     // read", which is a different sentence from "there is none" — an operator told a client
     // has no Brief when we simply could not load it would act on a fact nobody established.
-    const [counts, briefRow, icpRow, clientMsgs, history] = await Promise.all([
+    // ⚑ 29 Sep (R174 · 5a) — ⛓️ `counts` below WAS the whole pipeline she was given: client-wide,
+    // every enrolment and reply ever. She now gets the lifecycle detail instead — stage,
+    // programme, this programme's numbers and what is stuck — the same object the console's
+    // stage panel renders (`vidaFactsFromLifecycle`). The old read is kept only as a fallback
+    // for when the lifecycle itself cannot be read.
+    const [lifecycle, counts, briefRow, icpRow, clientMsgs, history] = await Promise.all([
+      (async () => {
+        try {
+          const { lifecycleDetailFor } = await import('../lib/programme-lifecycle-facts')
+          return await lifecycleDetailFor(cid)
+        } catch { return null }
+      })(),
       (async () => {
         try {
           const [sourced, needs, sending, replied, booked] = await Promise.all([
@@ -6021,14 +6032,17 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
       })(),
     ])
 
-    const { buildVidaSystem, VIDA_TOOLS, readVidaProposal, boundedSourcingCount } =
+    const { buildVidaSystem, VIDA_TOOLS, readVidaProposal, boundedSourcingCount, vidaFactsFromLifecycle } =
       await import('../lib/vida-brain')
 
+    const facts = vidaFactsFromLifecycle(lifecycle)
     const system = buildVidaSystem({
       clientName: client.company_name ?? 'this client',
       clientId: cid,
       operator,
-      pipeline: counts,
+      ...facts,
+      // No lifecycle at all → the old client-wide counts, labelled by the prompt as the pipeline.
+      pipeline: lifecycle ? facts.pipeline : counts,
       brief: briefRow?.facts ?? null,
       briefProgress: briefRow?.progress ?? null,
       briefTranscript: briefRow?.conversation ?? null,

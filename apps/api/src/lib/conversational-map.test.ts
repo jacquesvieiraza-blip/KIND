@@ -361,7 +361,9 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // editor (the Campaign tab is view-only). Nothing new reads a customer's words.
   // ⛓️ 29 Sep (R174 · 5b) — ×5 → ×6: `programmeCount` asks whether a count's name is in the
   // server's `unreadable` list. Membership of a list of field names, same class.
-  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab / unreadable-count .includes ×6', klass: 'B', why: 'enum membership on operator state' },
+  // ⛓️ 29 Sep (R174 · 5a) — ×6 → ×7: `openTab` checks the tab Vida named is one of COCKPIT_TABS
+  // before opening it — an allowlist on a tab name, fail-closed.
+  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab / unreadable-count .includes ×7', klass: 'B', why: 'enum membership on operator state' },
 
   { file: 'apps/api/src/routes/icps.ts',            what: '/check constraint|violates/i.test(error.message)', klass: 'B', why: 'matches a DATABASE error string, never a customer sentence' },
   { file: 'apps/api/src/routes/icps.ts',            what: '/column|schema cache/i.test(icpUpdateErr.message)', klass: 'B', why: 'same — a Postgres error' },
@@ -369,6 +371,8 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   { file: 'apps/api/src/lib/milla.ts',              what: "text.match(/[^.!?\\n]+[.!?\\n]+/g)",               klass: 'B', why: 'splits a DOCUMENT into chunks for embedding; no meaning is read' },
   { file: 'apps/api/src/lib/brief-list-ops.ts',     what: 'trim().toLowerCase().replace(/\\s+/g)',            klass: 'B', why: 'normalises a list VALUE for equality so a remove matches; decides nothing' },
   { file: 'apps/api/src/lib/vida-brain.ts',         what: 'known.includes(name)',                             klass: 'B', why: 'allowlist on a TOOL NAME, fail-closed' },
+  // ⚑ 29 Sep (R174 · 5a) — the programme's STATUS enum lower-cased for her prompt ('LIVE' → 'live').
+  { file: 'apps/api/src/lib/vida-brain.ts',         what: 'p.status.toLowerCase()',                           klass: 'B', why: 'formats a programme status enum, never a customer sentence' },
   { file: 'apps/api/src/lib/milla-reply-shape.ts',  what: 'COMPLETION_READINESS_PATHS.includes(path)',        klass: 'B', why: 'allowlist on a ZOD ISSUE PATH, not on words' },
 ]
 
@@ -394,7 +398,7 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/api/src/routes/icps.ts': 3,
       'apps/api/src/lib/milla.ts': 1,
       'apps/api/src/lib/brief-list-ops.ts': 1,
-      'apps/api/src/lib/vida-brain.ts': 1,
+      'apps/api/src/lib/vida-brain.ts': 2,   // ⛓️ 29 Sep (R174 · 5a) — was 1; + the status enum lower-cased
       'apps/api/src/lib/milla-reply-shape.ts': 1,
       'apps/api/src/lib/brief-draft.ts': 0,
       'apps/api/src/lib/client-outcome.ts': 0,
@@ -421,7 +425,7 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/portal/src/app/(milla)/milla/chat/page.tsx': 0,
       'apps/portal/src/lib/get-help-state.ts': 0,
       'apps/admin/src/components/vida/VidaConversation.tsx': 0,
-      'apps/admin/src/app/vida/page.tsx': 6,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left · (5b) +1, `programmeCount`
+      'apps/admin/src/app/vida/page.tsx': 7,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left · (5b) +1, `programmeCount` · (5a) +1, `openTab`
     }
     const RE = /\.match\(|\.test\(|new RegExp|toLowerCase\(\)|\.includes\(/g
     for (const [file, n] of Object.entries(EXPECTED)) {

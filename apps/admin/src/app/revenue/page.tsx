@@ -35,6 +35,7 @@ async function getNps(): Promise<NpsData | null> {
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 import MrrOverTime from './MrrOverTime'
+import ProgrammeRevenue from '../../components/vida/ProgrammeRevenue'
 import { ALL_FIXED_LINES, TOTAL_FLOOR_USD, basisLabel } from '@kind/shared'
 
 const MONTHLY_TARGETS = [
@@ -178,13 +179,15 @@ export default async function RevenuePage() {
         <DollarSign className="w-6 h-6 text-gray-400" />
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">💷 Finance</h1>
-          <p className="text-sm text-gray-400 mt-0.5">The money truth — Xero &amp; Wise, MRR tracking, scenarios, ARPU</p>
+          <p className="text-sm text-gray-400 mt-0.5">Programme revenue first — what was bought and what was paid. The subscription figures further down are the old model, kept as history.</p>
         </div>
-        <span className="text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Live MRR · projections below
-        </span>
       </div>
+
+      {/* ⚑ 29 Sep (R174 · 4e) — the programme money truth leads the page. ⛓️ The header chip
+          live-MRR header chip is gone: MRR is the retired subscription model. */}
+      <ProgrammeRevenue />
+
+      <div className="text-xs font-bold uppercase tracking-wide text-gray-400 pt-2 border-t border-gray-100">Old subscription model — history</div>
 
       {/* Finance — the money truth (Xero / Wise hyperlinked; cost stack an estimate until Xero) */}
       <div>

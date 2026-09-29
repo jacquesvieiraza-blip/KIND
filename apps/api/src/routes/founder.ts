@@ -17,6 +17,8 @@ import { computeChurnRisk } from './internal'
 import { suggestWinBack, adminKeyValid } from './admin'
 import { interpretSend } from '../lib/resend-checked'
 import { BACKGROUND_MODEL } from '../lib/models'
+import { getExcludedClientIds } from '../lib/real-clients'
+import { withoutClients } from '../lib/real-clients-logic'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend    = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -178,12 +180,15 @@ founderRouter.get('/digest', async (_req: Request, res: Response) => {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
 
+    // ⚑ 29 Sep (R174 ⑧ · PR 8c) — real clients only: the demo and House are not clients, and
+    // their leads are not new business. Same rule as every other business number.
+    const excluded = await getExcludedClientIds()
     const [logsRes, clientsRes, leadsRes] = await Promise.all([
       db.from('founder_agent_logs')
         .select('*').gte('created_at', sevenDaysAgo)
         .order('created_at', { ascending: false }).limit(50),
-      db.from('clients').select('id', { count: 'exact', head: true }),
-      db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+      withoutClients(db.from('clients').select('id', { count: 'exact', head: true }), 'id', excluded),
+      withoutClients(db.from('leads').select('id', { count: 'exact', head: true }), 'client_id', excluded).gte('created_at', sevenDaysAgo),
     ])
 
     const logs = logsRes.data ?? []

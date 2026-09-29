@@ -6,7 +6,7 @@ import { Users, DollarSign, AlertCircle, Target, CheckCircle2,
 import Link from 'next/link'
 import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../../lib/fx'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
-import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD } from '@kind/shared'
+import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD, withoutClients } from '@kind/shared'
 // ⚑ 13 Sep (B3/B4) — the two operator surfaces for the states nothing resolves automatically.
 import StaleProofClaimsPanel from '@/components/vida/StaleProofClaimsPanel'
 import OperatorTasksPanel from '@/components/vida/OperatorTasksPanel'
@@ -105,6 +105,7 @@ async function getAdminStats() {
   // Revenue-honesty: cockpit MRR / unit economics count real paying clients only —
   // exclude demo + house (founder testing). subscriptions carry client_id; filter in JS.
   const exclusions = await getRevenueExclusions(supabase)
+  const notReal = exclusions.excludedClientIds
   const [
     { data: allClientIds },
     { data: activeSubsRaw },
@@ -120,11 +121,13 @@ async function getAdminStats() {
     supabase.from('subscriptions').select('*').eq('status', 'active'),
     supabase.from('subscriptions').select('*').eq('status', 'trialing'),
     supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'past_due'),
-    supabase.from('leads').select('id', { count: 'exact', head: true }),
-    supabase.from('clients').select('id, company_name, created_at, subscriptions(status)').order('created_at', { ascending: false }).limit(50),
-    supabase.from('leads').select('client_id, created_at').order('created_at', { ascending: true }),
-    supabase.from('leads').select('client_id').gte('created_at', startOfMonth),
-    supabase.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+    // ⚑ 29 Sep (R174 ⑧ · PR 8c) — every business number here is real clients only, through the
+    // one shared rule: a demo reset is not a signup and the demo's leads are not the business.
+    withoutClients(supabase.from('leads').select('id', { count: 'exact', head: true }), 'client_id', notReal),
+    withoutClients(supabase.from('clients').select('id, company_name, created_at, subscriptions(status)'), 'id', notReal).order('created_at', { ascending: false }).limit(50),
+    withoutClients(supabase.from('leads').select('client_id, created_at'), 'client_id', notReal).order('created_at', { ascending: true }),
+    withoutClients(supabase.from('leads').select('client_id'), 'client_id', notReal).gte('created_at', startOfMonth),
+    withoutClients(supabase.from('clients').select('id', { count: 'exact', head: true }), 'id', notReal).gte('created_at', sevenDaysAgo),
   ])
 
   const activeSubs = (activeSubsRaw || []).filter((s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id))

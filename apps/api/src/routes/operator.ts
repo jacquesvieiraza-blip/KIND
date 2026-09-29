@@ -4,6 +4,7 @@ import { partnersFrozenGate } from '../middleware/partners-frozen'
 import { normalizeRevealEmails } from '../lib/billing-rules'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
+import { withoutClients } from '../lib/real-clients-logic'
 import { documentReadFailure } from '../lib/document-read-failure'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
@@ -4812,6 +4813,12 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     // hand in Supabase. If the code ships BEFORE that SQL is run, this query errors — and a
     // 500 here would take the whole Engine page down. Degrade instead: no inbox rows, and a
     // migration_pending flag the page can explain. Everything else on the page still works.
+    // ⚑ 29 Sep (R174 ⑧ · PR 8c) — the send totals are real clients' sends only: the demo's and
+    // House's rows are dropped through the one rule (`withoutClients`), joined via leads.
+    const excluded = new Set(await getExcludedClientIds())
+    const sends = () => withoutClients(
+      db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }),
+      'leads.client_id', excluded)
     const [inboxes, clients, sent7, sentToday, bounced7, optOuts, opened7] = await Promise.all([
       // #552 — the SMTP columns come with it, because "has a mailbox row" and "can actually
       // send" are different questions and the page was only able to answer the first. A row
@@ -4822,11 +4829,11 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
         .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false })
         .then(r => r, () => ({ data: null, error: { message: 'client_inboxes missing' } })),
       db.from('clients').select('id, company_name'),
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since),
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', midnight.toISOString()),
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).eq('status', 'bounced'),
+      sends().gte('sent_at', since),
+      sends().gte('sent_at', midnight.toISOString()),
+      sends().gte('sent_at', since).eq('status', 'bounced'),
       db.from('opt_out_blocklist').select('email', { count: 'exact', head: true }),
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).not('opened_at', 'is', null),
+      sends().gte('sent_at', since).not('opened_at', 'is', null),
     ])
 
     const migrationPending = !!inboxes.error
@@ -4882,7 +4889,6 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     // positive verdict is now stated out loud, and `needs_inbox` is DERIVED from the same
     // list rather than computed a second time, so the two can never disagree.
     const { readinessTone, nextStepFor } = await import('../lib/house-client')
-    const excluded = new Set(await getExcludedClientIds())
     const readiness = migrationPending ? [] : (clients.data ?? [])
       .filter((c: { id: string }) => !excluded.has(c.id))
       .map((c: { id: string; company_name: string | null }) => {
@@ -5902,18 +5908,19 @@ operatorRouter.get('/health', async (_req: Request, res: Response) => {
     // replies to handle". Both numbers were right; the label was wrong. It now measures what
     // it says: open, unhandled, not noise.
     const NOISE = ['opt_out', 'unsubscribe', 'out_of_office', 'bounce']
-    const [sent, openReplies, pending] = await Promise.all([
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', iso),
-      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at').limit(20000),
-      db.from('figsy_approval_queue').select('client_id', { count: 'exact' }).eq('status', 'pending').limit(20000),
-    ])
-
     // Demos and house accounts are OURS — counting them put our own test noise in the
     // operator's headline numbers, which is how a real client's reply gets lost in them.
     const excluded = await getExcludedClientIds()
     const { data: demoRows } = await db.from('clients').select('id').eq('is_demo', true).limit(500)
     for (const r of (demoRows ?? []) as { id: string }[]) excluded.add(r.id)
     const ours = (cid: unknown) => !excluded.has(String(cid))
+    const [sent, openReplies, pending] = await Promise.all([
+      // ⚑ 29 Sep (R174 ⑧ · PR 8c) — "sent" too: the chip's own tooltip said demos and House were
+      // excluded, and for this number they were not.
+      withoutClients(db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }), 'leads.client_id', excluded).gte('sent_at', iso),
+      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at').limit(20000),
+      db.from('figsy_approval_queue').select('client_id', { count: 'exact' }).eq('status', 'pending').limit(20000),
+    ])
 
     const toTriage = ((openReplies.data ?? []) as Record<string, unknown>[]).filter(r =>
       ours(r.client_id) && !r.qualified_at && !r.meeting_booked_at
@@ -7084,9 +7091,13 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
 
     // `figsy_sent_emails` carries no client_id — the join through leads is how the daily-cap
     // counter already does it (figsy.ts). Same shape here so the two can never disagree.
+    // ⚑ 29 Sep (R174 ⑧ · PR 8c) — house-wide, the demo's and House's sends and replies are not
+    // sending stats. A named client (House included) still reads its own.
+    const notReal = clientId ? new Set<string>() : await getExcludedClientIds()
     const sentIn = async (since: string) => {
       let q = db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }).gte('sent_at', since)
       if (clientId) q = q.eq('leads.client_id', clientId)
+      q = withoutClients(q, 'leads.client_id', notReal)
       const { count, error } = await q
       if (error) throw new Error(`sent counts: ${error.message}`)
       return count ?? 0
@@ -7095,6 +7106,7 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
     const repliesIn = async (since: string) => {
       let q = db.from('figsy_replies').select('classification').gte('received_at', since)
       if (clientId) q = q.eq('client_id', clientId)
+      q = withoutClients(q, 'client_id', notReal)
       const { data, error } = await q
       if (error) throw new Error(`replies: ${error.message}`)
       return (data ?? []) as { classification: string | null }[]

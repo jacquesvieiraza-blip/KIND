@@ -32,6 +32,10 @@ export const dynamic = 'force-dynamic'
 export default async function MillaLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  // ⚑ 29 Sep (R174 · 7b) — A CONFIRMED "NO ACCOUNT YET" GOES TO THE BRIEF, FROM ANY PAGE. Fifteen
+  // pages showed a red "Client not found" to a new sign-up who opened the menu before finishing
+  // their Brief. Only a confirmed-empty lookup — a failed one renders Milla as before.
+  let noAccount = false
 
   if (user) {
     const { data: clientRow, error } = await supabase
@@ -45,6 +49,7 @@ export default async function MillaLayout({ children }: { children: React.ReactN
     // them exactly where today's product puts them (nothing about a half-finished signup
     // changes here).
     if (!clientRow && !error) {
+      noAccount = true
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.access_token) {
@@ -67,5 +72,5 @@ export default async function MillaLayout({ children }: { children: React.ReactN
     }
   }
 
-  return <MillaShell>{children}</MillaShell>
+  return <MillaShell noAccount={noAccount}>{children}</MillaShell>
 }

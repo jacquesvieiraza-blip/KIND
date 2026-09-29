@@ -842,12 +842,15 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(welcomeCode).toContain("setProofHold('preparing')")
     expect(welcomeCode).toContain("setProofHold('needs_us')")
     // The ONLY way out is the shared rule saying `ready`.
+    // ⛓️ 29 Sep (R174 · 7b) — ONE MORE EXIT, and only for a client who HAS A PROGRAMME: they are
+    // past the Brief by definition ("programme exists → never the Brief page"). Every exit is
+    // still behind a rule; none is a first-Proof client leaving before their people are ready.
     const pushes = welcomeCode.match(/router\.(push|replace)\('[^']*'\)/g) ?? []
-    expect(pushes.sort()).toEqual(["router.push('/milla')", "router.replace('/milla')"])
-    for (const p of ["router.push('/milla')", "router.replace('/milla')"]) {
-      const at = welcomeCode.indexOf(p)
-      expect(welcomeCode.slice(Math.max(0, at - 120), at), `${p} is not behind the readiness rule`)
-        .toMatch(/=== 'ready'/)
+    expect(pushes.sort()).toEqual(["router.push('/milla')", "router.replace('/milla')", "router.replace('/milla')"])
+    for (const m of welcomeCode.matchAll(/router\.(push|replace)\('\/milla'\)/g)) {
+      const at = m.index ?? 0
+      expect(welcomeCode.slice(Math.max(0, at - 120), at), `${m[0]} is not behind the readiness or programme rule`)
+        .toMatch(/=== 'ready'|hasProgramme === true/)
     }
     expect(welcomeCode).toContain('firstProofReadiness(')
   })

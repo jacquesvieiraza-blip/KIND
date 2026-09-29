@@ -20,6 +20,8 @@ vi.mock('@kind/db', () => ({
         async single() { return { data: st.row, error: null } },
         async maybeSingle() { return { data: st.row, error: null } },
         upsert: (patch: Row) => { st.upserts.push(patch); st.row = { ...st.row, ...patch }; return q },
+        // ⛓️ 29 Sep (R174 · 7b) — the save is now an UPDATE of the existing account (never a create).
+        update: (patch: Row) => { st.upserts.push(patch); st.row = { ...st.row, ...patch }; return q },
       }
       return q
     },

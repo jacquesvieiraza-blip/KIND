@@ -118,7 +118,8 @@ describe('J3-C1 · the stage bar is the canonical six, on every screen that draw
     // vocabulary beside the canonical one, which is precisely the C41 defect.
     const layout = codeOf(join(MILLA_ROOT, 'layout.tsx'))
     expect(layout, 'the route group no longer wraps its screens in the shell')
-      .toMatch(/<MillaShell>\{children\}<\/MillaShell>/)
+      // ⛓️ 29 Sep (R174 · 7b) — the shell also carries whether the visitor has an account yet.
+      .toMatch(/<MillaShell( noAccount=\{noAccount\})?>\{children\}<\/MillaShell>/)
     const drawers = ALL
       .filter(p => !p.endsWith('MillaShell.tsx'))
       .filter(p => /MVP1_MILLA_STAGES/.test(codeOf(p)))

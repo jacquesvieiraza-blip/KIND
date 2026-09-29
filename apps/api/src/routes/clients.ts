@@ -199,9 +199,20 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
     const patch: Record<string, unknown> = { ...body }
     if (body.crm_type === 'none') patch.crm_api_key = null
     else if (!body.crm_api_key) delete patch.crm_api_key
-    // Upsert: creates the row if none exists (partner accounts have no client row by default)
+    // ⛓️ 29 Sep (R174 · 7b) — ~~"Upsert: creates the row if none exists (partner accounts have no
+    // client row by default)"~~. A Settings save before the Brief was confirmed created an early,
+    // half-empty account ("South Africa" and nothing else), ahead of the Brief that creates it
+    // properly. The account is made when the Brief is confirmed; until then a save is refused and
+    // nothing is written. (Partner seats are frozen and do not use this page.)
+    const { data: existing, error: exErr } = await db.from('clients').select('id').eq('user_id', req.userId!).maybeSingle()
+    if (exErr) { res.status(503).json({ success: false, error: 'Your account could not be read. Nothing was saved.' }); return }
+    if (!existing) {
+      res.status(409).json({ success: false, error: 'no_account', message: 'Finish your Brief first — your account is created when you confirm it. Nothing was saved.' })
+      return
+    }
     const { data, error } = await db.from('clients')
-      .upsert({ ...patch, user_id: req.userId! }, { onConflict: 'user_id' })
+      .update(patch)
+      .eq('user_id', req.userId!)
       .select()
       .single()
     if (error) throw error

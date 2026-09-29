@@ -510,7 +510,10 @@ describe('🛑 S1-RT-001 · there is a way out of onboarding', () => {
     // verbatim, so a plain `toContain` would match the history and call the fix a failure.
     expect(shellSrc, 'the first run is outside the portal again — and with it, the only Sign out')
       .not.toMatch(/^\s*if \(pathname === '\/milla\/welcome'\) return/m)
-    expect(shellSrc, 'the shell no longer carries a Sign out').toContain('await createClient().auth.signOut()')
+    // ⛓️ 29 Sep (R174 · 7b) — ~~`await createClient().auth.signOut()`~~: the same sign-out, with a
+    // local fallback when the server call fails, so it always signs this browser out.
+    expect(shellSrc, 'the shell no longer carries a Sign out').toContain('const { error } = await sb.auth.signOut()')
+    expect(shellSrc).toContain("await sb.auth.signOut({ scope: 'local' })")
     expect(shellSrc).toContain("window.location.href = '/login'")
   })
 

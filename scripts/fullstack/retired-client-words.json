@@ -1,0 +1,37 @@
+[
+ [
+  "FIGSY (an internal engine name)",
+  "\\bFIGSY\\b",
+  ""
+ ],
+ [
+  "a $4 per-lead price",
+  "\\$4(?![\\d,.])",
+  ""
+ ],
+ [
+  "credits",
+  "\\bcredits\\b",
+  "i"
+ ],
+ [
+  "approved leads",
+  "approved leads",
+  "i"
+ ],
+ [
+  "request leads",
+  "request leads",
+  "i"
+ ],
+ [
+  "masked leads",
+  "masked leads",
+  "i"
+ ],
+ [
+  "the internal \"Review\" stage",
+  "'Review — |a review decision",
+  ""
+ ]
+]

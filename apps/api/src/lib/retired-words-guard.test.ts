@@ -11,15 +11,11 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
-export const RETIRED_CLIENT_WORDS: Array<[string, RegExp]> = [
-  ['FIGSY (an internal engine name)', /\bFIGSY\b/],
-  ['a $4 per-lead price', /\$4\b/],
-  ['credits', /\bcredits\b/i],
-  ['approved leads', /approved leads/i],
-  ['request leads', /request leads/i],
-  ['masked leads', /masked leads/i],
-  ['the internal "Review" stage', /'Review — |a review decision/],
-]
+// ⛓️ 29 Sep (R174 ⑧ · PR 8e) — the list moved to ONE file, which this guard (code) and the demo's
+// browser sweep (`scripts/fullstack/demo-shots.mjs`, the rendered page) both read. Same words.
+// ~~export const RETIRED_CLIENT_WORDS = [['FIGSY …', /\bFIGSY\b/], … ]~~ (written out here before)
+const WORDS: Array<[string, string, string]> = JSON.parse(readFileSync(join(process.cwd(), 'scripts/fullstack/retired-client-words.json'), 'utf8'))
+export const RETIRED_CLIENT_WORDS: Array<[string, RegExp]> = WORDS.map(([name, src, flags]) => [name, new RegExp(src, flags)])
 
 /** Code only — block comments, JSX comments and whole-line `//` comments are notes, not screens. */
 export function codeOf(src: string): string {

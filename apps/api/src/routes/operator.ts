@@ -5337,6 +5337,15 @@ operatorRouter.post('/icp', async (req: Request, res: Response) => {
       updated_at: new Date().toISOString(),
     }
 
+    // ⚑ 29 Sep (R174 ② · 1d) — fixed from "Ready": a new version (which switches the
+    // programme's ICP off) or an edit to the programme's own ICP is refused while the client is
+    // reviewing or running this programme. Change it through Rewrite messages / Re-freeze.
+    {
+      const { icpEditVerdict } = await import('../lib/programme-edit-lock')
+      const v = await icpEditVerdict(client.id, b.icp_id ? String(b.icp_id) : null)
+      if (v.refuse) { res.status(v.status).json({ success: false, error: v.message }); return }
+    }
+
     if (b.icp_id) {
       const { data, error } = await db.from('icps').update(payload)
         .eq('id', b.icp_id as string).eq('client_id', client.id).select('id, name').maybeSingle()
@@ -5409,6 +5418,11 @@ operatorRouter.post('/sequence', async (req: Request, res: Response) => {
     const quality = lintSequence(steps as never)
 
     if (b.sequence_id) {
+      // ⚑ 29 Sep (R174 ② · 1d) — the locked programme's own sequence is not rewritten in
+      // place: it would stale the package the client is reading or halt a live programme.
+      const { sequenceEditVerdict } = await import('../lib/programme-edit-lock')
+      const v = await sequenceEditVerdict(client.id, String(b.sequence_id))
+      if (v.refuse) { res.status(v.status).json({ success: false, error: v.message }); return }
       const { data, error } = await db.from('figsy_sequences')
         .update({ name, steps, updated_at: new Date().toISOString() })
         .eq('id', b.sequence_id).eq('client_id', client.id).select('id, name').maybeSingle()

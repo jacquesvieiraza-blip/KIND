@@ -220,8 +220,9 @@ describe('J5-C3 · the pack chip', () => {
     // "88 of your 100 included leads left" is the retired $299 pack, counted down and shown
     // as CURRENT commercial state. A programme client never bought one. Already gated; the
     // REQ names it, so it is pinned rather than left to a comment.
-    expect(PAGE, 'the retired pack quota is rendered without asking which model this client is on')
-      .toMatch(/pack\.active && modelView === 'legacy'/)
+    // ⛓️ 29 Sep (R174 · 5c) — ~~rendered for a legacy client only~~: the fallback card that held it is removed,
+    // so it renders for nobody.
+    expect(PAGE, 'the retired pack quota is back').not.toMatch(/pack\.active && modelView === 'legacy'/)
     expect(PAGE, 'a second, ungated pack render appeared')
       .not.toMatch(/\{selectedWork\.pack\.active &&\s*\(/)
   })

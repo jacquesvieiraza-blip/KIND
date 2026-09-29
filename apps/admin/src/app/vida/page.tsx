@@ -302,6 +302,31 @@ function shortfallCreditWords(onePayment: boolean, verb: 'is' | 'was'): string {
 }
 
 /** ⚑ 29 Sep (R174 · 4i) — what the view-only Campaign tab says about itself. */
+/** ⚑ 29 Sep (R174 · 5c) — the header's readiness chip, from the programme's own verdict. */
+function readinessChip(r: { ready: boolean; blockers?: { detail: string }[] } | null): { ready: boolean; label: string; title: string } {
+  if (!r) return { ready: false, label: 'Readiness —', title: 'The programme’s readiness could not be read.' }
+  const n = r.blockers?.length ?? 0
+  if (r.ready) return { ready: true, label: 'Ready', title: 'Everything the programme needs is in place.' }
+  return { ready: false, label: n ? `Not ready · ${n} to clear` : 'Not ready',
+    title: n ? (r.blockers ?? []).map(b => b.detail).join('\n') : 'The programme is not ready yet.' }
+}
+
+/**
+ * ⚑ 29 Sep (R174 · 5c) — the shortfall credit chip: the amount and the day it runs out, or null.
+ * The day is the settlement plus `SHORTFALL_CREDIT_EXPIRY_DAYS` — never a typed number.
+ */
+function shortfallCreditChip(settlement: { settled_at: string; credit_cents: number } | null, now: Date):
+  { label: string; title: string } | null {
+  if (!settlement || !(settlement.credit_cents > 0)) return null
+  const until = new Date(new Date(settlement.settled_at).getTime() + SHORTFALL_CREDIT_EXPIRY_DAYS * 86_400_000)
+  if (!(until.getTime() > now.getTime())) return null
+  const day = until.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return {
+    label: `$${(settlement.credit_cents / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })} shortfall credit · until ${day}`,
+    title: `Credited once when the programme settled short. It can be used on a new programme until ${day} (${SHORTFALL_CREDIT_EXPIRY_DAYS} days).`,
+  }
+}
+
 /** ⚑ 29 Sep (R174 · 5b) — one programme count: undefined = no programme, null = unreadable. */
 type ProgrammeCounts = { counts: object & { unreadable?: string[] }; programme: unknown } | null
 function programmeCount(lc: ProgrammeCounts, key: string): number | null | undefined {
@@ -3326,66 +3351,27 @@ export default function VidaConsolePage() {
                     The founder's boundary, verbatim: *"Keep go-live checks where they
                     legitimately belong under their own name."* This is that name. Two chips,
                     two questions, neither borrowing the other's number. */}
-                {cockpit && (
-                  <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.go_live.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
-                    title={cockpit.onboarding.go_live.missing.length
-                      ? `We still owe them: ${cockpit.onboarding.go_live.missing.join(', ')}`
-                      : 'Everything on our side is ready'}>
-                    Go-live {cockpit.onboarding.go_live.percent}%
-                  </span>
-                )}
-                {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
-                    This chip stated a balance in the same weight and colour for every client,
-                    on a header the operator reads before every action — so for a programme
-                    client it silently answered "how does this account pay?" with the legacy
-                    answer. The number stays (it is a real stored balance, and a programme
-                    client can still hold one from before); what it no longer does is stand
-                    unqualified beside an account the wallet does not govern. */}
-                {(() => {
-                  // ⚠️ THE CHIP IS QUALIFIED FOR EVERY MODEL THAT IS NOT LEGACY, and that
-                  // includes UNRESOLVED. The first cut qualified only `programme` and
-                  // `compat_programme`, so a client whose model could not be resolved — the
-                  // declared-legacy-with-an-open-programme conflict — was shown an ordinary
-                  // purple balance beside a red panel saying nothing is authorised. An
-                  // unqualified balance IS a claim that it is spendable, and "we could not
-                  // tell" must never render as that claim.
-                  // ⛓️ CORRECTED 3 Sep — ~~"$1,200 wallet · not used".~~ FOUNDER-RULED STILL
-                  // AMBIGUOUS: "not used" reads as a temporary state of a live wallet, not as a
-                  // closed one. The balance is HISTORY on a programme account — a real number
-                  // from the model they are no longer on — and the label now says exactly that.
-                  // The word "wallet" moves behind "historical" so the first thing read is what
-                  // kind of number it is.
-                  //
-                  // ⚠️ NOTHING IS DELETED OR ZEROED. The balance is rendered in full; the ledger
-                  // is untouched. What changed is one word of framing.
-                  // ⛓️ NOW READ FROM `modelView`, not from a second copy of the same question.
-                  // The chip derived its own `r === 'unreadable'` while the rest of the console
-                  // used `modelView`, so the two could disagree — and they DID: a loading or
-                  // field-missing response left the chip fully active while every other sentence
-                  // had already gone neutral. One derivation, one answer.
-                  const programmeWallet  = modelView === 'programme'
-                  const unresolvedWallet = modelView === 'unresolved'
-                  const loadingWallet    = modelView === 'loading'
-                  const muted = programmeWallet || unresolvedWallet || loadingWallet
+                {/* ⚑ 29 Sep (R174 · 5c) — ⛓️ WAS "Go-live N%", which scored the OLD launch checklist
+                    (`cockpit.onboarding.go_live`). The programme has its own readiness verdict — the
+                    one the Programme tab prints and Make Live obeys — so the header says that. */}
+                {prog?.programme && (() => {
+                  const r = readinessChip(prog.readiness ?? null)
                   return (
-                    <span
-                      title={programmeWallet
-                        ? 'Historical. This client is on the programme model, so the wallet gates nothing — not sourcing, not sending, not enrolment. The balance is shown because it is real, not because it applies.'
-                        : unresolvedWallet
-                          ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
-                          : loadingWallet
-                            ? 'Still reading this client’s commercial model. Until it is known, no claim is made about whether this balance applies.'
-                            : 'Wallet balance'}
-                      className={`shrink-0 text-[12.5px] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
-                        muted ? 'font-semibold text-[#a9a2bd] bg-[#f5f4f8] border border-[#e8e5ef]' : 'font-bold text-[#7C3AED] bg-[#f3ecff]'}`}>
-                      {programmeWallet
-                        ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} historical wallet · inactive`
-                        : unresolvedWallet
-                          ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · model unresolved`
-                          : loadingWallet
-                            ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · checking…`
-                            : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
-                    </span>
+                    <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${r.ready ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
+                      title={r.title}>{r.label}</span>
+                  )
+                })()}
+                {/* ⚑ 29 Sep (R174 · 5c) — THE CREDIT THIS CLIENT ACTUALLY HAS, OR NOTHING. ⛓️ WAS the
+                    wallet balance, labelled "historical · inactive" on every programme client — a
+                    number that governs nothing, on the header read before every action. What a
+                    programme client can hold is a SHORTFALL CREDIT (R136 ④), once only and for
+                    the `SHORTFALL_CREDIT_EXPIRY_DAYS` window (R166 ⑤), so that is what the chip shows, with the
+                    date it runs out; after that date, or with no credit, there is no chip. */}
+                {(() => {
+                  const credit = shortfallCreditChip(prog?.programme?.settlement ?? null, new Date())
+                  return credit && (
+                    <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 text-[#7C3AED] bg-[#f3ecff] ${cockpit ? '' : 'ml-auto'}`}
+                      title={credit.title}>{credit.label}</span>
                   )
                 })()}
               </div>
@@ -3597,199 +3583,10 @@ export default function VidaConsolePage() {
                   banner and actions say the same thing. It now renders only as the fallback when
                   the lifecycle verdict could not be read and the panel is absent. */}
               {!lcCopy && <div className="shrink-0">{clientContext}</div>}
-              {selectedWork && !lcCopy && (
-                <div className="shrink-0 px-4 pt-3">
-                  <div className={`rounded-2xl border-[1.5px] overflow-hidden mb-3 ${selectedWork.next.actor === 'you' ? 'border-[#7C3AED]' : 'border-[#ece5fb]'}`}>
-                    <div className={`flex items-center gap-3 flex-wrap px-4 py-3 border-b ${selectedWork.next.actor === 'you' ? 'bg-gradient-to-br from-[#f3ecff] to-[#fdf2f8] border-[#eee7f7]' : 'bg-[#faf8ff] border-[#f2ecfb]'}`}>
-                      <span className="min-w-0">
-                        <span className="block text-[11.5px] font-extrabold uppercase tracking-wide text-[#7C3AED]">
-                          {selectedWork.next.actor === 'you' ? `Next action · step ${selectedWork.next.step}` : selectedWork.next.actor === 'them' ? 'Waiting on the client' : 'The engine has it'}
-                        </span>
-                        <b className="text-[18px] leading-tight text-[#1f1235]">{selectedWork.next.label}</b>
-                      </span>
-                      {selectedWork.next.cta && (
-                        <button onClick={() => doNextAction(selectedWork.next.cta!.kind)} disabled={cockpitBusy}
-                          className="ml-auto shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                          {selectedWork.next.cta.label} →
-                        </button>
-                      )}
-                    </div>
-                    <div className="px-4 py-2.5 flex items-center gap-4 flex-wrap text-[12.5px] text-[#9b8ec4]">
-                      <span><b className="text-[#1f1235]">{selectedWork.counts.sourced}</b> sourced</span>
-                      <span><b className="text-[#1f1235]">{selectedWork.counts.with_client}</b> with the client</span>
-                      {/* Billed, NOT approved × $4 — the first 100 approvals are inside the
-                          $99 pack, so multiplying every approval by $4 overstated what this
-                          client has actually paid us by up to $400. */}
-                      {/* #623 — COUNTED, NEVER CALCULATED. This used to compute cash as
-                          `$299 + (approved − 100) × $4` — arithmetic on the approval COUNT —
-                          so the founder's own money walk asked why approving two leads did not
-                          add $8. It should not have: both contacts were already paid for under
-                          #424 charge-once, so no money moved. The engine was right and the
-                          board was doing sums. `money_in_usd` is now the SUM OF THE LEDGER —
-                          referenced purchases, net of referenced refunds. (#619 kept: a comp
-                          reads $0 · comped, and moneyInUsd independently agrees, because a
-                          manual_grant is not cash.) */}
-                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${
-                        (selectedWork.money_in_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                      }</b> in{selectedWork.funded_via === 'comp' && <span className="text-[#9b8ec4]"> · comped</span>}</span>
-                      {/* ⛓️ C2 — "88 of your 100 included leads left" is the retired $299 pack,
-                          counted down, presented as CURRENT state. A programme client has no
-                          pack; if a historical row still says one is active, saying so here
-                          would put the legacy quota back in front of the operator as though it
-                          governed the account. The row is not deleted — it is simply no longer
-                          rendered as this client's current commercial state. */}
-                      {selectedWork.pack.active && modelView === 'legacy' && (
-                        <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
-                      )}
-                      {/* Every name costs $0.28 whether they approve it or not. This is the
-                          number the whole money model rests on — measured, not assumed. */}
-                      <span className={selectedWork.ratio.confident ? 'text-[#1f1235]' : ''} title="Names we sourced ÷ leads they approved. $0.28 a name, approved or not.">
-                        📐 {selectedWork.ratio.label}
-                      </span>
-                      {/* We carry a ~$40/month warmed sender for them whether they approve
-                          anyone or not, so 30 days quiet pauses their campaigns. Approving
-                          anyone brings them straight back — no operator needed. */}
-                      {/* #620 — WHAT THE LAST ENROL RUN REFUSED. Without this line, "every draft
-                          rejected" and "nothing happened" are the same picture on send-day. The
-                          reasons are shown IN WORDS, never as a bare count. */}
-                      {/* HOW MUCH OF THE BOOK CAN ACTUALLY BE SENT TO.
-                          `pecr.ts` claimed the unknown-country volume was "counted so it is
-                          visible". It never was — the class is an ALLOW, so nothing called
-                          noteSkip and the only trace was a console.warn. This is that number,
-                          and it reads BEFORE any enrol run has happened, which matters because
-                          none ever has.
-                          ⚠️ THE DECISION AND THE WORDS ARE THE API'S (lib/country-coverage.ts),
-                          not this file's. `apps/admin` cannot import from `apps/api` (#563/#614),
-                          so any rule re-implemented here would be a second copy with no test on
-                          it. This renders `chip` and decides nothing. */}
-                      {coverage?.chip?.show && (
-                        <span
-                          className={coverage.chip.stop ? 'text-[#b91c1c] font-semibold' : 'text-[#92400e] font-semibold'}
-                          title={coverage.chip.title}>
-                          {coverage.chip.text}
-                        </span>
-                      )}
-                      {enrolSkips && (enrolSkips.detail?.skipped ?? 0) > 0 && (
-                        <span className="text-[#9d174d] font-semibold"
-                          title={Object.entries(enrolSkips.detail?.reasons ?? {}).map(([r, n]) => `${r} × ${n}`).join('\n')}>
-                          ⚠️ last enrol: {enrolSkips.detail?.enrolled ?? 0} enrolled · {enrolSkips.detail?.skipped} skipped — {enrolSkips.detail?.summary || 'reason not recorded'}
-                        </span>
-                      )}
-                      <span title={selectedWork.cold.exempt ? selectedWork.cold.why : undefined}
-                        className={selectedWork.cold.cold ? 'text-[#b91c1c] font-semibold' : selectedWork.cold.warn ? 'text-[#92400e] font-semibold' : selectedWork.cold.exempt ? 'text-[#8a82a3]' : ''}>
-                        {selectedWork.cold.exempt ? '🏠' : selectedWork.cold.cold ? '🧊' : selectedWork.cold.warn ? '⏳' : '🕑'} {selectedWork.cold.label}
-                      </span>
-                    </div>
-
-                    {/* ── THE WORK, IN THE CARD ──────────────────────────────────────────
-                        The preview promised "you approve without going hunting through
-                        tabs" and the first build shipped a button that sent you to a tab —
-                        a signpost, not the work. When the next action is the sequence, the
-                        emails are RIGHT HERE, readable, with the decision on them. */}
-                    {selectedWork.next.cta?.kind === 'sequence' && (
-                      <div className="border-t border-[#f2ecfb] px-4 py-3">
-                        {(() => {
-                          const sq = cockpit?.sequences?.[0]
-                          const steps = Array.isArray(sq?.steps) ? (sq!.steps as Record<string, unknown>[]) : []
-                          if (!sq || steps.length === 0) {
-                            return (
-                              <>
-                              <div className="flex items-center gap-2 flex-wrap mb-2 p-2 rounded-lg bg-[#faf7ff] border border-[#ece5fb]">
-                                <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#9b8ec4]">Plan</span>
-                                <select value={seqPurpose} onChange={e => setSeqPurpose(e.target.value as 'meeting' | 'event' | 'reactivation')}
-                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
-                                  <option value="meeting">Book a meeting</option>
-                                  <option value="event">Event invite</option>
-                                  <option value="reactivation">Reactivation</option>
-                                </select>
-                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5)}
-                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
-                                  <option value={3}>3 touches</option>
-                                  <option value={5}>5 touches</option>
-                                </select>
-                                {seqPurpose === 'event' && (
-                                  <label className="text-[12px] text-[#5c5279] flex items-center gap-1">
-                                    event date
-                                    <input type="date" value={seqEventDate} onChange={e => setSeqEventDate(e.target.value)}
-                                      className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]" />
-                                  </label>
-                                )}
-                                <span className="text-[11.5px] text-[#9b8ec4]">the cadence follows the plan{seqPurpose === 'event' ? ' and counts back from the date' : ''}</span>
-                              </div>
-                              {seqEventWarn && (
-                                <div className="mb-2 text-[12.5px] text-[#b3261e] bg-[#fdecea] border border-[#f2c4bf] rounded-lg px-3 py-2">{seqEventWarn}</div>
-                              )}
-                              <div className="flex items-center gap-3 flex-wrap">
-                                <span className="text-[13.5px] text-[#5c5279]">Nothing drafted yet — Vida writes it against their highest-scoring approved lead.</span>
-                                <button onClick={suggestSequence} disabled={cockpitBusy}
-                                  className="text-[13px] font-bold text-white rounded-lg px-3.5 py-2 bg-[#7C3AED] disabled:opacity-50">
-                                  {cockpitBusy ? 'Writing…' : '✨ Draft the sequence'}
-                                </button>
-                              </div>
-                              </>
-                            )
-                          }
-                          let day = 0
-                          return (
-                            <>
-                              <div className="flex items-center gap-2 flex-wrap mb-2 p-2 rounded-lg bg-[#faf7ff] border border-[#ece5fb]">
-                                <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#9b8ec4]">Plan</span>
-                                <select value={seqPurpose} onChange={e => setSeqPurpose(e.target.value as 'meeting' | 'event' | 'reactivation')}
-                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
-                                  <option value="meeting">Book a meeting</option>
-                                  <option value="event">Event invite</option>
-                                  <option value="reactivation">Reactivation</option>
-                                </select>
-                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5)}
-                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
-                                  <option value={3}>3 touches</option>
-                                  <option value={5}>5 touches</option>
-                                </select>
-                                {seqPurpose === 'event' && (
-                                  <label className="text-[12px] text-[#5c5279] flex items-center gap-1">
-                                    event date
-                                    <input type="date" value={seqEventDate} onChange={e => setSeqEventDate(e.target.value)}
-                                      className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]" />
-                                  </label>
-                                )}
-                                <span className="text-[11.5px] text-[#9b8ec4]">the cadence follows the plan{seqPurpose === 'event' ? ' and counts back from the date' : ''}</span>
-                              </div>
-                              {seqEventWarn && (
-                                <div className="mb-2 text-[12.5px] text-[#b3261e] bg-[#fdecea] border border-[#f2c4bf] rounded-lg px-3 py-2">{seqEventWarn}</div>
-                              )}
-                              <div className="flex items-center gap-2 flex-wrap mb-2">
-                                <b className="text-[13.5px] text-[#1f1235]">{sq.name || 'Sequence'}</b>
-                                <span className="text-[12px] text-[#9b8ec4]">{steps.length} email{steps.length === 1 ? '' : 's'} · read it properly before you approve</span>
-                                <span className="ml-auto flex gap-1.5">
-                                  <button onClick={suggestSequence} disabled={cockpitBusy}
-                                    className="text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 disabled:opacity-50">✨ Redraft</button>
-                                  <button onClick={() => openSeqEditor(sq)}
-                                    className="text-[12.5px] font-bold text-[#5c5279] bg-white border border-[#ece5fb] rounded-lg px-2.5 py-1.5">Edit</button>
-                                </span>
-                              </div>
-                              <div className="grid gap-2 max-h-[340px] overflow-y-auto">
-                                {steps.map((st, i) => {
-                                  day += i === 0 ? 0 : (Number(st.wait_days ?? 3) || 0)
-                                  return (
-                                    <div key={i} className="rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3 py-2.5">
-                                      <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Email {i + 1} · day {day}</div>
-                                      <div className="text-[13.5px] font-bold text-[#1f1235] mt-0.5">{String(st.subject ?? '(no subject)')}</div>
-                                      <div className="text-[13px] text-[#5c5279] mt-1 whitespace-pre-wrap leading-relaxed">{String(st.body ?? '')}</div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                              <div className="text-[12px] text-[#9b8ec4] mt-2">
-                                Approving sends a test to <b className="text-[#5c5279]">hello@get-kind.com</b> first — judge the spam placement there, then it goes live.
-                              </div>
-                            </>
-                          )
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* ⚑ 29 Sep (R174 · 5c) — ⛓️ THE FALLBACK CARD IS REMOVED. It drew only when the lifecycle
+                  could not be read, and then showed the retired flow's per-lead counts and "$ in" —
+                  retired money, exactly when we knew least. The line below the panel still says the
+                  state could not be read. */}
 
               {/* ── ⚑ 9 Sep — THE CLIENTS WORKSPACE BODY ────────────────────────────────
                   🛑 THIS IS WHAT REPLACED THE ELEVEN TABS AS THE PRIMARY EXPERIENCE. The

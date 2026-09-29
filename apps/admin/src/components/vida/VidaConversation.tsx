@@ -32,6 +32,7 @@ import {
 // fault as something she had said. A notice renders in the margin, in the console's voice.
 // ⚑ 29 Sep (R174 · 5a) — `card`: a proposal of hers the console SHOWS, with the operator's button.
 type CmdMsg = { role: 'operator' | 'vida' | 'notice' | 'card'; text: string; link?: string | null; card?: VidaCard }
+const NO_PROGRAMME_TO_SOURCE = 'This client has no programme yet, so there is nothing to source for. Sourcing starts from their programme.'
 type VidaCard =
   | { kind: 'icp'; fields: Record<string, unknown> }
   | { kind: 'ask'; message: string; state: 'draft' | 'sending' | 'sent' | 'discarded'; error?: string }
@@ -405,8 +406,11 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         // ⚑ 7 Sep, UNCHANGED — a PROGRAMME's batch size is the programme's, so a count in the
         // sentence is read as intent only and discarded on that path.
         const action = surface?.programmeSourcing ?? null
+        // ⚑ 29 Sep (R174 · 5c) — ⛓️ ~~else previewSource(count)~~: the old client-scoped sourcing,
+        // which refused with the retired pack price. Sourcing is the programme's; with no programme
+        // there is nothing to source for, and the operator is told so.
         if (action) previewProgrammeSource(action)
-        else void previewSource(Math.max(1, Math.min(200, Number(proposal.input?.count) || 20)))
+        else setCmdLog(l => [...l, { role: 'notice', text: NO_PROGRAMME_TO_SOURCE }])
       }
     } catch (e) {
       setCmdLog(l => [...l, { role: 'notice', text: e instanceof Error ? e.message : 'Command failed' }])
@@ -610,16 +614,17 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
                 ⛓️ 14 Sep (R121) — for an ordinary client the sentence now reaches VIDA, who
                 proposes a count; the preview and the operator's confirm are unchanged, so the
                 button still cannot spend anything on its own. */}
-            <button
-              onClick={() => {
-                const action = surface?.programmeSourcing ?? null
-                if (action) previewProgrammeSource(action)
-                else void runCommand('Source 20 leads')
-              }}
-              disabled={cmdBusy}
-              className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
-              {sourcingChipLabel(surface?.programmeSourcing ?? null)}
-            </button>
+            {/* ⚑ 29 Sep (R174 · 5c) — ONLY THE PROGRAMME'S SOURCING. ⛓️ ~~else runCommand('Source 20
+                leads')~~ — the old client-scoped branch, which refused with the retired pack price.
+                A client with no programme has nothing to source for, so there is no chip. */}
+            {surface?.programmeSourcing && (
+              <button
+                onClick={() => { const action = surface?.programmeSourcing ?? null; if (action) previewProgrammeSource(action) }}
+                disabled={cmdBusy}
+                className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                {sourcingChipLabel(surface.programmeSourcing)}
+              </button>
+            )}
             {/* These three are the launch path — they open the surface that does the work,
                 instead of handing prose back to the operator.
                 ⚠️ OFFERED ONLY WHERE THAT SURFACE IS ON SCREEN. A shortcut whose destination

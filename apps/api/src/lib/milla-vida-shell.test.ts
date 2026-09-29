@@ -717,7 +717,8 @@ describe('VIDA · UI-010 — one Vida on every operator destination, with nothin
     // UNGATED-NESS — that all three survive off the console — and that is asserted directly
     // now instead of through a string that happened to encode it.
     expect(chat).toContain('["What\'s blocking?", \'Status\']')
-    expect(chat, 'the sourcing shortcut is gone').toContain('sourcingChipLabel(surface?.programmeSourcing ?? null)')
+    // ⛓️ 29 Sep (R174 · 5c) — the chip now shows only for a programme (the client-scoped branch is removed).
+    expect(chat, 'the sourcing shortcut is gone').toContain('{sourcingChipLabel(surface.programmeSourcing)}')
     //
     // ⚠️ THE WINDOW IS SIZED TO THE ELEMENT, NOT GUESSED. At 300 characters this did not bite:
     // the gate-to-label distance across the button's onClick and className is larger than that,

@@ -599,22 +599,15 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
   })
 
-  it('🛑 THE WALLET ON A PROGRAMME CLIENT IS LABELLED HISTORICAL AND INACTIVE', () => {
-    // ⛓️ CORRECTED twice. First it stood unqualified; then "· not used", which the founder ruled
-    // still ambiguous — it reads as a temporary state of a LIVE wallet rather than a closed one.
-    // The balance is HISTORY on a programme account: a real number from a model they are no
-    // longer on. The word order puts what kind of number it is first.
-    expect(vida).toContain('historical wallet · inactive')
-    expect(vida, 'the retired ambiguous wording must be gone').not.toContain("' · not used'")
-    // 🛑 AN UNRESOLVED MODEL IS MUTED TOO. Caught on the first screenshot pass: the conflict
-    // state rendered an ordinary purple balance beside a red panel saying nothing was authorised.
-    expect(vida).toContain('wallet · model unresolved')
-    // ⚠️ AND IT IS VISUALLY MUTED, not merely relabelled — the founder asked for both.
-    expect(vida).toMatch(/muted \? 'font-semibold text-\[#a9a2bd\][^']*' : 'font-bold text-\[#7C3AED\]/)
-    // ⚠️ NOTHING IS DELETED OR ZEROED. The real balance is still rendered, in full, in all FOUR
-    // states — programme, unresolved, loading and legacy. The founder's rule is that history is
-    // preserved, not hidden; what changes between them is one word of framing, never the number.
-    expect([...vida.matchAll(/wallet_balance_usd \?\? 0\)\.toLocaleString\(\)/g)]).toHaveLength(4)
+  // ⛓️ 29 Sep (R174 · 5c) — ~~THE WALLET ON A PROGRAMME CLIENT IS LABELLED HISTORICAL AND INACTIVE~~. The chip is
+  // no longer the wallet at all: under R137 every client is on the programme, and what one can hold
+  // is a SHORTFALL CREDIT (R136 ④, once only, R166 ⑤ window), so that is what the chip shows — or
+  // nothing. The duty stands and is stronger: no balance that governs nothing is on the header.
+  it('🛑 THE HEADER SHOWS THE SHORTFALL CREDIT OR NOTHING — never a wallet that governs nothing', () => {
+    expect(vida).not.toContain('historical wallet · inactive')
+    expect(vida).not.toContain('wallet · model unresolved')
+    expect([...vida.matchAll(/wallet_balance_usd \?\? 0\)\.toLocaleString\(\)/g)]).toHaveLength(0)
+    expect(vida).toContain('const credit = shortfallCreditChip(prog?.programme?.settlement ?? null, new Date())')
   })
 
   it('🛑 VIDA NEVER TELLS A PROGRAMME CLIENT THEY PAID $299, OR OWE $4', () => {
@@ -655,9 +648,9 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain('rail={{ at: operatorRailAt(lc?.verdict.stage) }}')
     // ② the message an operator TYPES TO THE CLIENT — the sharpest of them
     expect(vida).toMatch(/programmeModel\s*\?\s*'Quick nudge — your programme is ready/)
-    // ③ the legacy pack quota — rendered ONLY for a resolved legacy client, never for a
-    // programme one and never for one we could not resolve.
-    expect(vida).toContain("selectedWork.pack.active && modelView === 'legacy'")
+    // ③ ⛓️ 29 Sep (R174 · 5c) — ~~the legacy pack quota, rendered only for a legacy client~~: it lived in the
+    // fallback card, which is removed. It cannot render for anyone.
+    expect(vida).not.toContain("selectedWork.pack.active")
     // ④/⑤/⑥ the per-lead $4 sentences: approvals, the no-campaign notice, the two booking ones
     const four = [...vida.matchAll(/\$4/g)]
     expect(four.length, 'every remaining $4 sentence is model-aware').toBeGreaterThan(0)
@@ -703,8 +696,8 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // can no longer be shown a paid tick by it: nothing on the new operator rail names money.
     expect(vida).not.toContain('const progStep = n === 2')
     expect(vida).not.toContain('FLOW_STEPS.map(')
-    // ③ the pack quota — legacy only
-    expect(vida).toContain("selectedWork.pack.active && modelView === 'legacy'")
+    // ③ ⛓️ 29 Sep (R174 · 5c) — the pack quota left with the fallback card; it renders for nobody.
+    expect(vida).not.toContain("selectedWork.pack.active")
     // ④ the message typed TO THE CLIENT
     expect(vida).toMatch(/unresolvedModel\s*\?\s*'Quick nudge — we are ready to move as soon as you are\.'/)
     // ⑤ the approvals sentence — the price clause is gone, nothing false replaces it
@@ -725,10 +718,11 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // rest of the console rather than asking `resolved === 'unreadable'` for itself. The two
     // copies had already drifted: a loading or field-missing response left the chip fully active
     // and purple while every other sentence on the screen had gone neutral.
-    expect(vida).toContain('wallet · model unresolved')
-    expect(vida).toContain('wallet · checking…')
-    expect(vida).toContain("const programmeWallet  = modelView === 'programme'")
-    expect(vida).toContain("const unresolvedWallet = modelView === 'unresolved'")
+    // ⛓️ 29 Sep (R174 · 5c) — ~~the wallet chip's four model-aware labels~~: the chip is no longer
+    // the wallet. It shows the programme's shortfall credit or nothing, so it names no model at all
+    // and has no legacy arm to fall into. The duty — never re-derive the model — still holds.
+    expect(vida).not.toContain('wallet · model unresolved')
+    expect(vida).not.toContain('wallet · checking…')
     expect(vida, 'the chip must not re-derive the model for itself')
       .not.toMatch(/const r = prog\?\.commercial\?\.resolved/)
 

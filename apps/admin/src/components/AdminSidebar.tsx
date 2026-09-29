@@ -8,7 +8,7 @@ import {
   Rocket, MonitorPlay, Inbox,
   ShieldCheck, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, Eye,
-  Handshake, Pin, Gauge, HeartPulse, Sprout, Boxes, Receipt, Coins, Target,
+  Handshake, Pin, Gauge, HeartPulse, Boxes, Receipt, Coins, Target,
   Zap,
 } from 'lucide-react'
 
@@ -98,7 +98,6 @@ const SECTIONS: Section[] = [
   {
     label: 'Dev',
     items: [
-      { href: '/seed',       label: 'Seed',        icon: Sprout,       isRef: true },
       { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical, isRef: true },
     ],
   },

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 // reply/meeting rates, objections) with honest confidence ("still learning" on thin data).
 // Read-only: the numbers come from that client's own outcomes, never another client's.
 
-type ClientRow = { id: string; company_name: string | null; industry: string | null; country: string | null }
+type ClientRow = { id: string; company_name: string | null; industry: string | null; country: string | null; is_demo?: boolean | null }
 type Nexus = {
   reply_rate: number; meeting_rate: number; best_subjects: string[]; winning_angle: string | null
   top_persona: { seniority?: string | null; industry?: string | null; job_title?: string | null }
@@ -51,9 +51,11 @@ export default function VidaNexusPage() {
   useEffect(() => {
     fetch('/api/proxy/operator/clients').then(r => r.json()).then(j => {
       if (!j?.success) return
-      const rows: ClientRow[] = j.data ?? []
-      setClients(rows)
+      // ⚑ 29 Sep (R174 ⑧ · PR 8c) — the demo's seeded replies are not learning; it is left out of
+      // the picker (and so never opened by default). A link that names it still opens it.
       const url = new URLSearchParams(window.location.search).get('client')
+      const rows: ClientRow[] = ((j.data ?? []) as ClientRow[]).filter(r => r.is_demo !== true || r.id === url)
+      setClients(rows)
       if (url && rows.some(r => r.id === url)) setSelected(url)
       else if (rows.length) setSelected(rows[0].id)
     }).catch(() => setError('Failed to load clients'))

@@ -44,3 +44,8 @@ export function computeExcludedClientIds(
   const excludedClientIds = new Set<string>([...demoClientIds, ...houseClientIds])
   return { excludedClientIds, demoClientIds, houseClientIds }
 }
+
+
+// ⚑ 29 Sep (R174 ⑧ · PR 8c) — the one real-clients filter lives in @kind/shared so Vida's
+// server pages use the same function as the API.
+export { withoutClients, pgInList } from '@kind/shared'

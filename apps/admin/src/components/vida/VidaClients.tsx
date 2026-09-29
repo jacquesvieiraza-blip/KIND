@@ -285,15 +285,19 @@ export function VidaClients({ open, onNeedsYouCount }: { open: boolean; onNeedsY
   // of the lifecycle board's `needs_you` total, which leaves out escalations and proof reviews —
   // so the badge said 2 and the list showed 4. One rule now, the list's. An unread board is no
   // badge, never a 0.
+  //
+  // ⚑ 29 Sep (R174 ⑧ · PR 8c) — AND THE DEMO IS NOT WORK. Its row still says "needs you" when it
+  // is opened, so the walk looks real, but it is not counted in the badge and not in the filter.
+  const demoIds = new Set((clients ?? []).filter(c => c.is_demo === true).map(c => c.id))
   const needsYouIds = Array.from(new Set([
     ...Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),
     ...escalated, ...proofReview,
-  ]))
+  ])).filter(id => !demoIds.has(id))
   const needsYouTotal = boardLoaded && !boardError ? needsYouIds.length : null
   useEffect(() => { onNeedsYouCount?.(needsYouTotal) }, [needsYouTotal, onNeedsYouCount])
   // ⚠️ THE SELECTED CLIENT IS NEVER FILTERED OUT of the list they are looking at.
   const visible = needsFilter
-    ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)
+    ? ordered.filter(c => ((needsYou(c.id) || proofReview.has(c.id)) && !demoIds.has(c.id)) || c.id === selected)
     : ordered
   // ⚑ MVP1 — ONE PERSON, ONE ROW. A draft whose person is now a confirmed client is dropped,
   // whichever of the two reads is the stale one. Deduplicated on `user_id` — durable identity,

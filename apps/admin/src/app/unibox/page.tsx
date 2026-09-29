@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { withoutClients } from '@kind/shared'
 import { Flame, ThermometerSun, Snowflake, Ban, UserX, Plane, HelpCircle, Inbox } from 'lucide-react'
 import { ReplyForm } from '@/components/ReplyForm'
 
@@ -11,7 +12,8 @@ interface ReplyRow {
   body: string
   classification: string
   classification_reasoning: string | null
-  processed_at: string
+  processed_at: string | null
+  received_at: string | null
   client_id: string
   lead_id: string | null
   clients: { company_name: string | null } | null
@@ -45,6 +47,11 @@ function normaliseClass(c: string): string {
   return c
 }
 
+async function demoClientIds(db: SupabaseClient): Promise<string[]> {
+  const { data } = await db.from('clients').select('id').eq('is_demo', true)
+  return ((data ?? []) as { id: string }[]).map(r => r.id)
+}
+
 async function getReplies(filter?: string): Promise<ReplyRow[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return []
   const db = createClient(
@@ -53,10 +60,14 @@ async function getReplies(filter?: string): Promise<ReplyRow[]> {
     { auth: { persistSession: false } }
   )
 
-  let query = db
+  // ⚑ 29 Sep (R174 ⑧ · PR 8c) — the demo's replies are not in the operator's inbox, and the list
+  // is newest ARRIVAL first. It sorted on `processed_at`, which the demo seed never sets, so
+  // Postgres put those NULLs first and they sat on top dated 1 Jan 1970.
+  let query = withoutClients(db
     .from('figsy_replies')
-    .select('id, from_email, subject, body, classification, classification_reasoning, processed_at, client_id, lead_id, clients(company_name), leads(first_name, last_name, job_title, company)')
-    .order('processed_at', { ascending: false })
+    .select('id, from_email, subject, body, classification, classification_reasoning, processed_at, received_at, client_id, lead_id, clients(company_name), leads(first_name, last_name, job_title, company)'),
+    'client_id', await demoClientIds(db))
+    .order('received_at', { ascending: false, nullsFirst: false })
     .limit(200)
 
   if (filter && filter !== 'all') {
@@ -78,9 +89,9 @@ async function getCounts(): Promise<Record<string, number>> {
     { auth: { persistSession: false } }
   )
 
-  const { data } = await db
+  const { data } = await withoutClients(db
     .from('figsy_replies')
-    .select('classification')
+    .select('classification'), 'client_id', await demoClientIds(db))
 
   const counts: Record<string, number> = {}
   for (const row of data ?? []) {
@@ -197,7 +208,7 @@ export default async function UniboxPage({
                       )}
                     </div>
                     <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                      {new Date(reply.processed_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                      {(reply.received_at ?? reply.processed_at) ? new Date((reply.received_at ?? reply.processed_at) as string).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }) : '—'}
                     </span>
                   </summary>
 

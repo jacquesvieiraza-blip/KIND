@@ -8,7 +8,7 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 import {
   stageChips, nextActionCard, workablePoolCard, provenanceCard, operatorRailAt,
 } from '@/lib/vida-stage-copy'
-import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, SHORTFALL_CREDIT_EXPIRY_DAYS, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { VIDA_SYNC_MS, vidaFacts, sameVidaFacts, vidaChangeLines } from '@/lib/vida-programme-sync'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
@@ -289,6 +289,18 @@ function askPauseReason(): PauseReasonKey | null {
   return PAUSE_REASONS[n - 1]?.key ?? null
 }
 
+
+// ⚑ 29 Sep (R174 · 2c) — THE SHORTFALL CREDIT, WORDED BY THE PROGRAMME'S OWN TERMS. A size-band
+// programme earns the new-terms credit: once per client, spent on a new programme, expiring after
+// `SHORTFALL_CREDIT_EXPIRY_DAYS` (R166 ⑤: *"Once only, 90 days, new programmes"*). A programme on
+// the older terms keeps the credit it was sold, which does not expire. ⛓️ Both used to read
+// that the credit went "to their wallet toward another run" — true of neither in full.
+function shortfallCreditWords(onePayment: boolean, verb: 'is' | 'was'): string {
+  return onePayment
+    ? `${verb} shortfall credit — once per client, for a new programme, valid ${SHORTFALL_CREDIT_EXPIRY_DAYS} days`
+    : `${verb} credit toward another programme — on the terms they bought, it does not expire`
+}
+
 export default function VidaConsolePage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   // ⚑ 4 Sep — THE SELECTED CLIENT IS THE SHELL'S, because the conversation is scoped to it.
@@ -394,6 +406,8 @@ export default function VidaConsolePage() {
       recommended_volume: number
       first_paid_at: string | null; first_payment_ref: string | null
       second_payment_ref: string | null; went_live_at: string | null
+      /** ⚑ 29 Sep (R174 · 2c) — one payment (a size-band programme, R166 ③), from the server's `paysInFull`. */
+      pays_in_full?: boolean
       first_authorised_at: string | null; second_authorised_at: string | null
     }
     batches: { id: string; seq: number; status: string; requested: number; granted: number; delivered: number | null; created_at: string | null }[]
@@ -444,6 +458,8 @@ export default function VidaConsolePage() {
     // ⚑ 9 Sep — the two SEND switches, from the server. Make Live is not sending, and this
     // screen must never imply it is.
     send_controls?: { auto_outreach_enabled: boolean; operator_run_enabled: boolean }
+    /** ⚑ 29 Sep (R174 · 2c) — the House account (R152): the only one whose stages are authorised internally. */
+    house?: boolean
     // ⚑ 9 Sep — WHERE THIS CLIENT IS, AND WHETHER THE OPERATOR IS NEEDED.
     //
     // 🛑 A VERDICT, NOT INGREDIENTS. `deriveLifecycle` decided this on the server from facts a
@@ -883,7 +899,9 @@ export default function VidaConsolePage() {
     switch (action) {
       case 'recommend':            return p.status === 'DRAFT'
       case 'await-first-payment':  return p.status === 'RECOMMENDED'
-      case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT'
+      // ⚑ 29 Sep (R174 · 2c) — HOUSE ONLY. The server refuses internal authority for every other
+      // client (R152), so for them the button was a press that could only ever be refused.
+      case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT' && prog?.house === true
       // ⚑ 9 Sep (HOUSE-009) — STATUS IS NECESSARY AND IT WAS NEVER SUFFICIENT.
       //
       // 🛑 THE LOCKED LIFECYCLE IS SOURCE → QUALIFY → PREPARE → FREEZE → READY FOR APPROVAL.
@@ -914,7 +932,7 @@ export default function VidaConsolePage() {
       case 'ready-for-approval':   return (p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING')
                                           && prog?.preparing !== true
                                           && (prog?.readiness?.ready === true || prog?.readiness?.preparable === true)
-      case 'authorise/second':     return p.status === 'APPROVED' && !p2
+      case 'authorise/second':     return p.status === 'APPROVED' && !p2 && prog?.house === true
       case 'go-live':              return p.status === 'APPROVED' && p2
       // 🛑 THERE IS NO 'approve'. The one programme approval belongs to the CLIENT, in Milla.
       // Vida deliberately stops at READY_FOR_APPROVAL — an operator approving on the client's
@@ -1248,7 +1266,7 @@ export default function VidaConsolePage() {
     // ⛓️ 23 Sep (R136 ④) — the confirmation WAS "…Any unused programme value stays on their
     // account and never expires." Not what happens now: the programme is SETTLED before it can
     // complete, and any meetings shortfall is already credited to their wallet by then.
-    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nIt has already been settled — any shortfall in meetings was credited to their wallet toward another run. This cannot be undone.`)) return
+    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nIt has already been settled — ${shortfallCreditWords(prog?.programme?.pays_in_full === true, 'was')}. This cannot be undone.`)) return
     setLcBusy('complete'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/complete`, {
@@ -1260,7 +1278,7 @@ export default function VidaConsolePage() {
     } catch (e) {
       say(e instanceof Error ? e.message : 'The programme was not completed.')
     } finally { settleBusy(null) }
-  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme, prog])
 
   // ── ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — SETTLE, THEN COMPLETE ─────────────────────────
   //
@@ -1285,7 +1303,7 @@ export default function VidaConsolePage() {
       setLcMsg('Enter the number of meetings this programme delivered — a whole number, 0 or more.'); return
     }
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
-    if (!confirm(`Settle ${who}'s programme at ${delivered} meeting${delivered === 1 ? '' : 's'} delivered?\n\nAnything short of the target is credited to their WALLET toward another run, at the price they bought at — nothing is refunded to their card. The figure is recorded permanently.`)) return
+    if (!confirm(`Settle ${who}'s programme at ${delivered} meeting${delivered === 1 ? '' : 's'} delivered?\n\nAnything short of the target ${shortfallCreditWords(prog?.programme?.pays_in_full === true, 'is')}, at the price they bought at — nothing is refunded to their card. The figure is recorded permanently.`)) return
     setLcBusy('settle'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/settle-shortfall`, {
@@ -1297,13 +1315,13 @@ export default function VidaConsolePage() {
       say(j?.alreadySettled
         ? 'This programme was already settled — nothing changed.'
         : credit > 0
-          ? `Settled. $${(credit / 100).toFixed(2)} credited to their wallet toward another run. It can now be completed.`
+          ? `Settled. $${(credit / 100).toFixed(2)} ${shortfallCreditWords(prog?.programme?.pays_in_full === true, 'is')}. It can now be completed.`
           : 'Settled — nothing was owed. It can now be completed.')
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : 'The programme was not settled.')
     } finally { settleBusy(null) }
-  }, [programmeActionId, forThisProgramme, settleMeetings, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, settleMeetings, selected, clients, loadProgramme, prog])
 
   // ── ⚑ 25 Sep (R166 ⑥ · P3b) — RESOLVE A REVIEW, RAISE A LIMIT: TWO RECORDED DECISIONS ──────
   //
@@ -2777,7 +2795,12 @@ export default function VidaConsolePage() {
     if (!lc) return null
     return lifecycleCopy({
       // ⚑ 28 Sep (R172 · C5) — the same test the lifecycle panel's "Paid in full (one payment)" uses.
-      paidInFull: !!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref,
+      // ⛓️ 29 Sep (R174 · 2c) — AND a one-payment programme whose payment is settled (paid, or the
+      // demo's internal authority), which carries no payment ref to compare.
+      paidInFull: (!!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref)
+        || (prog?.programme?.pays_in_full === true && !!(prog?.programme?.first_paid_at || prog?.programme?.first_authorised_at)),
+      // ⚑ 29 Sep (R174 · 2c) — the programme's own terms, before anything is paid.
+      onePayment: prog?.programme?.pays_in_full === true,
       // ⚑ 28 Sep — a second stage settled by payment OR by internal authority (House, the demo).
       secondSettled: prog?.programme?.second_paid_at && prog?.programme?.second_payment_ref ? 'paid'
         : prog?.programme?.second_authorised_at ? 'authorised' : null,

@@ -2435,7 +2435,12 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
       console.error('[operator/programme] lifecycle unreadable for', clientId, err)
       return null
     })
+    // ⚑ 29 Sep (R174 · 2c) — WHETHER THIS IS THE HOUSE ACCOUNT. Only House's stages are authorised
+    // internally (R152); the server refuses the buttons for anyone else, so Vida stops drawing them.
+    const { isHouseClient } = await import('../lib/house-client')
+    const house = await isHouseClient(clientId).catch(() => false)
     res.json({ success: true, data: { ...truth,
+      house,
       lifecycle,
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {

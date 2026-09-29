@@ -55,7 +55,9 @@ describe('Stage 6 — settle, then complete (R136 ④)', () => {
     expect(vida).toContain('const settleProgramme = useCallback(async () => {')
     const complete = vida.slice(vida.indexOf('const completeProgramme = useCallback'), vida.indexOf('const settleProgramme'))
     expect(complete).not.toMatch(/never expires/)
-    expect(complete).toMatch(/credited to their wallet/)
+    // ⛓️ 29 Sep (R174 · 2c) — ~~`toMatch(/credited to their wallet/)`~~: the credit is worded by the
+    // programme's terms (R166 ⑤ once-only, 90 days, new programmes — or the older, non-expiring one).
+    expect(complete).toContain("shortfallCreditWords(prog?.programme?.pays_in_full === true, 'was')")
   })
 
   it('🛑 a finished client sees delivered-vs-target and the credit, from the settled row', () => {

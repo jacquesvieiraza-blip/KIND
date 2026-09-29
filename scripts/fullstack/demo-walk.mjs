@@ -48,6 +48,9 @@ const asClient = (path) => call('GET', path, { headers: { authorization: `Bearer
 const asVida = (path) => call('GET', path, { headers: ADMIN })
 
 const problems = []
+// ⚑ 29 Sep (R174 ⑧ · PR 8e) — the Brief's full facts, read at Proof (where the demo holds the
+// whole Brief), so the Brief-confirm walk below can finish the Brief the way a client does.
+let fullFacts = null
 const note = (stage, ok, what) => { if (!ok) problems.push(`${stage}: ${what}`); console.log(`   ${ok ? '✓' : '✗'} ${what}`) }
 
 for (const stage of STAGES) {
@@ -96,6 +99,7 @@ for (const stage of STAGES) {
     note(stage, reads.briefDraft.status === 200 && turns === 7, `the Brief chat opens half-way through (${turns} turns)`)
     continue
   }
+  if (stage === 'Proof') fullFacts = reads.briefDraft.data?.data?.draft?.facts ?? null
   const sid = reads.sessions.data?.data?.[0]?.id
   const hist = sid ? await asClient(`/milla/sessions/${sid}/messages`) : null
   const nMsgs = hist?.data?.data?.length ?? 0
@@ -130,6 +134,13 @@ for (const stage of STAGES) {
     note(stage, r?.total === 20, `the frozen package holds 20 people (${r?.total})`)
     note(stage, JSON.stringify(frozen ?? {}).includes('08:30'), 'the frozen package states its sending window (weekdays 08:30–17:00)')
   }
+  // ⚑ 29 Sep (R174 ⑧ · PR 8b) — from the moment it has a programme, the demo reads paid in full,
+  // like a paying client; and (8c) it is labelled, never counted, in Vida's client list.
+  if (['Approval', 'Results', 'Complete'].includes(stage)) {
+    note(stage, !!p?.money?.firstPaidAt, `Milla reads the programme as paid (${p?.money?.firstPaidAt ? 'paid' : 'not yet paid'})`)
+  }
+  const nwRow = (reads.vidaClients.data?.data ?? []).find(c => c.id === clientId)
+  note(stage, nwRow?.house_or_demo === true, `Vida's client list labels the demo (house_or_demo: ${nwRow?.house_or_demo})`)
   if (stage === 'Results' || stage === 'Complete') {
     const want = stage === 'Results' ? { met: 3, sent: 29, replies: 6, meetings: 3, upcoming: 1 } : { met: 8, sent: 38, replies: 11, meetings: 8, upcoming: 0 }
     note(stage, p?.progress?.outcomesAchieved === want.met, `qualified meetings ${p?.progress?.outcomesAchieved} / 8 (expected ${want.met})`)
@@ -147,6 +158,35 @@ for (const stage of STAGES) {
       note(stage, up === want.upcoming, `${up} meeting still to come (expected ${want.upcoming})`)
     }
   }
+}
+
+// ── ⚑ 29 Sep (R174 ⑧ · PR 8e) — THE BRIEF IS CONFIRMED END TO END ─────────────────────────
+// The walk jumped to Proof; it never finished the Brief the way a presenter does. From Brief:
+// the rest of the facts are saved (the client's own PUT), Confirm is pressed, and the demo must
+// land at Proof as the demo — its made-up cast on the Proof desk, never an ordinary account.
+{
+  const stage = 'Brief-confirm'
+  console.log(`\n── ${stage} ─────────────────────────────`)
+  const send = (method, path, json) => call(method, path, { headers: { authorization: `Bearer ${USER_JWT}` }, json })
+  await call('POST', '/operator/demo/northwind/stage', { headers: ADMIN, json: { stage: 'Brief' } })
+  note(stage, !!fullFacts, `the Brief's full facts were read at Proof (${fullFacts ? Object.keys(fullFacts).length : 0} facts)`)
+  // The rest of the Brief arrives through Milla's chat, which needs the model the harness does
+  // not have (the headcount has no other way in). So the chat's answers are stored where the chat
+  // stores them, and everything from Confirm on is the real route, as the client presses it.
+  const facts = JSON.stringify(fullFacts ?? {}).replace(/'/g, "''")
+  psql(`update onboarding_brief_drafts set facts = '${facts}'::jsonb where user_id = '${userId}' and promoted_client_id is null`)
+  const draft = await asClient('/milla/brief-draft')
+  const prog = draft.data?.data?.progress
+  note(stage, prog?.complete === true, `the Brief is complete before Confirm (${prog?.count}/${prog?.total})`)
+  const confirm = await send('POST', '/milla/brief-draft/confirm', {})
+  note(stage, confirm.status === 200 && !!confirm.data?.data?.client_id, `Confirm makes the account (${confirm.status}) ${confirm.data?.error ?? ''}`)
+  const at = await asVida('/operator/demo/northwind')
+  note(stage, at.data?.data?.stage === 'Proof', `the demo is at ${at.data?.data?.stage} (expected Proof)`)
+  const me = await asClient('/clients/me')
+  note(stage, me.data?.data?.is_demo === true, `the account is the demo (is_demo: ${me.data?.data?.is_demo})`)
+  const desk = await asClient('/leads/for-approval')
+  const n = desk.data?.data?.length ?? 0
+  note(stage, desk.status === 200 && n === 24, `the Proof desk shows ${n} people (expected 24)`)
 }
 
 // ── ⚑ 28 Sep (R173) — THE DEMO IS CLICKED THROUGH, NOT ONLY JUMPED ─────────────────────────

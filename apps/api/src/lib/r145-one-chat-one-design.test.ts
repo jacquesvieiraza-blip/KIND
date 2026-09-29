@@ -127,7 +127,7 @@ describe('R145 · the redesign, matched from its own stylesheet', () => {
     expect(menu).toContain('onClick={signOut}')
     for (const d of ["'/milla/performance', 'Performance'", "'/milla/analytics', 'Analytics'", "'/milla/roi', 'Your ROI'",
       "'/milla/command-centre', 'Command Centre'", "'/milla/teams', 'Teams Hub'", "'/milla/settings', 'Settings'",
-      "'/milla/billing', 'Billing'", "'/milla/usage', 'Usage'", "'/milla/referral', 'Referral'"]) {
+      "'/milla/billing', 'Billing'", /* ⛓️ 29 Sep (R174 · 4b) — ~~Usage~~, folded into Performance */ "'/milla/referral', 'Referral'"]) {
       expect(SHELL, d).toContain(d)
     }
   })

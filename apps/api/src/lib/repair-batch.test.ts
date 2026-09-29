@@ -378,7 +378,8 @@ describe('#628/PART 5 the two small truths', () => {
     const rail = src('../../../portal/src/components/milla/MillaShell.tsx')
     const at = rail.indexOf('const ACCOUNT')
     const arr = rail.slice(at, rail.indexOf(']', rail.indexOf('Referral', at)))
-    for (const href of ['/milla/settings', '/milla/billing', '/milla/usage', '/milla/referral']) {
+    // ⛓️ 29 Sep (R174 · 4b) — ~~'/milla/usage'~~: folded into Performance (founder: "yes").
+    for (const href of ['/milla/settings', '/milla/billing', '/milla/referral']) {
       expect(arr, `${href} must still be in the account rail`).toContain(href)
     }
   })

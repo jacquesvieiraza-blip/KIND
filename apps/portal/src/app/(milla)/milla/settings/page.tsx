@@ -25,8 +25,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { SUPPORTED_COUNTRIES, MILLA_FAILURE_COPY, PROGRAMME_BEST_EFFORTS } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users, Truck } from 'lucide-react'
+import { SUPPORTED_COUNTRIES, MILLA_FAILURE_COPY, PROGRAMME_BEST_EFFORTS, PARTNERS_FROZEN } from '@kind/shared'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users, Truck } from 'lucide-react'
 import { ValueCard, ProgressBar, PreLiveState } from '@/components/milla/ProgrammeStat'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 
@@ -527,7 +527,6 @@ export default function MillaSettingsPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [crmSaveError, setCrmSaveError] = useState<string | null>(null)
   const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null)
-  const [vapiStatus, setVapiStatus] = useState<{ configured: boolean } | null>(null)
   const [writingStyle, setWritingStyle]             = useState('')
   const [writingStyleSaving, setWritingStyleSaving] = useState(false)
   const [writingStyleSaved, setWritingStyleSaved]   = useState(false)
@@ -624,12 +623,6 @@ export default function MillaSettingsPage() {
         setCalendarStatus(cal)
       } catch {
         setCalendarStatus({ connected: false, email: null })
-      }
-      try {
-        const vapi = await api.get<{ configured: boolean }>('/voice/status', session.access_token)
-        setVapiStatus(vapi)
-      } catch {
-        setVapiStatus({ configured: false })
       }
 
       // Load writing style from localStorage
@@ -1094,22 +1087,8 @@ export default function MillaSettingsPage() {
         </div>
       </div>
 
-      {/* Voice (Vapi) — only show when active */}
-      {vapiStatus?.configured && (
-        <div className="border-t border-gray-100 pt-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Phone className="w-4 h-4 text-[#9B8EC4]" />
-            <h2 className="font-semibold">Voice Calls (FIGSY)</h2>
-            <span className="ml-2 flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-              <CheckCircle className="w-3 h-3" /> Active
-            </span>
-          </div>
-          <p className="text-sm text-[#9B8EC4] mb-3">
-            FIGSY places follow-up calls using Vapi.ai — leaving voicemails, qualifying interest, and booking meetings.
-          </p>
-          <p className="text-sm text-green-600">Vapi is connected. Voice calls are available on demand — automatic in-sequence calling isn&apos;t enabled yet.</p>
-        </div>
-      )}
+      {/* ⛓️ 29 Sep (R174 · 4b) — ~~the voice-calls section~~ removed. Founder: "No for voice" — voice
+          calling is not planned, and the section could never appear (it read the wrong field). */}
 
       {/* FIGSY — Outreach Control */}
       <FigsyOutreachSettings />
@@ -1125,6 +1104,9 @@ export default function MillaSettingsPage() {
           no custom branding, no kit; "Scale plan" appears in no pricing constant; and the
           partner system that DOES exist (routes/partners.ts) pays agency partners 25%, not 30%.
           The interest CTA is kept because the demand is real; every claim and figure is gone. */}
+      {/* ⚑ 29 Sep (R174 · 4b) — HIDDEN WHILE PARTNERS ARE FROZEN (R139, 23 Sep). It invites agency
+          partnership requests, which is partner content. It returns by itself if the freeze lifts. */}
+      {!PARTNERS_FROZEN && (
       <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-base">🏷️</span>
@@ -1140,6 +1122,7 @@ export default function MillaSettingsPage() {
           Want to be told when it is ready? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject &quot;Agency partnership&quot; and we will come back to you with terms when there are terms to give.
         </p>
       </div>
+      )}
 
       {/* Team */}
       {clientId && (

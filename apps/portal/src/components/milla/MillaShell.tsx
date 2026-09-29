@@ -8,7 +8,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
-  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
+  LayoutGrid, Users, Star, User, CreditCard, FileText, Gift, ChevronDown, MessageSquare,
   Menu, X, ChevronLeft, ChevronUp,
 } from 'lucide-react'
 // ⛓️ 16 Sep (MVP1 · B1) — THE RIBBON PRINTS THE CANONICAL SIX.
@@ -196,7 +196,8 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
     // product and could not find it: the page at /milla/settings holds account settings, not a
     // profile, and the rail was the only place that named it. Named for what it is.
     ['/milla/settings', 'Settings', User], ['/milla/billing', 'Billing', CreditCard],
-    ['/milla/usage', 'Usage', Gauge], ['/milla/referral', 'Referral', Gift],
+    // ⛓️ 29 Sep (R174 · 4b) — ~~Usage~~: folded into Performance (founder: "yes").
+    ['/milla/referral', 'Referral', Gift],
   ]
   // The ROI / insights surface lives in the top-right dropdown (not the left rail) so the
   // rail stays purely the client's workspace. Still kept — this is how we prove the ROI.
@@ -215,7 +216,7 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
     ['/milla/reports', 'Reports'], ['/milla/coaching', 'Coaching'], ['/milla/performance', 'Performance'],
     ['/milla/analytics', 'Analytics'], ['/milla/roi', 'Your ROI'], ['/milla/command-centre', 'Command Centre'],
     ['/milla/teams', 'Teams Hub'], ['/milla/settings', 'Settings'], ['/milla/billing', 'Billing'],
-    ['/milla/usage', 'Usage'], ['/milla/referral', 'Referral'],
+    ['/milla/referral', 'Referral'],
   ]
   const sectionLabel = SECTION_LABEL
     .filter(([href]) => pathname.startsWith(href))

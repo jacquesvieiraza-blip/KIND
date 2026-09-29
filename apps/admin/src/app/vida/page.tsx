@@ -8,7 +8,7 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 import {
   stageChips, nextActionCard, workablePoolCard, provenanceCard, operatorRailAt,
 } from '@/lib/vida-stage-copy'
-import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, SHORTFALL_CREDIT_EXPIRY_DAYS, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, SHORTFALL_CREDIT_EXPIRY_DAYS, replyInboxState, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { VIDA_SYNC_MS, vidaFacts, sameVidaFacts, vidaChangeLines } from '@/lib/vida-programme-sync'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
@@ -3762,7 +3762,11 @@ export default function VidaConsolePage() {
                         {replyMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{replyMsg}</p>}
                       </>)}
                     </div>
-                  ) : cockpit.replies.length === 0 ? (
+                  ) : (<>
+                  {/* ⚑ 29 Sep (R174 · 5h) — THE "SENT" CONFIRMATION IS SEEN. ⛓️ It was set and then the
+                      thread closed, and it only ever rendered INSIDE the thread — so nobody saw it. */}
+                  {replyMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{replyMsg}</p>}
+                  {cockpit.replies.length === 0 ? (
                     <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No replies yet.</p>
                   ) : cockpit.replies.map(r => (
                     <button key={r.id} onClick={() => openThread(r.id)}
@@ -3771,11 +3775,18 @@ export default function VidaConsolePage() {
                         <b className="text-[13.5px] block truncate">{r.from_name || r.from_email || 'Unknown'}</b>
                         <span className="text-[12px] text-[#9b8ec4]">{r.classification || 'unclassified'} · {fmtDate(r.received_at)}</span>
                       </div>
-                      <span className={`ml-auto shrink-0 text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${r.meeting_booked_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.qualified_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
-                        {r.meeting_booked_at ? 'booked' : r.qualified_at ? 'qualified' : 'needs you'}
-                      </span>
+                      {/* ⚑ 29 Sep (R174 · 5h) — LABELLED BY WHAT THE REPLY IS. ⛓️ WAS "needs you" for
+                          everything not booked or qualified, out-of-offices and "not interested"
+                          included. One shared rule now (`replyInboxState`), the same list the
+                          Inbox badge counts from. */}
+                      {(() => { const st = replyInboxState(r); return (
+                        <span className={`ml-auto shrink-0 text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${st.tone === 'done' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : st.tone === 'quiet' ? 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                          {st.label}
+                        </span>
+                      ) })()}
                     </button>
-                  ))
+                  ))}
+                  </>)
                 ) : null)}
 
                 {/* APPROVALS — drafts waiting on the operator's send gate */}

@@ -27,6 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+import { REPLY_NEEDS_NOBODY } from '@kind/shared'
 import {
   deriveLifecycle, type LifecycleFacts, type LifecycleVerdict,
 } from './programme-lifecycle'
@@ -38,8 +39,11 @@ import { PREPARATION_CLEARS } from './preparation-readiness'
 // may go live, on the screen that draws the button.
 import { p2Authorised, type ProgrammeRow as AuthorityRow } from './programme'
 
-/** Replies the pipeline handles by itself. Everything else wants a person. */
-const AUTO_HANDLED_REPLY = new Set(['opt_out', 'unsubscribe', 'out_of_office'])
+/** Replies that need nobody. Everything else wants a person.
+ * ⛓️ 29 Sep (R174 · 5h) — ~~`new Set(['opt_out', 'unsubscribe', 'out_of_office'])`~~: now the ONE
+ * list in `@kind/shared`, which the Inbox's labels read too, and which adds a prospect's "not
+ * interested" — a no is an answer, not a task. */
+const AUTO_HANDLED_REPLY = new Set<string>(REPLY_NEEDS_NOBODY)
 
 /** Mailbox states that can actually send. Mirrors `sending-inbox`'s own set. */
 const SENDABLE_INBOX = new Set(['assigned', 'active'])

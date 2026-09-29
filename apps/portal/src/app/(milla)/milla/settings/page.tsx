@@ -633,8 +633,11 @@ export default function MillaSettingsPage() {
       }
 
       // Load writing style from localStorage
-      const savedStyle = localStorage.getItem('kind_writing_style')
-      if (savedStyle) setWritingStyle(savedStyle)
+      // ⚑ 29 Sep (R174 · 7b) — a browser that blocks storage must not stop Settings from loading.
+      try {
+        const savedStyle = localStorage.getItem('kind_writing_style')
+        if (savedStyle) setWritingStyle(savedStyle)
+      } catch { /* storage unavailable — the field simply starts empty */ }
 
       setLoading(false)
     }

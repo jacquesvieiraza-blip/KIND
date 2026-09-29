@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -68,8 +68,13 @@ const REPLY_TONE: Record<string, string> = {
   wrong_person: 'wrong person', referral: 'referral', out_of_office: 'out of office',
 }
 
-export function MillaShell({ children }: { children: React.ReactNode }) {
+export function MillaShell({ children, noAccount = false }: { children: React.ReactNode; noAccount?: boolean }) {
   const pathname = usePathname()
+  const router = useRouter()
+  // ⚑ 29 Sep (R174 · 7b) — no account yet: every page but the Brief sends them to the Brief.
+  useEffect(() => {
+    if (noAccount && pathname !== '/milla/welcome') router.replace('/milla/welcome')
+  }, [noAccount, pathname, router])
   const [s, setS] = useState<Summary | null>(null)
   // ⚑ 30 Aug (BUILD-004A-1 live-walk, founder Decision 1) — the FLOW bar's ONE fact. The
   // stage comes from the same endpoint the home and the Programme page read, so the ribbon
@@ -134,8 +139,16 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   // section IS the cover — a stale `cover` would put Home's workspace over another route's.
   useEffect(() => { setNavOpen(false); setCover(false) }, [pathname])
 
+  // ⚑ 29 Sep (R174 · 7b) — ON A NETWORK ERROR THE SERVER SIGN-OUT CAN FAIL SILENTLY and leave the
+  // session on this device. Then it is cleared locally, so "Sign out" always signs this browser out.
   async function signOut() {
-    try { await createClient().auth.signOut() } catch { /* ignore */ }
+    const sb = createClient()
+    try {
+      const { error } = await sb.auth.signOut()
+      if (error) await sb.auth.signOut({ scope: 'local' })
+    } catch {
+      try { await sb.auth.signOut({ scope: 'local' }) } catch { /* nothing more can be done here */ }
+    }
     window.location.href = '/login'
   }
 

@@ -481,9 +481,13 @@ export default function MillaHomePage() {
   }, [])
   // #513 wiring — a client with no ICP yet hasn't onboarded: send them to Milla's
   // conversational setup. Once they approve an ICP (v1 exists) they stay on the dashboard.
+  // ⚑ 29 Sep (R174 · 7b) — AND NEVER A CLIENT WITH A PROGRAMME: it waits for the programme read,
+  // and a programme means the Brief is behind them whatever the ICP list says.
   useEffect(() => {
-    if (summary && summary.icp_versions.length === 0) router.replace('/milla/welcome')
-  }, [summary, router])
+    if (!summary || summary.icp_versions.length !== 0) return
+    if (!prog || prog.hasProgramme !== false) return
+    router.replace('/milla/welcome')
+  }, [summary, prog, router])
   // ── 🛑 ⚑ 23 Sep — A FIRST PROOF THAT IS NOT READY IS NEVER SHOWN HERE ──────────────────
   //
   // Founder: *"we do not present the next step until we can verify we have the information we
@@ -512,7 +516,10 @@ export default function MillaHomePage() {
   //
   // `has_funded` is the same fact the go-live banner already reads — no new state, no new
   // endpoint, and a client who pays flips to the commercial desk by paying.
-  const proofMode = needsGoLive
+  // ⛓️ 29 Sep (R174 · 7b) — ~~`const proofMode = needsGoLive`~~ (`has_funded`, the OLD payment flag):
+  // anyone who ever had an old top-up or grant could not finish Proof from the desk. Proof mode is
+  // now the programme's own answer — the client is at the Proof stage.
+  const proofMode = !!summary && summary.icp_versions.length > 0 && prog?.stage === 'Proof'
   // ── 🛑 ⚑ 24 Sep (R145 step 3b) — THE PROOF CONTROLS LOAD WITH THE DESK ───────────────────────
   // Founder: *"i clicked looks right to all and nothing happened after this."* ⛓️ WAS: nothing on
   // mount read `/leads/proof/calibration` — it was read only after a "Not a fit" or a reason was

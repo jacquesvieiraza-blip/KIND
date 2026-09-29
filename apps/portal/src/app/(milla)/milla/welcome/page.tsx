@@ -691,6 +691,19 @@ export default function MillaWelcomePage() {
       return firstProofReadiness(r?.data)
     } catch { return null }
   }, [])
+  // ⚑ 29 Sep (R174 · 7b) — A CLIENT WITH A PROGRAMME NEVER SEES THE BRIEF PAGE. Their Brief is
+  // behind them; re-opening it (a bookmark, an old link) would invite a second one.
+  useEffect(() => {
+    if (hasClient !== true) return
+    let live = true
+    void (async () => {
+      try {
+        const r = await api.get<{ data?: { hasProgramme?: boolean } }>('/my/programme', await token())
+        if (live && r?.data?.hasProgramme === true) router.replace('/milla')
+      } catch { /* unknown — stay; the page works as it always has */ }
+    })()
+    return () => { live = false }
+  }, [hasClient, router])
   useEffect(() => {
     let live = true
     void (async () => {

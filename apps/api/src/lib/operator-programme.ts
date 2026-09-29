@@ -30,6 +30,8 @@ import {
   TERMINAL_STATUSES, PROGRAMME_BATCH_SIZE, nextBatchSize,
   // ⚑ 16 Sep (MVP1 · E1) — the completion gate, so Vida's payload can carry its verdict.
   mayComplete,
+  // ⚑ 29 Sep (R174 · 2c) — the one predicate for "this programme is paid in one payment".
+  paysInFull,
 } from './programme'
 import { reviewIsOpen, REVIEW_TRIGGER_LEADS, authorityFor } from './programme-authority'
 
@@ -89,6 +91,8 @@ export type ProgrammeTruth = {
     first_paid_at: string | null
     first_payment_ref: string | null
     second_payment_ref: string | null
+    /** ⚑ 29 Sep (R174 · 2c) — one payment (a size-band programme, R166 ③), from `paysInFull`. */
+    pays_in_full: boolean
     went_live_at: string | null
     first_authorised_at: string | null
     second_authorised_at: string | null
@@ -195,7 +199,11 @@ const PROGRAMME_COLUMNS =
   // ⚑ 23 Sep (MVP1 Stage 6) — THE SETTLEMENT. `mayComplete` below reads `value_settled_at`, and
   // this select never asked for it — so Vida's `may_complete` could not see a settled programme
   // at all. `shortfall_*` / `delivered_meetings` are the R136 ④ settlement itself.
-  'value_settled_at, shortfall_credited_at, shortfall_credit_cents, delivered_meetings'
+  'value_settled_at, shortfall_credited_at, shortfall_credit_cents, delivered_meetings, ' +
+  // ⚑ 29 Sep (R174 · 2c) — THE PROGRAMME'S OWN TERMS. A size-band programme is one payment
+  // (R166 ③) and earns the once-only, 90-day shortfall credit (R166 ⑤); one on the older curve
+  // keeps its two halves and its non-expiring credit. Vida words each stage by `pays_in_full`.
+  'size_band'
 
 const BATCH_COLUMNS = 'id, programme_id, seq, status, requested, granted, delivered, created_at, settled_at'
 
@@ -379,6 +387,7 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       first_paid_at: p.first_paid_at,
       first_payment_ref: p.first_payment_ref,
       second_payment_ref: p.second_payment_ref,
+      pays_in_full: paysInFull(p as { size_band?: string | null }),
       went_live_at: p.went_live_at,
       first_authorised_at: p.first_authorised_at ?? null,
       second_authorised_at: p.second_authorised_at ?? null,

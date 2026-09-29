@@ -108,6 +108,11 @@ export type LifecycleCopyInput = {
   /** ⚑ 28 Sep (R172 · C5) — ONE payment settled both stages (R166 ③): there is no second payment to wait for. */
   paidInFull?: boolean
   /**
+   * ⚑ 29 Sep (R174 · 2c) — THE PROGRAMME'S TERMS: one payment (a size-band programme, R166 ③),
+   * known before anything is paid. Absent = the older two-part terms (their wording stands).
+   */
+  onePayment?: boolean
+  /**
    * ⚑ 28 Sep — THE SECOND STAGE IS ALREADY SETTLED, by payment or by internal authority
    * (House, the Northwind demo). The approval card said "Second payment · Not yet authorised"
    * for a programme whose second stage WAS authorised, because it only recognised a paid
@@ -712,9 +717,11 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
               { value: n(i.programme?.entitlementTotal ?? 0), label: 'Qualified-prospect entitlement' },
             ],
           },
-          { kind: 'fact', label: 'Payment', value: 'Awaiting first payment', caption: 'Nothing is charged until they accept' },
+          { kind: 'fact', label: 'Payment', value: i.onePayment ? 'Awaiting payment — one payment, in full' : 'Awaiting first payment', caption: 'Nothing is charged until they accept' },
           { kind: 'fact', label: 'Client', value: 'Reviewing' },
-          { kind: 'fact', label: 'Next', value: 'The client accepts the recommendation and authorises the first payment.' },
+          { kind: 'fact', label: 'Next', value: i.onePayment
+            ? 'The client accepts the recommendation and pays for the programme in full.'
+            : 'The client accepts the recommendation and authorises the first payment.' },
           vidaCard('Ready', 'No action needed'),
         ],
         // 🛑 NO OPERATOR ACTION. P1 starts the work by itself; a "Source now" button here is
@@ -724,7 +731,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
 
     // ── ④ SOURCING, HEALTHY — Vida is working. There is nothing to press. ─────────────
     case 'sourcing': {
-      const messages = [`The first payment is authorised. I'm sourcing and qualifying prospects against ${i.clientName}'s locked targeting.`]
+      const messages = [`${i.onePayment ? 'The programme is paid in full.' : 'The first payment is authorised.'} I'm sourcing and qualifying prospects against ${i.clientName}'s locked targeting.`]
       if (c.sourced > 0) messages.push(`${n(c.sourced)} candidates sourced. Qualification is in progress.`)
       if (c.qualified > 0 || c.rejected > 0) {
         messages.push(`${n(c.qualified)} qualified. ${n(c.rejected)} rejected. The programme is moving into preparation.`)
@@ -921,14 +928,16 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
       return {
         subtitle: 'Ready to make live · preview only',
         messages: [
-          `${i.clientName} approved the programme and the second payment is authorised.`,
+          i.paidInFull
+            ? `${i.clientName} approved the programme, which is paid in full.`
+            : `${i.clientName} approved the programme and the second payment is authorised.`,
           `Everything is ready to go live. Nothing sends until you make it live, and outreach only starts when you run it.`,
         ],
         chips: ['What runs first?', 'Show me the schedule'],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Live', caption: 'Ready to make live' },
           { kind: 'ticks', label: 'Complete', ticks: [
-            { label: 'Client approval', done: true }, { label: 'Second payment', done: true },
+            { label: 'Client approval', done: true }, { label: i.paidInFull ? 'Paid in full' : 'Second payment', done: true },
             { label: `Prospects ready — ${n(c.enrolled)}`, done: c.enrolled > 0 },
             { label: 'Campaign ready', done: true }, { label: 'Sequence ready', done: true },
             { label: 'Sender ready', done: i.senderSendable }, { label: 'Schedule ready', done: true },
@@ -956,7 +965,7 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
             { value: i.senderSendable ? 'Healthy' : 'Not ready', label: 'Sender' },
           ] },
           { kind: 'ticks', label: 'Complete', ticks: [
-            { label: 'Client approval', done: true }, { label: 'Second payment', done: true },
+            { label: 'Client approval', done: true }, { label: i.paidInFull ? 'Paid in full' : 'Second payment', done: true },
             { label: 'Made live', done: true }, { label: 'Outreach started', done: false },
           ] },
           sendingCard(i.killSwitchOff),

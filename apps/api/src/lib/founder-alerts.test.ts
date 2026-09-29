@@ -84,7 +84,10 @@ describe('C5 · Vida never says a second payment is due on a paid-in-full progra
   it('the approval card shows "Paid in full"', () => {
     const copy = admin('lib/vida-lifecycle-copy.ts')
     expect(copy).toContain("label: 'Payment', value: 'Paid in full'")
-    expect(admin('app/vida/page.tsx')).toContain('paidInFull: !!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref,')
+    // ⛓️ 29 Sep (R174 · 2c) — ~~`paidInFull: !!prog?.programme?.first_payment_ref && … === …first_payment_ref,`~~
+    // The same ref test, OR a one-payment programme settled without a ref (the demo's authority).
+    expect(admin('app/vida/page.tsx')).toContain('paidInFull: (!!prog?.programme?.first_payment_ref && prog?.programme?.second_payment_ref === prog?.programme?.first_payment_ref)')
+    expect(admin('app/vida/page.tsx')).toContain('|| (prog?.programme?.pays_in_full === true && !!(prog?.programme?.first_paid_at || prog?.programme?.first_authorised_at)),')
     expect(src('programme-advance.ts')).toContain("'until it is approved, paid in full and made live.'")
   })
   // ⚑ 28 Sep — the demo walk found C5's test too narrow: a second stage settled by INTERNAL

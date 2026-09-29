@@ -105,6 +105,14 @@ moneyPathRouter.get('/clients', async (_req: Request, res: Response) => {
       if (p.type !== 'purchase') continue
       collected[p.client_id] = (collected[p.client_id] ?? 0) + creditTxUsd(p.plan, p.amount)
     }
+    // ⚑ 29 Sep (R174 · 4f) — AND WHAT PROGRAMMES BROUGHT IN. ⛓️ "Collected" read only the old
+    // credit purchases, so it was $0 for every programme client. Programme cash comes from the one
+    // money read (`programme-money.ts`, the contribution rule); old purchases stay, as history.
+    {
+      const { programmeMoneyBook } = await import('../lib/programme-money')
+      const book = await programmeMoneyBook()
+      for (const r of book.rows) collected[r.client_id] = (collected[r.client_id] ?? 0) + r.cash_cents / 100
+    }
     const recordsSourced: Record<string, number> = {}
     const sourcingCost: Record<string, number> = {}
     for (const l of ledger) {

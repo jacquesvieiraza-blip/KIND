@@ -171,7 +171,7 @@ export async function middleware(request: NextRequest) {
     if (!KEEP.has(seg)) {
       const MAP: Record<string, string> = {
         '':           '/milla',              // old portal home → New leads
-        'figsy':      '/milla/campaign',
+        'figsy':      '/milla/programme',   // ⛓️ 29 Sep (R174 · 4b) — ~~/milla/campaign~~
         'figsy-chat': '/milla/chat',
         'leads':      '/milla',
         'inbox':      '/milla',
@@ -179,7 +179,7 @@ export async function middleware(request: NextRequest) {
         'kpis':       '/milla/performance',
         'settings':   '/milla/settings',
         'company':    '/milla/command-centre',
-        'usage':      '/milla/usage',
+        'usage':      '/milla/performance', // ⛓️ 29 Sep (R174 · 4b) — ~~/milla/usage~~
         'analytics':  '/milla/analytics',
         'roi':        '/milla/roi',
         'referral':   '/milla/referral',
@@ -190,6 +190,16 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL(MAP[seg] ?? '/milla', base))
     }
+  }
+
+  // ⚑ 29 Sep (R174 · 4b) — TWO OLD MILLA SCREENS, REDIRECTED (the files are kept). "My campaign"
+  // named Vida to the client, drew a made-up progress bar and was not scoped to the programme;
+  // its job is the Programme screen. "Usage" duplicated Performance (founder: fold it in — "yes").
+  if (pathname === '/milla/campaign' || pathname.startsWith('/milla/campaign/')) {
+    return NextResponse.redirect(new URL('/milla/programme', base))
+  }
+  if (pathname === '/milla/usage' || pathname.startsWith('/milla/usage/')) {
+    return NextResponse.redirect(new URL('/milla/performance', base))
   }
 
   if (user && (pathname === '/login' || pathname === '/')) {

@@ -6983,24 +6983,32 @@ operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {
 // (credit_transactions: hold/capture/release), plus bookings + replies — merged into ONE
 // chronological timeline with a money summary. Pure READ over existing tables; no new
 // storage, no fabrication. Scoped to the lead's own client so cross-client data can't leak.
+// ⚑ 29 Sep (R174 · 5e) — THE LEAD RECORD, IN PROGRAMME FACTS.
+//
+// ⛓️ WAS: a "Charged $4 / Not charged" badge read from the per-lead wallet ledger, a
+// "Revealed / Masked" chip, work-credit ledger rows in the timeline, and bookings from
+// `calendar_bookings` — the retired per-lead model, while the lead's own meeting (in
+// `public.meetings`) was missing. Now: whether the prospect was qualified, how many emails
+// were sent to them, their replies, and their meetings from the meetings table (the same
+// reader, and exclusion rules, as the client's own Meetings page). No money is on a lead.
 operatorRouter.get('/record', async (req: Request, res: Response) => {
   try {
     const leadId = typeof req.query.lead_id === 'string' ? req.query.lead_id : ''
     if (!leadId) { res.status(400).json({ success: false, error: 'lead_id required' }); return }
     const { data: lead } = await db.from('leads')
-      .select('id, client_id, first_name, last_name, company, job_title, email, status, score, revealed_at, created_at')
+      .select('id, client_id, first_name, last_name, company, job_title, status, score, qualified_at, disqualified_at, created_at')
       .eq('id', leadId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
     const cid = lead.client_id as string
     const { data: client } = await db.from('clients').select('company_name').eq('id', cid).maybeSingle()
 
-    // Pull each source (bounded), then merge. All scoped to this lead (+ client for money).
-    const [events, audit, ledger, bookings, replies] = await Promise.all([
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const [events, audit, replies, sent, meetings] = await Promise.all([
       db.from('outcome_events').select('event_type, channel, payload, occurred_at').eq('lead_id', leadId).order('occurred_at', { ascending: true }).limit(200),
       db.from('operator_audit_log').select('operator_email, action, subject_type, subject_id, detail, created_at').eq('client_id', cid).eq('subject_id', leadId).order('created_at', { ascending: true }).limit(200),
-      db.from('credit_transactions').select('amount, type, note, reference, created_at').eq('client_id', cid).or(`reference.eq.hold:${leadId},reference.eq.release:${leadId}`).order('created_at', { ascending: true }).limit(100),
-      db.from('calendar_bookings').select('id, start_time, status, no_show_at, rebook_count, created_at').eq('lead_id', leadId).eq('client_id', cid).order('created_at', { ascending: true }).limit(50),
       db.from('figsy_replies').select('classification, from_name, qualified_at, received_at').eq('lead_id', leadId).order('received_at', { ascending: true }).limit(100),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('lead_id', leadId),
+      meetingsForClient({ clientId: cid, leadId, limit: 20 }),
     ])
 
     type Entry = { at: string | null; kind: string; label: string; detail?: string | null }
@@ -7012,34 +7020,27 @@ operatorRouter.get('/record', async (req: Request, res: Response) => {
     for (const a of (audit.data ?? []) as Record<string, unknown>[]) {
       timeline.push({ at: a.created_at as string, kind: `operator:${a.action}`, label: String(a.action).replace(/_/g, ' '), detail: (a.operator_email as string) ?? null })
     }
-    for (const t of (ledger.data ?? []) as Record<string, unknown>[]) {
-      timeline.push({ at: t.created_at as string, kind: `money:${t.type}`, label: `${t.type} ${(t.amount as number) > 0 ? '+' : ''}${t.amount} work credit`, detail: (t.note as string) ?? null })
-    }
-    for (const b of (bookings.data ?? []) as Record<string, unknown>[]) {
-      timeline.push({ at: (b.created_at as string) || (b.start_time as string), kind: `booking:${b.status}`, label: `booking ${b.status}${(b.rebook_count as number) ? ` · ${b.rebook_count} rebook(s)` : ''}`, detail: b.start_time ? new Date(b.start_time as string).toISOString() : null })
+    for (const m of meetings ?? []) {
+      timeline.push({ at: m.scheduledAt, kind: `meeting:${m.state}`, label: `meeting · ${String(m.state).toLowerCase().replace(/_/g, ' ')}`, detail: m.rescheduled ? 'rescheduled' : null })
     }
     timeline.sort((x, y) => new Date(x.at ?? 0).getTime() - new Date(y.at ?? 0).getTime())
 
-    // ONE WALLET — a lead is charged a flat $4 once at approve (final). Money state is
-    // simply charged / not charged, read from the per-lead wallet_charge ledger row.
-    const { data: chargeRow } = await db.from('credit_transactions')
-      .select('id').eq('client_id', cid).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').limit(1).maybeSingle()
-    const isCharged = !!chargeRow
-    const money = {
-      charged: isCharged,
-      state:   isCharged ? 'Charged $4' : 'Not charged',
-    }
-
+    const replyRows = (replies.data ?? []) as Record<string, unknown>[]
     res.json({
       success: true,
       client: { id: cid, company_name: client?.company_name ?? null },
       lead: {
         id: lead.id, name: [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim() || null,
         company: lead.company, job_title: lead.job_title, status: lead.status, score: lead.score,
-        revealed: !!lead.revealed_at,
       },
-      money,
-      replies: (replies.data ?? []).map((r: Record<string, unknown>) => ({ classification: r.classification, qualified: !!r.qualified_at, at: r.received_at })),
+      facts: {
+        qualified: lead.qualified_at ? 'qualified' : lead.disqualified_at ? 'set aside' : 'not checked yet',
+        // A storage error is null — "could not be read", never 0.
+        emails_sent: sent.error ? null : (sent.count ?? 0),
+        replies: replyRows.length,
+        meetings: meetings === null ? null : meetings.map(m => ({ id: m.id, at: m.scheduledAt, state: m.state, rescheduled: m.rescheduled })),
+      },
+      replies: replyRows.map(r => ({ classification: r.classification, qualified: !!r.qualified_at, at: r.received_at })),
       timeline,
     })
   } catch (err) { console.error('[operator/record]', err); res.status(500).json({ success: false, error: 'Failed to load record' }) }

@@ -7,14 +7,23 @@ import { useSearchParams } from 'next/navigation'
 // reply, and a merged chronological timeline (sends · replies · bookings · operator actions ·
 // money moves) assembled server-side from outcome_events + audit + ledger + bookings + replies.
 // Opened with ?lead_id=… (the board / bookings pages link here). Pure read — nothing to spend.
+//
+// ⚑ 29 Sep (R174 · 5e) — ⛓️ WAS a "Charged $4" badge and a "Revealed / Masked" chip, from the
+// retired per-lead model, with the lead's own meeting missing. Now the programme's facts about
+// this person: qualified or not, emails sent, replies, and their meetings from the meetings table.
 
-type Money = { charged: boolean; state: string }
+type Facts = {
+  qualified: string
+  emails_sent: number | null
+  replies: number
+  meetings: { id: string; at: string; state: string; rescheduled: boolean }[] | null
+}
 type Entry = { at: string | null; kind: string; label: string; detail?: string | null }
 type Reply = { classification: string | null; qualified: boolean; at: string | null }
 type Record_ = {
   client: { id: string; company_name: string | null }
-  lead: { id: string; name: string | null; company: string | null; job_title: string | null; status: string | null; score: number | null; revealed: boolean }
-  money: Money
+  lead: { id: string; name: string | null; company: string | null; job_title: string | null; status: string | null; score: number | null }
+  facts: Facts
   replies: Reply[]
   timeline: Entry[]
 }
@@ -27,8 +36,7 @@ function fmt(iso: string | null): string {
 
 // A dot colour per timeline family so the eye can scan sends vs money vs bookings.
 function tone(kind: string): string {
-  if (kind.startsWith('money:')) return '#7C3AED'
-  if (kind.startsWith('booking:')) return '#059669'
+  if (kind.startsWith('meeting:')) return '#059669'
   if (kind.startsWith('operator:')) return '#0369a1'
   if (kind.startsWith('event:risk_escalation')) return '#dc2626'
   if (kind.startsWith('event:reply')) return '#b45309'
@@ -67,21 +75,31 @@ function RecordInner() {
                 <h1 className="text-2xl font-bold text-[#1f1235]">{rec.lead.name || 'Unknown lead'}</h1>
                 <p className="text-sm text-[#7c6f9b] mt-0.5">{[rec.lead.job_title, rec.lead.company].filter(Boolean).join(' · ') || '—'} · {rec.client.company_name}</p>
               </div>
-              <div className="text-right shrink-0">
-                <span className="inline-block text-[11px] font-bold rounded-full px-2.5 py-1 border" style={{
-                  color: rec.money.charged ? '#059669' : '#9b8ec4',
-                  background: rec.money.charged ? '#ecfdf5' : '#f7f4fd',
-                  borderColor: rec.money.charged ? '#a7f3d0' : '#eee7f7',
-                }}>{rec.money.charged ? 'Charged $4' : 'Not charged'}</span>
-              </div>
             </div>
 
             {/* fact chips */}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Status: {rec.lead.status || '—'}</span>
               <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Score: {rec.lead.score ?? '—'}</span>
-              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">{rec.lead.revealed ? 'Revealed' : 'Masked'}</span>
-              {rec.replies.some(r => r.qualified) && <span className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">✓ Qualified</span>}
+              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Prospect: {rec.facts.qualified}</span>
+              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Emails sent: {rec.facts.emails_sent ?? 'could not be read'}</span>
+              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Replies: {rec.facts.replies}</span>
+              {rec.replies.some(r => r.qualified) && <span className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">✓ Reply qualified</span>}
+            </div>
+
+            {/* ⚑ 29 Sep (R174 · 5e) — THEIR MEETINGS, from the meetings table (same reader and rules as
+                the client's own Meetings page). Unreadable says so; it is never "no meetings". */}
+            <div className="mt-5">
+              <div className="text-[13px] font-extrabold uppercase tracking-wide text-[#b3a9cc] mb-2">Meetings</div>
+              {rec.facts.meetings === null
+                ? <p className="text-sm font-semibold text-red-600">Meetings could not be read — this is not &ldquo;no meetings&rdquo;.</p>
+                : rec.facts.meetings.length === 0
+                  ? <p className="text-sm text-[#9b8ec4]">No meeting booked with this person.</p>
+                  : rec.facts.meetings.map(m => (
+                    <p key={m.id} className="text-[13px] text-[#1f1235]">
+                      {fmt(m.at)} · <span className="capitalize">{m.state.toLowerCase().replace(/_/g, ' ')}</span>{m.rescheduled ? ' · rescheduled' : ''}
+                    </p>
+                  ))}
             </div>
 
             {/* timeline */}

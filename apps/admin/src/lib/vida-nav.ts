@@ -77,7 +77,8 @@ export const CLIENTS_WORKSPACE: NavItem[] = [
 export const COMMAND_CENTRE: NavGroup[] = [
   { title: '', items: [{ href: '/vida/cockpit', label: 'Cockpit', icon: '📟' }] },
   { title: 'Delivery', items: [
-    { href: '/vida/queue',       label: 'Lead queue',  icon: '✦' },
+    // ⚑ 29 Sep (R174 ①) — the Lead queue left the menu; each client's Approvals tab is where
+    // drafts are released. The page still opens from its address (R116: redirected or kept, never deleted).
     { href: '/vida/sending',     label: 'Sending',     icon: '📤' },
     { href: '/vida/unibox',      label: 'Unibox',      icon: '📥' },
     { href: '/vida/suppression', label: 'Suppression', icon: '🚫' },

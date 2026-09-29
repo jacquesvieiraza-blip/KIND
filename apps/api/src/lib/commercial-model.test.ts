@@ -677,8 +677,12 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // ⚠️ AND EVERY LEGACY SENTENCE SURVIVES FOR A LEGACY CLIENT. Deleting them would hide the
     // truth from the accounts they are true of — which is the same defect in the other direction.
     expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
-    expect(vida).toContain("Their 👍 charges $4 and starts the work")
-    expect(vida).toContain('the $4 is deliberately NOT charged while no campaign is active')
+    // ⛓️ 29 Sep (R174 ① · 4i) — ~~both sentences survive for a legacy client~~. They sat on the
+    // People and Campaign tabs beside buttons those tabs no longer have: both tabs are view-only
+    // for every client, so a sentence about what the operator's press would charge has no press
+    // left to describe. The guard becomes: they cannot come back.
+    expect(vida).not.toContain("Their 👍 charges $4 and starts the work")
+    expect(vida).not.toContain('the $4 is deliberately NOT charged while no campaign is active')
     // ⛓️ 24 Sep (R145 step 7 · #64 · #40) — WAS `via === 'comp' ? 'Comped' : label`, the legacy
     // strip's step-2 label. The strip is removed for EVERY client (the redesign's operator rail
     // has no payment step), so there is no legacy rail sentence left to survive.
@@ -704,9 +708,11 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // ④ the message typed TO THE CLIENT
     expect(vida).toMatch(/unresolvedModel\s*\?\s*'Quick nudge — we are ready to move as soon as you are\.'/)
     // ⑤ the approvals sentence — the price clause is gone, nothing false replaces it
-    expect(vida).toContain("'Their 👍 starts the work — you don\u2019t assign anyone.'")
-    // ⑥ the no-campaign notice
-    expect(vida).toContain("'Approvals are blocked while no campaign is active.'")
+    // ⛓️ 29 Sep (R174 ① · 4i) — ⑤ and ⑥ left with the People and Campaign buttons: those tabs are
+    // view-only, and their one sentence each names no money for ANY client, so there is no
+    // unresolved arm left to need.
+    expect(vida).not.toContain("'Their 👍 starts the work — you don\u2019t assign anyone.'")
+    expect(vida).not.toContain("'Approvals are blocked while no campaign is active.'")
     // ⑦ ⛓️ 28 Sep (R173 · 3 of 3) — THE TWO BOOKING SENTENCES LEFT WITH THEIR BUTTONS.
     // ~~'Marked a no-show.' · 'Second attempt used. The client has been told.' · 'Two attempts
     // used — the client has been told.'~~ belonged to the Bookings tab's "Mark no-show" and
@@ -731,7 +737,9 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     const ternaries = [...vida.matchAll(/programmeModel\s*\n?\s*\?/g)]
     // ⛓️ 28 Sep (R173 · 3 of 3) — ~~≥ 5~~: three of the six were the booking sentences above,
     // gone with their buttons. Every one that remains is still swept for its third arm below.
-    expect(ternaries.length, 'the model-aware sentences are still there').toBeGreaterThanOrEqual(3)
+    // ⛓️ 29 Sep (R174 ① · 4i) — ~~≥ 3~~: two more were the People and Campaign sentences, gone
+    // with their buttons (both tabs view-only). The one that remains is still swept below.
+    expect(ternaries.length, 'the model-aware sentences are still there').toBeGreaterThanOrEqual(1)
     for (const m of ternaries) {
       const after = vida.slice(m.index!, m.index! + 900)
       expect(after, `a programmeModel ternary with no unresolved arm: …${vida.slice(m.index!, m.index! + 120)}`)

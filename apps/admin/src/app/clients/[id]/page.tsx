@@ -1,448 +1,117 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Loader2, CreditCard, ShieldCheck, XCircle, Coins, Plus, Minus, Building2, Zap, Target } from 'lucide-react'
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 29 Sep (R174 · 5d) — ONE CLIENT'S PROGRAMME RECORD.
+//
+// ⛓️ WAS subscriptions, a credit balance, an "Apply Credits" form, campaigns, ICPs and leads
+// (three of those calls are refused, so they rendered empty) and a usage chart. Now: who they
+// are, where they are (the lifecycle stage), and every programme they have bought — meetings
+// bought and delivered, the price, each payment actually received, and any shortfall credit —
+// from the one programme-money source (R174 · 4e).
+//
+// 🛑 "APPLY CREDITS" IS REMOVED, not moved (founder, R174 ⑧). Shortfall credit is granted by
+// Settle, once, with its own record and window; a free-hand grant is a door for moving money.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Building2, ShieldCheck } from 'lucide-react'
+import { paidState, type MoneyRow } from '@/lib/client-admin-rows'
 
 interface Client {
   id: string; company_name: string; industry: string | null; country: string
   website: string | null; phone: string | null; created_at: string
-  terms_accepted_at: string | null; terms_accepted_ip: string | null
+  terms_accepted_at: string | null
   company_registration: string | null; vat_number: string | null
-  credit_balance: number
-}
-interface Subscription { id: string; product: string; tier: string; status: string; amount_zar: number }
-interface CreditTx {
-  id: string; type: string; amount: number; note: string | null; reference: string | null; created_at: string
-}
-interface FigsyCampaign {
-  id: string; name: string; status: string; enrolled_count?: number; created_at: string
-}
-interface ICP {
-  id: string; name: string; last_run_at: string | null; created_at: string
-}
-interface Lead {
-  id: string; score: number | null; first_name: string | null; last_name: string | null
-  company_name: string | null; created_at: string
 }
 
 async function proxyGet(path: string) {
   const r = await fetch(`/api/proxy/admin/${path}`)
   return r.json()
 }
-async function proxyPost(path: string, body: object) {
-  const r = await fetch(`/api/proxy/admin/${path}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  return r.json()
-}
+
+const money = (c: number) => `$${(c / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+const STAGE_WORD: Record<string, string> = { in_full: 'Paid in full', first_half: 'First half', second_half: 'Second half' }
 
 export default function ClientDetailPage({ params }: { params: { id: string } }) {
-  const [client, setClient]   = useState<Client | null>(null)
-  const [subs, setSubs]       = useState<Subscription[]>([])
-  const [balance, setBalance] = useState<number>(0)
-  const [txs, setTxs]         = useState<CreditTx[]>([])
-  const [campaigns, setCampaigns] = useState<FigsyCampaign[]>([])
-  const [icps, setIcps]       = useState<ICP[]>([])
-  const [leads, setLeads]     = useState<Lead[]>([])
-  const [usage, setUsage]     = useState<{ days: number; series: { date: string; leads: number }[]; total: number; recent: number; prior: number; trend: number } | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  // Credit grant form
-  const [grantAmt, setGrantAmt]   = useState('')
-  const [grantType, setGrantType] = useState<'manual_grant' | 'refund'>('manual_grant')
-  const [grantNote, setGrantNote] = useState('')
-  const [granting, setGranting]   = useState(false)
-  const [grantMsg, setGrantMsg]   = useState<{ ok: boolean; text: string } | null>(null)
-
-  // Start-campaign (managed model): in the work model WE run the outreach, so campaign
-  // creation is an operator action. A client with NO active campaign cannot be worked at
-  // all — approveLead fail-closes and refuses to charge the $4 — so this button is what
-  // unblocks them. Idempotent server-side.
-  const [starting, setStarting]     = useState(false)
-  const [startMsg, setStartMsg]     = useState<{ ok: boolean; text: string } | null>(null)
-
-  async function handleStartCampaign() {
-    setStarting(true); setStartMsg(null)
-    try {
-      const r = await fetch('/api/proxy/operator/campaign/start', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_id: params.id }),
-      })
-      const j = await r.json()
-      if (!j?.success) throw new Error(j?.error || 'Failed to start campaign')
-      setStartMsg({ ok: true, text: j.created ? 'Campaign started — this client can be worked now.' : 'They already have an active campaign.' })
-      const fresh = await fetch(`/api/proxy/figsy/campaigns?client_id=${params.id}`).then(x => x.json())
-      if (fresh.success) setCampaigns(fresh.data || [])
-    } catch (e) {
-      setStartMsg({ ok: false, text: e instanceof Error ? e.message : 'Failed to start campaign' })
-    }
-    setStarting(false)
-  }
+  const [client, setClient] = useState<Client | null>(null)
+  const [stage, setStage] = useState<string | null>(null)
+  const [programmes, setProgrammes] = useState<MoneyRow[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function load() {
-      const [clientRes, creditRes, campaignsRes, icpsRes, leadsRes, usageRes] = await Promise.all([
-        proxyGet(`clients/${params.id}`),
-        proxyGet(`clients/${params.id}/credits`),
-        fetch(`/api/proxy/figsy/campaigns?client_id=${params.id}`).then(r => r.json()),
-        fetch(`/api/proxy/icps?client_id=${params.id}`).then(r => r.json()),
-        fetch(`/api/proxy/leads?client_id=${params.id}&limit=50`).then(r => r.json()),
-        // #640 — was `admin/clients/…`, and `proxyGet` ALREADY prefixes `/api/proxy/admin/`.
-        // The request went to `/admin/admin/clients/:id/usage`, which no router serves, so
-        // `usage` stayed null and the whole Usage-trend chart below is conditional on it —
-        // the failure rendered as no chart at all (#565), on a page linked from Revenue,
-        // Cockpit and Activation. The route is `adminRouter.get('/clients/:id/usage')`.
-        proxyGet(`clients/${params.id}/usage`),
-      ])
-      if (clientRes.success) {
-        setClient(clientRes.data)
-        setSubs(clientRes.data.subscriptions || [])
-      }
-      if (creditRes.success) {
-        setBalance(creditRes.data.balance)
-        setTxs(creditRes.data.transactions)
-      }
-      if (campaignsRes.success) {
-        setCampaigns(campaignsRes.data || [])
-      }
-      if (icpsRes.success) {
-        setIcps(icpsRes.data || [])
-      }
-      if (leadsRes.success) {
-        setLeads(leadsRes.data || [])
-      }
-      if (usageRes.success) {
-        setUsage(usageRes.data)
-      }
-      setLoading(false)
-    }
-    load()
+    let alive = true
+    ;(async () => {
+      try {
+        const [clientRes, board, book] = await Promise.all([
+          proxyGet(`clients/${params.id}`),
+          fetch('/api/proxy/operator/lifecycle-board').then(r => r.json()),
+          fetch('/api/proxy/operator/programme-money').then(r => r.json()),
+        ])
+        if (!alive) return
+        if (clientRes?.success) setClient(clientRes.data)
+        else setError(clientRes?.error || 'Could not read this client')
+        if (board?.success) setStage(((board.data ?? []) as { client_id: string; stage_label: string }[]).find(r => r.client_id === params.id)?.stage_label ?? null)
+        if (book?.success) setProgrammes(((book.data?.rows ?? []) as MoneyRow[]).filter(r => r.client_id === params.id))
+        else setError(book?.error || 'Programme money could not be read')
+      } catch (e) { if (alive) setError(e instanceof Error ? e.message : 'Could not load this client') }
+    })()
+    return () => { alive = false }
   }, [params.id])
 
-  async function handleGrant(e: React.FormEvent) {
-    e.preventDefault()
-    const amt = parseInt(grantAmt)
-    if (!amt || isNaN(amt)) { setGrantMsg({ ok: false, text: 'Enter a valid amount' }); return }
-    setGranting(true)
-    setGrantMsg(null)
-    const res = await proxyPost(`clients/${params.id}/credits`, {
-      amount: amt, type: grantType, note: grantNote || undefined,
-    })
-    if (res.success) {
-      setBalance(res.data.new_balance)
-      setGrantMsg({ ok: true, text: `Done — new balance: ${res.data.new_balance} credits` })
-      setGrantAmt('')
-      setGrantNote('')
-      const fresh = await proxyGet(`clients/${params.id}/credits`)
-      if (fresh.success) setTxs(fresh.data.transactions)
-    } else {
-      setGrantMsg({ ok: false, text: res.error ?? 'Failed' })
-    }
-    setGranting(false)
-  }
-
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
-    </div>
-  )
-  if (!client) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <p className="text-gray-400">Client not found</p>
-    </div>
-  )
-
-  const now = new Date()
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const leadsThisMonth = leads.filter(l => new Date(l.created_at) >= thisMonth).length
-  const topLead = leads.filter(l => l.score != null).sort((a, b) => (b.score || 0) - (a.score || 0))[0]
-  const activeCampaigns = campaigns.filter(c => c.status === 'active')
-
   return (
-    <div className="p-8 max-w-5xl space-y-6">
-      {/* Back link */}
-      <Link href="/vida/clients-admin" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors">
-        ← All Clients
-      </Link>
-
-      {/* Client header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{client.company_name}</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            {client.country}{client.industry ? ` · ${client.industry}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl">
-          <Coins className="w-4 h-4 text-amber-400" />
-          <span className="text-gray-900 font-semibold">{balance}</span>
-          <span className="text-gray-400 text-sm">credits</span>
-        </div>
+    <div className="px-8 py-6 max-w-4xl mx-auto space-y-6">
+      <Link href="/vida/clients-admin" className="text-xs text-[#7C3AED] font-semibold">← All clients</Link>
+      <div className="flex items-center gap-3 flex-wrap">
+        <h1 className="text-2xl font-bold text-gray-900">{client?.company_name ?? 'Client'}</h1>
+        {stage && <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-[#f3ecff] text-[#7C3AED]">{stage}</span>}
+        <Link href={`/vida?client=${encodeURIComponent(params.id)}`} className="ml-auto text-sm font-semibold text-[#7C3AED]">Open in Vida →</Link>
       </div>
+      {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
 
-      {/* Subscriptions */}
-      {subs.length > 0 && (
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-gray-400" />Active Subscriptions
-          </h3>
-          <div className="space-y-2">
-            {subs.map(s => (
-              <div key={s.id} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 capitalize">{s.product.replace(/_/g, ' ')} — {s.tier}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400">R{s.amount_zar}/mo</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
-                    s.status === 'active'
-                      ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'
-                      : s.status === 'trialing'
-                      ? 'bg-blue-400/10 border-blue-400/20 text-blue-400'
-                      : 'bg-white border-gray-200 text-gray-400'
-                  }`}>{s.status}</span>
-                </div>
+      <section className="bg-white border border-purple-100 rounded-2xl p-6">
+        <h2 className="font-semibold text-gray-900 mb-3">Programmes</h2>
+        {programmes === null ? <p className="text-sm text-gray-400">Loading…</p>
+          : programmes.length === 0 ? <p className="text-sm text-gray-400">No programme bought yet.</p>
+          : programmes.map(p => (
+            <div key={p.programme_id} className="border-t border-gray-100 first:border-t-0 py-3">
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <b className="text-gray-900 capitalize">{p.status.toLowerCase().replace(/_/g, ' ')}</b>
+                <span className="text-gray-400">·</span>
+                <span className="text-gray-700 tabular-nums">{p.meetings_delivered ?? '?'} of {p.meetings_bought} meetings{p.settled ? ' · settled' : ''}</span>
+                <span className="ml-auto text-xs font-medium rounded-full px-2.5 py-1 bg-gray-50 border border-gray-200 text-gray-600">{paidState(p)}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Leads summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Leads</p>
-          <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
-        </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">This Month</p>
-          <p className="text-2xl font-bold text-gray-900">{leadsThisMonth}</p>
-        </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Top Lead</p>
-          {topLead ? (
-            <div>
-              <p className="text-gray-900 font-medium text-sm">
-                {[topLead.first_name, topLead.last_name].filter(Boolean).join(' ') || 'Unknown'}
+              <p className="text-xs text-gray-500 mt-1 tabular-nums">
+                Price {money(p.price_total_cents)} · received {money(p.cash_cents)}
+                {p.shortfall_credit_cents > 0 ? ` · shortfall credit ${money(p.shortfall_credit_cents)}` : ''}
               </p>
-              {topLead.company_name && <p className="text-gray-400 text-xs">{topLead.company_name}</p>}
-              <p className="text-emerald-400 text-xs mt-0.5">Score: {topLead.score}</p>
-            </div>
-          ) : <p className="text-gray-400 text-sm">—</p>}
-        </div>
-      </div>
-
-      {/* Usage trend (#292) — leads delivered per day; spot a client fading early */}
-      {usage && usage.total > 0 && (() => {
-        const max = Math.max(1, ...usage.series.map(d => d.leads))
-        return (
-          <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Zap className="w-4 h-4 text-[#7C3AED]" />Usage trend · leads / day ({usage.days}d)</h3>
-              <span className={`text-xs font-semibold ${usage.trend < 0 ? 'text-red-600' : usage.trend > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
-                {usage.trend > 0 ? '↑' : usage.trend < 0 ? '↓' : '→'} {usage.recent} recent vs {usage.prior} prior half
-              </span>
-            </div>
-            <div className="flex items-end gap-0.5 h-16">
-              {usage.series.map((d, i) => (
-                <div key={i} title={`${d.date}: ${d.leads}`} className="flex-1 bg-[#7C3AED]/70 hover:bg-[#7C3AED] rounded-t" style={{ height: `${Math.max(3, Math.round((d.leads / max) * 100))}%` }} />
+              {(p.payments ?? []).map(pay => (
+                <p key={`${pay.stage}-${pay.paid_at}`} className="text-xs text-gray-400 tabular-nums">
+                  {STAGE_WORD[pay.stage] ?? pay.stage}: {money(pay.cents)} on {new Date(pay.paid_at).toLocaleDateString('en-GB')}{pay.ref ? ` · ${pay.ref}` : ''}
+                </p>
               ))}
-            </div>
-            <p className="text-[11px] text-gray-400 mt-2">{usage.total} leads in {usage.days} days · a falling second half is an early fade signal (before the churn engine fires).</p>
-          </div>
-        )
-      })()}
-
-      {/* Credit management */}
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Coins className="w-4 h-4 text-amber-400" />Credits
-          </h3>
-          <span className="text-2xl font-bold text-gray-900">{balance}</span>
-        </div>
-
-        {/* Grant form */}
-        <form onSubmit={handleGrant} className="border border-gray-100 rounded-lg p-4 space-y-3 bg-gray-50">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Grant or Adjust Credits</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Amount</label>
-              <input type="number" min="1" value={grantAmt} onChange={e => setGrantAmt(e.target.value)}
-                placeholder="e.g. 100"
-                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Type</label>
-              <select value={grantType} onChange={e => setGrantType(e.target.value as 'manual_grant' | 'refund')}
-                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]">
-                <option value="manual_grant">Manual Grant (add)</option>
-                <option value="refund">Refund (add back)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Note (optional)</label>
-              <input type="text" value={grantNote} onChange={e => setGrantNote(e.target.value)}
-                placeholder="Reason / reference"
-                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
-            </div>
-          </div>
-          {grantMsg && (
-            <p className={`text-sm ${grantMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{grantMsg.text}</p>
-          )}
-          <button type="submit" disabled={granting}
-            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
-            {granting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Apply Credits
-          </button>
-        </form>
-
-        {/* Transaction history */}
-        {txs.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Recent Transactions</p>
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {txs.map(tx => (
-                <div key={tx.id} className="flex items-center justify-between text-sm py-1.5 border-b border-gray-100 last:border-0">
-                  <div>
-                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium mr-2 ${
-                      tx.amount > 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'
-                    }`}>
-                      {tx.amount > 0 ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                      {Math.abs(tx.amount)}
-                    </span>
-                    <span className="text-gray-500 capitalize">{tx.type.replace(/_/g, ' ')}</span>
-                    {tx.note && <span className="text-gray-400 ml-1.5">· {tx.note}</span>}
-                  </div>
-                  <span className="text-xs text-gray-400">{new Date(tx.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* FIGSY Campaigns */}
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-gray-400" />FIGSY Campaigns
-        </h3>
-        {activeCampaigns.length > 0 ? (
-          <div className="space-y-2">
-            {activeCampaigns.map(c => (
-              <div key={c.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-gray-900 text-sm font-medium">{c.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Started {new Date(c.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {c.enrolled_count != null && (
-                    <span className="text-xs text-gray-400">{c.enrolled_count} enrolled</span>
-                  )}
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
-                    Active
-                  </span>
-                </div>
-              </div>
-            ))}
-            {campaigns.filter(c => c.status !== 'active').length > 0 && (
-              <p className="text-xs text-gray-400 pt-1">
-                +{campaigns.filter(c => c.status !== 'active').length} inactive campaign(s)
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-sm font-semibold text-amber-800">No active campaign — this client cannot be worked.</p>
-            <p className="text-xs text-amber-700 mt-1">
-              Approvals are blocked while there is no active campaign: we deliberately refuse the $4 rather than
-              charge for outreach that can&apos;t run. Start their campaign to unblock them.
-            </p>
-            <button onClick={handleStartCampaign} disabled={starting}
-              className="mt-3 inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60 transition-colors">
-              {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              Start campaign
-            </button>
-            {startMsg && <p className={`text-xs mt-2 font-medium ${startMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>{startMsg.text}</p>}
-          </div>
-        )}
-      </div>
-
-      {/* ICPs */}
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-gray-400" />Ideal Customer Profiles
-        </h3>
-        {icps.length > 0 ? (
-          <div className="space-y-2">
-            {icps.map(icp => (
-              <div key={icp.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-gray-900 text-sm font-medium">{icp.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {icp.last_run_at
-                      ? `Last run ${new Date(icp.last_run_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}`
-                      : 'Never run'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-400">No ICPs configured</p>
-        )}
-      </div>
-
-      {/* T&C acceptance */}
-      <div className={`rounded-xl p-5 flex items-start gap-3 ${
-        client.terms_accepted_at
-          ? 'bg-emerald-400/[0.06] border border-emerald-400/20'
-          : 'bg-gray-50 border border-gray-100'
-      }`}>
-        {client.terms_accepted_at ? (
-          <>
-            <ShieldCheck className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-semibold text-emerald-400 text-sm">Terms &amp; Conditions accepted</p>
-              <p className="text-emerald-400/70 text-xs mt-0.5">
-                Accepted on {new Date(client.terms_accepted_at).toLocaleDateString('en-ZA', { dateStyle: 'long' })}
-                {client.terms_accepted_ip ? ` · IP: ${client.terms_accepted_ip}` : ''}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <XCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <p className="text-gray-400 text-sm">T&amp;Cs not yet accepted — client has not completed a purchase.</p>
-          </>
-        )}
-      </div>
-
-      {/* Client details */}
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
-          <Building2 className="w-4 h-4 text-gray-400" />Client Details
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {([
-            ['Company',  client.company_name],
-            ['Country',  client.country],
-            ['Industry', client.industry || '—'],
-            ['Website',  client.website || '—'],
-            ['Phone',    client.phone || '—'],
-            ['Registration No.', client.company_registration || '—'],
-            ['VAT Number', client.vat_number || '—'],
-            ['Joined',   new Date(client.created_at).toLocaleDateString('en-ZA', { dateStyle: 'long' })],
-          ] as [string, string][]).map(([label, val]) => (
-            <div key={label}>
-              <span className="text-gray-400 text-xs">{label}</span>
-              <p className="text-gray-800 mt-0.5">{val}</p>
             </div>
           ))}
-        </div>
-      </div>
+      </section>
+
+      {client && (
+        <section className="bg-gray-50 border border-gray-100 rounded-xl p-6">
+          <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm"><Building2 className="w-4 h-4 text-gray-400" />Client details</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {([
+              ['Company', client.company_name], ['Country', client.country], ['Industry', client.industry || '—'],
+              ['Website', client.website || '—'], ['Phone', client.phone || '—'],
+              ['Registration No.', client.company_registration || '—'], ['VAT Number', client.vat_number || '—'],
+              ['Joined', new Date(client.created_at).toLocaleDateString('en-ZA', { dateStyle: 'long' })],
+            ] as [string, string][]).map(([label, val]) => (
+              <div key={label}><span className="text-gray-400 text-xs">{label}</span><p className="text-gray-800 mt-0.5">{val}</p></div>
+            ))}
+          </div>
+          <p className="text-xs mt-4 flex items-center gap-1.5 text-gray-500">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {client.terms_accepted_at ? `Terms accepted ${new Date(client.terms_accepted_at).toLocaleDateString('en-ZA')}` : 'Terms not accepted'}
+          </p>
+        </section>
+      )}
     </div>
   )
 }

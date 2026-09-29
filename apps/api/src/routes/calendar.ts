@@ -70,9 +70,12 @@ type BookingResult =
  * successfully-captured booking.
  */
 async function recordUnverifiedBooking(
-  params: { clientId: string; leadId: string; enrollmentId?: string | null; start: string },
+  params: { clientId: string; leadId: string; enrollmentId?: string | null; start: string; testBooking?: boolean },
   cause: 'calendar_not_connected' | 'google_auth_failed' | 'google_unavailable',
 ): Promise<BookingResult | null> {
+  // ⚑ 29 Sep (R174 ② · 1c) — a TEST booking records nothing, ever: no unverified meeting either.
+  // `null` sends the caller to its own plain refusal, exactly as a failed record would.
+  if (params.testBooking) return null
   // ⚑ 9 Sep — AN UNVERIFIED BOOKING IS STILL THIS PROGRAMME'S OUTCOME. Google failing to
   // confirm the event says nothing about which programme the prospect was being worked under,
   // so attribution is resolved here exactly as on the verified path. Without it a calendar
@@ -148,6 +151,11 @@ async function performBooking(params: {
     return { ok: false, status: 404, error: 'Lead not found or missing email' }
   }
 
+  // ⚑ 29 Sep (R174 ② · 1c) — THE TOOL'S OWN TEST PERSON. The event still lands in the client's
+  // calendar (that is the test), but nobody is invited and nothing is recorded or counted.
+  const { isTestBookingEmail } = await import('../lib/test-booking')
+  const testBooking = isTestBookingEmail(lead.email)
+
   // One active FUTURE booking per lead+client — a prospect (or client) clicking twice
   // must not create two meetings. Return the existing one so the caller can 409.
   const { data: existing } = await db.from('calendar_bookings')
@@ -170,13 +178,13 @@ async function performBooking(params: {
   // The lead is real and there is no existing booking, both checked above, so this is a
   // genuine accepted booking we simply cannot put in a calendar.
   if (!calendarConnected) {
-    const fallback = await recordUnverifiedBooking(params, 'calendar_not_connected')
+    const fallback = await recordUnverifiedBooking({ ...params, testBooking }, 'calendar_not_connected')
     if (fallback) return fallback
     return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
   }
 
   const leadName    = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Prospect'
-  const title       = params.title ?? `Meeting with ${leadName}`
+  const title       = testBooking ? 'TEST — booking check from K.I.N.D (nobody invited)' : (params.title ?? `Meeting with ${leadName}`)
   const clientEmail = client.google_calendar_email ?? ''
 
   // Race guard + auth-honesty: re-verify the slot is free right now, then create. Any
@@ -210,6 +218,7 @@ async function performBooking(params: {
           description:  `Meeting arranged via K.I.N.D FIGSY AI SDR.\nCompany: ${client.company_name ?? ''}`,
           // (audit fix M4) stable across retries → one deterministic Google event, never a duplicate
           idempotencyKey: `${params.clientId}:${params.leadId}:${params.start}`,
+          testBooking,
         })
         break // success
       } catch (err) {
@@ -277,13 +286,16 @@ async function performBooking(params: {
     console.error('[calendar/performBooking] createMeeting failed after retries:', err)
 
     const fallback = await recordUnverifiedBooking(
-      params, authFailure ? 'google_auth_failed' : 'google_unavailable')
+      { ...params, testBooking }, authFailure ? 'google_auth_failed' : 'google_unavailable')
     if (fallback) return fallback
 
     return authFailure
       ? { ok: false, status: 400, error: 'Google Calendar is not connected.' }
       : { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
   }
+
+  // A test booking stops here: no booking row, no meeting, no outcome event, no counter.
+  if (testBooking) return { ok: true, meetLink, eventId }
 
   const { error: insertErr } = await db.from('calendar_bookings').insert({
     client_id:       params.clientId,

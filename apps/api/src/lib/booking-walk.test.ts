@@ -108,8 +108,12 @@ describe('③ THE TOOL IS USABLE BY A HUMAN — no UUID a human cannot see', () 
     // and query the database". He asked "where is the lead ID", which is the whole finding.
     const code = codeOf(VIDA)
     expect(code, 'a pasted uuid is not an interface').not.toMatch(/placeholder="lead id \(uuid\)"/)
-    expect(code, 'the leads are fetched to be picked').toMatch(/recent-leads/)
-    expect(code, 'and offered as a list').toMatch(/<select value=\{linkLeadId\}/)
+    // ⛓️ 29 Sep (R174 ② · 1c) — ~~the leads are fetched to be picked (`recent-leads`) and offered
+    // as a list (`<select value={linkLeadId}>`)~~. Picking a REAL lead invited that prospect and
+    // counted the meeting. The founder ruled the tool books only its own test person, so there is
+    // nothing to pick: one button, still no UUID for a human to find.
+    expect(code, 'no real lead is offered for a test').not.toMatch(/recent-leads/)
+    expect(code, 'one button makes the test person\'s link').toContain('Make a test booking link')
   })
 
   it('⚠️ THE PICKER CANNOT REPORT "no leads" WHEN THE QUERY BROKE', () => {
@@ -124,9 +128,11 @@ describe('③ THE TOOL IS USABLE BY A HUMAN — no UUID a human cannot see', () 
     expect(handler, 'and acted on, not ignored').toMatch(/if \(error\)/)
     expect(handler, 'and its message reaches the caller').toMatch(/Could not load leads: \$\{error\.message\}/)
 
+    // ⛓️ 29 Sep (R174 ② · 1c) — the screen no longer lists leads (~~`leadsError` · "Could not load
+    // leads —"~~); the endpoint's honesty above still stands for any other caller. The screen's
+    // one failure — the link could not be issued — is shown as the server's own sentence.
     const ui = codeOf(VIDA)
-    expect(ui, 'the screen keeps a separate error state').toMatch(/leadsError/)
-    expect(ui, 'and shows it instead of claiming emptiness').toMatch(/Could not load leads —/)
+    expect(ui, 'a failed issue is shown, never silent').toMatch(/linkResult\?\.blocked/)
   })
 
   it('⚠️ IT ORDERS BY A COLUMN THIS FILE ALREADY USES', () => {
@@ -152,11 +158,14 @@ describe('④ Vida can reach it — a route nothing calls is not a feature', () 
   it('the bookings screen calls the operator endpoint', () => {
     // The lesson from the governed-documents build: something reachable from nowhere is not
     // built. This is the third time that has been the finding.
-    expect(codeOf(VIDA)).toMatch(/booking-link\?client_id=/)
+    // ⛓️ 29 Sep (R174 ② · 1c) — ~~`booking-link?client_id=`~~: the screen now calls the test-person route.
+    expect(codeOf(VIDA)).toMatch(/\/test-booking-link`, \{ method: 'POST' \}/)
   })
 
   it('and the panel is rendered, with the honest caveat', () => {
     expect(VIDA).toContain('Test a real booking')
-    expect(VIDA, 'says plainly that this is the real page').toMatch(/the same page a real prospect uses/)
+    // ⛓️ 29 Sep (R174 ② · 1c) — ~~"the same page a real prospect uses"~~: still the real booking page,
+    // and it now says plainly that nobody is invited and nothing counts.
+    expect(VIDA, 'says plainly nobody is invited').toMatch(/nobody is invited/)
   })
 })

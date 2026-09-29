@@ -123,7 +123,10 @@ describe('② one writer, many readers — the product depends on it', () => {
       executable(readFileSync(join(API, f), 'utf8')).includes("status: 'passed'"))
     // `demo-mbf.ts` fabricates a demo cast and is not a real write path; it is named rather
     // than filtered so a future reader can see it was considered.
-    expect(writers.filter(f => f !== 'demo-mbf.ts'),
+    // ⛓️ 29 Sep (R174 · 1c) — `test-booking.ts` is named for the same reason: it writes `passed`
+    // on the ONE throwaway `.invalid` test person the booking tool makes, precisely so every
+    // reader below leaves it out. It records no client decision; `passLead` is still the only one.
+    expect(writers.filter(f => f !== 'demo-mbf.ts' && f !== 'test-booking.ts'),
       `more than one path writes status='passed': ${writers.join(', ')}`).toEqual(['approve-lead.ts'])
   })
 

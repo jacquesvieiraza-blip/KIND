@@ -45,8 +45,10 @@ export interface VidaContext {
   operator: string
   /** Where the client is, as the console computes it. */
   lifecycle?: { step?: number | null; label?: string | null; mode?: string | null } | null
-  pipeline?: Record<string, number> | null
+  pipeline?: Record<string, number | string> | null
   blockers?: Record<string, number> | null
+  /** ⚑ 29 Sep (R174 · 5a) — what only a person can clear, in the sentences readiness writes. */
+  stuck?: string[] | null
   outreachEnabled?: boolean | null
   programme?: string | null
   /** The eleven canonical Brief facts, as the client gave them. */
@@ -153,10 +155,67 @@ ${ctx.pipeline ? Object.entries(ctx.pipeline).map(([k, v]) => `  · ${k}: ${v}`)
 
 ── WHAT IS BLOCKING ────────────────────────────────────────────────────────────────────
 ${ctx.blockers ? Object.entries(ctx.blockers).map(([k, v]) => `  · ${k}: ${v}`).join('\n') : '  (could not be read)'}
+${ctx.stuck === null || ctx.stuck === undefined ? '' : ctx.stuck.length ? ctx.stuck.map(s => `  · STUCK: ${s}`).join('\n') : '  · Nothing is stuck that needs a person.'}
 
 ── WHAT THEY HAVE SAID TO US LATELY ────────────────────────────────────────────────────
 ${recentBlock}
 `
+}
+
+/**
+ * ⚑ 29 Sep (R174 · 5a) — WHAT THE CONSOLE KNOWS ABOUT THE CLIENT, IN VIDA'S PROMPT.
+ *
+ * ⛓️ WAS: the route passed a client-wide pipeline (every enrolment ever, every reply ever) and
+ * never the stage, the programme or the blockers — the prompt had slots for all three and
+ * they were always empty, so "What's blocking?" could only be answered with counts. This turns
+ * the SAME lifecycle detail the console's stage panel renders into her facts, so she and the
+ * screen say one thing. Pure: the route reads the lifecycle; this only words it.
+ *
+ * ⚠️ AN UNREADABLE COUNT IS SAID TO BE UNREADABLE, never passed as 0.
+ */
+export type VidaLifecycleInput = {
+  verdict: { stageLabel: string; mode: string }
+  counts: {
+    sourced: number; qualified: number; enrolled: number; sends: number; replies: number
+    positive: number; meetings: number; repliesAwaitingDecision: number; unreadable?: string[]
+  }
+  programme: null | { status: string; meetingTarget: number | null }
+  humanBlockers: { detail: string }[]
+  stoppedDetail: string | null
+  senderSendable: boolean
+  senderDetail?: string | null
+  killSwitchOff: boolean
+}
+
+export function vidaFactsFromLifecycle(lc: VidaLifecycleInput | null): Pick<VidaContext,
+  'lifecycle' | 'pipeline' | 'blockers' | 'stuck' | 'programme' | 'outreachEnabled'> {
+  if (!lc) return { lifecycle: null, pipeline: null, blockers: null, stuck: null, programme: null, outreachEnabled: null }
+  const c = lc.counts
+  const unreadable = new Set(c.unreadable ?? [])
+  const v = (k: keyof VidaLifecycleInput['counts'], n: number): number | string =>
+    unreadable.has(k) ? 'could not be read' : n
+  const p = lc.programme
+  return {
+    lifecycle: { label: lc.verdict.stageLabel, mode: lc.verdict.mode },
+    programme: p
+      ? `${p.status.toLowerCase().replace(/_/g, ' ')}${p.meetingTarget ? ` · ${p.meetingTarget} meetings bought` : ''}` +
+        `${unreadable.has('meetings') ? ' · meetings booked could not be read' : ` · ${c.meetings} booked so far`}`
+      : 'none yet — they have not bought one',
+    // This programme's own numbers only; a client with no programme has none to show.
+    pipeline: p ? {
+      'sourced (this batch)': v('sourced', c.sourced), 'qualified (this batch)': v('qualified', c.qualified),
+      'in the sequence': v('enrolled', c.enrolled), 'emails sent': v('sends', c.sends),
+      'replies': v('replies', c.replies), 'positive replies': v('positive', c.positive),
+      'meetings booked': v('meetings', c.meetings),
+    } : null,
+    blockers: p ? { 'replies waiting on a decision': c.repliesAwaitingDecision } : null,
+    stuck: [
+      ...lc.humanBlockers.map(b => b.detail),
+      ...(lc.stoppedDetail ? [lc.stoppedDetail] : []),
+      ...(p && !lc.senderSendable ? [lc.senderDetail || 'The sending mailbox cannot send.'] : []),
+    ],
+    outreachEnabled: lc.killSwitchOff,
+  }
 }
 
 /**

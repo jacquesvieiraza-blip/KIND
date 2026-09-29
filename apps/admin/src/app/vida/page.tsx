@@ -2677,6 +2677,21 @@ export default function VidaConsolePage() {
         if (u.searchParams.get('mode') === 'chat') setIcpMode('chat')
         return true
       },
+      // ⚑ 29 Sep (R174 · 5a) — Vida's proposal cards land here: her targeting in the editor the
+      // operator saves (the same form `proposalToForm` fills), and a tab opened in place.
+      applyIcp: (fields: Record<string, unknown>) => {
+        setIcpProposal(fields as never); setTab('ICP')
+        setIcpEdit({
+          name: String(fields.name ?? ''), industries: joinArr(fields.industries), job_titles: joinArr(fields.job_titles),
+          seniority_levels: joinArr(fields.seniority_levels), company_sizes: joinArr(fields.company_sizes),
+          geographies: joinArr(fields.geographies), tech_stack: joinArr(fields.tech_stack), keywords: joinArr(fields.keywords),
+        })
+        setIcpMode('list')
+      },
+      openTab: (t: string) => {
+        if (!(COCKPIT_TABS as readonly string[]).includes(t)) return false
+        setTab(t as CockpitTab); return true
+      },
       buildIcp: () => { setIcpFresh(true); setIcpChat([]); setIcpProposal(null); setTab('ICP'); setIcpMode('chat') },
       // ⚑ 29 Sep (R174 · 4i) — the Campaign tab is view-only; the campaign is made at go-live.
       buildCampaign: () => { setTab('Campaign') },

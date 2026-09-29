@@ -30,7 +30,12 @@ import {
 // ⚑ 14 Sep (R121, Build 5) — `notice` IS THE CONSOLE TALKING, NOT VIDA. A failed turn used to
 // be pushed into the log as a Vida bubble ("Command failed"), so the operator read a transport
 // fault as something she had said. A notice renders in the margin, in the console's voice.
-type CmdMsg = { role: 'operator' | 'vida' | 'notice'; text: string; link?: string | null }
+// ⚑ 29 Sep (R174 · 5a) — `card`: a proposal of hers the console SHOWS, with the operator's button.
+type CmdMsg = { role: 'operator' | 'vida' | 'notice' | 'card'; text: string; link?: string | null; card?: VidaCard }
+type VidaCard =
+  | { kind: 'icp'; fields: Record<string, unknown> }
+  | { kind: 'ask'; message: string; state: 'draft' | 'sending' | 'sent' | 'discarded'; error?: string }
+  | { kind: 'open'; tab: string }
 // ⚑ 29 Sep (R174 · 5b) — ⛓️ WAS `{ send_gate, money_gate, unsent_sourced, replies_to_triage }`,
 // client-wide, two of them the retired per-lead gates. Now what is really stuck, from the page's
 // programme counts: emails waiting on us, replies waiting on a decision, and human blockers.
@@ -98,6 +103,10 @@ export type VidaSurfaceHandlers = {
   onSourced?: () => void | Promise<void>
   /** An "Open →" link into this same screen. Returns true when handled in place. */
   onOpen?: (url: URL) => boolean
+  /** ⚑ 29 Sep (R174 · 5a) — her proposed targeting, into the ICP editor the operator saves. */
+  applyIcp?: (fields: Record<string, unknown>) => void
+  /** ⚑ 29 Sep (R174 · 5a) — open one of this client's tabs in place. */
+  openTab?: (tab: string) => boolean
   /** The three launch shortcuts, offered only while the surface that answers them is mounted. */
   buildIcp?: () => void
   buildCampaign?: () => void
@@ -377,6 +386,21 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
       // it knows; a fifth would be a model inventing an action, and the right answer to that
       // is her sentence and no button.
       const proposal = json.proposal as { kind?: string; input?: Record<string, unknown> } | null
+      // ⚑ 29 Sep (R174 · 5a) — ⛓️ ONLY `propose_sourcing` WAS HANDLED; her other three proposals
+      // were thrown away, so "Show me their targeting" or "ask them for X" produced a sentence and
+      // nothing to press. Each now lands as a card with the operator's button — nothing runs by
+      // itself. Opening a tab is not consequential, so it opens straight away as well.
+      if (proposal?.kind === 'propose_icp_change' && proposal.input) {
+        setCmdLog(l => [...l, { role: 'card', text: '', card: { kind: 'icp', fields: proposal.input! } }])
+      }
+      if (proposal?.kind === 'draft_client_ask' && typeof proposal.input?.message === 'string' && proposal.input.message.trim()) {
+        setCmdLog(l => [...l, { role: 'card', text: '', card: { kind: 'ask', message: String(proposal.input!.message).trim(), state: 'draft' } }])
+      }
+      if (proposal?.kind === 'open_workspace' && typeof proposal.input?.tab === 'string') {
+        const tab = String(proposal.input.tab)
+        handlers.current.openTab?.(tab)
+        setCmdLog(l => [...l, { role: 'card', text: '', card: { kind: 'open', tab } }])
+      }
       if (proposal?.kind === 'propose_sourcing') {
         // ⚑ 7 Sep, UNCHANGED — a PROGRAMME's batch size is the programme's, so a count in the
         // sentence is read as intent only and discarded on that path.
@@ -387,6 +411,25 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
     } catch (e) {
       setCmdLog(l => [...l, { role: 'notice', text: e instanceof Error ? e.message : 'Command failed' }])
     } finally { setCmdBusy(false) }
+  }
+
+  // ⚑ 29 Sep (R174 · 5a) — her drafted message goes through the SAME door as the console's own
+  // Asks tab (`/operator/ask`, into the client's Milla thread), after the operator confirms it.
+  async function sendDraftedAsk(index: number, message: string) {
+    if (!selected) return
+    if (!window.confirm(`Send this to ${selectedName || 'the client'} in their Milla thread?\n\n${message}`)) return
+    const patch = (c: Partial<Extract<VidaCard, { kind: 'ask' }>>) =>
+      setCmdLog(l => l.map((m, i) => i === index && m.card?.kind === 'ask' ? { ...m, card: { ...m.card, ...c } } : m))
+    patch({ state: 'sending', error: undefined })
+    try {
+      const res = await fetch('/api/proxy/operator/ask', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, question: message }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || `Could not send (${res.status})`)
+      patch({ state: 'sent' })
+    } catch (e) { patch({ state: 'draft', error: e instanceof Error ? e.message : 'Could not send' }) }
   }
 
   const run = useCallback((t: string) => { void runCommand(t) }, [selected, cmdBusy]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -467,6 +510,13 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
           )}
           {cmdLog.map((m, i) => m.role === 'notice' ? (
             <div key={i} className="text-center text-[12px] text-[#8b7fa8] italic px-2">{m.text}</div>
+          ) : m.role === 'card' && m.card ? (
+            <ProposalCard key={i} card={m.card} who={selectedName}
+              openHref={`/vida?client=${encodeURIComponent(selected ?? '')}&tab=${encodeURIComponent(m.card.kind === 'open' ? m.card.tab : 'ICP')}`}
+              onApplyIcp={handlers.current.applyIcp && m.card.kind === 'icp' ? () => handlers.current.applyIcp?.((m.card as { fields: Record<string, unknown> }).fields) : null}
+              onOpenTab={handlers.current.openTab && m.card.kind === 'open' ? () => { handlers.current.openTab?.((m.card as { tab: string }).tab) } : null}
+              onSend={m.card.kind === 'ask' ? () => void sendDraftedAsk(i, (m.card as { message: string }).message) : null}
+              onDiscard={m.card.kind === 'ask' ? () => setCmdLog(l => l.map((x, j) => j === i && x.card?.kind === 'ask' ? { ...x, card: { ...x.card, state: 'discarded' } } : x)) : null} />
           ) : (
             <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
               <span className={`inline-block text-[13.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
@@ -605,5 +655,62 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
       {slot ? createPortal(panel, slot) : null}
       {children}
     </Ctx.Provider>
+  )
+}
+
+// ⚑ 29 Sep (R174 · 5a) — ONE OF VIDA'S PROPOSALS, WITH THE OPERATOR'S BUTTON. Nothing here acts
+// by itself: targeting opens in the editor the operator saves, a message sends only after they
+// confirm it, and a tab is only a place to look.
+const ICP_FIELD_LABEL: Record<string, string> = {
+  name: 'Name', industries: 'Industries', job_titles: 'Roles', seniority_levels: 'Seniority',
+  company_sizes: 'Company sizes', geographies: 'Markets', tech_stack: 'Tech', keywords: 'Keywords',
+}
+function ProposalCard({ card, who, openHref, onApplyIcp, onOpenTab, onSend, onDiscard }: {
+  card: VidaCard; who: string | null; openHref: string
+  onApplyIcp: (() => void) | null; onOpenTab: (() => void) | null
+  onSend: (() => void) | null; onDiscard: (() => void) | null
+}) {
+  const box = 'border border-[#e4dcf7] bg-white rounded-xl px-3.5 py-3 max-w-md'
+  const btn = 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-60'
+  if (card.kind === 'icp') {
+    const rows = Object.entries(ICP_FIELD_LABEL)
+      .map(([k, label]) => [label, Array.isArray(card.fields[k]) ? (card.fields[k] as unknown[]).join(', ') : String(card.fields[k] ?? '')] as const)
+      .filter(([, v]) => v.trim())
+    return (
+      <div className={box}>
+        <b className="text-[13.5px] block mb-1">Proposed targeting</b>
+        {rows.map(([label, v]) => <p key={label} className="text-[12.5px] text-[#5c5279]"><b className="text-[#1f1235]">{label}:</b> {v}</p>)}
+        <div className="flex gap-2 mt-2.5 items-center">
+          {onApplyIcp
+            ? <button onClick={onApplyIcp} className={btn}>Open in the ICP editor</button>
+            : <a href={openHref} className="text-[12.5px] font-bold text-[#7C3AED] hover:underline">Open the ICP tab &rarr;</a>}
+          <span className="text-[11.5px] text-[#9b8ec4]">You review and save it; nothing is changed yet.</span>
+        </div>
+      </div>
+    )
+  }
+  if (card.kind === 'ask') {
+    return (
+      <div className={box}>
+        <b className="text-[13.5px] block mb-1">Message to {who || 'the client'}</b>
+        <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{card.message}</p>
+        {card.state === 'sent' && <p className="text-[12px] font-semibold text-emerald-700 mt-2">Sent — it is in their Milla thread.</p>}
+        {card.state === 'discarded' && <p className="text-[12px] text-[#9b8ec4] mt-2">Not sent.</p>}
+        {card.error && <p className="text-[12px] font-semibold text-red-600 mt-2">{card.error}</p>}
+        {(card.state === 'draft' || card.state === 'sending') && (
+          <div className="flex gap-2 mt-2.5">
+            <button onClick={onSend ?? undefined} disabled={card.state === 'sending'} className={btn}>{card.state === 'sending' ? 'Sending…' : 'Send to client'}</button>
+            <button onClick={onDiscard ?? undefined} className="text-[12.5px] font-bold text-[#9b8ec4]">Don&rsquo;t send</button>
+          </div>
+        )}
+      </div>
+    )
+  }
+  return (
+    <div className={box}>
+      {onOpenTab
+        ? <button onClick={onOpenTab} className="text-[12.5px] font-bold text-[#7C3AED] hover:underline">Open {card.tab} &rarr;</button>
+        : <a href={openHref} className="text-[12.5px] font-bold text-[#7C3AED] hover:underline">Open {card.tab} &rarr;</a>}
+    </div>
   )
 }

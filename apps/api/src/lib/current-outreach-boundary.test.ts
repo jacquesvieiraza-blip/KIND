@@ -188,7 +188,7 @@ describe('① a programme client between programmes, carrying a full legacy book
 
   it('🛑 PIPELINE IS EMPTY — `revealed_at` is a retired payment, not current work', async () => {
     const { payload } = await pipeline()
-    expect(payload.data.counts).toEqual({ approved: 0, contacted: 0, replied: 0, booked: 0 })
+    expect(payload.data.counts).toEqual({ approved: 0, ready: 0, contacted: 0, replied: 0, booked: 0 }) // ⛓️ 29 Sep (R174 · 3b) + `ready`
     expect(payload.data.stages.contacted).toEqual([])
   })
 
@@ -280,7 +280,7 @@ describe('③ a calibration workspace', () => {
 
   it('🛑 REPLIES · PIPELINE · MEETINGS ARE ALL EMPTY — calibration is not outreach', async () => {
     expect((await repliesPage()).payload.data).toEqual([])
-    expect((await pipeline()).payload.data.counts).toEqual({ approved: 0, contacted: 0, replied: 0, booked: 0 })
+    expect((await pipeline()).payload.data.counts).toEqual({ approved: 0, ready: 0, contacted: 0, replied: 0, booked: 0 }) // ⛓️ 29 Sep (R174 · 3b) + `ready`
     expect((await meetingsPage()).payload.data).toEqual([])
   })
 
@@ -583,7 +583,11 @@ describe('⑪ no fourth customer-facing programme stage', () => {
   const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/pipeline/page.tsx'), 'utf8')
 
   it('🛑 THE PROGRAMME BOARD RENDERS EXACTLY CONTACTED → REPLIED → BOOKED', () => {
-    expect(page).toContain('const STAGES: Stage[] = programme ? OUTREACH_STAGES : [APPROVED_STAGE, ...OUTREACH_STAGES]')
+    // ⛓️ 29 Sep (R174 · 3b, founder: *"lock section 3"*) — ~~`programme ? OUTREACH_STAGES : …`~~.
+    // The PREPARED people join as "Ready to contact", drawn only while someone is in it. The locked
+    // three below are unchanged, and "Approved" is still never on the programme board.
+    expect(page).toContain('const STAGES: Stage[] = programme ? (ready > 0 ? [READY_STAGE, ...OUTREACH_STAGES] : OUTREACH_STAGES) : [APPROVED_STAGE, ...OUTREACH_STAGES]')
+    expect(page).toContain("{ key: 'ready', label: 'Ready to contact',")
     const from = page.indexOf('const OUTREACH_STAGES')
     const outreach = page.slice(from, page.indexOf('\n]', from))
     for (const k of ['contacted', 'replied', 'booked']) expect(outreach).toContain(`key: '${k}'`)

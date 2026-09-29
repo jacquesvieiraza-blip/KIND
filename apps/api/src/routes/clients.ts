@@ -11,6 +11,21 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export const clientRouter = Router()
 clientRouter.use(requireAuth)
 
+// ⚑ 29 Sep (R174 ② · 1e) — A SECRET NEVER LEAVES THE SERVER. `GET /clients/me` returned
+// `select('*')`, and Milla calls it on every page — so each client's CRM API key and their
+// Google Calendar access + refresh tokens were sent to the browser on every navigation, and the
+// PATCH echoed the whole row back too. Any column that names a key, token, secret or password is
+// dropped from what a browser receives; the client is only told whether a CRM key is saved.
+const SECRET_COLUMN = /(api_key|_token|secret|password)$/i
+// The client's own public share link is theirs to hand out — not a secret from them.
+const NOT_SECRET = new Set(['share_token'])
+export function withoutSecrets(row: Record<string, unknown> | null): (Record<string, unknown> & { crm_api_key_set: boolean }) | null {
+  if (!row) return null
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(row)) if (NOT_SECRET.has(k) || !SECRET_COLUMN.test(k)) out[k] = v
+  return { ...out, crm_api_key_set: typeof row.crm_api_key === 'string' && (row.crm_api_key as string).length > 0 }
+}
+
 // Lightweight profile check — used by onboard page to skip if already onboarded
 clientRouter.get('/me/profile', async (req: AuthRequest, res) => {
   try {
@@ -23,7 +38,7 @@ clientRouter.get('/me', async (req: AuthRequest, res) => {
   try {
     const { data: client, error } = await db.from('clients').select('*, subscriptions(*), usage_metrics(*), auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size').eq('user_id', req.userId!).single()
     if (error || !client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    res.json({ success: true, data: client })
+    res.json({ success: true, data: withoutSecrets(client as Record<string, unknown>) })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch client' }) }
 })
 
@@ -179,13 +194,18 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       campaign_paused_emails_enabled: z.boolean().optional(),
       weekly_digest_enabled:          z.boolean().optional(),
     }).parse(req.body)
+    // ⚑ 29 Sep (R174 ② · 1e) — the browser never holds the saved key, so an EMPTY key field
+    // means "keep the one on file", never "erase it". Switching the CRM off clears it.
+    const patch: Record<string, unknown> = { ...body }
+    if (body.crm_type === 'none') patch.crm_api_key = null
+    else if (!body.crm_api_key) delete patch.crm_api_key
     // Upsert: creates the row if none exists (partner accounts have no client row by default)
     const { data, error } = await db.from('clients')
-      .upsert({ ...body, user_id: req.userId! }, { onConflict: 'user_id' })
+      .upsert({ ...patch, user_id: req.userId! }, { onConflict: 'user_id' })
       .select()
       .single()
     if (error) throw error
-    res.json({ success: true, data })
+    res.json({ success: true, data: withoutSecrets(data as Record<string, unknown>) })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Update failed' })
@@ -196,9 +216,16 @@ clientRouter.post('/me/crm/test', async (req: AuthRequest, res) => {
   try {
     const { crm_type, crm_api_key } = z.object({
       crm_type:    z.enum(['hubspot', 'pipedrive']),
-      crm_api_key: z.string().min(1),
+      crm_api_key: z.string().optional(),
     }).parse(req.body)
-    const result = await testCrmConnection(crm_type, crm_api_key)
+    // ⚑ 29 Sep (R174 ② · 1e) — no key typed = test the one on file (the browser never has it).
+    let key = crm_api_key?.trim() || ''
+    if (!key) {
+      const { data: c } = await db.from('clients').select('crm_api_key').eq('user_id', req.userId!).maybeSingle()
+      key = String((c as { crm_api_key?: string | null } | null)?.crm_api_key ?? '')
+    }
+    if (!key) { res.status(400).json({ success: false, error: 'Paste a key to test — none is saved yet.' }); return }
+    const result = await testCrmConnection(crm_type, key)
     res.json({ success: result.success, error: result.error })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

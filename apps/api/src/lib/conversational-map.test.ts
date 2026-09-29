@@ -105,8 +105,8 @@ const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: K
   { file: 'apps/api/src/routes/leads.ts',    line: 2583, surface: 'lead research',                          klass: 'OTHER' },
   { file: 'apps/api/src/routes/founder.ts',  line: 81,   surface: 'founder support inbound',                klass: 'OTHER' },
   { file: 'apps/api/src/routes/founder.ts',  line: 116,  surface: 'founder support inbound',                klass: 'OTHER' },
-  { file: 'apps/api/src/routes/founder.ts',  line: 209,  surface: 'founder CS follow-up',                   klass: 'OTHER' },
-  { file: 'apps/api/src/routes/founder.ts',  line: 258,  surface: 'founder AE demo request',                klass: 'OTHER' },
+  // ⛓️ 29 Sep (R174 · 1b) — ~~founder.ts:209 'founder CS follow-up'~~ and ~~founder.ts:258 'founder AE
+  // demo request'~~ are REMOVED with their routes (one-click email that bypassed the operator send).
   { file: 'apps/api/src/routes/founder.ts',  line: 398,  surface: 'founder Nora',                           klass: 'OTHER' },
   { file: 'apps/api/src/routes/icps.ts',     line: 5837, surface: 'ICP refine (batch)',                     klass: 'OTHER' },
   { file: 'apps/api/src/routes/figsy.ts',    line: 2229, surface: 'FIGSY reply follow-up',                  klass: 'OTHER' },

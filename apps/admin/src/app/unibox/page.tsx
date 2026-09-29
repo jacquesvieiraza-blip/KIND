@@ -211,7 +211,7 @@ export default async function UniboxPage({
                       {client?.company_name && <span>Client: {client.company_name}</span>}
                     </div>
                     {reply.classification !== 'sent_reply' && (
-                      <ReplyForm replyId={reply.id} fromEmail={reply.from_email} />
+                      <ReplyForm replyId={reply.id} fromEmail={reply.from_email} clientId={reply.client_id} />
                     )}
                   </div>
                 </details>

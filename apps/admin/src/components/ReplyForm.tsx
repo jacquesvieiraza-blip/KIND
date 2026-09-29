@@ -3,13 +3,18 @@
 import { useState } from 'react'
 import { Send, Loader2, CheckCircle } from 'lucide-react'
 
-export function ReplyForm({ replyId, fromEmail }: {
+// ⛓️ 29 Sep (R174 ② · 1b) — THE SAFE SEND. The old admin-local reply route emailed the prospect
+// straight through Resend from hello@get-kind.com with no kill-switch, opt-out, demo block or
+// audit. The operator route runs `sendManualReply`: the client's own sender, the kill-switch,
+// the opt-out list, the demo block, and an audit row.
+export function ReplyForm({ replyId, fromEmail, clientId }: {
   replyId: string
   fromEmail: string
+  clientId: string
 }) {
   const [body, setBody]       = useState('')
   const [sending, setSending] = useState(false)
-  const [sent, setSent]       = useState(false)
+  const [sent, setSent]       = useState<null | 'sent' | 'demo'>(null)
   const [error, setError]     = useState<string | null>(null)
 
   async function handleSend() {
@@ -17,14 +22,14 @@ export function ReplyForm({ replyId, fromEmail }: {
     setSending(true)
     setError(null)
     try {
-      const res = await fetch('/api/reply', {
+      const res = await fetch(`/api/proxy/operator/replies/${encodeURIComponent(replyId)}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replyId, body }),
+        body: JSON.stringify({ client_id: clientId, body }),
       })
       const data = await res.json()
       if (data.success) {
-        setSent(true)
+        setSent(data.data?.demo ? 'demo' : 'sent')
         setBody('')
       } else {
         setError(data.error ?? 'Failed to send')
@@ -38,7 +43,7 @@ export function ReplyForm({ replyId, fromEmail }: {
   if (sent) {
     return (
       <div className="flex items-center gap-2 mt-3 text-green-600 text-xs font-medium">
-        <CheckCircle className="w-4 h-4" /> Reply sent to {fromEmail}
+        <CheckCircle className="w-4 h-4" /> {sent === 'demo' ? 'Demo client — nothing was sent.' : `Reply sent to ${fromEmail}`}
       </div>
     )
   }

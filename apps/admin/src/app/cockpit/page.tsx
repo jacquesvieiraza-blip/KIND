@@ -14,6 +14,8 @@ import WelcomeEmailsPanel from '@/components/vida/WelcomeEmailsPanel'
 // ⚑ 14 Sep (S1-RT-005) — clients whose own words could not be translated into provider
 // values. Their Proof and all sourcing are REFUSED server-side until this rail is used.
 import IcpReviewPanel from '@/components/vida/IcpReviewPanel'
+// ⚑ 29 Sep (R174 · 5f) — money and at-risk from programme truth.
+import CockpitProgramme from '@/components/vida/CockpitProgramme'
 
 // ── Action Queue: at-risk clients are REAL (from /admin/churn-risk); the trigger
 // rows (signup→assign · payment→provision · day-29 switch · pool-low) are wired
@@ -253,14 +255,14 @@ function StatusBadge({ status }: { status: string | null }) {
 function PulseTiles({ stats, atRiskCount, health }: { stats: NonNullable<Awaited<ReturnType<typeof getAdminStats>>>; atRiskCount: number; health: 'Healthy' | 'Degraded' | 'Unreachable' }) {
   const healthCls = health === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : health === 'Degraded' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
   const tiles = [
-    { label: 'MRR (USD)', value: `$${stats.mrrUsd.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, cls: 'bg-green-50 text-green-600',
-      // #282 single-home: MRR's detailed home is Finance — the Cockpit only glances + links.
-      note: <span className="text-gray-400">{stats.activeSubscriptions} active{stats.subsMissingAmount > 0 && <span className="text-amber-600"> · {stats.subsMissingAmount} missing amount</span>} · <Link href="/revenue" className="text-[#7C3AED] hover:underline">Finance →</Link></span> },
+    // ⛓️ 29 Sep (R174 · 5f) — ~~'MRR (USD)'~~: the money headline is programme cash, in the
+    // CockpitProgramme row directly below (the one programme-money source).
     { label: 'Cash & runway', value: 'Connect Wise', icon: <Wallet className="w-5 h-5" />, cls: 'bg-gray-50 text-gray-400',
       note: <span className="text-amber-600">needs Jacques — link Wise</span> },
     { label: 'Clients', value: stats.totalClients, icon: <Users className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
       // #282 single-home: at-risk / churn's detailed home is Clients — glance + link only.
-      note: <span className="text-gray-400">{stats.trialClients} trial · {atRiskCount > 0 ? <Link href="/clients" className="text-red-600 hover:underline">{atRiskCount} at-risk →</Link> : 'none at-risk'}</span> },
+      // ⛓️ 29 Sep (R174 · 5f) — ~~trial count and churn at-risk~~: at-risk is the programme signal below.
+      note: <Link href="/vida/clients-admin" className="text-[#7C3AED] hover:underline">Client admin →</Link> },
     { label: 'This week', value: stats.signupsThisWeek, icon: <ArrowUpRight className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
       note: <span className="text-gray-400">new signups (7d)</span> },
     { label: 'System health', value: health, icon: <HeartPulse className="w-5 h-5" />, cls: healthCls,
@@ -388,7 +390,8 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
 }
 
 export default async function AdminPage() {
-  const [stats, atRisk, health, pastDue] = await Promise.all([getAdminStats(), getChurnRisk(), getSystemHealth(), getPastDue()])
+  // ⛓️ 29 Sep (R174 · 5f) — ~~getChurnRisk()~~ is no longer read here; at-risk is programme-based.
+  const [stats, health, pastDue] = await Promise.all([getAdminStats(), getSystemHealth(), getPastDue()])
 
   if (!stats) {
     return (
@@ -421,10 +424,15 @@ export default async function AdminPage() {
       </div>
 
       {/* PULSE — 6 tiles */}
-      <PulseTiles stats={stats} atRiskCount={atRisk.length} health={health} />
+      <PulseTiles stats={stats} atRiskCount={0} health={health} />
 
-      {/* NEEDS YOU NOW — the Action Queue */}
-      <ActionQueue atRisk={atRisk} pastDue={pastDue} />
+      {/* ⚑ 29 Sep (R174 · 5f) — PROGRAMME MONEY AND PROGRAMMES AT RISK */}
+      <CockpitProgramme />
+
+      {/* NEEDS YOU NOW — the Action Queue. ⛓️ 29 Sep (R174 · 5f) — ~~churn at-risk rows~~: the
+          churn engine scores subscriptions and credits and never fires for a programme client;
+          at-risk is the programme signal above. */}
+      <ActionQueue atRisk={[]} pastDue={pastDue} />
 
       {/* ── 🛑 13 Sep (B3/B4) — THE TWO FAIL-CLOSED STATES THAT ONLY A PERSON RESOLVES ────
           Both of these are states the system deliberately REFUSES to resolve on its own, and
@@ -443,8 +451,12 @@ export default async function AdminPage() {
       <WelcomeEmailsPanel />
       <IcpReviewPanel />
 
-      {/* UNIT ECONOMICS */}
-      <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />
+      {/* UNIT ECONOMICS — ⚑ 29 Sep (R174 · 5f) — the OLD SUBSCRIPTION MODEL, labelled as history
+          (as Revenue's was in 4e). Programme money is the row near the top. */}
+      <details className="bg-white/60 rounded-2xl border border-gray-200/60 px-5 py-3">
+        <summary className="text-sm font-semibold text-gray-500 cursor-pointer select-none">Old subscription model — history</summary>
+        <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />
+      </details>
 
       <p className="text-xs text-gray-400 pt-1">
         Full client list → <a href="/clients" className="text-[#7C3AED] hover:underline">Clients</a> · money → <a href="/revenue" className="text-[#7C3AED] hover:underline">Finance</a>.

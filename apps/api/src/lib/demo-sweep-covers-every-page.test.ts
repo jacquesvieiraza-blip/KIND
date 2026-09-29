@@ -53,3 +53,18 @@ describe('the sweep covers every page', () => {
     expect(SWEEP).toContain('redTextOn(page)')
   })
 })
+
+// ⚑ 29 Sep (R174 · fix) — THE SWEEP SEES THE REAL PAGES. The harness's `auth.uid()` read only the
+// old one-setting form, so a signed-in client was nobody through the REST gateway and every Milla
+// page past Brief bounced to the Brief — which the sweep then "passed". Both halves are held here.
+describe('the sweep sees the page it asked for', () => {
+  it('the harness reads a login the way Supabase does (the JSON claims too)', () => {
+    const boot = readFileSync(join(root, 'scripts/realdb/bootstrap.sql'), 'utf8')
+    const uid = boot.slice(boot.indexOf('create or replace function auth.uid()'), boot.indexOf('create or replace function auth.role()'))
+    expect(uid).toContain("current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'")
+  })
+  it('a Milla page that lands on the Brief past the Brief fails the sweep', () => {
+    expect(SWEEP).toContain("if (stage === 'Brief' ? landed !== '/milla/welcome' : landed !== want) bad.push(")
+    expect(SWEEP).toContain("const MILLA_MOVED = { '/milla/campaign': '/milla/programme'")
+  })
+})

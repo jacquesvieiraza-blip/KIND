@@ -82,22 +82,38 @@ grant select on table auth.users to service_role;
 -- `null` when unset is the correct shim: that is exactly what Supabase returns for an
 -- unauthenticated request, so a policy that depends on `auth.uid()` denies by default
 -- here too, instead of accidentally passing.
+-- ⛓️ 29 Sep (R174 · fix): each helper ALSO reads `request.jwt.claims` (the JSON form), as
+-- Supabase's own definitions do. PostgREST 10+ sets only the JSON form, so with the old one-GUC
+-- shim a signed-in user's `auth.uid()` was NULL through the REST gateway — every RLS read came
+-- back empty, the Milla layout's "no account" check fired for a client who has one, and the
+-- demo sweep saw the Brief page where it asked for Billing. `set local request.jwt.claim.sub`
+-- still works exactly as before for the SQL-level tests.
 create or replace function auth.uid() returns uuid
   language sql stable
 as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid
 $$;
 
 create or replace function auth.role() returns text
   language sql stable
 as $$
-  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon')
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role',
+    'anon'
+  )
 $$;
 
 create or replace function auth.email() returns text
   language sql stable
 as $$
-  select nullif(current_setting('request.jwt.claim.email', true), '')
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email'
+  )
 $$;
 
 create or replace function auth.jwt() returns jsonb

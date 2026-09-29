@@ -34,6 +34,7 @@
 // with the wallet they topped up.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { mvp1MillaStageFromLegacy } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a)
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -124,7 +125,7 @@ export default function MillaBillingPage() {
               )}
               <div className="text-[12.5px] text-[#6b5f8c] mt-1">
                 {p.outcome.target
-                  ? `${meetingsPhrase(p.outcome.target)} · ${p.stage}`
+                  ? `${meetingsPhrase(p.outcome.target)} · ${mvp1MillaStageFromLegacy(p.stage)}`
                   : p.stage}
               </div>
               {p.paused && p.pausedCopy && (

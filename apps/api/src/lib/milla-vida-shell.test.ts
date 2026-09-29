@@ -154,7 +154,8 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
 
   it('🛑 AND THE CONVERSATION IT LOST IS THE ONE THAT MOVED — not a rewrite', () => {
     const code = strip(MILLA_CHAT)
-    expect(code).toContain('Ask Milla, request leads, or give feedback…')
+    // ⛓️ 29 Sep (R174 ⑤ · 6a) — ~~'Ask Milla, request leads, or give feedback…'~~: clients do not request leads.
+    expect(code).toContain('Ask Milla anything about your programme…')
     expect(code).toContain("api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`")
     // ⛓️ 24 Sep (R145 — one chat from sign-up to Complete; the redesign matched exactly): WAS `'conversational &amp; strategic'`; the redesign's header names her role.
     expect(code).toContain('Your pipeline strategist')

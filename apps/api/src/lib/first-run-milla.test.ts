@@ -949,7 +949,8 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // ⛓️ 24 Sep (R145 step 2) · D2 — WAS "Yes, this represents us — show me who you'd find". The founder chose the
     // redesign's one Brief button: "Show me who you'd find". Still no price.
     expect(welcomeCode).toContain('"Show me who you\'d find"')
-    expect(welcomeSrc).toContain('free, masked, and nobody is contacted')
+    // ⛓️ 29 Sep (R174 ⑤ · 6a) — ~~'free, masked, and nobody is contacted'~~: "masked leads" is retired client wording.
+    expect(welcomeSrc).toContain('free, and nobody is contacted')
     expect(welcomeCode).not.toMatch(/go live for/i)
   })
 
@@ -1471,7 +1472,8 @@ describe('no number is shown that no preview produced', () => {
 
   it('the panel describes the CURRENT stage, which is free', () => {
     expect(welcomeSrc).toContain('Free proof')
-    expect(welcomeSrc).toContain('Up to 20 masked leads')
+    // ⛓️ 29 Sep (R174 ⑤ · 6a) — ~~'Up to 20 masked leads'~~, retired wording; the promise is the same.
+    expect(welcomeSrc).toContain('Up to 20 people who match this')
     // ⛓️ 24 Sep (R145 step 2) — WAS 'See who K.I.N.D would find before you decide to go live.' on the plan card that
     // is gone; the line under the one button carries the same promise and says the choice is theirs.
     expect(welcomeSrc).toContain('You decide what happens next.')

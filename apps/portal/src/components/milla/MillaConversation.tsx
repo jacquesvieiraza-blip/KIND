@@ -1,5 +1,6 @@
 'use client'
 
+import { mvp1MillaStageFromLegacy } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a)
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
@@ -922,7 +923,7 @@ export function MillaConversationProvider(
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla, request leads, or give feedback…'} />
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla anything about your programme…'} />
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────
@@ -952,7 +953,7 @@ export function MillaConversationProvider(
               <span className={HANDLE_GRAB} />
               <span className="flex items-center gap-2">
                 <b className="text-[13.5px]">Programme</b>
-                {prog && <span className="ml-auto text-[11px] font-extrabold text-[#4d22b6] bg-[#f3edff] rounded-full px-2 py-0.5">{prog.stage}</span>}
+                {prog && <span className="ml-auto text-[11px] font-extrabold text-[#4d22b6] bg-[#f3edff] rounded-full px-2 py-0.5">{mvp1MillaStageFromLegacy(prog.stage)}</span>}
               </span>
               <span className="block text-[11.5px] text-[#766f7e] mt-0.5">Open for the lifecycle, outcome and progress.</span>
             </button>

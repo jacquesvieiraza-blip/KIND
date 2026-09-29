@@ -17,6 +17,8 @@
 // is where money lives; this page answers what the work produced.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { useMillaConversation } from '@/components/milla/MillaConversation'
+import { mvp1MillaStageFromLegacy } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a) — the six words
 import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
@@ -41,6 +43,7 @@ async function token(): Promise<string | undefined> {
 }
 
 export default function MillaReportsPage() {
+  const ask = useMillaConversation().ask
   const [p, setP] = useState<CustomerProgramme | null>(null)
   const [o, setO] = useState<Outcomes | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -88,10 +91,10 @@ export default function MillaReportsPage() {
             <Section q="What were we trying to achieve?">
               <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
                 <div className="text-[15px] font-extrabold text-[#1f1235]">
-                  {p.outcome.target ? `${p.outcome.target} booked meetings` : 'No target is set yet'}
+                  {p.outcome.target ? `${p.outcome.target} qualified meetings` : 'No target is set yet'}
                 </div>
                 <div className="text-[12.5px] text-[#6b5f8c] mt-0.5">
-                  {p.stage}{p.paused ? ' · paused' : ''}{p.reviewOpen ? ' · a review decision is waiting' : ''}
+                  {mvp1MillaStageFromLegacy(p.stage)}{p.paused ? ' · paused' : ''}{p.reviewOpen ? ' · a decision is waiting' : ''}
                 </div>
                 {p.paused && p.pausedCopy && (
                   <p className="text-[12.5px] text-[#b45309] mt-2">{p.pausedCopy}</p>
@@ -143,12 +146,12 @@ export default function MillaReportsPage() {
                 founder's own per-stage wording, already approved and already used on the
                 workspace, so this invents nothing. */}
             <Section q="What happens next?">
-              <a
-                href={`/milla?ask=${encodeURIComponent(p.quickAction)}`}
+              {/* ⚑ 29 Sep (R174 · 6a) — ⛓️ WAS a link to `/milla?ask=…`, which nothing reads. It asks Milla. */}
+              <button type="button" onClick={() => ask(p.quickAction)}
                 className="inline-block border border-[#ece5fb] rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors"
               >
                 {p.quickAction}
-              </a>
+              </button>
             </Section>
           </>
         )}

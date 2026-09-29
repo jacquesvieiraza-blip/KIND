@@ -1,5 +1,6 @@
 'use client'
 
+import { replyWord } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a)
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 import Link from 'next/link'
@@ -405,7 +406,7 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
               {(s?.recent_replies ?? []).map((r, i) => (
                 <Link key={i} href="/milla/replies" className="mv-nav-item">
                   <Star className="w-3.5 h-3.5 text-[#d84ca5] shrink-0" />
-                  <span className="min-w-0 truncate"><b>{r.name}</b> <span className="text-[#a29aa9]">· {REPLY_TONE[r.classification] ?? r.classification}</span></span>
+                  <span className="min-w-0 truncate"><b>{r.name}</b> <span className="text-[#a29aa9]">· {replyWord(r.classification)}</span></span>
                 </Link>
               ))}
             </div>

@@ -299,8 +299,10 @@ describe('D2 — and the backend stops paying, which is the half that costs mone
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 describe('D3 — Lead Delivery keeps its section and loses its levers', () => {
+  // ⛓️ 29 Sep (R174 ⑤ · 6a) — the section stays; its heading is "Your prospects" (the old heading
+  // named a delivery lever the client no longer has).
   it('the branded section is STILL THERE — this is not a removal', () => {
-    expect(SETTINGS).toMatch(/Lead Delivery/)
+    expect(SETTINGS).toMatch(/Your prospects/)
   })
 
   it('and it still renders cards, not a sentence', () => {
@@ -539,11 +541,13 @@ describe('brand — and NOTHING was globally replaced', () => {
       .not.toMatch(/Jack from M&(amp;)?V/)
   })
 
-  it('the FIGSY engine vocabulary is untouched', () => {
-    for (const s of ['FIGSY — Outreach Control', 'FIGSY Writing Style', 'supercharge FIGSY', 'FIGSY sends']) {
-      expect(SETTINGS, `FIGSY reference lost: ${s}`).toContain(s)
+  // ⛓️ 29 Sep (R174 ⑤) — ~~the FIGSY engine vocabulary is untouched~~. The founder's newer lock:
+  // "FIGSY never on a client screen" (R174 ⑤, 29 Sep) supersedes keeping it customer-visible.
+  // The section headings keep their jobs in plain words; `retired-words-guard` keeps FIGSY out.
+  it('the Settings sections keep their jobs, in plain words', () => {
+    for (const s of ['Outreach control', 'Your writing style', 'Connect the tools your outreach works with.']) {
+      expect(SETTINGS, `section lost: ${s}`).toContain(s)
     }
-    expect((SETTINGS.match(/FIGSY/g) ?? []).length).toBeGreaterThanOrEqual(6)
   })
 
   it('no OTHER Milla surface was touched by this copy pass', () => {
@@ -565,18 +569,13 @@ describe('brand — and NOTHING was globally replaced', () => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 describe('D4 — FIGSY stays where it genuinely means the engine', () => {
-  it('the engine is still named on the surfaces that describe engine work', () => {
-    // Founder: "KEEP FIGSY customer-visible where it genuinely refers to the engine doing
-    // research, sourcing, scoring, outreach." Milla = experience, FIGSY = engine behind it.
-    expect(SETTINGS).toMatch(/FIGSY — Outreach Control/)
-    expect(SETTINGS).toMatch(/FIGSY Writing Style/)
-    expect(SETTINGS).toMatch(/supercharge FIGSY/)
-    expect(SETTINGS).toMatch(/FIGSY sends/)
-  })
-
-  it('and there was no global FIGSY→Milla rename', () => {
-    const mentions = SETTINGS.match(/FIGSY/g) ?? []
-    expect(mentions.length).toBeGreaterThanOrEqual(6)
+  // ⛓️ 29 Sep (R174 ⑤) — ~~"KEEP FIGSY customer-visible where it genuinely refers to the engine"~~
+  // is superseded by the newer lock "FIGSY never on a client screen". Nothing here is renamed
+  // to Milla either — the sentences say "we", which is how the product speaks to a client.
+  it('the engine is not named on a client screen, and was not renamed to Milla', () => {
+    const code = SETTINGS.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(code).not.toMatch(/\bFIGSY\b/)
+    expect(code).not.toContain('supercharge Milla')
   })
 })
 

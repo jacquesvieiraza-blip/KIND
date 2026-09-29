@@ -129,7 +129,7 @@ import { useMillaConversation } from '@/components/milla/MillaConversation'
  */
 export function nextActionFor(p: CustomerProgramme): string {
   if (p.paused && p.pausedCopy) return p.pausedCopy
-  if (p.reviewOpen) return 'Review — waiting on a decision'
+  if (p.reviewOpen) return 'Results — waiting on a decision'
   switch (p.stage) {
     // 🛑 ⚑ 10 Sep (C03) — ONLY ASK FOR WHAT WE DO NOT HAVE. This asked every Proof client
     // to state an outcome, including the ones who had just stated one during onboarding —
@@ -156,7 +156,7 @@ export function nextActionFor(p: CustomerProgramme): string {
                              runAt: p.sending?.runAt ?? null,
                              delivered: p.sending?.emailsDelivered ?? null,
                            }) ? PROGRAMME_RUNNING_COPY : PROGRAMME_ARMED_COPY
-    case 'Review':         return 'Review — waiting on a decision'
+    case 'Review':         return 'Results — waiting on a decision'
     // ── 🛑 ⚑ 10 Sep (I5) — CANCELLED IS NOT COMPLETE ──────────────────────────────────
     //
     // ⛓️ `millaStage` MAPS BOTH COMPLETED AND CANCELLED TO `Completion` — right as a position
@@ -217,7 +217,7 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
         <div className="border border-[#eee7f7] rounded-2xl px-4 py-3.5 mb-3">
           <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1">Outcome</div>
           {p.outcome.target
-            ? <div className="text-[15px] font-extrabold">{p.outcome.target} booked meetings</div>
+            ? <div className="text-[15px] font-extrabold">{p.outcome.target} qualified meetings</div>
             : <div className="text-[13.5px] text-[#9b8ec4]">Not set yet.</div>}
         </div>
 

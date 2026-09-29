@@ -70,7 +70,7 @@ export default function MillaMeetingsPage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Meetings</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">Every meeting FIGSY booked from your approved leads.</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">Every meeting booked for your programme.</p>
         {/* ⚑ 25 Sep (R141 · P5b) — your programme's meetings and the 3-business-day challenge. The
             same card as the Programme screen (one implementation); hidden until a meeting exists. */}
         <MeetingChallenges />
@@ -78,7 +78,7 @@ export default function MillaMeetingsPage() {
         {error && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!meetings && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading your meetings…</p>}
         {meetings && meetings.length === 0 && (
-          <div className="mt-4 text-sm text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No meetings booked yet. Approve leads and FIGSY works them to a booking. 📅</div>
+          <div className="mt-4 text-sm text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No meetings booked yet. Once your programme is running, meetings appear here as prospects book. 📅</div>
         )}
 
         {upcoming.length > 0 && <>

@@ -21,11 +21,12 @@
 // correctly told the founder she needs a target outcome to measure against.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { useMillaConversation } from '@/components/milla/MillaConversation'
 import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { programmeMoney } from '@/lib/programme-money'
 import { ValueCard, ProgressBar, Panel, StageRail, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
@@ -43,6 +44,7 @@ async function token(): Promise<string | undefined> {
 }
 
 export default function MillaRoiPage() {
+  const ask = useMillaConversation().ask
   const [p, setP] = useState<CustomerProgramme | null>(null)
   const [o, setO] = useState<Outcomes | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -112,7 +114,8 @@ export default function MillaRoiPage() {
 
             <div className="mt-4">
               <Panel title="Programme" chip={p.paused ? 'Paused' : undefined}>
-                <StageRail stages={MILLA_STAGES} current={p.stage} />
+                {/* ⚑ 29 Sep (R174 · 6a) — the canonical six (R127), not the old seven. */}
+                <StageRail stages={MVP1_MILLA_STAGES} current={mvp1MillaStageFromLegacy(p.stage)} />
                 {p.outcome.target && p.progress.outcomesAchieved !== null && (
                   <div className="mt-4">
                     <ProgressBar
@@ -166,12 +169,12 @@ export default function MillaRoiPage() {
                         </div>
                       ))}
                     </div>
-                    <a
-                      href={`/milla?ask=${encodeURIComponent('How is my ROI looking?')}`}
+                    {/* ⚑ 29 Sep (R174 · 6a) — ⛓️ WAS a link to `/milla?ask=…`, which nothing reads. It asks Milla. */}
+                    <button type="button" onClick={() => ask('How is my ROI looking?')}
                       className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl transition-colors"
                     >
                       How is my ROI looking?
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>

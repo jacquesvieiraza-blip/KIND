@@ -202,7 +202,7 @@ function LeadDeliverySection({ p, failed }: { p: CustomerProgramme | null; faile
     <div className="border-t border-gray-100 pt-6">
       <div className="flex items-center gap-2 mb-0.5">
         <Truck className="w-4 h-4 text-[#9B8EC4]" />
-        <h2 className="text-lg font-semibold text-gray-900">Lead Delivery</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Your prospects</h2>
       </div>
       {/* ⛓️ 31 Aug — FOUNDER-APPROVED COPY, exact. It replaces "Control how many leads you
           receive and how fast they arrive", which described a control the customer no longer
@@ -280,10 +280,10 @@ function FigsyOutreachSettings() {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Eye className="w-4 h-4 text-[#9B8EC4]" />
-          <h2 className="font-semibold">FIGSY — Outreach Control</h2>
+          <h2 className="font-semibold">Outreach control</h2>
         </div>
       </div>
-      <p className="text-sm text-[#9B8EC4] mb-4">Control how FIGSY sends outbound emails on your behalf.</p>
+      <p className="text-sm text-[#9B8EC4] mb-4">Control how we send emails on your behalf.</p>
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
@@ -305,7 +305,7 @@ function FigsyOutreachSettings() {
               ⚑ 31 Aug (4A-2D) — RE-VERIFIED AND KEPT. The founder confirmed this is a genuine
               outreach approval preference, NOT the retired paid per-lead approval model. */}
           <p className="text-xs text-[#9B8EC4]">
-            Available — every email can be held for your approval before it goes out, instead of FIGSY sending autonomously. It is set per campaign: ask us to switch yours to co-pilot and nothing sends without your yes.
+            Available — every email can be held for your approval before it goes out, instead of going out automatically. It is set per campaign: ask us to switch yours to co-pilot and nothing sends without your yes.
           </p>
         </div>
         <button
@@ -849,7 +849,7 @@ export default function MillaSettingsPage() {
       {/* Integrations heading */}
       <div className="border-t border-gray-100 pt-6">
         <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
-        <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
+        <p className="text-[#7B6FA0] text-sm mt-0.5">Connect the tools your outreach works with.</p>
       </div>
 
       {/* Lead-Capture Form — R12 */}
@@ -860,20 +860,20 @@ export default function MillaSettingsPage() {
         <div className="flex items-center gap-2 mb-1">
           <Pencil className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold flex items-center gap-2">
-            FIGSY Writing Style
+            Your writing style
             <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
           </h2>
         </div>
         {/* #326 — the pasted style is saved on-device but not yet sent to the
             server-side sequence generator, so FIGSY doesn't apply it yet. Say so. */}
         <p className="text-sm text-[#9B8EC4] mb-4">
-          Paste 2–3 of your best-performing cold emails below. Applying your custom tone to FIGSY's generated sequences is coming soon — for now this is saved on your device only.
+          Paste 2–3 of your best-performing cold emails below. Applying your custom tone to your email sequences is coming soon — for now this is saved on your device only.
         </p>
 
         {/* Sign emails as — the name every cold email signs off with */}
         <div className="mb-5 p-4 bg-[#faf9ff] border border-purple-100/80 rounded-lg">
           <label className="block text-sm font-medium text-gray-900 mb-1">Sign emails as</label>
-          <p className="text-xs text-[#9B8EC4] mb-2.5">The name every prospect sees at the bottom of your emails. Leave blank and FIGSY picks one.</p>
+          <p className="text-xs text-[#9B8EC4] mb-2.5">The name every prospect sees at the bottom of your emails. Leave blank and we choose one.</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -893,7 +893,7 @@ export default function MillaSettingsPage() {
               Save
             </button>
           </div>
-          {signerSaved && <p className="text-green-600 text-xs font-medium mt-2">✓ Saved — every email now signs off as “{signerName.trim() || 'FIGSY'}”</p>}
+          {signerSaved && <p className="text-green-600 text-xs font-medium mt-2">✓ Saved — every email now signs off as “{signerName.trim() || 'the name we choose'}”</p>}
           {signerError && <p className="text-red-600 text-xs mt-2">{signerError}</p>}
         </div>
 
@@ -905,7 +905,7 @@ export default function MillaSettingsPage() {
             placeholder={`Paste your best emails here. Example:\n\nSubject: quick question\n\nHi Sarah,\n\nI noticed Acme recently expanded into fintech — we work with companies at exactly that inflection point...\n\n---\n\nPaste another email below`}
             className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none font-mono text-xs leading-relaxed"
           />
-          {writingStyleSaved && <p className="text-green-600 text-xs font-medium">✓ Saved on this device — applying it to FIGSY sequences is coming soon</p>}
+          {writingStyleSaved && <p className="text-green-600 text-xs font-medium">✓ Saved on this device — applying it to your sequences is coming soon</p>}
           {writingStyleError && <p className="text-red-600 text-xs">{writingStyleError}</p>}
           <button
             type="button"
@@ -1008,7 +1008,7 @@ export default function MillaSettingsPage() {
                 <span className="text-sm text-gray-700">
                   Never contact people already in my {crm.crm_type === 'hubspot' ? 'HubSpot' : 'Pipedrive'}
                   <span className="block text-xs text-[#9B8EC4] mt-0.5">
-                    Before FIGSY reaches out, we check your CRM. Existing contacts (or companies already in your account) are skipped — so we never cold-email your customers.
+                    Before we reach out, we check your CRM. Existing contacts (or companies already in your account) are skipped — so we never cold-email your customers.
                   </span>
                 </span>
               </label>
@@ -1043,7 +1043,7 @@ export default function MillaSettingsPage() {
           {/* #628 — this said only "generate a calendar booking link", which undersold what is
               actually built (gcal.ts): real free/busy, a public booking page, events.insert
               into their own calendar, a Meet link and invites both ways. */}
-          Connect your calendar and prospects book straight into it — they see only your free slots, the meeting lands in your calendar with a Google Meet link, and you both get the invite. FIGSY shares the link when a reply comes in interested.
+          Connect your calendar and prospects book straight into it — they see only your free slots, the meeting lands in your calendar with a Google Meet link, and you both get the invite. We share the link when a reply comes in interested.
         </p>
         {calendarStatus?.connected ? (
           <div className="text-sm text-gray-600">
@@ -1066,7 +1066,7 @@ export default function MillaSettingsPage() {
         {/* Booking link — for clients who don't use Google Calendar (Calendly, etc.) */}
         <div className="mt-5 pt-5 border-t border-gray-100">
           <label className="block text-sm font-medium text-gray-900 mb-1">Or paste a booking link</label>
-          <p className="text-xs text-[#9B8EC4] mb-2.5">Using Calendly, Cal.com, or another scheduler? Paste it here and FIGSY will share this link instead.</p>
+          <p className="text-xs text-[#9B8EC4] mb-2.5">Using Calendly, Cal.com, or another scheduler? Paste it here and we will share this link instead.</p>
           <div className="flex gap-2">
             <input
               type="url"

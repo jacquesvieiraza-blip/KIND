@@ -27,7 +27,7 @@ import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { outreachHasRun } from '@/lib/programme-report'
@@ -109,7 +109,8 @@ export default function MillaAnalyticsPage() {
 
             <div className="mt-4">
               <Panel title="Programme" chip={p.paused ? 'Paused' : undefined}>
-                <StageRail stages={MILLA_STAGES} current={p.stage} />
+                {/* ⚑ 29 Sep (R174 · 6a) — the canonical six (R127), not the old seven. */}
+                <StageRail stages={MVP1_MILLA_STAGES} current={mvp1MillaStageFromLegacy(p.stage)} />
               </Panel>
             </div>
 

@@ -120,9 +120,17 @@ describe('J3-C1 · the stage bar is the canonical six, on every screen that draw
     expect(layout, 'the route group no longer wraps its screens in the shell')
       // ⛓️ 29 Sep (R174 · 7b) — the shell also carries whether the visitor has an account yet.
       .toMatch(/<MillaShell( noAccount=\{noAccount\})?>\{children\}<\/MillaShell>/)
+    // ⛓️ 29 Sep (R174 · 6a) — the report pages' stage picture (`StageRail`, which
+    // milla-reporting-truth requires) now draws the CANONICAL six rather than the old seven. That
+    // is the one vocabulary, not a second one — so a screen may use `MVP1_MILLA_STAGES` ONLY as
+    // `<StageRail stages={MVP1_MILLA_STAGES} …>`; any other use is still its own bar.
     const drawers = ALL
       .filter(p => !p.endsWith('MillaShell.tsx'))
-      .filter(p => /MVP1_MILLA_STAGES/.test(codeOf(p)))
+      .filter(p => {
+        const c = codeOf(p).replace(/<StageRail stages=\{MVP1_MILLA_STAGES\} current=\{mvp1MillaStageFromLegacy\(p\.stage\)\} \/>/g, '')
+          .replace(/import \{[^}]*\} from '@kind\/shared'/g, '')
+        return /MVP1_MILLA_STAGES/.test(c)
+      })
       .map(rel)
     expect(drawers, 'a Milla screen draws its own stage bar').toEqual([])
   })

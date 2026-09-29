@@ -72,7 +72,7 @@ export default function ProgrammePayment({
       <div className="text-[15px] font-extrabold mb-1">{programmeMoney(halfCents)}</div>
       <p className="text-[13.5px] text-[#6b5f8c] mb-1">
         {isFirst
-          ? `Half of ${programmeMoney(totalCents)}${meetingTarget ? ` for ${meetingTarget} booked meetings` : ''}.`
+          ? `Half of ${programmeMoney(totalCents)}${meetingTarget ? ` for ${meetingTarget} qualified meetings` : ''}.`
           : `The remaining half of ${programmeMoney(totalCents)}.`}
       </p>
       {/* 🛑 WHAT THE MONEY BUYS, STATED AS FACT. The first half does NOT buy outreach, and a

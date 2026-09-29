@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { announceProgrammeChanged } from '@/lib/use-live-refresh'
 
 export const PAUSE_CONFIRM =
   'Pause sending now?\n\nNothing more will be sent and nobody new will be found. Everything so far is kept, and our team is told at once. Tell Milla when you would like to start again.'
@@ -20,6 +21,7 @@ export async function pauseMyProgramme(): Promise<{ ok: boolean; message: string
   try {
     const { data: { session } } = await createClient().auth.getSession()
     await api.post('/my/programme/pause', {}, session?.access_token)
+    announceProgrammeChanged()
     return { ok: true, message: PAUSED_NOTE }
   } catch (e) {
     const m = e instanceof Error && e.message && e.message.length < 300 ? e.message : ''

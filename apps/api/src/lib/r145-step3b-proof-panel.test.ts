@@ -95,7 +95,9 @@ describe('#25 #26 · Milla opens Proof in the one chat, and the chips act like t
 
   it('🛑 the redesign\'s chips, and the two that act run the panel\'s own handlers', () => {
     expect(CHAT).toContain("const CHIP_ANOTHER = 'Show me another twenty'")
-    expect(CHAT).toContain("const CHIP_WIDEN = 'What if I add Germany?'")
+    // ⛓️ 29 Sep (R174 · 7a) — ~~`const CHIP_WIDEN = …Germany…`~~: a fixed country offered to every
+    // client is gone (founder locked Section 7). The two chips that ACT are unchanged.
+    expect(CHAT).not.toMatch(/Germany/)
     expect(CHAT).toContain("const CHIP_ACCEPT = 'These are right'")
     expect(CHAT).toContain('if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }')
     expect(CHAT).toContain('if (c === CHIP_ACCEPT && deskActions?.accept) { deskActions.accept(); return }')

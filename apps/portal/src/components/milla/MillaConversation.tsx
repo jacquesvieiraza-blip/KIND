@@ -7,6 +7,7 @@ import { loadError, millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
 // J3-C5 — the one rule for what an unrestored thread is allowed to claim.
 import { restoreView } from '@/lib/conversation-restore'
 import { PAUSE_CONFIRM, pauseMyProgramme } from '@/lib/pause-programme'
+import { useLiveRefresh } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -125,7 +126,6 @@ const PROOF_CHIPS = [
 // ⚑ 24 Sep (R145 step 3b · #26) — the redesign's Proof chips, word for word. The first and last
 // ACT (the panel's own gated handlers); the middle one is a question for Milla.
 const CHIP_ANOTHER = 'Show me another twenty'
-const CHIP_WIDEN = 'What if I add Germany?'
 const CHIP_ACCEPT = 'These are right'
 /** ⚑ 29 Sep (R174 · 2d) — the founder-named wording, kept; the press is now a real pause. */
 const PAUSE_CHIP = 'Please pause my programme'
@@ -488,6 +488,9 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `n-${Date.now()}`, role: 'assistant', content: t }])
   }, [])
   const refreshStage = useCallback(() => setStageNonce(n => n + 1), [])
+  // ⚑ 29 Sep (R174 · 7a) — the chips and the status pill re-read on the shared tick, and at once
+  // after a press, instead of standing on the stage the page opened at.
+  useLiveRefresh(refreshStage)
   const pauseFromChip = useCallback(async () => {
     if (!window.confirm(PAUSE_CONFIRM)) return
     const r = await pauseMyProgramme()
@@ -746,7 +749,8 @@ export function MillaConversationProvider(
     // ⚑ 24 Sep (R145 step 3b · #26) — the redesign's Proof chips. The two that ACT run the panel's
     // own handlers (see `DeskActions`), and are offered only while the server offers the action.
     ...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.anotherSample ? [CHIP_ANOTHER] : []),
-    ...(prog.stage === 'Proof' && proofSetOnDesk ? [CHIP_WIDEN] : []),
+    // ⛓️ 29 Sep (R174 · 7a) — ~~`CHIP_WIDEN`~~ — a chip naming one fixed country, offered
+    // to every client whatever their market. The Proof drop-downs are where a client widens.
     ...(prog.stage === 'Proof' && proofSetOnDesk && deskActions?.accept ? [CHIP_ACCEPT] : []),
     ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
     // ⚑ 24 Sep (R145 step 4 · #31) — the redesign's Programme chips: a question about the 250, and

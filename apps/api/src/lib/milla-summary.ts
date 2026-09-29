@@ -84,6 +84,14 @@ export interface MillaSummaryData {
   leads_approved_total: number | null
   replies_total: number | null
   meetings_total: number | null
+  /**
+   * ⚑ 29 Sep (R174 · 7a) — THE RAIL'S BADGES: this programme's totals. ⛓️ The Meetings badge read
+   * `meetings_booked` (this calendar month only) and the Inbox badge the rail's four latest replies,
+   * so it never passed 4. A programme counts its own; Proof counts nothing (R91); an older account
+   * keeps its all-time totals. `null` = could not be counted, and no badge is drawn.
+   */
+  badge_meetings: number | null
+  badge_replies: number | null
   /** ⚑ 18 Sep (J24-C1) — `null` when the approval count it is derived from is unreadable. */
   spend_usd: number | null
   active_campaign: string | null
@@ -303,6 +311,31 @@ async function recentRepliesFor(clientId: string) {
     .select('from_name, from_email, classification, received_at')
     .eq('client_id', clientId).in('lead_id', ids)
     .order('received_at', { ascending: false }).limit(4)
+}
+
+/** ⚑ 29 Sep (R174 · 7a) — the badges, from the same scope the rest of the summary uses. */
+async function badgeCounts(
+  clientId: string,
+  scope: Awaited<ReturnType<typeof import('./current-workspace')['currentWorkspaceScope']>>,
+  allTime: { replies: number | null; meetings: number | null },
+): Promise<{ badge_meetings: number | null; badge_replies: number | null }> {
+  if (scope.kind === 'unreadable') return { badge_meetings: null, badge_replies: null }
+  if (scope.kind === 'proof') return { badge_meetings: 0, badge_replies: 0 }
+  if (scope.kind === 'legacy') return { badge_meetings: allTime.meetings, badge_replies: allTime.replies }
+  const [m, leads] = await Promise.all([
+    meetingCounts({ clientId, programmeId: scope.programmeId }),
+    db.from('leads').select('id').eq('client_id', clientId).eq('programme_id', scope.programmeId),
+  ])
+  let replies: number | null = null
+  if (!leads.error) {
+    const ids = ((leads.data ?? []) as { id: string }[]).map(l => l.id)
+    if (ids.length === 0) replies = 0
+    else {
+      const r = await db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).in('lead_id', ids)
+      replies = r.error ? null : r.count ?? 0
+    }
+  }
+  return { badge_meetings: m?.booked ?? null, badge_replies: replies }
 }
 
 export async function buildMillaSummaryData(clientId: string): Promise<MillaSummaryData> {
@@ -600,6 +633,10 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     leads_approved_total: approvedTotal.error ? null : approvedTotal.count ?? 0,
     replies_total:        repliesTotal.error ? null : repliesTotal.count ?? 0,
     meetings_total:       meetingsTotal?.booked ?? null,
+    ...(await badgeCounts(clientId, summaryScope, {
+      replies: repliesTotal.error ? null : repliesTotal.count ?? 0,
+      meetings: meetingsTotal?.booked ?? null,
+    })),
     // ⛓️ 18 Sep (J24-C1) — `null` WHEN THE APPROVAL COUNT IS UNREADABLE. This is a MONEY
     // SENTENCE the client reads on their own Reports page, and it was derived from
     // `approvedTotal.count ?? 0` — so an unreadable count produced a confident "$299.00

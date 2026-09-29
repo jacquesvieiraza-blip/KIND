@@ -20,6 +20,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e
  */
 export const AI_TURN_TIMEOUT_MS = 45_000
 
+/**
+ * ⚑ 29 Sep (R174 · 8a) — A PRESS THAT MOVES THE PROGRAMME ON waits up to a minute. Accept · Pay
+ * and Approve do real work before they answer (for the demo, the whole stage is rebuilt), and the
+ * server finishes it whether or not the browser is still waiting. At 15s the founder pressed
+ * Approve on the live demo, was told "Request timed out", and a refresh showed it had worked.
+ */
+export const PRESS_TIMEOUT_MS = 60_000
+
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string, timeoutMs = 15000): Promise<T> {
   // ⚑ 26 Aug — the timeout is now per-call. 15s is right for CRUD and was WRONG for the one
   // endpoint that waits on a model turn (`/icps/builder/chat`): the server allows Anthropic

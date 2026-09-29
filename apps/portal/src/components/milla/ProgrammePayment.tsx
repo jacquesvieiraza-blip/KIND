@@ -40,13 +40,13 @@ export default function ProgrammePayment({
     setBusy(true); setError(null)
     try {
       const { createClient } = await import('@/lib/supabase/client')
-      const { api } = await import('@/lib/api')
+      const { api, PRESS_TIMEOUT_MS } = await import('@/lib/api')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       const r = await api.post<{ data: { url: string } }>(
         `/my/programme/checkout/${stage}`,
         { successUrl: `${window.location.origin}/milla/programme`, cancelUrl: window.location.href },
-        session?.access_token,
+        session?.access_token, PRESS_TIMEOUT_MS,
       )
       if (!r.data?.url) throw new Error('We could not start the payment. Nothing was charged.')
       window.location.href = r.data.url

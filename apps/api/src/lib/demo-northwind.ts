@@ -81,15 +81,27 @@ export async function wipeNorthwind(userId: string, opts: { keepDraft?: boolean 
   }
   if (client) {
     const id = client.id
-    await clearDemoMeetings(id)
-    await must('Vida messages', db.from('vida_messages').delete().eq('client_id', id))
-    await must('Vida sessions', db.from('vida_sessions').delete().eq('client_id', id))
-    await must('opt-out links', db.from('opt_out_blocklist').update({ blocked_by_client_id: null }).eq('blocked_by_client_id', id))
-    await must('reply links', db.from('unattributed_replies').update({ resolved_client_id: null }).eq('resolved_client_id', id))
-    await must('replies', db.from('figsy_replies').delete().eq('client_id', id))
+    // ⚑ 29 Sep (R174 · 8a) — THE PRESS MUST NOT TIME OUT, so the rebuild does side by side what
+    // has no order between it. Foreign keys decide what stays in line: meetings point at replies
+    // (`evidence_reply_id`), so they go first; replies and sent emails both point at enrolments
+    // but not at each other, so they go together, and enrolments after both.
     const { data: camps } = await db.from('figsy_campaigns').select('id').eq('client_id', id)
     const campIds = ((camps ?? []) as { id: string }[]).map(c => c.id)
-    if (campIds.length) await must('sent emails', db.from('figsy_sent_emails').delete().in('campaign_id', campIds))
+    await Promise.all([
+      (async () => {
+        await clearDemoMeetings(id)
+        await Promise.all([
+          must('replies', db.from('figsy_replies').delete().eq('client_id', id)),
+          campIds.length ? must('sent emails', db.from('figsy_sent_emails').delete().in('campaign_id', campIds)) : Promise.resolve(),
+        ])
+      })(),
+      (async () => {
+        await must('Vida messages', db.from('vida_messages').delete().eq('client_id', id))
+        await must('Vida sessions', db.from('vida_sessions').delete().eq('client_id', id))
+      })(),
+      must('opt-out links', db.from('opt_out_blocklist').update({ blocked_by_client_id: null }).eq('blocked_by_client_id', id)),
+      must('reply links', db.from('unattributed_replies').update({ resolved_client_id: null }).eq('resolved_client_id', id)),
+    ])
     await must('enrolments', db.from('figsy_enrollments').delete().eq('client_id', id))
     await must('sequences', db.from('figsy_sequences').delete().eq('client_id', id))
     await must('campaigns', db.from('figsy_campaigns').delete().eq('client_id', id))
@@ -130,30 +142,44 @@ export async function setNorthwindStage(
       counts[table] = Array.isArray(value) ? value.length : 1
     }
     await put('clients', rows.client)
-    await put('milla_sessions', rows.session)
-    await put('milla_messages', rows.messages)
-    if (rows.draft) {
-      if (opts.keepDraft) {
-        const { error } = await db.from('onboarding_brief_drafts')
-          .update({ promoted_client_id: ids.clientId, promoted_at: new Date().toISOString() })
-          .eq('user_id', userId)
-        if (error) throw new Error(`Could not mark the Brief as promoted: ${error.message}`)
-      } else {
-        await put('onboarding_brief_drafts', rows.draft)
-      }
-    }
-    // The programme's sending window is the product's own default (never typed here).
+    // ⚑ 29 Sep (R174 · 8a) — side by side where nothing points at anything else: the Milla chat,
+    // the Brief draft and the offer hang off the account only; the programme chain stays in order.
     const { DEFAULT_PROGRAMME_SEND_SCHEDULE } = await import('./programme-sequence')
-    await put('programmes', rows.programme ? { ...rows.programme, send_schedule: DEFAULT_PROGRAMME_SEND_SCHEDULE } : null)
-    await put('icps', rows.icp)
-    await put('proof_pass_claims', rows.proofClaim)
-    await put('figsy_campaigns', rows.campaign)
-    await put('figsy_sequences', rows.sequence)
-    await put('leads', rows.leads)
-    await put('figsy_enrollments', rows.enrollments)
-    await put('figsy_knowledge', rows.offer)
-    await put('figsy_sent_emails', rows.sentEmails)
-    await put('figsy_replies', rows.replies)
+    await Promise.all([
+      (async () => {
+        await put('milla_sessions', rows.session)
+        await put('milla_messages', rows.messages)
+      })(),
+      (async () => {
+        if (!rows.draft) return
+        if (opts.keepDraft) {
+          const { error } = await db.from('onboarding_brief_drafts')
+            .update({ promoted_client_id: ids.clientId, promoted_at: new Date().toISOString() })
+            .eq('user_id', userId)
+          if (error) throw new Error(`Could not mark the Brief as promoted: ${error.message}`)
+        } else {
+          await put('onboarding_brief_drafts', rows.draft)
+        }
+      })(),
+      put('figsy_knowledge', rows.offer),
+      (async () => {
+        // The programme's sending window is the product's own default (never typed here).
+        await put('programmes', rows.programme ? { ...rows.programme, send_schedule: DEFAULT_PROGRAMME_SEND_SCHEDULE } : null)
+        await put('icps', rows.icp)
+        await Promise.all([
+          put('proof_pass_claims', rows.proofClaim),
+          (async () => {
+            await put('figsy_campaigns', rows.campaign)
+            await put('figsy_sequences', rows.sequence)
+            await put('leads', rows.leads)
+            await put('figsy_enrollments', rows.enrollments)
+            // Sent emails and replies point at enrolments, not at each other.
+            await Promise.all([put('figsy_sent_emails', rows.sentEmails), put('figsy_replies', rows.replies)])
+          })(),
+        ])
+      })(),
+    ])
+    // Meetings point at replies (`evidence_reply_id`), so they come after them.
     if (rows.meetings.length) { await writeDemoMeetings(ids.clientId, rows.meetings); counts.meetings = rows.meetings.length }
     // ── THE FROZEN PACKAGE the client approves (people, messages, cadence) — built by the product's
     // own `buildPreparationSnapshot` from the rows just written, and hashed by it, so the Approval

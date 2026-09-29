@@ -44,6 +44,17 @@ export function replyInboxState(r: { classification: string | null; qualified_at
 }
 
 /**
+ * ⚑ 29 Sep (R174 · fix) — DOES THIS REPLY NEED A PERSON TO DECIDE? The ONE rule behind "replies
+ * to decide", Needs you and the reply Vida names — and it is exactly the Inbox's "needs you"
+ * label, so the count and the labels can never disagree. ⛓️ The counts skipped qualified and
+ * needs-nobody replies but not BOOKED ones, so a client with three booked meetings read "4
+ * replies to decide" beside an Inbox that labelled one, and Vida named a booked prospect as waiting.
+ */
+export function replyNeedsDecision(r: { classification: string | null; qualified_at?: string | null; meeting_booked_at?: string | null }): boolean {
+  return replyInboxState({ classification: r.classification, qualified_at: r.qualified_at ?? null, meeting_booked_at: r.meeting_booked_at ?? null }).tone === 'needs'
+}
+
+/**
  * ⚑ 29 Sep (R174 · 6a) — A REPLY'S KIND, IN PLAIN WORDS. Client screens printed the internal
  * labels (`hot`, `out_of_office`); this is the one place they become words a client reads.
  */

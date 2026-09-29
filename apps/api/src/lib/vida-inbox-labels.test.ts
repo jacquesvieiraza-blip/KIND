@@ -26,7 +26,9 @@ describe('each reply is labelled by what it is', () => {
     expect(REPLY_NEEDS_NOBODY).toContain('not_interested')
     expect(replyNeedsNobody('interested')).toBe(false)
     const facts = read('apps/api/src/lib/programme-lifecycle-facts.ts')
-    expect(facts).toContain('const AUTO_HANDLED_REPLY = new Set<string>(REPLY_NEEDS_NOBODY)')
+    // ~~expect(facts).toContain('const AUTO_HANDLED_REPLY = new Set<string>(REPLY_NEEDS_NOBODY)')~~
+    // ⛓️ 29 Sep (R174 · fix): the counts ask the one shared rule, which reads the same list.
+    expect(facts).toContain('out.repliesAwaitingDecision = replies.filter(r => replyNeedsDecision(r)).length')
     const page = read('apps/admin/src/app/vida/page.tsx')
     expect(page).toContain('const st = replyInboxState(r)')
     expect(page).not.toContain("{r.meeting_booked_at ? 'booked' : r.qualified_at ? 'qualified' : 'needs you'}")

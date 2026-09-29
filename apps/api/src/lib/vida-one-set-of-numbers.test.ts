@@ -63,7 +63,9 @@ describe('the numbers come from the programme', () => {
     expect(PAGE).toContain("const n = t === 'Inbox' ? (programmeCount(lc, 'repliesAwaitingDecision') ?? 0)")
     expect(PAGE).toContain(": t === 'People' ? (programmeCount(lc, 'sourced') ?? 0)")
     expect(PAGE).toContain(": t === 'Bookings' ? (programmeCount(lc, 'meetings') ?? 0)")
-    expect(PAGE).toContain('blockers: blockers ? blockerStrip(blockers, lc) : null,')
+    // ~~expect(PAGE).toContain('blockers: blockers ? blockerStrip(blockers, lc) : null,')~~
+    // ⛓️ 29 Sep (R174 · fix): the same helper, told whether this is the demo (vida-four-fixes.test.ts).
+    expect(PAGE).toContain('blockers: blockers ? blockerStrip(blockers, lc, selectedIsDemo()) : null,')
     expect(PAGE).not.toContain("['Qualified', cols?.qualified.count ?? 0, null]")
     expect(PAGE).not.toContain("['Sending', cols?.sending.count ?? 0, 'Campaign']")
   })

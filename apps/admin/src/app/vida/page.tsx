@@ -8,7 +8,7 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 import {
   stageChips, nextActionCard, workablePoolCard, provenanceCard, operatorRailAt,
 } from '@/lib/vida-stage-copy'
-import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, SHORTFALL_CREDIT_EXPIRY_DAYS, replyInboxState, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, SHORTFALL_CREDIT_EXPIRY_DAYS, replyInboxState, replyWord, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { VIDA_SYNC_MS, vidaFacts, sameVidaFacts, vidaChangeLines } from '@/lib/vida-programme-sync'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
@@ -354,8 +354,11 @@ function pipelineChips(lc: ProgrammeCounts): [string, number | null | undefined,
  * programme client passes through. Now: emails waiting on us, replies waiting on a decision
  * (the programme's own count, the Inbox badge's number), and each blocker only a person can clear.
  */
-function blockerStrip(b: Blockers, lc: ({ counts: object & { unreadable?: string[] }; programme: unknown; humanBlockers?: { detail: string }[]; senderSendable?: boolean; senderDetail?: string | null }) | null): StripBlockers {
-  const stuck = [
+function blockerStrip(b: Blockers, lc: ({ counts: object & { unreadable?: string[] }; programme: unknown; humanBlockers?: { detail: string }[]; senderSendable?: boolean; senderDetail?: string | null }) | null, isDemo = false): StripBlockers {
+  // ⚑ 29 Sep (R174 · fix) — THE DEMO SHOWS NO INTERNAL BLOCKERS. It can never source or send, so
+  // "no controlled batch" and "the mailbox cannot send" are true of it by design and only confuse
+  // a presenter. A real client's blockers are untouched.
+  const stuck = isDemo ? [] : [
     ...((lc?.programme && lc.humanBlockers) ? lc.humanBlockers.map(h => h.detail) : []),
     ...(lc?.programme && lc.senderSendable === false ? [lc.senderDetail || 'The mailbox cannot send.'] : []),
   ]
@@ -2669,7 +2672,7 @@ export default function VidaConsolePage() {
   useEffect(() => {
     conversation.publish({
       // ⚑ 29 Sep (R174 · 5b) — the strip's figures, from the same programme counts as the chips.
-      blockers: blockers ? blockerStrip(blockers, lc) : null,
+      blockers: blockers ? blockerStrip(blockers, lc, selectedIsDemo()) : null,
       outreachEnabled: status ? status.outreach_enabled : null,
       boardError,
       // ⚑ 7 Sep (HOUSE-008) — the programme truth this panel already fetched, turned into the
@@ -2677,7 +2680,8 @@ export default function VidaConsolePage() {
       // second read could disagree with the panel about the batch size on the very button
       // that spends the money. `null` for a client with no programme, which leaves the legacy
       // shortcut exactly as it was.
-      programmeSourcing: programmeSourcingAction(prog),
+      // ⚑ 29 Sep (R174 · fix) — no "Source N leads" shortcut on the demo: it never sources.
+      programmeSourcing: selectedIsDemo() ? null : programmeSourcingAction(prog),
       // ⚑ 9 Sep — WHAT VIDA IS SAYING, AND HER POSTURE WHILE SHE SAYS IT. Published rather
       // than fetched by the conversation for the same reason `programmeSourcing` is: this
       // console already holds the server's verdict, and a second read could disagree with the
@@ -3777,7 +3781,8 @@ export default function VidaConsolePage() {
                       className="w-full text-left flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2 hover:border-[#d9c9f7]">
                       <div className="min-w-0">
                         <b className="text-[13.5px] block truncate">{r.from_name || r.from_email || 'Unknown'}</b>
-                        <span className="text-[12px] text-[#9b8ec4]">{r.classification || 'unclassified'} · {fmtDate(r.received_at)}</span>
+                        {/* ⚑ 29 Sep (R174 · fix) — plain words, not the classifier's codes (not_interested, hot). */}
+                        <span className="text-[12px] text-[#9b8ec4]">{r.classification ? replyWord(r.classification) : 'not yet read'} · {fmtDate(r.received_at)}</span>
                       </div>
                       {/* ⚑ 29 Sep (R174 · 5h) — LABELLED BY WHAT THE REPLY IS. ⛓️ WAS "needs you" for
                           everything not booked or qualified, out-of-offices and "not interested"

@@ -91,11 +91,11 @@ export function classify(c: SeedCandidate, houseEmails: Set<string>): Classifica
     return { ...base, disposition: 'protected_house', reason: 'the house account (the founder\'s own login) — already excluded from every revenue figure' }
   }
 
-  // ④ The demo. KEPT ON PURPOSE. MBF is how the product is demonstrated to a buyer; wiping
-  // it at go-live would delete the sales tool on the day it is most needed. `demo-mbf.ts`
-  // rebuilds it to a fixed cast anyway, so there is nothing here worth destroying.
+  // ④ The demo. KEPT ON PURPOSE. The demo is how the product is shown to a buyer; wiping it at
+  // go-live would delete the sales tool on the day it is most needed. ⛓️ 29 Sep (R174 · 4a) — ~~MBF,
+  // rebuilt by `demo-mbf.ts`~~ is removed; the one demo is Northwind (R164), rebuilt from Vida → Demo.
   if (c.is_demo === true) {
-    return { ...base, disposition: 'protected_demo', reason: 'the demo account — kept deliberately; it is how the product is sold, and demo-mbf.ts rebuilds it on demand' }
+    return { ...base, disposition: 'protected_demo', reason: 'the demo account — kept deliberately; it is how the product is sold, and Vida → Demo rebuilds it on demand' }
   }
 
   return {

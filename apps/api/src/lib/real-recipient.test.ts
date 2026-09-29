@@ -5,7 +5,9 @@ vi.mock('resend', () => ({ Resend: class { emails = { send: async () => ({ data:
 vi.mock('@kind/db', () => ({ db: { from: () => ({}) } }))
 
 import { isRealRecipient } from './email'
-import { MBF_MARKER } from './demo-mbf-data'
+// ⛓️ 29 Sep (R174 · 4a) — ~~`MBF_MARKER` from './demo-mbf-data'~~: the MBF demo is removed. The
+// `.invalid` domain the product stamps today is the booking test person's (1c).
+import { TEST_BOOKING_DOMAIN } from './test-booking'
 
 // #544 — THE BACKSTOP DID NOT COVER THE ONE DOMAIN THE DEMO ACTUALLY USES.
 //
@@ -31,11 +33,11 @@ describe('the gap: .invalid is what the demo actually uses', () => {
     }
   })
 
-  it('the domain it refuses is the one demo-mbf-data actually stamps on every cast member', () => {
-    // Pinned against the real constant, so renaming the demo domain cannot silently reopen
+  it('the domain it refuses is the one the booking test person actually carries', () => {
+    // Pinned against the real constant, so renaming the test domain cannot silently reopen
     // the hole — the test would fail rather than keep passing on a stale literal.
-    expect(MBF_MARKER).toContain('.invalid')
-    expect(isRealRecipient(`someone@${MBF_MARKER}`)).toBe(false)
+    expect(TEST_BOOKING_DOMAIN).toContain('.invalid')
+    expect(isRealRecipient(`booking-test@${TEST_BOOKING_DOMAIN}`)).toBe(false)
   })
 
   it('is case-insensitive — an address is not made real by capitals', () => {

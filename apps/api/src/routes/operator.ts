@@ -6734,14 +6734,6 @@ operatorRouter.get('/nexus', async (req: Request, res: Response) => {
 // Auto-tune is OFF by default for every client. This flips the per-client flag; the Phase-2
 // write-back path consults `nexusTuneGate` (this flag + the confidence gate + the global
 // kill) before ever changing a client's sequences or sourcing. Audited. No money moves here.
-// ── MBF — THE DEMO ACCOUNT (founder-locked 26 Jul) ────────────────────────────────────
-// "5 demos = 1 sale." One demo client, one FIXED cast of forty invented people, one fixed
-// story — so the pitch is a script the founder can learn rather than a different stage every
-// time. Creates it if it has never existed; otherwise wipes and rebuilds it to byte-identical
-// state, which is the reset you run between demos or when you've broken it mid-pitch.
-//
-// Nothing here can reach a real person: the client is `is_demo`, which is a hard stop inside
-// the send path itself, and every address is `.invalid` (RFC 2606 — can never resolve).
 // ── ⚑ 28 Sep (R164 · demo B) — NORTHWIND: THE ONE CLIENT DEMO OF THE CURRENT PRODUCT ──────
 // Read its stage, set it to any of the six, open it as the client. All three live in
 // `lib/demo-northwind.ts`; these routes only speak for Vida. Setting a stage clears and rebuilds
@@ -6787,69 +6779,8 @@ operatorRouter.post('/demo/northwind/login', async (_req: Request, res: Response
   }
 })
 
-operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
-  try {
-    const { findMbf, findAdoptableMbf, adoptAsMbf, seedMbf, MBF_NAME } = await import('../lib/demo-mbf')
-    let mbf = await findMbf()
-
-    // ADOPT BEFORE CREATING. The live account was called "MBF Demo" and was never flagged
-    // `is_demo`, so `findMbf` couldn't see it AND the demo purge refused to delete it — a row
-    // no control in Vida could touch, while the System screen correctly showed the missing
-    // hard stop as BROKEN. Minting a second account around it would have added a stray
-    // rather than fixed anything, so we take it over instead. `canAdoptAsMbf` (pure, tested)
-    // refuses anything that has ever been paid for or holds a real email address.
-    if (!mbf) {
-      const cand = await findAdoptableMbf()
-      if (cand.kind === 'refused') {
-        res.status(409).json({ success: false, error:
-          `There is already an account called "${cand.name}", and I will not take it over because ${cand.reason}. Nothing was changed. Rename or remove it, then run this again.` })
-        return
-      }
-      if (cand.kind === 'adoptable') {
-        const adopted = await adoptAsMbf(cand.id)
-        if (!adopted.ok) { res.status(500).json({ success: false, error: `Found "${cand.name}" but ${adopted.error}` }); return }
-        mbf = { id: cand.id, user_id: cand.user_id }
-      }
-    }
-
-    // First run: mint the client. clients.user_id is NOT NULL and unique, so the demo needs
-    // its own auth user — it never logs in through it; you open MBF from Vida.
-    if (!mbf) {
-      const suffix = Math.random().toString(36).slice(2, 10)
-      const { data: user, error: uErr } = await db.auth.admin.createUser({
-        email: `mbf-demo-${suffix}@kind-demo.internal`, password: `Demo${suffix}!`, email_confirm: true,
-      })
-      if (uErr || !user?.user) { res.status(500).json({ success: false, error: `Could not create the demo login: ${uErr?.message ?? 'unknown'}` }); return }
-
-      const { data: created, error: cErr } = await db.from('clients').insert({
-        user_id: user.user.id, company_name: MBF_NAME, is_demo: true,
-        industry: 'Logistics', country: 'South Africa', plan: 'figsy',
-        onboarded_at: new Date().toISOString(),
-      }).select('id, user_id').single()
-      if (cErr) { res.status(500).json({ success: false, error: `Could not create MBF: ${cErr.message}` }); return }
-      mbf = { id: created.id as string, user_id: created.user_id as string }
-    }
-
-    const result = await seedMbf(mbf.id)
-    await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: mbf.id, action: 'demo_reset',
-      subjectType: 'client', subjectId: mbf.id, detail: { ...result, no_money_moved: true },
-    })
-    // Say so when a step failed. A confident green tick over a half-seeded demo is how you
-    // find out mid-pitch that the inbox is empty.
-    const ok = result.problems.length === 0
-    res.json({
-      success: ok, data: result,
-      error: ok ? undefined : `MBF built with ${result.problems.length} problem(s): ${result.problems.join(' · ')}`,
-      message: ok
-        ? `MBF is ready — ${result.leads} people, ${result.waiting} waiting to be picked, ${result.replies} replies, ${result.bookings} meetings booked.`
-        : undefined,
-    })
-  } catch (err) {
-    console.error('[operator/demo-reset]', err)
-    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to reset the demo' })
-  }
-})
+// ⛓️ 29 Sep (R174 · 4a) — ~~`POST /demo/mbf/reset`~~ removed with the MBF demo (founder: *"remove MBF"*;
+// R164 ruled one demo, Northwind, above).
 
 // ── ⚑ 25 Sep (R141 · R166 · P5a) — THE QUALIFIED MEETING RECORD, IN VIDA ──────────────────
 // The website sells a QUALIFIED meeting with seven conditions. These two routes let a person
@@ -7971,7 +7902,7 @@ operatorRouter.post('/seed-data/wipe-client', async (req: Request, res: Response
     const { wipeClientCheck } = await import('../lib/cleanup-guards')
     const { resolveHouseUserIds, HOUSE_ACCOUNT_EMAIL } = await import('../lib/real-clients')
     const { PURCHASE_TX_TYPES } = await import('../lib/onboarding-pack')
-    const { wipeMbf } = await import('../lib/demo-mbf')
+    const { wipeClientRows } = await import('../lib/client-purge')
 
     const clientId = String((req.body ?? {}).client_id ?? '').trim()
     if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required.' }); return }
@@ -8022,7 +7953,7 @@ operatorRouter.post('/seed-data/wipe-client', async (req: Request, res: Response
     // in child-first order, and it is the list `purgeDemoClient` uses — a second copy here
     // would silently fall behind the day a table is added, and the row it missed would be an
     // orphan pointing at a client that no longer exists.
-    await wipeMbf(clientId)
+    await wipeClientRows(clientId)
     for (const t of ['figsy_memory', 'client_inboxes', 'subscriptions', 'push_subscriptions', 'milla_messages', 'milla_sessions', 'operator_audit_log']) {
       await db.from(t).delete().eq('client_id', clientId).then(() => {}, () => {})
     }

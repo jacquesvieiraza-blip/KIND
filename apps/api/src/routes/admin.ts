@@ -330,7 +330,7 @@ adminRouter.patch('/demos/:id/extend', async (req: Request, res: Response) => {
 // database. The purge REFUSES anything not flagged is_demo — that check is the safety.
 adminRouter.delete('/demos/:id', async (req: Request, res: Response) => {
   try {
-    const { purgeDemoClient } = await import('../lib/demo-mbf')
+    const { purgeDemoClient } = await import('../lib/client-purge')
     const r = await purgeDemoClient(req.params.id)
     if (!r.purged) { res.status(400).json({ success: false, error: r.reason ?? 'Could not delete it' }); return }
     res.json({ success: true })

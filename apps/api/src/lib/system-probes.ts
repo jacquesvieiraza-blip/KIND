@@ -741,39 +741,17 @@ async function vida(): Promise<Section> {
         'Railway → @kind/api → Variables → INBOX_SECRET_KEY (openssl rand -hex 32).')
   }))
 
-  rows.push(await probe('MBF demo ready', async () => {
-    // MATCH ON *ANY* DEMO NAMED MBF, not the exact string `MBF Holdings`.
-    // The live account is called "MBF Demo", so an exact-match lookup reported "the MBF demo
-    // account does not exist" while it was sitting right there in the client list. The
-    // conclusion happened to be useful (it has no leads) but the stated reason was false —
-    // and a report that is right by accident is not a report.
-    const { isMbfAccount } = await import('./integrity-checks')
-    const { data: all } = await db.from('clients').select('id, company_name, is_demo')
-    const mbf = ((all ?? []) as { id: string; company_name: string | null; is_demo: boolean | null }[])
-      .find(c => isMbfAccount(c.company_name))
-    if (!mbf) return broken('MBF demo ready', 'No account with MBF in its name exists — there is nothing to demo with.', 'Vida → Engine → Build / reset MBF.')
-    if (!mbf.is_demo) return broken('MBF demo ready', `"${mbf.company_name}" exists but is NOT flagged is_demo — the hard stop that prevents it sending is not in place.`, 'Rebuild it from Vida → Engine.')
-    const [{ count: total }, { count: waiting }, { count: real }] = await Promise.all([
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id).is('revealed_at', null).neq('status', 'passed'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id).not('email', 'ilike', '%.invalid'),
-    ])
-    if ((real ?? 0) > 0) return broken('MBF demo ready', `${real} MBF lead(s) have a REAL email address. A demo must never be able to reach a real person.`, 'Rebuild MBF from Vida → Engine.')
-    if ((waiting ?? 0) < 20) return broken('MBF demo ready', `Only ${waiting} people are waiting to be picked — the minimum-20 gate cannot be demonstrated.`, 'Reset MBF before demoing.')
-    return ok('MBF demo ready', `${total} invented people, ${waiting} waiting to be picked, every address .invalid. Ready to demo.`)
-  }))
+  // ⛓️ 29 Sep (R174 · 4a) — ~~'MBF demo ready'~~ removed with the MBF demo (founder: *"remove MBF"*).
+  // It reported "broken" whenever MBF did not exist — which is now the correct state.
 
   rows.push(await probe('Stray demo / test accounts', async () => {
-    // THE SAME EXACT-STRING BUG, sitting directly below the fix for it.
-    // This filtered on `!== 'MBF Holdings'` while the live account is named "MBF Demo" — so
-    // the one demo we are supposed to keep was itself being reported as a stray to delete.
-    // Matched on "contains MBF" now, the same way the readiness probe above does.
-    const { isMbfAccount } = await import('./integrity-checks')
+    // ⛓️ 29 Sep (R174 · 4a) — THE ONE DEMO IS NORTHWIND (R164), not ~~MBF~~ (founder: *"remove MBF"*).
+    const { isTheDemoAccount } = await import('./integrity-checks')
     const { data } = await db.from('clients').select('id, company_name').eq('is_demo', true)
-    const strays = (data ?? []).filter((c: { company_name: string | null }) => !isMbfAccount(c.company_name))
+    const strays = (data ?? []).filter((c: { company_name: string | null }) => !isTheDemoAccount(c.company_name))
     return strays.length === 0
-      ? ok('Stray demo / test accounts', 'One demo environment only — MBF, as locked.')
-      : broken('Stray demo / test accounts', `${strays.length} demo account(s) besides MBF are cluttering the client list: ${strays.map((s: { company_name: string | null }) => s.company_name ?? '(unnamed)').join(', ')}.`, 'Delete them in Vida → Demo.')
+      ? ok('Stray demo / test accounts', 'One demo environment only — Northwind, as locked (R164).')
+      : broken('Stray demo / test accounts', `${strays.length} demo account(s) besides Northwind are cluttering the client list: ${strays.map((s: { company_name: string | null }) => s.company_name ?? '(unnamed)').join(', ')}.`, 'Delete them in Vida → Demo.')
   }))
 
   rows.push(await probe('Operator audit log', async () => {

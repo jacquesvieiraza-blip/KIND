@@ -36,8 +36,11 @@ const LIVE: Record<string, string[]> = {
   proofClaim: ['client_id', 'icp_id', 'authority', 'status', 'claimed_at', 'settled_at'],
   programme: ['id', 'client_id', 'status', 'meeting_target', 'recommended_volume', 'price_per_meeting_cents',
     'price_total_cents', 'first_payment_cents', 'second_payment_cents', 'size_band', 'sourcing_ceiling', 'sourced_used',
-    'recommendation_accepted_at', 'first_authorised_at', 'second_authorised_at', 'approved_at', 'went_live_at',
-    'run_at', 'delivered_meetings'],
+    // ⛓️ 29 Sep (R174 ⑧ · PR 8b): ~~'first_authorised_at', 'second_authorised_at'~~ — the demo now reads
+    // paid in full. `first_paid_at`, `first_payment_ref`, `second_paid_at`, `second_payment_ref` —
+    // lib/programme.ts writes all four on every real Stripe payment (the one-payment branch sets both).
+    'recommendation_accepted_at', 'first_paid_at', 'first_payment_ref', 'second_paid_at', 'second_payment_ref',
+    'approved_at', 'went_live_at', 'run_at', 'delivered_meetings'],
   campaign: ['id', 'client_id', 'icp_id', 'name', 'status', 'steps_count'],
   sequence: ['id', 'client_id', 'campaign_id', 'name', 'steps'],
   // `programme_id`, `sequence_id` — lib/programme-authority.ts selects both live.

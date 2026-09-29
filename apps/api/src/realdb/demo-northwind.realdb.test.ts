@@ -4,7 +4,7 @@
 // `demo-northwind-data.ts`. This file writes those exact rows through Postgres, so every NOT
 // NULL, CHECK, foreign key and partial unique index the demo depends on is proven — the
 // meetings state/qualification checks, the one-open-programme index, the payment split, the
-// "authorised, never paid" xor. A mock would accept any of them.
+// "paid or authorised, never both" xor (⛓️ 29 Sep, 8b: the demo is paid, no charge). A mock would accept any of them.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
 import { randomUUID } from 'node:crypto'
@@ -92,10 +92,17 @@ describe('R164 · Northwind demo — every stage is accepted by the real schema 
       const cl = await c.query('select is_demo, proof_completed_at, size_locked_at, size_band from public.clients where id = $1', [ids.clientId])
       expect(cl.rows[0].is_demo).toBe(true)
       expect(cl.rows[0].size_locked_at).not.toBeNull()
-      const pr = await c.query('select status, first_paid_at, second_paid_at, first_payment_ref from public.programmes where client_id = $1', [ids.clientId])
+      const pr = await c.query('select status, first_paid_at, second_paid_at, first_payment_ref, first_payment_intent_id, first_authorised_at from public.programmes where client_id = $1', [ids.clientId])
       const status = pr.rows[0]?.status ?? null
-      // Never paid: no payment date or reference on any demo programme.
-      for (const r of pr.rows) { expect(r.first_paid_at).toBeNull(); expect(r.second_paid_at).toBeNull(); expect(r.first_payment_ref).toBeNull() }
+      // ~~Never paid: no payment date or reference on any demo programme.~~
+      // ⛓️ 29 Sep (R174 ⑧ · PR 8b): the demo reads PAID IN FULL, like a real client, with the
+      // reference that says no charge — accepted by the real schema's authority xor (never
+      // `first_authorised_at` as well), no payment intent, and never counted as money (8c).
+      for (const r of pr.rows) {
+        expect(r.first_paid_at).not.toBeNull(); expect(r.second_paid_at).not.toBeNull()
+        expect(String(r.first_payment_ref)).toMatch(/^demo-no-charge:/); expect(r.first_payment_intent_id).toBeNull()
+        expect(r.first_authorised_at).toBeNull()
+      }
       const ribbon = mvp1MillaStageFromLegacy(millaStage({ status, proofComplete: cl.rows[0].proof_completed_at !== null }))
       expect(ribbon).toBe(stage)
 

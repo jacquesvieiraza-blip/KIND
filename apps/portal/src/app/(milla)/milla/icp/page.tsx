@@ -112,7 +112,7 @@ export default function MillaIcpPage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-2xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Your targeting (ICP)</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">This is exactly who FIGSY searches for. Nothing is sourced until an ICP is approved and active.</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">This is exactly who we search for. Nothing is sourced until an ICP is approved and active.</p>
 
         {error && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {note && <div className="mt-4 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">{note}</div>}
@@ -160,7 +160,7 @@ export default function MillaIcpPage() {
             </div>
             {/* Said plainly, because the previous copy implied the client flipped a switch. */}
             <p className="text-[11.5px] text-[#9b8ec4] mt-3">
-              We&apos;ll show you real people who match — free, and nothing is contacted. K.I.N.D switches your campaign on once you&apos;re happy.
+              We&apos;ll show you real people who match — free, and nothing is contacted. Outreach starts only after you approve your programme.
             </p>
           </div>
         )}

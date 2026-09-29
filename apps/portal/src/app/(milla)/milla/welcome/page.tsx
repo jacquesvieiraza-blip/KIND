@@ -1699,7 +1699,7 @@ export default function MillaWelcomePage() {
                 </button>
               </div>
               <div className="mv-muted-note text-center">
-                {blocker ?? <><b>Free proof.</b> Up to 20 masked leads who match this &mdash; <b>free, masked, and nobody is contacted</b>. You decide what happens next.</>}
+                {blocker ?? <><b>Free proof.</b> Up to 20 people who match this &mdash; <b>free, and nobody is contacted</b>. You decide what happens next.</>}
               </div>
               {error ? <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div> : null}
             </div>

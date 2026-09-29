@@ -23,7 +23,7 @@ import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY, MILLA_STAGES, PROGRAMME_BEST_EFFORTS } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, PROGRAMME_BEST_EFFORTS } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { outreachHasRun } from '@/lib/programme-report'
@@ -84,7 +84,7 @@ export default function MillaPerformancePage() {
                 hero
                 label="Booked meetings targeted"
                 value={p.outcome.target}
-                sub={p.outcome.target ? `${p.stage}${p.paused ? ' · paused' : ''}` : 'No target is set yet'}
+                sub={p.outcome.target ? `${mvp1MillaStageFromLegacy(p.stage)}${p.paused ? ' · paused' : ''}` : 'No target is set yet'}
                 icon={<Target className="w-6 h-6" />}
               />
               <ValueCard
@@ -104,10 +104,11 @@ export default function MillaPerformancePage() {
               />
             </div>
 
-            {/* ── WHERE THE PROGRAMME IS, DRAWN. The seven approved stages. */}
+            {/* ── WHERE THE PROGRAMME IS. ⛓️ 29 Sep (R174 · 6a) — the stages are the shell's six bar. */}
             <div className="mt-4">
-              <Panel title="Programme" chip={p.paused ? 'Paused' : p.reviewOpen ? 'Review open' : undefined}>
-                <StageRail stages={MILLA_STAGES} current={p.stage} />
+              <Panel title="Programme" chip={p.paused ? 'Paused' : p.reviewOpen ? 'Waiting on a decision' : undefined}>
+                {/* ⚑ 29 Sep (R174 · 6a) — the canonical six (R127), not the old seven. */}
+                <StageRail stages={MVP1_MILLA_STAGES} current={mvp1MillaStageFromLegacy(p.stage)} />
                 {p.paused && p.pausedCopy && (
                   <p className="text-[12.5px] text-[#b45309] mt-3">{p.pausedCopy}</p>
                 )}

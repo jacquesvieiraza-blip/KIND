@@ -1576,7 +1576,7 @@ export default function MillaHomePage() {
               <div className="mv-hero-number tabular-nums">{capacity.committed}</div>
               <div className="mv-hero-caption">
                 {capacity.committed > 0
-                  ? 'booked meetings we can commit to at this targeting'
+                  ? 'qualified meetings we can commit to at this targeting'
                   : 'not enough people at this targeting yet — tell Milla and we’ll widen it'}
               </div>
             </div>
@@ -1916,7 +1916,7 @@ export default function MillaHomePage() {
             number joins it once a programme is agreed. */}
         <KPI hero k="Outcome"
           v={prog?.outcome.target ? String(prog.outcome.target) : prog?.outcome.stated ? '✓' : '—'}
-          s={prog?.outcome.target ? 'booked meetings' : prog?.outcome.stated ?? 'not set yet'} />
+          s={prog?.outcome.target ? 'qualified meetings' : prog?.outcome.stated ?? 'not set yet'} />
         <KPI k="Stage" v={prog ? prog.stage : '…'}
           s={prog?.paused ? 'paused' : prog?.reviewOpen ? 'review' : 'current'}
           tone={prog?.paused || prog?.reviewOpen ? '#b45309' : undefined} />

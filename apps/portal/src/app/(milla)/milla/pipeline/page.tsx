@@ -5,6 +5,7 @@
 // leads moving Approved → Contacted → Replied → Booked, from GET /leads/pipeline.
 // Read-only by design — the client approves, we do the work (founder-locked north star).
 
+import { replyWord } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a) — plain words, not internal labels
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -128,7 +129,7 @@ export default function MillaPipelinePage() {
                       {c.score != null && <span className="ml-auto shrink-0 text-[13px] font-extrabold tabular-nums text-[#1f1235]">{c.score}</span>}
                     </div>
                     {c.classification && (
-                      <span className="inline-block mt-2 text-[10.5px] font-bold rounded-full px-2 py-0.5" style={{ color: st.tone, background: st.bg }}>{c.classification}</span>
+                      <span className="inline-block mt-2 text-[10.5px] font-bold rounded-full px-2 py-0.5" style={{ color: st.tone, background: st.bg }}>{replyWord(c.classification)}</span>
                     )}
                     {c.start_time && (
                       <span className="block mt-2 text-[11px] font-bold text-emerald-700">

@@ -29,6 +29,7 @@
 // programme is Live and the counts are zero, zero is what it shows.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { mvp1MillaStageFromLegacy } from '@kind/shared'   // ⚑ 29 Sep (R174 · 6a)
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -112,10 +113,10 @@ export default function MillaUsagePage() {
             <div className="mt-4 bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
               <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1.5">Programme</div>
               <div className="text-[15px] font-extrabold text-[#1f1235]">
-                {p.stage}{p.paused ? ' · paused' : ''}
+                {mvp1MillaStageFromLegacy(p.stage)}{p.paused ? ' · paused' : ''}
               </div>
               <div className="text-[12.5px] text-[#6b5f8c] mt-0.5">
-                {p.outcome.target ? `${p.outcome.target} booked meetings` : 'No target is set yet'}
+                {p.outcome.target ? `${p.outcome.target} qualified meetings` : 'No target is set yet'}
               </div>
               {p.paused && p.pausedCopy && (
                 <p className="text-[12.5px] text-[#b45309] mt-2">{p.pausedCopy}</p>

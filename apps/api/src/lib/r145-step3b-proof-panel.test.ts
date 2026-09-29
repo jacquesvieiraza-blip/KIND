@@ -27,7 +27,8 @@ describe('#14 #15 #58 · one hero, no duplicate tile rows', () => {
     expect(HOME).toContain('{showProofDesk ? proofPanel : (')
     expect(panel).not.toContain('<KPI')
     expect(panel).toContain('<div className="mv-hero-card">')
-    expect(panel).toContain('booked meetings we can commit to at this targeting')
+    // ⛓️ 29 Sep (R174 ⑤ · 6a, R141) — ~~'booked meetings …'~~: the target is qualified meetings.
+    expect(panel).toContain('qualified meetings we can commit to at this targeting')
     expect(panel).toContain('workable people')
   })
 

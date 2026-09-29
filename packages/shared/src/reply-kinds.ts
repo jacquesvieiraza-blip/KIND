@@ -42,3 +42,18 @@ export function replyInboxState(r: { classification: string | null; qualified_at
   if (replyNeedsNobody(r.classification)) return { label: QUIET_LABEL[String(r.classification)] ?? 'no action', tone: 'quiet' }
   return { label: 'needs you', tone: 'needs' }
 }
+
+/**
+ * ⚑ 29 Sep (R174 · 6a) — A REPLY'S KIND, IN PLAIN WORDS. Client screens printed the internal
+ * labels (`hot`, `out_of_office`); this is the one place they become words a client reads.
+ */
+const REPLY_WORD: Record<string, string> = {
+  hot: 'interested', warm: 'interested', interested: 'interested', positive: 'interested',
+  cold: 'not interested', not_interested: 'not interested',
+  opt_out: 'opted out', unsubscribe: 'opted out',
+  out_of_office: 'out of office', wrong_person: 'wrong person', referral: 'referral',
+  sent_reply: 'our reply',
+}
+export function replyWord(classification: string | null | undefined): string {
+  return REPLY_WORD[String(classification ?? '')] ?? 'reply'
+}

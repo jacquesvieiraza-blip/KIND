@@ -35,13 +35,16 @@
 //   · Every company and person below is invented. None is a real firm.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { MVP1_MILLA_STAGES, type Mvp1MillaStage, quoteProgramme, bandForEmployees, type SizeBand } from '@kind/shared'
+import { MVP1_MILLA_STAGES, type Mvp1MillaStage, quoteProgramme, bandForEmployees, sourcingCeiling, type SizeBand } from '@kind/shared'
 
 /** ⚑ 29 Sep (R174 ⑧ · PR 8b) — the demo's payment reference: plainly not a charge, never a Stripe id.
  *  ⚠️ ONE PER PROGRAMME: `programmes_first_ref_uidx` makes every payment reference unique, so a
  *  shared constant would collide the moment two demo programmes exist (an overlapping reset). */
 export const NORTHWIND_NO_CHARGE_REF = 'demo-no-charge'
 export const northwindNoChargeRef = (programmeId: string): string => `${NORTHWIND_NO_CHARGE_REF}:${programmeId}`
+/** ⚑ 29 Sep (R174 ⑧ · PR 8d) — who qualified the demo's meetings: an operator, as on a real
+ *  account ("Qualified … by K.I.N.D operations"), never the word "demo". Not a person's address. */
+export const NORTHWIND_QUALIFIED_BY = 'K.I.N.D operations'
 
 export type NorthwindStage = Mvp1MillaStage
 export const NORTHWIND_STAGES: readonly NorthwindStage[] = MVP1_MILLA_STAGES
@@ -383,7 +386,10 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
     price_per_meeting_cents: quote.pricePerMeetingCents, price_total_cents: quote.totalCents,
     first_payment_cents: quote.firstPaymentCents, second_payment_cents: quote.secondPaymentCents,
     size_band: NORTHWIND_BAND,
-    sourcing_ceiling: quote.recommendedVolume, sourced_used: NORTHWIND_CAST.length,
+    // ⛓️ 29 Sep (R174 ⑧ · PR 8d) — WAS `quote.recommendedVolume` (the plan, meetings × 250). A real
+    // banded programme's limit is its band's ceiling (lib/programme.ts `bandSourcingCeiling`), so
+    // the demo's is too — the same function, the same number.
+    sourcing_ceiling: sourcingCeiling(quote.meetings, NORTHWIND_BAND), sourced_used: NORTHWIND_CAST.length,
     recommendation_accepted_at: iso(20),
     // ⛓️ 29 Sep (R174 ⑧ · PR 8b) — WAS authorised, never paid. Now paid in full in ONE payment, as
     // a real banded programme is (the same reference settles both halves — `paysInFull`), with a
@@ -524,7 +530,7 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
           icp_fit: true, role_fit: true, agreed_to_meet: true, date_time_set: true,
           genuine_relevance: true, not_existing_customer: true, acceptance_evidenced: true,
         },
-        qualified_at: iso(bookedDaysAgo), qualified_by: 'demo',
+        qualified_at: iso(bookedDaysAgo), qualified_by: NORTHWIND_QUALIFIED_BY,
         evidence_reply_id: ids.replyIds[n],
         evidence_note: 'Prospect agreed to meet in their own reply.',
       }

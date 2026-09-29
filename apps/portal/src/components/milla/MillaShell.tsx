@@ -299,6 +299,11 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
           <div className="mv-stage-title"><strong>{stageName}</strong><span>Client portal · Stage {stageAt + 1}</span></div>
         ) : null}
         <div className="mv-top-spacer" />
+        {/* ⚑ 29 Sep (R174 ⑧ · PR 8d) — THE DEMO TAG SHOWS ON EVERY SCREEN SIZE. It sat inside the
+            desktop-only account corner, so on a phone the demo looked like a live account. */}
+        {isDemo && (
+          <span data-testid="demo-tag" className="mr-2 rounded-full bg-[#fef3c7] text-[#92400e] border border-[#fde68a] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">Demo</span>
+        )}
         {/* ⚑ 4 Sep (UI-008) — THE PHONE'S WAY INTO THE NINE SECTIONS, and into the account.
             The Account chip is hidden below the breakpoint (approved), so every destination it
             held — Your ROI, Settings, Billing, Usage, Referral and Sign out — is repeated in
@@ -311,9 +316,6 @@ export function MillaShell({ children, noAccount = false }: { children: React.Re
             top right drop down."* Same two groups, same destinations, restyled as the redesign's
             corner (initials + company ▾). */}
         <div className="hidden md:flex items-center">
-          {isDemo && (
-            <span className="mr-2 rounded-full bg-[#fef3c7] text-[#92400e] border border-[#fde68a] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">Demo</span>
-          )}
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)} className="mv-account">
               <span className="mv-account-dot">{initials}</span>

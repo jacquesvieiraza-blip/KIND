@@ -1188,9 +1188,13 @@ export default function VidaConsolePage() {
   // the re-freeze it moves no status and grants no authority, so it is its own function and
   // never one of the six `lifecycle()` moves. The server refuses unless nothing was approved or
   // sent (`lib/programme-rewrite.ts`); this only decides whether to DRAW the button.
+  // ⚑ 29 Sep (R174 ⑧ · PR 8d) — THE DEMO DRAWS NEITHER REWRITE NOR RUN ONCE. Rewrite called the
+  // AI and changed the demo's messages until the next reset; Run once said "to REAL prospects"
+  // and then sent 0. Neither belongs on an account that can never send.
+  const selectedIsDemo = (): boolean => (clients ?? []).find(c => c.id === selected)?.is_demo === true
   function canRewriteMessages(): boolean {
     const p = prog?.programme
-    return !!p && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true
+    return !!p && !selectedIsDemo() && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true
   }
 
   const rewriteMessages = useCallback(async () => {
@@ -4591,7 +4595,7 @@ export default function VidaConsolePage() {
                                 ? 'Send once is available: it sends up to the number you type, for this client only. It is not Run — Run grants the authority and sends nothing itself.'
                                 : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.'}
                           </p>
-                          {prog.send_controls.operator_run_enabled && prog.send_controls.auto_outreach_enabled && (
+                          {prog.send_controls.operator_run_enabled && prog.send_controls.auto_outreach_enabled && !selectedIsDemo() && (
                             <div className="flex flex-wrap items-center gap-2 mt-2.5">
                               <input
                                 value={runMax}

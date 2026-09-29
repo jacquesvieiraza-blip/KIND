@@ -17,6 +17,7 @@
 // is where money lives; this page answers what the work produced.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { totalsLabel, type TotalsScope } from '@/lib/totals-label'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -33,7 +34,7 @@ import { outreachHasRun, sourcingHasRun } from '@/lib/programme-report'
 // read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
 // ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
 // zero"). The type was the last place still claiming a number was always available.
-type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null; totals_scope?: TotalsScope }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -118,10 +119,10 @@ export default function MillaReportsPage() {
                     label={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
                   />
                   {outreachHasRun(p.stage) && (
-                    <ValueCard value={o === null ? null : o.replies_total} label="Replies, all time" />
+                    <ValueCard value={o === null ? null : o.replies_total} label={totalsLabel('Replies', o?.totals_scope)} />
                   )}
                   {outreachHasRun(p.stage) && (
-                    <ValueCard value={o === null ? null : o.meetings_total} label="Meetings, all time" />
+                    <ValueCard value={o === null ? null : o.meetings_total} label={totalsLabel('Meetings', o?.totals_scope)} />
                   )}
                 </div>
               )}

@@ -246,7 +246,11 @@ describe('③ the four surfaces that were rendering history as current work', ()
       .toContain('{ clientId, programmeId: summaryScope.programmeId, since: monthStart }')
     // ⚠️ THE ALL-TIME REPORT FIGURES ARE DELIBERATELY UNTOUCHED. They are labelled as history
     // and are the one place history belongs — this is what "preserved, not deleted" looks like.
-    expect(summary).toContain('meetingCounts({ clientId }),')
+    // ~~expect(summary).toContain('meetingCounts({ clientId }),')~~
+    // ⛓️ 29 Sep (R174 ⑥ · PR 6c): the report totals are THIS programme's (milla-programme-numbers
+    // test); the all-time, account-wide read is kept for a client with no programme to scope to.
+    expect(summary).toContain("if (scope.kind === 'legacy' || scope.kind === 'unreadable') {")
+    expect(summary).toContain('repliesLessOurs(null), meetingCounts({ clientId })])')
   })
 
   it('🛑 THE "EARLIER ACTIVITY" BANNER IS DRIVEN BY THE CARD LIST, so it goes with them', () => {

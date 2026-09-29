@@ -40,9 +40,12 @@ describe('the badges are this programme\'s totals', () => {
     expect(SHELL).not.toContain('s?.recent_replies?.length || undefined')
   })
   it('the server counts them from the same scope: programme, proof (none), legacy (all-time)', () => {
-    const at = SUMMARY.indexOf('async function badgeCounts(')
+    // ⛓️ 29 Sep (R174 · 6c) — ~~`badgeCounts`~~ became `programmeTotals`, which the report totals read
+    // too; the badges are those totals. Same scope rule.
+    const at = SUMMARY.indexOf('function programmeTotals(')
     const fn = SUMMARY.slice(at, SUMMARY.indexOf('export async function buildMillaSummaryData(', at))
-    expect(fn).toContain("if (scope.kind === 'proof') return { badge_meetings: 0, badge_replies: 0 }")
+    expect(fn).toContain("if (scope.kind === 'proof') return { replies: 0, meetings: 0 }")
+    expect(SUMMARY).toContain('badge_replies:        repliesTotal.error ? null : repliesTotal.count ?? 0,')
     expect(fn).toContain('meetingCounts({ clientId, programmeId: scope.programmeId })')
     expect(fn).toContain(".eq('programme_id', scope.programmeId)")
     expect(fn).not.toMatch(/since:/)

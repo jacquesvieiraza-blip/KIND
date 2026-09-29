@@ -27,7 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { REPLY_NEEDS_NOBODY } from '@kind/shared'
+import { REPLY_NEEDS_NOBODY, isOurOwnReply } from '@kind/shared'
 import {
   deriveLifecycle, type LifecycleFacts, type LifecycleVerdict,
 } from './programme-lifecycle'
@@ -526,7 +526,9 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
     if (ids.length > 0) {
       const { data: replyRows } = await db.from('figsy_replies')
         .select('classification, qualified_at').in('lead_id', ids)
-      const replies = (replyRows ?? []) as { classification: string | null; qualified_at: string | null }[]
+      // ⚑ 29 Sep (R174 · 6c) — our own sent replies are not replies from a prospect.
+      const replies = ((replyRows ?? []) as { classification: string | null; qualified_at: string | null }[])
+        .filter(r => !isOurOwnReply(r.classification))
       out.replies = replies.length
       out.positive = replies.filter(r => ['hot', 'warm', 'interested', 'referral'].includes(String(r.classification))).length
       // ⚠️ "AWAITING A DECISION" IS NOT "UNREAD". A reply the pipeline already handles — an

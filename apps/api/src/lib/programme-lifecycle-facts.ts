@@ -45,7 +45,7 @@ const AUTO_HANDLED_REPLY = new Set(['opt_out', 'unsubscribe', 'out_of_office'])
 const SENDABLE_INBOX = new Set(['assigned', 'active'])
 
 type ProgrammeRow = {
-  id: string; client_id: string; status: string; paused_at: string | null
+  id: string; client_id: string; status: string; paused_at: string | null; pause_reason?: string | null
   approved_at: string | null; second_paid_at: string | null; second_payment_ref: string | null
   second_authorised_at: string | null; first_paid_at: string | null; first_authorised_at: string | null
   went_live_at: string | null
@@ -60,7 +60,7 @@ type ProgrammeRow = {
 // ⚠️ THE AUTHORITY COLUMNS ARE SELECTED BUT NEVER INTERPRETED HERE —
 // `p2Authorised` is the only thing that reads them, and it owns that meaning.
 const PROGRAMME_COLUMNS =
-  'id, client_id, status, paused_at, approved_at, second_paid_at, second_payment_ref, ' +
+  'id, client_id, status, paused_at, pause_reason, approved_at, second_paid_at, second_payment_ref, ' +
   'second_authorised_at, first_paid_at, first_authorised_at, went_live_at, meeting_target, ' +
   // ⚑ 10 Sep (H) — `run_at` IS SELECTED BECAUSE THE DERIVATION NOW ASKS IT. Unselected it
   // reads `undefined`, which the rule treats as never-run — safe, but it would hold every
@@ -79,6 +79,7 @@ function programmeFacts(p: ProgrammeRow): NonNullable<LifecycleFacts['programme'
   return {
     status: String(p.status),
     paused: !!p.paused_at,
+    pausedByClient: !!p.paused_at && p.pause_reason === 'client',
     approved: !!p.approved_at,
     secondAuthorised: p2Authorised(p as unknown as AuthorityRow),
     live: !!p.went_live_at || String(p.status) === 'LIVE',

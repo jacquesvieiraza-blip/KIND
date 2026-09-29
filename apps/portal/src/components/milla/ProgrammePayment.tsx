@@ -45,7 +45,9 @@ export default function ProgrammePayment({
       const { data: { session } } = await supabase.auth.getSession()
       const r = await api.post<{ data: { url: string } }>(
         `/my/programme/checkout/${stage}`,
-        { successUrl: `${window.location.origin}/milla/programme`, cancelUrl: window.location.href },
+        // ⚑ 29 Sep (R174 · 2b) — back with the flag, so the page knows this half was just paid and
+        // shows "confirming" instead of offering the Pay button again. ⛓️ WAS `/milla/programme`.
+        { successUrl: `${window.location.origin}/milla/programme?paid=${stage}`, cancelUrl: window.location.href },
         session?.access_token, PRESS_TIMEOUT_MS,
       )
       if (!r.data?.url) throw new Error('We could not start the payment. Nothing was charged.')

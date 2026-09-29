@@ -6,6 +6,7 @@ import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { loadError, millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
 // J3-C5 — the one rule for what an unrestored thread is allowed to claim.
 import { restoreView } from '@/lib/conversation-restore'
+import { PAUSE_CONFIRM, pauseMyProgramme } from '@/lib/pause-programme'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -56,7 +57,7 @@ type IcpDraft = {
   target_category?: string; target_company_type?: string
 }
 
-type Programme = { stage: MillaStage; hasProgramme?: boolean }
+type Programme = { stage: MillaStage; hasProgramme?: boolean; paused?: boolean }
 /** Only the two fields the handle's rule reads. The My ICP screen reads the same endpoint. */
 type Icp = { id: string; is_active: boolean | null }
 type Summary = {
@@ -126,6 +127,8 @@ const PROOF_CHIPS = [
 const CHIP_ANOTHER = 'Show me another twenty'
 const CHIP_WIDEN = 'What if I add Germany?'
 const CHIP_ACCEPT = 'These are right'
+/** ⚑ 29 Sep (R174 · 2d) — the founder-named wording, kept; the press is now a real pause. */
+const PAUSE_CHIP = 'Please pause my programme'
 const CHIP_EXPLAIN_250 = 'Explain the 250'
 /** Only where a programme exists and is running — not before it starts, not once it ends. */
 const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
@@ -485,6 +488,12 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `n-${Date.now()}`, role: 'assistant', content: t }])
   }, [])
   const refreshStage = useCallback(() => setStageNonce(n => n + 1), [])
+  const pauseFromChip = useCallback(async () => {
+    if (!window.confirm(PAUSE_CONFIRM)) return
+    const r = await pauseMyProgramme()
+    announce(r.message)
+    if (r.ok) setStageNonce(n => n + 1)
+  }, [announce])
   const announcedKeys = useRef<Set<string>>(new Set())
   const sendRef = useRef<((t: string) => void) | null>(null)
   const ask = useCallback((text: string) => { const t = text.trim(); if (t) sendRef.current?.(t) }, [])
@@ -751,7 +760,8 @@ export function MillaConversationProvider(
     ...(prog.stage === 'Live' || prog.stage === 'Review' ? ['Show me my meetings'] : []),
     ...(prog.stage === 'Completion' ? ['Price twenty meetings'] : []),
     ...(prog.stage === 'Recommendation' && deskActions?.accept ? [deskActions.acceptLabel ?? CHIP_ACCEPT] : []),
-    ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
+    // ⚑ 29 Sep (R174 · 2d) — not offered once it is paused; pressing it pauses (see below).
+    ...(PAUSE_STAGES.includes(prog.stage) && !prog.paused ? [PAUSE_CHIP] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
   ]
 
@@ -896,6 +906,8 @@ export function MillaConversationProvider(
             <div className="mv-quickbar">
               {chips.map(c => <button key={c} onClick={() => {
                 if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
+                // ⚑ 29 Sep (R174 · 2d) — the pause chip PAUSES; it no longer asks Milla, who cannot act.
+                if (c === PAUSE_CHIP && prog) { void pauseFromChip(); return }
                 if (c === CHIP_ACCEPT && deskActions?.accept) { deskActions.accept(); return }
                 if (deskActions?.accept && deskActions.acceptLabel && c === deskActions.acceptLabel) { deskActions.accept(); return }
                 void send(c)

@@ -207,7 +207,7 @@ export default function ProgrammePage() {
         <ProgrammeCalculator onChosen={() => { setPricingNext(false); void load() }} onWiden={widen} />
       ) : (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') ? (
         /* ⚑ 24 Sep (R145 step 6 · #61 #62) — Results while it runs, Complete when it ends. */
-        <ProgrammeOutcome p={p} summary={summary} onPriceNext={p.stage === 'Completion' ? () => setPricingNext(true) : undefined} />
+        <ProgrammeOutcome p={p} summary={summary} onPriceNext={p.stage === 'Completion' ? () => setPricingNext(true) : undefined} onPaused={() => void load()} />
       ) : (
       <ProgrammeWorkspace p={p} />
       )}
@@ -233,7 +233,10 @@ export default function ProgrammePage() {
           <p>This is the House account, so there is nothing to pay. P2 is authorised internally in Vida.</p>
         </div>
       )}
-      {p.hasProgramme && p.approvedAt && !p.wentLiveAt
+      {/* ⚑ 29 Sep (R174 · 2b) — NOT WHILE THE SECOND PAYMENT IS BEING CONFIRMED. Stripe tells us
+          after the client is back, so for those seconds `secondPaidAt` is still empty — and this
+          card drew its Pay button right under "Thank you — we're confirming your second payment". */}
+      {p.hasProgramme && p.approvedAt && !p.wentLiveAt && !awaitingSecond
         && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && p.money.internalBilling !== true && (
         <div className="mt-3">
           <ProgrammePayment

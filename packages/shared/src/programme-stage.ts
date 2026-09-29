@@ -53,6 +53,22 @@ export const MILLA_FAILURE_COPY = {
   pipelineFailed: "We couldn't load your pipeline. Nothing has changed.",
 } as const
 
+/**
+ * ⚑ 29 Sep (R174 · 2d) — WHY A PROGRAMME IS PAUSED, TOLD TO THE CLIENT IN PLAIN WORDS.
+ * Founder, locking the plan: the client is told why — "Yes, in plain words". One sentence per
+ * `pause_reason` (lib/programme.ts `PauseReason`). A pause with no reason recorded keeps the locked
+ * `MILLA_FAILURE_COPY.sourcingPaused`, unchanged. Each says what did NOT happen, like the copy above.
+ */
+export const MILLA_PAUSE_COPY = {
+  client:     "Paused, as you asked. Nothing is being sent and nobody new is being found. Our team has been told — tell Milla when you'd like to start again.",
+  quality:    "We've paused sending while we check quality. Nothing is being sent in the meantime and your programme is kept exactly as it was. We'll be in touch.",
+  icp_change: "We've paused while your targeting is updated. Nothing is being sent in the meantime and your programme is kept exactly as it was. We'll be in touch.",
+} as const
+
+export function pausedCopyFor(reason: string | null | undefined): string {
+  return (MILLA_PAUSE_COPY as Record<string, string>)[reason ?? ''] ?? MILLA_FAILURE_COPY.sourcingPaused
+}
+
 /** The engine statuses, mirrored here so the mapper is total without importing the API. */
 export type EngineProgrammeStatus =
   | 'DRAFT' | 'RECOMMENDED' | 'AWAITING_FIRST_PAYMENT' | 'SOURCING_AUTHORISED' | 'SOURCING'

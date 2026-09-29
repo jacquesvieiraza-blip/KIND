@@ -23,6 +23,8 @@ import Link from 'next/link'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 import type { CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { programmeMoney } from '@/lib/programme-money'
+import { useState } from 'react'
+import { PAUSE_CONFIRM, pauseMyProgramme } from '@/lib/pause-programme'
 
 export type OutcomeSummary = {
   replies_total?: number | null
@@ -45,13 +47,24 @@ function replyPill(c: string): { label: string; tone: string } {
 
 const initialsOf = (s: string) => s.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·'
 
-export default function ProgrammeOutcome({ p, summary, onPriceNext }: {
+export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: {
   p: CustomerProgramme
   summary: OutcomeSummary | null
   /** #39 — open the calculator for the next programme, on this same screen. */
   onPriceNext?: () => void
+  /** ⚑ 29 Sep (R174 · 2d) — re-read the programme once the pause has landed. */
+  onPaused?: () => void
 }) {
-  const { ask } = useMillaConversation()
+  const { ask, announce, refreshStage } = useMillaConversation()
+  const [pausing, setPausing] = useState(false)
+  async function pressPause() {
+    if (pausing || !window.confirm(PAUSE_CONFIRM)) return
+    setPausing(true)
+    const r = await pauseMyProgramme()
+    announce(r.message)
+    if (r.ok) { refreshStage(); onPaused?.() }
+    setPausing(false)
+  }
   const complete = p.stage === 'Completion'
   const achieved = p.progress.outcomesAchieved
   const target = p.outcome.target
@@ -163,9 +176,13 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext }: {
       </div>
       <div className="mv-cta-row flex-wrap">
         <Link href="/milla/replies" className="mv-btn primary">See all replies</Link>
-        {/* #80 — "Pause sending" is a request to us, said in the one chat, exactly as the chip has
-            always been: nothing on this screen stops a send by itself. */}
-        <button type="button" className="mv-btn" onClick={() => ask('Please pause my programme')}>Pause sending</button>
+        {/* ⛓️ 29 Sep (R174 · 2d) — ~~#80 — "Pause sending" is a request to us, said in the one chat …
+            nothing on this screen stops a send by itself.~~ It pauses, at once (founder: "Immediately"). */}
+        {!p.paused && (
+          <button type="button" className="mv-btn" disabled={pausing} onClick={() => void pressPause()}>
+            {pausing ? 'Pausing…' : 'Pause sending'}
+          </button>
+        )}
       </div>
     </div>
   )

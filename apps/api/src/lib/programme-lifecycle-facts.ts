@@ -27,7 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { REPLY_NEEDS_NOBODY, isOurOwnReply } from '@kind/shared'
+import { isOurOwnReply, replyNeedsDecision } from '@kind/shared'
 import {
   deriveLifecycle, type LifecycleFacts, type LifecycleVerdict,
 } from './programme-lifecycle'
@@ -43,7 +43,9 @@ import { p2Authorised, type ProgrammeRow as AuthorityRow } from './programme'
  * ⛓️ 29 Sep (R174 · 5h) — ~~`new Set(['opt_out', 'unsubscribe', 'out_of_office'])`~~: now the ONE
  * list in `@kind/shared`, which the Inbox's labels read too, and which adds a prospect's "not
  * interested" — a no is an answer, not a task. */
-const AUTO_HANDLED_REPLY = new Set<string>(REPLY_NEEDS_NOBODY)
+// ⛓️ 29 Sep (R174 · fix): ~~const AUTO_HANDLED_REPLY = new Set<string>(REPLY_NEEDS_NOBODY)~~ — every
+// reader now asks `replyNeedsDecision` (@kind/shared), which reads this same list AND skips booked
+// and qualified replies, so the count, the reply Vida names and the Inbox labels agree.
 
 /** Mailbox states that can actually send. Mirrors `sending-inbox`'s own set. */
 const SENDABLE_INBOX = new Set(['assigned', 'active'])
@@ -525,17 +527,18 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
     const ids = ((leadRows ?? []) as { id: string }[]).map(r => r.id)
     if (ids.length > 0) {
       const { data: replyRows } = await db.from('figsy_replies')
-        .select('classification, qualified_at').in('lead_id', ids)
+        .select('classification, qualified_at, meeting_booked_at').in('lead_id', ids)
       // ⚑ 29 Sep (R174 · 6c) — our own sent replies are not replies from a prospect.
-      const replies = ((replyRows ?? []) as { classification: string | null; qualified_at: string | null }[])
+      const replies = ((replyRows ?? []) as { classification: string | null; qualified_at: string | null; meeting_booked_at: string | null }[])
         .filter(r => !isOurOwnReply(r.classification))
       out.replies = replies.length
       out.positive = replies.filter(r => ['hot', 'warm', 'interested', 'referral'].includes(String(r.classification))).length
       // ⚠️ "AWAITING A DECISION" IS NOT "UNREAD". A reply the pipeline already handles — an
       // opt-out, an unsubscribe, an out-of-office — needs nobody, and counting it would put a
       // client into Needs you for a message that resolved itself.
-      out.repliesAwaitingDecision = replies.filter(r =>
-        !r.qualified_at && !AUTO_HANDLED_REPLY.has(String(r.classification))).length
+      // ⛓️ 29 Sep (R174 · fix): ~~!qualified_at && !AUTO_HANDLED_REPLY~~ — a BOOKED reply was
+      // still counted. One rule now, the Inbox label's (`replyNeedsDecision`).
+      out.repliesAwaitingDecision = replies.filter(r => replyNeedsDecision(r)).length
     }
   } catch { /* counts stay zero — an unreadable reply set never invents a task */ }
 
@@ -552,12 +555,13 @@ async function replyAwaitingFor(programmeId: string, clientId: string): Promise<
     if (leads.length === 0) return null
     const byLead = new Map(leads.map(l => [l.id, l.company]))
     const { data } = await db.from('figsy_replies')
-      .select('id, lead_id, from_name, classification, qualified_at, received_at')
+      .select('id, lead_id, from_name, classification, qualified_at, meeting_booked_at, received_at')
       .in('lead_id', leads.map(l => l.id))
       .is('qualified_at', null)
-      .order('received_at', { ascending: false }).limit(20)
-    const rows = (data ?? []) as { id: string; lead_id: string | null; from_name: string | null; classification: string | null }[]
-    const first = rows.find(r => !AUTO_HANDLED_REPLY.has(String(r.classification)))
+      .order('received_at', { ascending: false }).limit(50)
+    const rows = (data ?? []) as { id: string; lead_id: string | null; from_name: string | null; classification: string | null; meeting_booked_at: string | null }[]
+    // ⛓️ 29 Sep (R174 · fix): the reply Vida names is one that needs a decision — never a booked one.
+    const first = rows.find(r => replyNeedsDecision(r))
     if (!first) return null
     return {
       id: first.id, name: first.from_name,
@@ -1307,14 +1311,14 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     const leadIds = [...clientOfLead.keys()]
     const replyRead = await readInChunks(leadIds, async (someLeadIds) => {
       const { data, error } = await db.from('figsy_replies')
-        .select('lead_id, classification').in('lead_id', someLeadIds).is('qualified_at', null)
+        .select('lead_id, classification, meeting_booked_at').in('lead_id', someLeadIds).is('qualified_at', null)
       if (error) throw new Error(error.message)
-      return (data ?? []) as { lead_id: string | null; classification: string | null }[]
+      return (data ?? []) as { lead_id: string | null; classification: string | null; meeting_booked_at: string | null }[]
     })
     repliesRead = leadRead.complete && replyRead.complete
     for (const r of replyRead.rows) {
       if (!r.lead_id) continue
-      if (AUTO_HANDLED_REPLY.has(String(r.classification))) continue
+      if (!replyNeedsDecision(r)) continue
       const owner = clientOfLead.get(r.lead_id)
       if (!owner) continue
       repliesByClient.set(owner, (repliesByClient.get(owner) ?? 0) + 1)

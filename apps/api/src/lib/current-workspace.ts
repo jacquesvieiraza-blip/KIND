@@ -58,6 +58,8 @@
 // customer's CURRENT workspace claims as current.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import { db } from '@kind/db'
+
 /**
  * The boundary of a client's current work.
  *
@@ -66,8 +68,16 @@
  * apart. That conflation is precisely what put House's history on its own desk.
  */
 export type WorkspaceScope =
-  /** An open programme. Current work is what is positively attributed to it. */
-  | { kind: 'programme'; programmeId: string }
+  /**
+   * An open programme. Current work is what is positively attributed to it.
+   *
+   * ⚑ 29 Sep (R174 · 3a) — OR THE PROGRAMME THAT JUST FINISHED (`finished: true`), until the client
+   * starts their next Proof or programme. Founder, locking the plan: a finished programme "stays the
+   * client's current view until they start their next Proof or programme; then it disappears from
+   * current screens (R91 intact)". It is a READ scope only — `authorityFor` refuses every action on
+   * a terminal programme (`programme_terminal`), so nothing here can send, source or enrol.
+   */
+  | { kind: 'programme'; programmeId: string; finished?: true }
   /**
    * A DECLARED PROGRAMME CLIENT WITH NO OPEN PROGRAMME. Current work is exactly the leads
    * positively attributed to a free-proof pass — and nothing else on the account.
@@ -104,7 +114,7 @@ export type WorkspaceScope =
  * could disagree — and it inherits every fail-closed rule that module carries, including the
  * declared-legacy-with-an-open-programme conflict.
  *
- * ⚠️ AND IT READS NOTHING ELSE. The withdrawn version took a second trip to `clients` for
+ * ⚠️ AND IT READS NOTHING ELSE — ⛓️ except, since 29 Sep (R174 · 3a), the three ROW reads that keep a finished programme current (see `finishedProgrammeStillCurrent`); still never `clients`, a counter or a clock. The withdrawn version took a second trip to `clients` for
  * `proof_passes_done`; with attribution on the lead row there is nothing left to ask. One
  * read, no counter, no clock, no client-level state deciding what a row means.
  */
@@ -129,12 +139,57 @@ export async function currentWorkspaceScope(clientId: string): Promise<Workspace
   // removal PR, so the `legacy` scope stays explicit rather than silently vanishing.
   if (isLegacyModel(model)) return { kind: 'legacy' }
 
+  // ── ⚑ 29 Sep (R174 · 3a) — THE PROGRAMME THAT JUST FINISHED STAYS CURRENT ────────────────
+  //
+  // ⛓️ A COMPLETED programme used to drop the client straight into the empty `proof` scope, so
+  // the moment it finished, Pipeline, Inbox, Coaching and the meetings all went blank — and the
+  // Inbox told them "no emails have gone out" about a programme that had sent hundreds.
+  //
+  // It stays current until they start the NEXT Proof or programme. A new programme is the open
+  // one above; a new Proof is a Proof claim on an ICP outside this programme (see the helper).
+  // Then R91 applies exactly as before.
+  const finished = await finishedProgrammeStillCurrent(clientId)
+  if (finished.kind === 'unreadable') return finished
+  if (finished.kind === 'current') return { kind: 'programme', programmeId: finished.programmeId, finished: true }
+
   // ── DECLARED PROGRAMME, NO PROGRAMME OPEN. The one case this module exists for. ──────────
   //
   // 🛑 AND THERE IS NOTHING FURTHER TO ASK. The caller filters on `proof_pass IS NOT NULL`,
   // so a client with attributed proof work sees exactly that work and a client without sees
   // an empty workspace. Deciding it here from a client-level counter is what was wrong.
   return { kind: 'proof' }
+}
+
+/**
+ * The newest programme, if it is finished and the client has not started their next Proof.
+ *
+ * 🛑 DECIDED BY ROWS, NOT BY A CLOCK OR A COUNTER (② below: no `proof_started_at`, no timestamp
+ * arithmetic). "Started their next Proof" is a positive fact on the Proof claim itself: the
+ * client's newest claim names the ICP it ran on. If that ICP is attached to this programme, the
+ * claim was the programme's OWN Proof and the programme stays current. If it is an ICP outside
+ * this programme, a new Proof has begun and R91 applies. A claim that names no ICP is not
+ * evidence of anything, so it moves nothing.
+ */
+async function finishedProgrammeStillCurrent(clientId: string): Promise<
+  { kind: 'current'; programmeId: string } | { kind: 'not_current' } | { kind: 'unreadable'; reason: string }
+> {
+  const { TERMINAL_STATUSES } = await import('./programme')
+  const { data: rows, error } = await db.from('programmes').select('id, status')
+    .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
+  if (error) return { kind: 'unreadable', reason: `newest programme unreadable: ${error.message}` }
+  const p = ((rows ?? []) as { id: string; status: string }[])[0]
+  if (!p || !TERMINAL_STATUSES.includes(p.status as never)) return { kind: 'not_current' }
+
+  const { data: claims, error: cErr } = await db.from('proof_pass_claims').select('icp_id')
+    .eq('client_id', clientId).order('claimed_at', { ascending: false }).limit(1)
+  if (cErr) return { kind: 'unreadable', reason: `proof claims unreadable: ${cErr.message}` }
+  const icpId = ((claims ?? []) as { icp_id: string | null }[])[0]?.icp_id ?? null
+  if (!icpId) return { kind: 'current', programmeId: p.id }
+
+  const { data: icp, error: iErr } = await db.from('icps').select('programme_id').eq('id', icpId).maybeSingle()
+  if (iErr) return { kind: 'unreadable', reason: `proof ICP unreadable: ${iErr.message}` }
+  const nextProofStarted = ((icp as { programme_id?: string | null } | null)?.programme_id ?? null) !== p.id
+  return nextProofStarted ? { kind: 'not_current' } : { kind: 'current', programmeId: p.id }
 }
 
 /**

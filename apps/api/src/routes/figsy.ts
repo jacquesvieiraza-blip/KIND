@@ -2582,7 +2582,14 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
     // 🛑 NO CURRENT OUTREACH MEANS NO CURRENT REPLIES. Returned positively as an empty inbox
     // rather than as a query nobody can read — a calibration workspace has sent nobody an
     // email, so a reply here could only be an earlier motion's.
-    if (scope.mode === 'none') { res.json({ success: true, data: [], sent: [], sent_total: 0 }); return }
+    // ⚑ 29 Sep (R174 · 3a) — `sent_total: 0` makes the Inbox say "no emails have gone out", which
+    // is only TRUE for a client who has never had a programme. One who finished a programme and has
+    // started their next Proof has sent hundreds; for them the count is withheld (null = no claim).
+    if (scope.mode === 'none') {
+      const { count, error: pErr } = await db.from('programmes').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+      const neverHadProgramme = !pErr && (count ?? 0) === 0
+      res.json({ success: true, data: [], sent: [], sent_total: neverHadProgramme ? 0 : null }); return
+    }
 
     // ── 🛑 4 Sep (FOUNDER-REJECTED, CORRECTED) — UNREADABLE FAILS **CLOSED** ──────────────
     //

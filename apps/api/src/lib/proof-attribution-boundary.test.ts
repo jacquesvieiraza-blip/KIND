@@ -422,7 +422,12 @@ describe('⑥ the boundary is a row fact, and nothing else', () => {
   })
 
   it('🛑 AND IT MAKES NO SECOND CLIENT READ — one resolution, so two cannot disagree', () => {
-    expect(code(workspace())).not.toMatch(/db\.from\(/)
+    // ⛓️ 29 Sep (R174 · 3a) — ~~`not.toMatch(/db\.from\(/)`~~. A FINISHED programme stays the
+    // client's current view until their next Proof or programme (founder-locked). That takes three
+    // ROW reads — and still never a CLIENT read, which is what this guard is about.
+    const reads = [...code(workspace()).matchAll(/db\.from\('([a-z_]+)'\)/g)].map(m => m[1]).sort()
+    expect(reads).toEqual(['icps', 'programmes', 'proof_pass_claims'])
+    expect(code(workspace())).not.toMatch(/db\.from\('clients'\)/)
   })
 
   it('the four scopes are exhaustive and `none` is gone', async () => {

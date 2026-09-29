@@ -288,7 +288,13 @@ describe('E. the attribution boundary is not touched by this correction', () => 
     const code = src('lib/current-workspace.ts').split('\n')
       .filter(l => { const t = l.trim(); return !(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) }).join('\n')
     expect(code, 'the resolver must not learn about run outcomes').not.toContain('icp_run_outcomes')
-    expect(code, 'and it still reads nothing but the model').not.toContain('db.from(')
+    // ⛓️ 29 Sep (R174 · 3a) — ~~`not.toContain('db.from(')`~~. The founder locked that a FINISHED
+    // programme stays the client's current view until their next Proof or programme. That is
+    // decided by three ROW reads — the newest programme, the newest Proof claim, and that claim's
+    // ICP — and by nothing else: still no `clients` read, no counter, no clock (② in
+    // current-workspace.test.ts keeps those out). So the resolver may read exactly these tables.
+    const reads = [...code.matchAll(/db\.from\('([a-z_]+)'\)/g)].map(m => m[1]).sort()
+    expect(reads, 'the resolver reads a table outside the finished-programme rule').toEqual(['icps', 'programmes', 'proof_pass_claims'])
   })
 
   it('🛑 THE READER AND THE WRITER ARE UNCHANGED', () => {

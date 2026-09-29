@@ -731,9 +731,9 @@ authRouter.post('/onboard', async (req, res) => {
     // `sendWelcomeEmail` above. Two onboarding emails from one signup, the second written by
     // nobody and chosen by nobody. The MVP1 rule is one.
     //
-    // ⚠️ THE ROUTE IS NOT DELETED, and deliberately so. `/founder/cs/followup` remains a
-    // real operator surface — an operator may still send a follow-up on purpose, by client
-    // id, having decided to. What is gone is the automatic call at signup.
+    // ⛓️ 29 Sep (R174 ② · 1b) — AND NOW THE ROUTE IS GONE TOO. ~~"The route is not deleted…
+    // `/founder/cs/followup` remains a real operator surface."~~ The founder ruled the one-click
+    // operator send removed; a client follow-up goes through Vida → Asks.
     //
     // ⚠️ AND IT WAS A `fetch` FROM THE API TO ITSELF. Fire-and-forget, `.catch(() => {})`,
     // through `API_INTERNAL_URL` or a guessed localhost port — so on any host where that

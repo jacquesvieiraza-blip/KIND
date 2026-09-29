@@ -122,9 +122,14 @@ describe('B · the founder-agent stack generates outbound with a model, and now 
       .toContain('const mayEmail = await agentMayEmail(from)')
   })
 
-  it('🛑 all three agent senders pass through the same floor', () => {
+  // ⛓️ 29 Sep (R174 · 1b) — ~~all three agent senders~~: the CS follow-up and AE demo routes are
+  // REMOVED (one-click email that bypassed the operator send). The support auto-reply is the one
+  // model-written sender left, and it still passes the floor.
+  it('🛑 the remaining agent sender passes through the floor', () => {
     expect((FOUNDER.match(/await agentMayEmail\(/g) ?? []).length,
-      'one of the three model-written senders bypasses the suppression floor').toBe(3)
+      'the model-written sender bypasses the suppression floor').toBe(1)
+    expect(FOUNDER).not.toContain("'/cs/followup'")
+    expect(FOUNDER).not.toContain("'/ae/demo-request'")
     // ⚠️ AND IT FAILS CLOSED — an unreadable gate refuses rather than sending.
     expect(FOUNDER).toContain('the suppression gate could not be read')
   })

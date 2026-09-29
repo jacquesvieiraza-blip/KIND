@@ -684,8 +684,8 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     // board is the TRUE answer here rather than a degraded one — returned positively.
     if (scope.mode === 'none') {
       res.json({ success: true, data: {
-        counts: { approved: 0, contacted: 0, replied: 0, booked: 0 },
-        stages: { approved: [], contacted: [], replied: [], booked: [] },
+        counts: { approved: 0, ready: 0, contacted: 0, replied: 0, booked: 0 },
+        stages: { approved: [], ready: [], contacted: [], replied: [], booked: [] },
         model: 'programme', sourced_not_contacted: 0,
       } })
       return
@@ -729,6 +729,8 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     ])
 
     const contactedIds = new Set((enrolled.data ?? []).filter((e: { current_step?: number }) => (e.current_step ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
+    // ⚑ 29 Sep (R174 · 3b) — PREPARED: in the programme's package (enrolled) and not yet emailed.
+    const preparedIds = new Set((enrolled.data ?? []).map((e: { lead_id: string }) => e.lead_id))
     const repliedMap = new Map((replies.data ?? []).map((r: { lead_id: string }) => [r.lead_id, r]))
     // ⚠️ null means the meetings read FAILED. An empty map would silently move every booked
     // lead back to "replied", which reads to the client as meetings that un-happened.
@@ -742,7 +744,7 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
       id: l.id, name: [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Lead',
       company: l.company ?? null, job_title: l.job_title ?? null, score: l.score ?? null,
     })
-    const stages = { approved: [] as unknown[], contacted: [] as unknown[], replied: [] as unknown[], booked: [] as unknown[] }
+    const stages = { approved: [] as unknown[], ready: [] as unknown[], contacted: [] as unknown[], replied: [] as unknown[], booked: [] as unknown[] }
     /** Programme leads sourced but not yet in outreach. Counted, never dressed as a stage. */
     let sourcedNotContacted = 0
     for (const l of (approved ?? []) as Record<string, unknown>[]) {
@@ -759,12 +761,17 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
       // stage it has always had, because there "approved" is a real thing they did and paid
       // for. Nothing is hidden either way: a programme lead not yet contacted is counted in
       // `sourced_not_contacted` rather than dressed as a decision the customer never made.
+      // ⛓️ 29 Sep (R174 · 3b) — EXCEPT THE PREPARED. At Approval the board said "Nothing in the
+      // pipeline yet" while the next screen showed the people in the package. They are shown as
+      // READY TO CONTACT (never "approved" — the client approved the programme, not people); only
+      // people outside the package stay a count.
+      if (scope.mode === 'ids' && preparedIds.has(id)) { stages.ready.push(card(l)); continue }
       if (scope.mode === 'ids') { sourcedNotContacted += 1; continue }
       stages.approved.push(card(l))
     }
 
     res.json({ success: true, data: {
-      counts: { approved: stages.approved.length, contacted: stages.contacted.length, replied: stages.replied.length, booked: stages.booked.length },
+      counts: { approved: stages.approved.length, ready: stages.ready.length, contacted: stages.contacted.length, replied: stages.replied.length, booked: stages.booked.length },
       stages,
       // ⚠️ THE PROGRAMME BOARD SAYS SO IN THE PAYLOAD rather than leaving the portal to infer
       // it from an empty `approved` column — which is how a UI ends up guessing a model.

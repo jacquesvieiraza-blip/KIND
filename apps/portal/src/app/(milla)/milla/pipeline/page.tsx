@@ -12,8 +12,8 @@ import { useLiveRefresh } from '@/lib/use-live-refresh'
 
 type Card = { id: string; name: string; company: string | null; job_title: string | null; score: number | null; classification?: string | null; start_time?: string | null }
 type Pipeline = {
-  counts: { approved: number; contacted: number; replied: number; booked: number }
-  stages: { approved: Card[]; contacted: Card[]; replied: Card[]; booked: Card[] }
+  counts: { approved: number; ready?: number; contacted: number; replied: number; booked: number }
+  stages: { approved: Card[]; ready?: Card[]; contacted: Card[]; replied: Card[]; booked: Card[] }
   /** Which commercial model the SERVER built this board for. Absent on an older API. */
   model?: 'programme' | 'legacy'
   /** Programme only: sourced people not yet in outreach. A NUMBER, never a stage. */
@@ -25,6 +25,14 @@ async function token(): Promise<string | undefined> {
 }
 
 type Stage = { key: keyof Pipeline['stages']; label: string; sub: string; tone: string; bg: string }
+
+// ⛓️ 29 Sep (R174 · 3b) — THE BOARD BELOW WAS LOCKED 4 SEP AS "CONTACTED → REPLIED → BOOKED …
+// Nothing else may join it". The founder locked Section 3 of the audit plan on 29 Sep (R174,
+// *"lock section 3"*), whose 3b puts the PREPARED people on it as "Ready to contact": at Approval
+// the board said "Nothing in the pipeline yet" while the next screen showed them. It is drawn only
+// while someone is in it, and it is not "Approved" — the client approved the programme, not people.
+const READY_STAGE: Stage =
+  { key: 'ready', label: 'Ready to contact', sub: 'prepared — we email them once it goes live', tone: '#6d28d9', bg: '#f3ecff' }
 
 // ── 🛑 4 Sep — AN EMPTY "APPROVED" COLUMN IS STILL A VISIBLE FOURTH STAGE ────────────────
 //
@@ -63,9 +71,10 @@ export default function MillaPipelinePage() {
   // API is older or the field is missing, showing a column that does not apply is a far
   // smaller harm than hiding one that does.
   const programme = p?.model === 'programme'
-  const STAGES: Stage[] = programme ? OUTREACH_STAGES : [APPROVED_STAGE, ...OUTREACH_STAGES]
+  const ready = p?.counts.ready ?? 0
+  const STAGES: Stage[] = programme ? (ready > 0 ? [READY_STAGE, ...OUTREACH_STAGES] : OUTREACH_STAGES) : [APPROVED_STAGE, ...OUTREACH_STAGES]
   const total = p
-    ? (programme ? 0 : p.counts.approved) + p.counts.contacted + p.counts.replied + p.counts.booked
+    ? (programme ? ready : p.counts.approved) + p.counts.contacted + p.counts.replied + p.counts.booked
     : 0
 
   return (
@@ -98,7 +107,7 @@ export default function MillaPipelinePage() {
       {p && total > 0 && (
         <div className="flex gap-3.5 overflow-x-auto pb-2">
           {STAGES.map(st => {
-            const cards = p.stages[st.key]
+            const cards = p.stages[st.key] ?? []
             return (
               <div key={st.key} className="w-[260px] shrink-0">
                 <div className="flex items-center justify-between mb-1.5">

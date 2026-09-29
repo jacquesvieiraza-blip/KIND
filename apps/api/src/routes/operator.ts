@@ -8032,6 +8032,26 @@ operatorRouter.get('/revenue/reconcile', async (req: Request, res: Response) => 
     if (error) { res.status(500).json({ success: false, error: `The ledger could not be read (${error.message}) — nothing was compared.` }); return }
 
     const byRef = new Map((rows ?? []).map((r: Record<string, unknown>) => [String(r.reference), r]))
+    // ⚑ 29 Sep (R174 · 4f) — PROGRAMME PAYMENTS ARE RECORDED ON THE PROGRAMME, not in the credit
+    // ledger. ⛓️ Only `credit_transactions` was looked in, so every real programme payment read
+    // "a payment was taken and never recorded" — a false alarm on the one thing that matters.
+    // A session matching a programme's payment reference is matched to that stage's amount.
+    if (ids.length > 0) {
+      const { data: progs, error: pErr } = await db.from('programmes')
+        .select('id, client_id, first_payment_ref, second_payment_ref, first_payment_cents, second_payment_cents, wallet_applied_cents')
+        .or(`first_payment_ref.in.(${ids.join(',')}),second_payment_ref.in.(${ids.join(',')})`)
+      if (pErr) { res.status(500).json({ success: false, error: `The programme payments could not be read (${pErr.message}) — nothing was compared.` }); return }
+      for (const p of (progs ?? []) as Array<Record<string, unknown>>) {
+        const same = p.first_payment_ref && p.first_payment_ref === p.second_payment_ref
+        if (p.first_payment_ref && !byRef.has(String(p.first_payment_ref))) {
+          const cents = Number(p.first_payment_cents ?? 0) + (same ? Number(p.second_payment_cents ?? 0) : 0) - Math.max(0, Number(p.wallet_applied_cents ?? 0))
+          byRef.set(String(p.first_payment_ref), { reference: p.first_payment_ref, amount: cents / 100, type: same ? 'programme_in_full' : 'programme_first_half', client_id: p.client_id })
+        }
+        if (p.second_payment_ref && !same && !byRef.has(String(p.second_payment_ref))) {
+          byRef.set(String(p.second_payment_ref), { reference: p.second_payment_ref, amount: Number(p.second_payment_cents ?? 0) / 100, type: 'programme_second_half', client_id: p.client_id })
+        }
+      }
+    }
     const out = settlements.map(s => {
       const row = byRef.get(s.sessionId) as Record<string, unknown> | undefined
       const cur = s.bt?.currency ?? null

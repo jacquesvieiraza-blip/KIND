@@ -51,6 +51,25 @@ export type ProgrammeMoneyRow = {
   shortfall_credit_cents: number
   /** Not revenue: the demo, or House (internal authority). Listed, left out of the totals. */
   excluded: 'demo' | 'house' | null
+  /** ⚑ 29 Sep (R174 · 4f) — each stage actually paid: one payment in full, or the older two halves. */
+  payments: Array<{ stage: 'in_full' | 'first_half' | 'second_half'; cents: number; paid_at: string; ref: string | null }>
+}
+
+/** The stages paid, with the cash each brought in (wallet credit comes off the first). */
+function paymentsOf(p: Record<string, unknown>): ProgrammeMoneyRow['payments'] {
+  const out: ProgrammeMoneyRow['payments'] = []
+  const wallet = Math.max(0, Number(p.wallet_applied_cents ?? 0))
+  const oneShot = Number(p.second_payment_cents ?? 0) === 0 || (p.second_payment_ref != null && p.second_payment_ref === p.first_payment_ref)
+  if (p.first_paid_at) out.push({
+    stage: oneShot ? 'in_full' : 'first_half',
+    cents: Number(p.first_payment_cents ?? 0) + (oneShot && p.second_payment_ref === p.first_payment_ref ? Number(p.second_payment_cents ?? 0) : 0) - wallet,
+    paid_at: String(p.first_paid_at), ref: (p.first_payment_ref as string | null) ?? null,
+  })
+  if (p.second_paid_at && !oneShot) out.push({
+    stage: 'second_half', cents: Number(p.second_payment_cents ?? 0),
+    paid_at: String(p.second_paid_at), ref: (p.second_payment_ref as string | null) ?? null,
+  })
+  return out
 }
 
 export type ProgrammeMoneyBook = {
@@ -68,7 +87,9 @@ export async function programmeMoneyBook(): Promise<ProgrammeMoneyBook> {
   const { data: progs, error } = await db.from('programmes').select(
     'id, client_id, status, size_band, meeting_target, price_per_meeting_cents, price_total_cents, ' +
     'first_payment_cents, second_payment_cents, first_paid_at, second_paid_at, wallet_applied_cents, ' +
-    'make_whole_cents, disputed_at, delivered_meetings, shortfall_credited_at, shortfall_credit_cents, created_at')
+    'make_whole_cents, disputed_at, delivered_meetings, shortfall_credited_at, shortfall_credit_cents, created_at, ' +
+    // ⚑ 29 Sep (R174 · 4f) — the payment references, so Billing can list each paid stage.
+    'first_payment_ref, second_payment_ref')
     .order('created_at', { ascending: false })
   if (error) throw new Error(`programmes unreadable: ${error.message}`)
   const list = (progs ?? []) as unknown as Array<Record<string, unknown>>
@@ -102,6 +123,7 @@ export async function programmeMoneyBook(): Promise<ProgrammeMoneyBook> {
       meetings_delivered: delivered, settled,
       shortfall_credit_cents: Number(p.shortfall_credit_cents ?? 0),
       excluded: c?.is_demo === true ? 'demo' : (c?.user_id && houseUsers.has(c.user_id)) ? 'house' : null,
+      payments: paymentsOf(p),
     })
   }
 

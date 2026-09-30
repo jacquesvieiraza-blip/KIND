@@ -10,6 +10,7 @@
 > | **Founder rulings / the locks** | [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) — **wins every conflict** | ✋ |
 > | **Current launch execution** | [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) | ✋ |
 > | **Current implementation status (the dots)** | [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) | ✋ |
+> | ⛓️ **30 Sep: current status is the Operating Board** (R85a, 24 Sep). PRODUCT-INVENTORY and LAUNCH-PAD are frozen as history. | GitHub Project #5, *K.I.N.D — Operating Board* | ✋ |
 >
 > ## ✨ AND ONE THING MAY NOT BE PARKED HERE AT ALL — FD-03 / **R79**, 28 Aug
 >
@@ -22,11 +23,18 @@
 > **Known superseded language you WILL find below.** These are left in deliberately — the repo chains history, it does not delete it — and none of them is current:
 > - **earlier launch dates, and "already launched" phrasing** → the launch is **FRIDAY 4 SEPTEMBER 2026** (**R76**, 28 Aug, unconditional). ⛓️ *This line read "25 Aug (R57)" until 28 Aug; R57 is superseded by R76 — only the date moved.*
 > - **Milla / Vida described as "coming soon"** → they are the live portals of the managed model (**AR1**); the Milla homepage is **live** (**R59**, #697)
-> - **a 10-step sequence cap** → the cap is **7** (**D14**, ruled 6 Aug; `MAX_STEPS = 7`)
+> - **a 10-step sequence cap** → the cap is **7** (**D14**, ruled 6 Aug; `MAX_STEPS = 7`) ⛓️ **25 Sep: now at most five emails per person** (**R166 ⑥**, #2363).
 > - **booking marked "Soon"** → that wording is historical. **Current booking status must be read from PRODUCT-INVENTORY (#44 / #361), not from this document.**
 > - **the old Smartlead/Instantly sender architecture** → **D1 as amended 30 Jul (#577)**: our own engine sends our outreach; Instantly is a warm-up utility on Growth
 > - **Apollo described as retired** → **AR5**: *"Apollo is OURS. PDL + Hunter are the CLIENTS'"* — the founder overruled the "retired" audit on 1 Aug
 > - **blanket compliance wording** ("GDPR & POPIA compliant") → **R56**: we do not award ourselves compliance verdicts, and residency is stated in both halves — **stored Dublin `eu-west-1`, processed Railway US West**
+- ⛓️ **Added 30 Sep, the programme era. Each of these is superseded wherever it appears below:**
+  - **the $299 onboarding pack, $4 per approved lead, the dollar wallet, and "the client pays when they approve"** → retired in the code (**R137**, 23 Sep). Pricing is a flat price per meeting by company size, **$99 Founders · $199 Growth · $299 Enterprise**, paid **once, in full**, at Recommendation (**R166**, 25 Sep; last calls **R168**).
+  - **"the meeting count is an obligation; overrun is ours to absorb"** → the count is a **target, not a guarantee**. We work to a limit and stop, and a shortfall becomes wallet credit **once, for 90 days** (**R136** as amended by **R166**).
+  - **the MBF demo** → the one client demo is **Northwind** (**R164**), matched to the product (**R173**). MBF was removed (#2427).
+  - **every batch after the first sourced by hand** → the next batch starts itself inside a live programme's own limit, and still waits for Send and Make live (**R175**, 30 Sep).
+  - **"sending is OFF / delivery not proven"** → House (Client Zero) is **live and running** as of 30 Sep, kill-switch OFF. The first real send was not yet confirmed that day.
+  - **UI redesign ideas for the current product** → the product look is **locked** (**R167**). Changes improve it in the look it already has.
 >
 > ⚠️ **This fence is a fence, not an edit.** The body below has **not** been re-fact-checked and has **not** been rewritten — that was deliberate (founder, 21 Aug). Treat every current-state sentence in it as historical until you have checked it against the three docs above.
 
@@ -139,6 +147,8 @@ Advanced tier price/shape (safely held by "sell before build") · R2 public post
 # ░ 💼 THE THREE-PRODUCT FUTURE — one engine, three ways to pay (R39, founder-ruled 15 Aug) ░
 
 > ⛓️ **This section was "THE TWO-MODEL FUTURE — Base + Advanced" (founder-locked 31 Jul, #608). R39 (15 Aug) did not replace that lock — it FILLED it.** Advanced was a locked shape with deliberately empty contents; it is now **P2 Coaching**, and a third product joined the ladder. The 31-Jul text is kept verbatim below because its candidate list already named what P2 turned out to be ("higher-touch operator time", "the brain"). Full ruling + the founder's words → `PRODUCT-RULES.md` R39.
+>
+> ⛓️ **30 Sep: the PRICE and BILLING rows below are superseded for P1.** The live product is priced per meeting by company size, paid once in full (**R166**), and per-lead pricing is retired (**R137**). P2 and P3 remain future ideas. Their per-lead and usage shapes are **not** decided: any future product is priced under R166 unless the founder rules otherwise.
 >
 > | | **P1 · MANAGED** *(live)* | **P2 · COACHING** *(the second paid product)* | **P3 · FULL SaaS** *(later)* |
 > |---|---|---|---|

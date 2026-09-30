@@ -1203,6 +1203,23 @@ internalRouter.post('/figsy/auto-replenish', async (_req: Request, res: Response
   }
 })
 
+// ⚑ 30 Sep (R175) — THE NEXT BATCH, STARTED BY THE PROGRAMME ITSELF. Not the top-up above
+// come back: this runs only inside a LIVE programme's own authority and limit, through the
+// operator button's own door (`sourceProgramme`), and only when the last batch has been
+// reviewed and fewer than two days of sending are left. Every decision is in
+// `lib/programme-auto-batch.ts`, which Vida reads too.
+internalRouter.post('/programmes/auto-batch', async (_req: Request, res: Response) => {
+  try {
+    const { runAutoBatches } = await import('../lib/programme-auto-batch')
+    const out = await runAutoBatches()
+    for (const r of out.rows) console.log(`[auto-batch] ${r.programme_id.slice(0, 8)} ${r.state} — ${r.refused ?? r.line}`)
+    res.json({ success: true, data: out })
+  } catch (err) {
+    console.error('[programmes/auto-batch]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Auto-batch run failed' })
+  }
+})
+
 // ── MILLA MORNING BRIEF ───────────────────────────────────────────────────────
 // Call daily 07:30 UTC. Sends each active client a brief morning intelligence
 // summary: pipeline value, reply rate vs benchmark, leads added today, active campaigns.

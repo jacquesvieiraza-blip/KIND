@@ -521,6 +521,12 @@ export function startCrons(): void {
   // records: removing a cron line alone leaves a live endpoint any stale scheduler,
   // run-book entry or hand-rolled POST can still fire.
 
+  // ⚑ 30 Sep (R175) — Daily 05:45 UTC (07:45 SAST), before the send window — the next batch
+  // for a LIVE programme, inside its own authority and limit, only once the last batch has
+  // been reviewed and fewer than two days of sending are left. NOT the top-up retired above:
+  // see `lib/programme-auto-batch.ts` for why the two are different things.
+  cron.schedule('45 5 * * *', () => callInternal('/programmes/auto-batch'), { timezone: 'UTC' })
+
   // Daily 07:40 UTC — low credit warning (staggered from /milla/morning-brief-all at 07:30)
   cron.schedule('40 7 * * *', () => callInternal('/ae/low-credits'), { timezone: 'UTC' })
 

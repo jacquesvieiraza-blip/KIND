@@ -131,6 +131,12 @@ export type ProgrammeTruth = {
     may_complete: boolean
     complete_blocked_reason: string | null
     /**
+     * ⚑ 30 Sep (R175) — what the daily automatic-batch run will do for this programme, and why.
+     * The SAME `decideAutoBatch` the job runs, so the panel cannot promise a batch the job will
+     * not start. Operator-only: the limit behind it is never shown to a client (R136 ③).
+     */
+    auto_batch?: { action: 'source' | 'wait' | 'stop'; state: string; line: string } | null
+    /**
      * ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — what the Settle control needs.
      *
      * `meetings_booked` is attributed to THIS programme by `meetingCounts` — the same source the
@@ -313,6 +319,11 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   // ⚑ 16 Sep (E1) — the SHARED gate, asked here so no screen re-implements it. See below.
   const completeVerdict = mayComplete(p)
 
+  // ⚑ 30 Sep (R175) — the automatic next batch, decided exactly as the daily job decides it.
+  // `autoBatchFor` never throws; an unreadable fact comes back as its own 'unreadable' line.
+  const { autoBatchFor } = await import('./programme-auto-batch')
+  const autoBatch = await autoBatchFor(p)
+
   // ⚑ 23 Sep (MVP1 Stage 6) — meetings attributed to this programme, for the Settle control.
   let meetingsBooked: number | null = null
   try {
@@ -416,6 +427,7 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       // the defect this whole panel exists to remove.
       may_complete: completeVerdict.allowed,
       complete_blocked_reason: completeVerdict.allowed ? null : (completeVerdict.reason ?? null),
+      auto_batch: autoBatch,
       meetings_booked: meetingsBooked,
       meetings_qualified: meetingsQualified,
       settle_blocked_reason: settleBlockedReason,

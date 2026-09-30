@@ -456,6 +456,8 @@ export default function VidaConsolePage() {
        */
       may_complete?: boolean
       complete_blocked_reason?: string | null
+      /** ⚑ 30 Sep (R175) — the server's automatic-next-batch decision and its line. Optional: an older API shows nothing. */
+      auto_batch?: { action: 'source' | 'wait' | 'stop'; state: string; line: string } | null
       /** ⚑ 23 Sep (Stage 6 · R136 ④) — meetings attributed to this programme; null = unreadable. */
       meetings_booked?: number | null
       /** ⚑ 25 Sep (P6) — the qualified figure settlement counts, and why it may not settle yet. */
@@ -4852,6 +4854,14 @@ export default function VidaConsolePage() {
                     )}
 
                     <b className="text-[13px] block mb-1">Batches</b>
+                    {/* ⚑ 30 Sep (R175) — what the daily run will do next, in the server's words. */}
+                    {prog.programme?.auto_batch && !selectedIsDemo() && (
+                      <p data-testid="auto-batch-line" className={`text-[12.5px] mb-2 ${
+                        prog.programme.auto_batch.action === 'stop' ? 'text-amber-800'
+                          : prog.programme.auto_batch.action === 'source' ? 'text-[#7C3AED]' : 'text-[#6b5f8f]'}`}>
+                        Next batch · {prog.programme.auto_batch.line}
+                      </p>
+                    )}
                     {prog.batches.length === 0
                       ? <p className="text-[12.5px] text-[#9b8ec4] mb-2">No batch has been opened yet.</p>
                       : prog.batches.map(b => (

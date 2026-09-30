@@ -7382,6 +7382,20 @@ BEGIN
 END $$;
 `,
   },
+  {
+    // ── ⚑ 30 Sep (#2473) — A PROSPECT'S STATE, SO EACH IS EMAILED IN THEIR OWN TIME ZONE ──────
+    // Apollo's reveal returns it and nothing kept it, so every US prospect waited for the
+    // window to be open from Honolulu to New York at once. EXPAND ONLY: one nullable column.
+    key: '20260930_lead_state',
+    title: 'leads.state — the prospect\'s state, so each is emailed in their own time zone (#2473)',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS state text;
+
+COMMENT ON COLUMN public.leads.state IS
+  'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

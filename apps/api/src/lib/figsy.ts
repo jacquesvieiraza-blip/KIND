@@ -1035,8 +1035,14 @@ async function sendSequenceEmailCore(
     // in THEIR local time; House sells into the UK and the US, five to eight hours apart, so a
     // single UTC window would put half the audience in the middle of the night. Where the
     // country is unknown the guard falls back to the programme's default zone and says so.
+    // ⚑ 30 Sep (#2473) — a US prospect's own state, so they are judged on their own time zone
+    // instead of every US zone at once. No state (or no column yet) → null → the whole-country
+    // window exactly as before. See `lead-state.ts`.
+    const recipientCountry = (lead as { country?: string | null }).country ?? null
+    const { readLeadState, windowRegionFor } = await import('./lead-state')
+    const recipientRegion = windowRegionFor(recipientCountry, await readLeadState(lead.id))
     const verdict = await checkEnrollmentAuthority(enrollmentId, 'OUTREACH', lead.client_id ?? null,
-      { recipientCountry: (lead as { country?: string | null }).country ?? null })
+      { recipientCountry, recipientRegion })
     if (!verdict.allowed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
       return 'deferred'

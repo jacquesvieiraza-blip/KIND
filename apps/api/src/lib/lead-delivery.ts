@@ -102,6 +102,10 @@ export async function enrichAndDeliverLeads(
       if (person.last_name) patch.last_name = person.last_name
       if (person.country) patch.country = person.country
       await db.from('leads').update(patch).eq('id', r.id)
+      // ⚑ 30 Sep (#2473) — the state, in its own best-effort write so a database without the new
+      // column still stores everything above. See `lead-state.ts`.
+      const { saveLeadState } = await import('./lead-state')
+      await saveLeadState(r.id as string, person.state)
       qualified++
     }
 

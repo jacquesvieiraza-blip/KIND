@@ -109,6 +109,9 @@ const REGION_ZONES: Record<string, string> = {
   al: 'America/Chicago', alabama: 'America/Chicago',
   ms: 'America/Chicago', mississippi: 'America/Chicago',
   tn: 'America/Chicago', tennessee: 'America/Chicago',
+  // ⚑ 30 Sep (#2473) — the rest of the Central states, now that the data arrives.
+  nd: 'America/Chicago', 'north dakota': 'America/Chicago',
+  sd: 'America/Chicago', 'south dakota': 'America/Chicago',
   // Eastern
   ny: 'America/New_York', 'new york': 'America/New_York',
   ma: 'America/New_York', massachusetts: 'America/New_York',
@@ -125,6 +128,16 @@ const REGION_ZONES: Record<string, string> = {
   mi: 'America/New_York', michigan: 'America/New_York',
   ct: 'America/New_York', connecticut: 'America/New_York',
   me: 'America/New_York', maine: 'America/New_York',
+  // ⚑ 30 Sep (#2473) — the rest of the Eastern states and DC's spellings, now that Apollo's
+  // state is kept. A state that spans two zones keeps its majority zone, as the list above does.
+  in: 'America/New_York', indiana: 'America/New_York',
+  ky: 'America/New_York', kentucky: 'America/New_York',
+  wv: 'America/New_York', 'west virginia': 'America/New_York',
+  de: 'America/New_York', delaware: 'America/New_York',
+  ri: 'America/New_York', 'rhode island': 'America/New_York',
+  vt: 'America/New_York', vermont: 'America/New_York',
+  nh: 'America/New_York', 'new hampshire': 'America/New_York',
+  'district of columbia': 'America/New_York', 'washington, d.c.': 'America/New_York', 'washington d.c.': 'America/New_York',
   // Outside the lower 48 — named so they resolve EXACTLY when we do know them, rather than
   // only ever widening the American intersection.
   ak: 'America/Anchorage', alaska: 'America/Anchorage',

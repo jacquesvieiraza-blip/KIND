@@ -821,6 +821,8 @@ export interface RevealedPerson {
   email_status: string | null
   country: string | null
   last_name: string | null
+  /** ⚑ 30 Sep (#2473) — the person's state, so the send window can use their own time zone. */
+  state?: string | null
 }
 
 export async function bulkMatchEmails(
@@ -883,7 +885,7 @@ export async function bulkMatchEmails(
       const data = await res.json() as {
         matches?: Array<{
           id?: string; email?: string | null; email_status?: string | null
-          country?: string | null; last_name?: string | null
+          country?: string | null; last_name?: string | null; state?: string | null
         } | null>
       }
       // ⚑ 25 Sep (P2) — WHAT THIS BATCH SPENT: Apollo charges a credit per matched person.
@@ -904,6 +906,7 @@ export async function bulkMatchEmails(
             email_status: m?.email_status ?? null,
             country:      m?.country ?? null,
             last_name:    m?.last_name ?? null,
+            state:        m?.state ?? null,
           })
         }
       })

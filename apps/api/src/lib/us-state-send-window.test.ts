@@ -137,8 +137,8 @@ describe('#2473 — wired end to end', () => {
 
   it('the send gate hands the window a US-only region', () => {
     const f = src('lib/figsy.ts')
-    expect(f).toContain('recipientRegion:')
-    expect(f).toContain('windowRegionFor(country, await readLeadState(lead.id))')
+    expect(f).toContain('{ recipientCountry, recipientRegion }')
+    expect(f).toContain('windowRegionFor(recipientCountry, await readLeadState(lead.id))')
   })
 
   it('the migration exists and is registered for Vida → Engine', () => {

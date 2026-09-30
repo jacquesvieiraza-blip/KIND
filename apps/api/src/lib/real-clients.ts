@@ -42,6 +42,34 @@ export async function resolveHouseUserIds(): Promise<Set<string>> {
   return ids
 }
 
+/**
+ * ⚑ 29 Sep (R152 · fix) — THE HOUSE *LOGIN* ONLY: the auth user(s) whose email is
+ * `HOUSE_ACCOUNT_EMAIL` (jacques.vieiraza+house@gmail.com), NOT every address on the House list.
+ *
+ * R152 keeps the retired `hello@get-kind.com` on the list ONLY so its history stays out of every
+ * revenue figure. Deciding WHICH account is Client Zero from the whole list found two accounts —
+ * the new House and the old one — and refused to guess: House setup, the House mailbox, the test
+ * account wipe and System's House check all answered "the house account could not be resolved".
+ * Exclusion still uses `resolveHouseUserIds` (the whole list); only the decision uses this.
+ */
+export async function resolveHouseLoginUserIds(): Promise<Set<string>> {
+  const ids = new Set<string>()
+  const login = HOUSE_ACCOUNT_EMAIL.trim().toLowerCase()
+  try {
+    for (let page = 1; page <= 500; page++) {
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 200 })
+      const users = data?.users ?? []
+      if (error || users.length === 0) break
+      for (const u of users) {
+        if ((u.email ?? '').trim().toLowerCase() === login) ids.add(u.id)
+      }
+    }
+  } catch (err) {
+    console.warn('[real-clients] resolveHouseLoginUserIds failed — the house login is not resolved:', err)
+  }
+  return ids
+}
+
 /** IO — every client (id, user_id, is_demo), paged past the PostgREST 1000-row cap. */
 async function fetchAllClientsMin(): Promise<MinClient[]> {
   const out: MinClient[] = []

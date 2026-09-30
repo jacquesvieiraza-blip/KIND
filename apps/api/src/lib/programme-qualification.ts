@@ -206,7 +206,7 @@ async function judgeAll(
   candidates: QualificationCandidate[],
   icp: IcpCriteria,
   out: QualifyOutcome,
-  revealed: Map<string, { email: string; email_status: string | null; country: string | null; last_name: string | null }>,
+  revealed: Map<string, { email: string; email_status: string | null; country: string | null; last_name: string | null; state?: string | null }>,
 ): Promise<void> {
   const now = new Date().toISOString()
   for (const c of candidates) {
@@ -238,6 +238,8 @@ async function judgeAll(
         console.error(`[programme-qualification] the PAID reveal for lead ${c.id} could not be stored (${factsErr.message}) — it is left unjudged so nothing settles on evidence that no longer exists.`)
         continue
       }
+      // ⚑ 30 Sep (#2473) — the state, in its own best-effort write (see `lead-state.ts`).
+      { const { saveLeadState } = await import('./lead-state'); await saveLeadState(c.id, person.state) }
     }
 
     // ── ② THE VERDICT, IN ITS OWN WRITE ─────────────────────────────────────────────

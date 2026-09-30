@@ -233,6 +233,10 @@ create table if not exists public.leads (
   -- House's ICP requires. `finalVerdict` needs this fact; without a column to hold it, every
   -- candidate would need a paid reveal on every pass because the answer had nowhere to live.
   email_status      text,
+  -- ── 30 Sep · THE PROSPECT'S STATE (20260930_lead_state, #2473) ─────────────────────────
+  -- As Apollo's reveal returns it. The send window reads it so a US prospect is emailed in their
+  -- own time zone; NULL keeps the whole-country window.
+  state             text,
   -- ── 9 Sep · THE M&V QUALIFICATION VERDICT (20260909_programme_qualification) ────────────
   -- Programme entitlement is consumed by QUALIFIED prospects, never by `delivered_at` — which
   -- is the legacy self-serve visibility stamp, capped at a constant 25 per run and ~5/day, and

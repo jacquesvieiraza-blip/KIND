@@ -1,8 +1,36 @@
 # 🟣 K.I.N.D — MASTER (strategy · decisions · history · session log)
 
+> ⛓️ **30 Sep:** status now lives on the **Operating Board** (R85a, 24 Sep), and LAUNCH-PAD and PRODUCT-INVENTORY are frozen as history. The contract below is kept as it was written.
+>
 > **🧭 Four-doc contract:** **KIND-MASTER** *(this doc)* = strategy, decisions, why, dated session log · **LAUNCH-PAD** = daily execution · **PRODUCT-INVENTORY** = status (one dot, one owner) · **V2-TRACKER** = future. **Conflict rule:** strategy/decision truth = here; status = PRODUCT-INVENTORY; daily action = LAUNCH-PAD; future = V2-TRACKER. No fifth core doc. *(This supersedes every older "two docs" / "three source docs" line below — those are archived history.)* **Money model of record → [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html)** (founder-locked 25 Jul, #556).
 
-## ▶️ START HERE — ⚠️ **THE 26-JUL FRAMING IS HISTORICAL. Read this box first.**
+## ▶️ START HERE — WHERE WE ARE, 30 SEP 2026 *(the box below this one is history)*
+
+> ⛓️ **WRITTEN 30 SEP, checked against the code on `main` and the live build `9256cc6` (API, Milla and Vida all report it).** It replaces the 21-Aug box below, which still describes the retired wallet model and the MBF demo. That box is kept as history, not deleted. **Status of record is the Operating Board (R85a, 24 Sep), not this box.**
+
+- **What we sell.** **Milla & Vida:** a managed outbound programme that books qualified meetings. **Milla** is the client's side and **Vida** is ours, the operator console. K.I.N.D remains the registered company.
+- **How a client moves (the six stages, `mvp1-stage.ts`):** in Milla, Brief → Proof → Programme → Approval → Results → Complete. In Vida the same six positions are Brief → Proof → Prepare → Ready → Run → Complete. Every account is on the programme; the $299 pack and $4 per lead are retired in the code (**R137**, 23 Sep).
+- **The money (R166, 25 Sep; R168 the last calls):**
+  - a flat price per meeting by company size: **$99 Founders · $199 Growth · $299 Enterprise**;
+  - **one payment in full** at Recommendation;
+  - the meeting count is a **target, not a guarantee** (**R136**);
+  - a shortfall becomes wallet credit **once, for 90 days**;
+  - hard barriers on how many people we source and contact: a limit of 300 / 300 / 400 people per meeting, never disclosed to a client (R136 ③); nobody emailed more than five times; the no-meeting review every 250 people; bounce and Apollo-credit stops.
+- **House (Client Zero) is LIVE and running, 30 Sep.**
+  - It uses the login `jacques.vieiraza+house@gmail.com` (**R152**) and is decided by that login only (#2455).
+  - 234 prospects are in the sequence. The kill-switch is OFF (`AUTO_OUTREACH_ENABLED` and `FIGSY_OPERATOR_SEND_ENABLED` set by the founder). Run was pressed on 30 Sep.
+  - ⚠️ **The first real send is not yet confirmed.** "Emails sent" was still 0 at the last check.
+- **The next batch starts itself (R175, 30 Sep).** A daily run finds up to 250 more for a live programme when fewer than two days of sending are left, never past its limit. Each batch still waits for **Send** and **Make live** before anyone is emailed. Whether that becomes fully hands-off is an open founder decision (#2462).
+- **The demo is Northwind** (**R164**, 25 Sep): a demo login on the live site, made-up people, any of the six stages set from Vida. It can never charge, take a mailbox or send. It must match the product exactly (**R173**), and the demo walk is part of `check.sh`. The MBF demo is gone (#2427).
+- **The product is locked** (**R167**, 25 Sep): no redesign; changes improve it in the look it already has. The 151-item Milla + Vida audit (**R174**, 29 Sep) is built and live, #2409–#2455.
+- **How we work.** The founder merges; nothing goes to GPT (**R154**, 24 Sep). Every PR carries the full check and a red proof. Everything merged to `main` is live after `scripts/ship.sh`.
+- **Next, in order (founder, 30 Sep):**
+  1. confirm House's first emails went out;
+  2. the live smoke test, end to end;
+  3. record the demo, one Milla video and one Vida video (#2458);
+  4. the domain move `get-kind.com` → `millaandvida.ai` (#2456, mapped; the founder buys the domain first).
+
+## 🗄️ START HERE as of 21 AUG — ⛓️ **HISTORICAL since 30 Sep: the wallet model, the MBF demo and "sending OFF" below are all superseded. Read the 30-Sep box above.**
 
 > ⛓️ **RECONCILED 21 Aug — this block was written 26 Jul and its FRAMING is superseded for current-state use. The bullets below are corrected in place; the founder's words are preserved.**
 >
@@ -575,6 +603,7 @@
 - **29 Sep (R174 · fix, founder's live walk):** Vida's replies-to-decide count, the Needs-you board and the reply Vida names now use one shared rule (replyNeedsDecision, the Inbox label's), so booked replies are no longer counted as waiting (the demo read 4, the Inbox showed 1) and Vida no longer names a booked prospect; the Inbox's grey line shows plain words, not classifier codes; the demo shows no internal blockers and no Source-leads shortcut..
 - **29 Sep (R174 · fix):** the demo sweep sees the real pages — the test database's auth.uid() now reads a login the way Supabase does (the JSON claims too), so a signed-in client is no longer 'nobody' through the REST gateway and bounced to the Brief from every Milla page; the sweep now fails any Milla page that lands anywhere but where it was asked (the Brief only at Brief)..
 - **29 Sep (R174 · fix, the run-through's 8):** a client's own country in Settings is theirs — their saved country first, no African-list default, and an empty country is never saved over theirs; Coaching and the Results card say interested, not hot or warm in red; the Cockpit's old-model history is grey with the minus sign in the right place, never 'burning'; the lead record and the Complete-stage note speak plainly; the sweep counts only real red and expects Documents' move..
+- **30 Sep (docs · board):** docs, board and vision brought to today — KIND-MASTER gets a 30-Sep Start-here box (programme model, R166 prices, House live, R175, Northwind demo, next steps) with the 21-Aug box kept as history; V2-TRACKER's fence lists what the programme era superseded; board: pricing P0–P13, the demo and deploy cards closed on live evidence, the domain move logged (#2456, #2279 folded in), 12 new cards for everything said in chat.
 - **30 Sep (R175 · build):** the next batch starts itself — a daily run sources up to 250 for a LIVE programme, inside its own limit, only once the last batch is reviewed and fewer than two days of sending are left; Vida shows the line; the Send and Make live review stop is kept.
 - **29 Sep (R152 · fix):** which account is House is decided by the House login only (jacques.vieiraza+house@gmail.com) — the retired hello@get-kind.com stays on the House list only to keep its history out of the numbers, and deciding from the whole list found both accounts and refused, blocking House setup, the House mailbox, System's House check and the test-account wipe ('the house account could not be resolved')..
 - **29 Sep:** Test-only: free-proof-route's job mocks record into their own run, so a previous test's background proof run can no longer write into the next test under full-suite load (it failed the gate twice today); a guard keeps the shared recorder out of the mocks.

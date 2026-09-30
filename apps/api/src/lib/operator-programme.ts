@@ -32,6 +32,8 @@ import {
   mayComplete,
   // ⚑ 29 Sep (R174 · 2c) — the one predicate for "this programme is paid in one payment".
   paysInFull,
+  // ⚑ 30 Sep (#2459) — the one predicate for "P2 is satisfied", shared with the sending gate.
+  p2Authorised,
 } from './programme'
 import { reviewIsOpen, REVIEW_TRIGGER_LEADS, authorityFor } from './programme-authority'
 
@@ -255,7 +257,10 @@ export function blockersFor(
   if (!p.approved_at && !TERMINAL_STATUSES.includes(p.status as ProgrammeStatus)) {
     out.push({ kind: 'not_approved', detail: 'The programme has not been approved, so no outreach may start.' })
   }
-  if (!p.second_paid_at && !TERMINAL_STATUSES.includes(p.status as ProgrammeStatus)) {
+  // ⚑ 30 Sep (#2459) — `p2Authorised`, the SAME predicate `authorityFor(…, 'OUTREACH')` uses.
+  // ⛓️ Was `!p.second_paid_at`: it ignored INTERNAL authority, so House — authorised, live and
+  // sending — carried a red "no outreach" blocker the real gate did not agree with.
+  if (!p2Authorised(p) && !TERMINAL_STATUSES.includes(p.status as ProgrammeStatus)) {
     out.push({
       kind: 'second_payment_missing',
       detail: 'The second payment has not been received. Payment 1 authorises sourcing and preparation only — no outreach.',

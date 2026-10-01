@@ -104,6 +104,10 @@ const NOT_MILLA_NOT_VIDA: Array<[string, string]> = [
   // is unmounted, and this row is what makes that a CLASSIFICATION rather than a deletion:
   // the file is still checked, against the rule that now applies to it.
   ['apps/api/src/routes/milla.ts',          'the Notetaker — a transcript, no one waiting'],
+  // ⚑ 1 Oct (Coaching #2495 · #2502) — the post-meeting follow-up draft follows the prep brief it
+  // sits beside (`routes/leads.ts`, background). A prospect reads it once the client sends it, so it
+  // is the same OPEN QUESTION as Denise's drafts — and moving it is the founder's cost decision.
+  ['apps/api/src/lib/follow-up.ts',         'Coaching follow-up drafts — background like the prep brief; OPEN QUESTION, unruled'],
 ]
 
 describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (founder-ruled)', () => {
@@ -184,6 +188,8 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
     for (const file of [
       'apps/api/src/lib/milla.ts',
       'apps/api/src/routes/operator.ts',
+      // ⚑ 1 Oct — not conversational, but a client waits on the "Draft my follow-up" button.
+      'apps/api/src/lib/follow-up.ts',
     ]) {
       expect(live(read(file)), `${file} calls a model with no bound`).toContain('AI_TURN_BOUND')
     }
@@ -212,6 +218,8 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
       'apps/portal/src/components/ui/AgentSidePanel.tsx',
       'apps/portal/src/components/ui/AskFigsyButton.tsx',
       'apps/portal/src/app/(v2)/v2/setup/page.tsx',
+      // ⚑ 1 Oct (Coaching #2495 · #2502) — "Draft my follow-up" waits on a model turn.
+      'apps/portal/src/components/milla/MeetingFollowUp.tsx',
     ]) {
       expect(live(read(file)), `${file} waits on a model with the 15s CRUD default`)
         .toContain('AI_TURN_TIMEOUT_MS')

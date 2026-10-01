@@ -182,7 +182,9 @@ describe('🛑 ② EVERY egress point in the API is classified — enumerated, n
     // empty list. These four are the seams the 10 Sep audit walked by hand.
     expect(egressFiles).toContain('lib/mailer.ts')
     expect(egressFiles).toContain('lib/email.ts')
-    expect(egressFiles).toContain('lib/linkedin.ts')
+    // ⛓️ 1 Oct (C1, #2074): lib/linkedin.ts WAS an egress seam (PhantomBuster). The founder ruled
+    // the auto-send deleted, so it must now NOT be one — see linkedin-no-autosend.test.ts.
+    expect(egressFiles).not.toContain('lib/linkedin.ts')
     expect(egressFiles.length).toBeGreaterThan(10)
   })
 

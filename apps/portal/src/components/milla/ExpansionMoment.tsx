@@ -30,7 +30,7 @@ export default function ExpansionMoment() {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    try { const r = await api.get<{ data: Moment | null }>('/my/programme/moment', await token()); setM(r.data) } catch { setM(null) }
+    try { const r = await api.get<{ data: { moment: Moment | null } }>('/my/programme/moment', await token()); setM(r.data.moment) } catch { setM(null) }
   }, [])
   useEffect(() => { void load() }, [load])
 

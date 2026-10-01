@@ -170,13 +170,15 @@ myProgrammeRouter.get('/moment', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const p = await openProgrammeForSession(clientId)
-    if (!p) { res.json({ success: true, data: null }); return }
+    // ⚠️ NEVER `data: null` — `milla-programme.test.ts` forbids a successful null on this router (a
+    // null reads as "no programme" to somebody who has paid). No moment is `{ moment: null }`.
+    if (!p) { res.json({ success: true, data: { moment: null } }); return }
     const { ensureMoment } = await import('../lib/expansion-moments')
-    res.json({ success: true, data: await ensureMoment(clientId, p as never) })
+    res.json({ success: true, data: { moment: await ensureMoment(clientId, p as never) } })
   } catch (err) {
     // A moment is never shown on a number we could not read — and never breaks the page.
     console.error('[programme/me/moment GET]', err)
-    res.json({ success: true, data: null })
+    res.json({ success: true, data: { moment: null } })
   }
 })
 myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {

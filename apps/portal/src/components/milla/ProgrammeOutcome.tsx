@@ -19,7 +19,7 @@
 // click to send outreach — that is the founder's decision, not a panel's. Reported, not built.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import ExpansionMoment from './ExpansionMoment'
+import ExpansionMoment, { MomentHandoff } from './ExpansionMoment'
 import WhatsConverting from './WhatsConverting'
 import Link from 'next/link'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
@@ -136,6 +136,8 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: 
               Your programme is closed and preserved. Nothing restarts on its own — when you want the
               next one, price it here or talk it through with Milla.
             </div>
+            {/* ⚑ 1 Oct (R180 · #2523) — the hand-off: what was decided at 75%, carried into Complete. */}
+            {!cancelled && <MomentHandoff />}
           </div>
         </div>
         <div className="mv-cta-row flex-wrap">

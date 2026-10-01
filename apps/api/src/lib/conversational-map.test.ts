@@ -96,7 +96,7 @@ const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: K
   { file: 'apps/api/src/routes/mcp.ts',      line: 109,  surface: 'MCP tooling',                            klass: 'OTHER' },
   { file: 'apps/api/src/routes/mcp.ts',      line: 126,  surface: 'MCP tooling',                            klass: 'OTHER' },
   { file: 'apps/api/src/routes/mcp.ts',      line: 162,  surface: 'MCP tooling',                            klass: 'OTHER' },
-  { file: 'apps/api/src/routes/support.ts',  line: 70,   surface: 'Support chat',                           klass: 'OTHER' },
+  // ⛓️ 1 Oct (R182 · W-7): the support chat (support.ts) is retired — no model call remains there.
   { file: 'apps/api/src/routes/casey.ts',    line: 58,   surface: 'Casey chat',                             klass: 'OTHER' },
   { file: 'apps/api/src/routes/vida.ts',     line: 165,  surface: 'POST /vida/help — UNREFERENCED, REPORTED', klass: 'OTHER' },
   { file: 'apps/api/src/routes/leads.ts',    line: 733,  surface: 'lead coaching brief',                    klass: 'OTHER' },

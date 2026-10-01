@@ -19,6 +19,7 @@
 // click to send outreach — that is the founder's decision, not a panel's. Reported, not built.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+import ExpansionMoment from './ExpansionMoment'
 import Link from 'next/link'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 import type { CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -152,6 +153,8 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: 
   return (
     <div className="flex flex-col gap-4">
       {hero}
+      {/* ⚑ 1 Oct (R180 · Coaching F2) — the 25/50/75% moment, while the programme is delivering. */}
+      <ExpansionMoment />
       <div className="mv-section">
         <div className="mv-section-head">
           <b>Replies</b>

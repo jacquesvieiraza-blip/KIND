@@ -93,6 +93,9 @@ export const OPERATOR_TASK_KINDS = [
    * the one free reschedule through Vida's existing route (the Terms' no-show rule).
    */
   'meeting_no_show_reported',
+  /** ⚑ 1 Oct (R180 · Coaching F2) — a client said yes to Full Coaching at 50%. Until Coaching
+   *  billing (F3) exists our team confirms it and sends the one payment; nothing is charged here. */
+  'full_coaching_requested',
   // ── the existing founder-alert classes, now records ──
   'sends_stalled',
   'api_down',

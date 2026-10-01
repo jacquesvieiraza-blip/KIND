@@ -342,6 +342,38 @@ const anthropicHandler = async (req, body, res, state) => {
     }), true
   }
 
+  // ── ⚑ 1 Oct (Coaching #2505 · #2506) — SCRIPTED OBJECTION-COACH AND ROLEPLAY-FEEDBACK ANSWERS ──
+  // Both ask for a fixed JSON shape and refuse anything else, so the generic completion could only
+  // ever show "try again". The words are the harness's; what this exercises is the cards and gate.
+  if (prompt.includes('the likely real concern behind it')) {
+    return json(res, 200, {
+      id: 'msg_fake_objection', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({
+        concern: 'They are not against the idea. They are worried about the work of switching while the team is busy.',
+        answer: 'That makes sense. Most of our customers kept their spreadsheets for the first month while we ran alongside them, so nothing changed for the team until they were ready.',
+        question: 'What would need to be true for a switch next quarter to feel easy?',
+      }) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+  if (prompt.includes('what to tighten')) {
+    return json(res, 200, {
+      id: 'msg_fake_feedback', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({
+        landed: 'You named their problem in their own words before you pitched anything.',
+        tighten: 'You answered the timing worry with features. Answer it with how the first month works.',
+        next_step: 'Ask for a short call with their operations lead next week.',
+      }) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+  // After the feedback check: a feedback request also carries the role-play transcript.
+  if (prompt.includes('You are role-playing a prospect on a sales call')) {
+    return json(res, 200, {
+      id: 'msg_fake_prospect', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: "Hi, thanks for calling. I've only got ten minutes — and to be honest we already have a system for scheduling, so what's different about yours?" }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
   // ── ⚑ 18 Sep (P6 §8.2) — THE SECOND SCRIPTED SHAPE: SEQUENCE GENERATION ─────────────────
   //
   // 🛑 WITHOUT IT, PREPARATION DIES ON A TypeError. `generateSequence` hands its answer

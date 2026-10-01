@@ -9,6 +9,8 @@ import { api } from '@/lib/api'
 import { replyWord } from '@kind/shared'
 import { createClient } from '@/lib/supabase/client'
 import SalesContextCard from '@/components/milla/SalesContextCard'
+import ObjectionCoachCard, { type ObjectionOption } from '@/components/milla/ObjectionCoachCard'
+import RoleplayCard from '@/components/milla/RoleplayCard'
 
 type Meeting = {
   booking_id: string; lead_id: string; start_time: string | null; status: string | null
@@ -31,6 +33,9 @@ export default function MillaCoachingPage() {
   const [error, setError] = useState<string | null>(null)
   const [briefs, setBriefs] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
+  // ⚑ 1 Oct (#2505 · #2506) — Objection Coach and Roleplay: Full Coaching only. `null` = not
+  // known (still loading, or unreadable) → neither the cards nor the quiet line is shown.
+  const [practice, setPractice] = useState<{ full: boolean; objections: ObjectionOption[] } | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -38,6 +43,12 @@ export default function MillaCoachingPage() {
         const r = await api.get<{ data: { meetings: Meeting[] } }>('/leads/coaching', await token())
         setMeetings(r.data.meetings)
       } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your meetings') }
+    })()
+    ;(async () => {
+      try {
+        const r = await api.get<{ data: { full: boolean; objections: ObjectionOption[] } }>('/my/programme/coaching/practice', await token())
+        setPractice(r.data)
+      } catch { /* a help, never a gate — the page still shows prep */ }
     })()
   }, [])
 
@@ -61,6 +72,22 @@ export default function MillaCoachingPage() {
 
       {/* ⚑ 1 Oct (Coaching F6) — how the client sells, used by every prep brief below. */}
       <SalesContextCard />
+
+      {/* ⚑ 1 Oct (R180 · #2505 · #2506) — practice before the call. Full Coaching gets the two
+          cards; every other plan gets one quiet line each — no sell, no button (the Full Coaching
+          offer lives in the 50% moment). */}
+      {practice?.full && (
+        <>
+          <ObjectionCoachCard options={practice.objections} />
+          <RoleplayCard meetings={meetings ?? []} />
+        </>
+      )}
+      {practice && !practice.full && (
+        <div className="mb-3.5 max-w-3xl px-1" data-testid="full-coaching-note">
+          <p className="text-[12px] text-[#9b8ec4]">Objection Coach comes with Full Coaching.</p>
+          <p className="text-[12px] text-[#9b8ec4]">Roleplay comes with Full Coaching.</p>
+        </div>
+      )}
 
       {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{error}</div>}
       {!meetings && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}

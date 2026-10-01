@@ -162,6 +162,47 @@ myProgrammeRouter.post('/sales-context', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 1 Oct (R180 · R184 · #2505 · #2506) — OBJECTION COACH AND ROLEPLAY (Full Coaching) ─────
+// Practice only: nothing here writes. The gate, the grounding and the bounds all live in
+// `lib/coaching-practice.ts`; these doors only relay its answer.
+myProgrammeRouter.get('/coaching/practice', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { practiceState } = await import('../lib/coaching-practice')
+    res.json({ success: true, data: await practiceState(clientId) })
+  } catch (err) {
+    console.error('[programme/me/coaching/practice GET]', err)
+    res.status(503).json({ success: false, error: "We couldn't load Coaching practice just now." })
+  }
+})
+myProgrammeRouter.post('/coaching/objection', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { coachObjection } = await import('../lib/coaching-practice')
+    const r = await coachObjection(clientId, req.body)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.data })
+  } catch (err) {
+    console.error('[programme/me/coaching/objection POST]', err)
+    res.status(503).json({ success: false, error: "Milla couldn't put that together just now. Nothing was lost — please try again." })
+  }
+})
+myProgrammeRouter.post('/coaching/roleplay', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { roleplayTurn } = await import('../lib/coaching-practice')
+    const r = await roleplayTurn(clientId, req.body)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.data })
+  } catch (err) {
+    console.error('[programme/me/coaching/roleplay POST]', err)
+    res.status(503).json({ success: false, error: "Milla couldn't put that together just now. Nothing was lost — please try again." })
+  }
+})
+
 // ── ⚑ 1 Oct (R180 · Coaching F2 · #2484) — EXPANSION MOMENTS: 25% · 50% · 75% ────────────────
 // The moment the open programme is at (fired once, remembered), and the client's answer to it.
 // All the rules live in `lib/expansion-moments.ts`; nothing here decides anything.

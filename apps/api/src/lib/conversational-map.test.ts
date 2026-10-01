@@ -73,6 +73,9 @@ const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: K
   // STAYS gone is asserted below rather than left to the absence of a row here.
   { file: 'apps/api/src/routes/icps.ts',    line: 2781, surface: 'POST /icps/chat-build (targeting)',       klass: 'MILLA' },
   { file: 'apps/api/src/routes/icps.ts',    line: 3995, surface: 'POST /icps/builder/chat (onboarding)',    klass: 'MILLA' },
+  // ⚑ 1 Oct (R180 · #2505 · #2506) — Objection Coach and Roleplay: ONE door for both. A client
+  // sits in front of the Coaching screen waiting for Milla's answer, turn by turn — MILLA.
+  { file: 'apps/api/src/lib/coaching-practice.ts', line: 136, surface: 'Coaching practice — Objection Coach · Roleplay (Full Coaching)', klass: 'MILLA' },
   // ── VIDA — the operator's colleague ───────────────────────────────────────────────────
   { file: 'apps/api/src/routes/operator.ts', line: 1240, surface: 'POST /operator/icp/chat',                klass: 'VIDA' },
   { file: 'apps/api/src/routes/operator.ts', line: 4649, surface: 'POST /operator/command',                 klass: 'VIDA' },
@@ -223,6 +226,12 @@ const ENTRY_POINTS: Array<{ route: string; file: string; who: string; store: str
   { route: "operatorRouter.post('/ask'",      file: 'apps/api/src/routes/operator.ts', who: 'operator → client',         store: 'milla_messages (the client thread)' },
   { route: "'/escalate',",                    file: 'apps/api/src/routes/support.ts',  who: 'client — escalation',       store: 'founder_alerts' },
   { route: "millaRouter.get('/brief-draft'",  file: 'apps/api/src/routes/milla.ts',    who: 'client — re-entry read',    store: 'onboarding_brief_drafts' },
+  // ⚑ 1 Oct (R180 · #2505 · #2506) — PRACTICE, NOT A CONVERSATION OF RECORD. Both read the
+  // client's own sales context (`figsy_knowledge` pitch) and their own meetings/replies; neither
+  // writes. Roleplay's transcript is held by the browser for one practice run, by design: a
+  // pretend prospect's lines must never sit beside what a real prospect said.
+  { route: "myProgrammeRouter.post('/coaching/objection'", file: 'apps/api/src/routes/my-programme.ts', who: 'client — Objection Coach', store: 'NONE — reads figsy_knowledge (pitch); one question, one answer' },
+  { route: "myProgrammeRouter.post('/coaching/roleplay'",  file: 'apps/api/src/routes/my-programme.ts', who: 'client — Roleplay',         store: 'NONE — practice transcript lives in the browser only (bounded server-side)' },
 ]
 
 describe('M2 — every entry point exists and names its store', () => {
@@ -233,13 +242,17 @@ describe('M2 — every entry point exists and names its store', () => {
     // Nothing new has appeared that talks to a human and is not listed. A ROUTE file with a
     // conversational call must be an entry point above; a LIB file is reached through one,
     // so it is named by the route that calls it rather than by its own path.
-    const LIB_REACHED_BY: Record<string, string> = {
-      'apps/api/src/lib/milla.ts': "millaRouter.post('/sessions/:sessionId/chat'",
+    // ⛓️ 1 Oct (#2505 · #2506) — a lib may be reached by more than one door, so each is a list.
+    const LIB_REACHED_BY: Record<string, string[]> = {
+      'apps/api/src/lib/milla.ts': ["millaRouter.post('/sessions/:sessionId/chat'"],
+      'apps/api/src/lib/coaching-practice.ts': ["myProgrammeRouter.post('/coaching/objection'", "myProgrammeRouter.post('/coaching/roleplay'"],
     }
     for (const c of MODEL_CALLS.filter(x => x.klass !== 'OTHER')) {
       if (LIB_REACHED_BY[c.file]) {
-        expect(ENTRY_POINTS.some(e => e.route === LIB_REACHED_BY[c.file]),
-          `${c.surface} is reached by a door that is not listed`).toBe(true)
+        for (const door of LIB_REACHED_BY[c.file]) {
+          expect(ENTRY_POINTS.some(e => e.route === door),
+            `${c.surface} is reached by a door that is not listed: ${door}`).toBe(true)
+        }
         continue
       }
       expect(ENTRY_POINTS.some(e => e.file === c.file), `${c.surface} has no entry point row`).toBe(true)
@@ -297,6 +310,7 @@ describe('M4 — a Milla or Vida answer is hers, or it is an honest error', () =
       'apps/api/src/routes/milla.ts',
       'apps/api/src/routes/operator.ts',
       'apps/api/src/lib/milla.ts',
+      'apps/api/src/lib/coaching-practice.ts',   // ⚑ 1 Oct (#2505 · #2506)
     ]
     for (const f of CONVERSATIONAL) {
       const src = live(read(f))
@@ -376,6 +390,13 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // ⚑ 29 Sep (R174 · 5a) — the programme's STATUS enum lower-cased for her prompt ('LIVE' → 'live').
   { file: 'apps/api/src/lib/vida-brain.ts',         what: 'p.status.toLowerCase()',                           klass: 'B', why: 'formats a programme status enum, never a customer sentence' },
   { file: 'apps/api/src/lib/milla-reply-shape.ts',  what: 'COMPLETION_READINESS_PATHS.includes(path)',        klass: 'B', why: 'allowlist on a ZOD ISSUE PATH, not on words' },
+  // ⚑ 1 Oct (R87 · #2505 · #2506) — THE FIGURE CHECK reads MILLA'S OUTPUT, never the client's
+  // meaning: `text.match(/\d…/)` finds the digits she wrote and `pool.includes(f)` asks whether
+  // each is in the facts she was given. A miss refuses her answer; it never decides for the client.
+  { file: 'apps/api/src/lib/coaching-practice.ts', what: 'inventedFigures — `text.match(digits)` + `pool.includes(f)` on the MODEL\'s answer', klass: 'B', why: 'a safety check that no figure is invented (R87); the subject is Milla\'s output, not a customer sentence' },
+  // `splitObjections` splits the client's own F6 answer on the line breaks, semicolons, bullets
+  // and "→" THEY typed — `.split`/`.replace`, which the counter below does not see, listed anyway.
+  { file: 'apps/api/src/lib/coaching-practice.ts', what: 'splitObjections — split on newline / ; / • / → and strip list marks', klass: 'B', why: 'format: one picker row per line the client wrote; nothing is inferred, and the client can still type any objection' },
 ]
 
 describe('M5 — no deterministic code decides what a customer meant', () => {
@@ -407,6 +428,7 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/api/src/lib/milla-chat-system.ts': 0,
       'apps/api/src/lib/vida-conversation.ts': 0,
       'apps/api/src/lib/brief-fact-resolution.ts': 0,
+      'apps/api/src/lib/coaching-practice.ts': 2,   // ⚑ 1 Oct — the figure check, classified above
       // ── THE BROWSER HALF (O3) ─────────────────────────────────────────────────────
       // ⚠️ THESE FILES SEND TO, OR RENDER, A MILLA OR VIDA CONVERSATION. A new regex over a
       // customer's words would land in one of them and push its count past the pin.
@@ -427,6 +449,9 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/portal/src/app/(milla)/milla/chat/page.tsx': 0,
       'apps/portal/src/lib/get-help-state.ts': 0,
       'apps/admin/src/components/vida/VidaConversation.tsx': 0,
+      // ⚑ 1 Oct (#2505 · #2506) — the two practice cards send to Milla; they read none of the words.
+      'apps/portal/src/components/milla/ObjectionCoachCard.tsx': 0,
+      'apps/portal/src/components/milla/RoleplayCard.tsx': 0,
       'apps/admin/src/app/vida/page.tsx': 7,   // ⛓️ 29 Sep (R174 · 4i) — was 7; the campaign editor left · (5b) +1, `programmeCount` · (5a) +1, `openTab`
     }
     const RE = /\.match\(|\.test\(|new RegExp|toLowerCase\(\)|\.includes\(/g

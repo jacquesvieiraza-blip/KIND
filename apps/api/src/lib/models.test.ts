@@ -65,6 +65,9 @@ const MILLA_AND_VIDA: Array<[string, string]> = [
   // operator never waits on. Removing the row LOOSENS nothing: the file is asserted below to
   // carry no conversational model at all.
   ['apps/api/src/routes/operator.ts', "Vida — the operator's colleague (/command and /icp/chat)"],
+  // ⚑ 1 Oct (R180 · #2505 · #2506) — Milla coaching the client, who waits for each answer: the
+  // Objection Coach and the Roleplay prospect. MILLA = SONNET; no new surface beyond Milla's own.
+  ['apps/api/src/lib/coaching-practice.ts', 'Milla — Objection Coach and Roleplay (Full Coaching)'],
 ]
 
 /**
@@ -190,6 +193,7 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
       'apps/api/src/routes/operator.ts',
       // ⚑ 1 Oct — not conversational, but a client waits on the "Draft my follow-up" button.
       'apps/api/src/lib/follow-up.ts',
+      'apps/api/src/lib/coaching-practice.ts',   // ⚑ 1 Oct (#2505 · #2506)
     ]) {
       expect(live(read(file)), `${file} calls a model with no bound`).toContain('AI_TURN_BOUND')
     }
@@ -220,6 +224,9 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
       'apps/portal/src/app/(v2)/v2/setup/page.tsx',
       // ⚑ 1 Oct (Coaching #2495 · #2502) — "Draft my follow-up" waits on a model turn.
       'apps/portal/src/components/milla/MeetingFollowUp.tsx',
+      // ⚑ 1 Oct (#2505 · #2506) — the two Coaching practice cards wait on Milla.
+      'apps/portal/src/components/milla/ObjectionCoachCard.tsx',
+      'apps/portal/src/components/milla/RoleplayCard.tsx',
     ]) {
       expect(live(read(file)), `${file} waits on a model with the 15s CRUD default`)
         .toContain('AI_TURN_TIMEOUT_MS')

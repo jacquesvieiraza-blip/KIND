@@ -258,6 +258,40 @@ myProgrammeRouter.get('/whats-converting', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 1 Oct (R180 · #2490 · #2493 · #2499) — THE PLAN CARD ─────────────────────────────────────
+// The client's plan in plain words, prices from `@kind/shared`. Every rule lives in
+// `lib/plan-overview.ts`. ⚠️ NEVER `data: null` — no plan is `{ plan: null }`, and a failed read is
+// `{ plan: null }` too: a card is never shown on a plan we could not read, and never breaks the page.
+myProgrammeRouter.get('/plan', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { planOverviewFor } = await import('../lib/plan-overview')
+    res.json({ success: true, data: { plan: await planOverviewFor(clientId) } })
+  } catch (err) {
+    console.error('[programme/me/plan GET]', err)
+    res.json({ success: true, data: { plan: null } })
+  }
+})
+
+// ── ⚑ 1 Oct (R180 · Coaching #2497) — GROWTH REPORTING ─────────────────────────────────────────
+// Progression + patterns for the Reports screen, Growth and above. The gate and every rule live in
+// `lib/growth-report.ts`. Not on the plan is `{ report: null }` (never `data: null`); a failed read
+// is a 503, never an empty report.
+myProgrammeRouter.get('/growth-report', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { growthReportFor } = await import('../lib/growth-report')
+    const r = await growthReportFor(clientId)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: { report: r.report } })
+  } catch (err) {
+    console.error('[programme/me/growth-report GET]', err)
+    res.status(503).json({ success: false, error: "We couldn't read your meetings just now. Nothing has changed." })
+  }
+})
+
 myProgrammeRouter.post('/offer/skip', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

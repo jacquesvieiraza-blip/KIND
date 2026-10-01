@@ -110,8 +110,10 @@ describe('the credit for undelivered meetings is said the same way wherever "not
     expect(visible(read('pricing.html'))).toContain(CREDIT)
   })
 
-  it('Trust says it beside "not guarantees of meetings"', () => {
-    expect(visible(read('trust.html'))).toContain(CREDIT)
+  // ⛓️ 1 Oct (R182 · W-2) — Trust now states the credit WITH its limits, in the same sentence
+  // (founder: "all yes"). Was `toContain(CREDIT)`, which ended the sentence before the limits.
+  it('Trust says it beside "not guarantees of meetings" — with once per client, 90 days', () => {
+    expect(visible(read('trust.html'))).toContain(CREDIT.replace(/\.$/, ' — once per client, within 90 days.'))
   })
 
   // ⛓️ 25 Sep (R166 ③ ⑤ · P13) — "the FIRST payment" no longer exists for a new programme: it is

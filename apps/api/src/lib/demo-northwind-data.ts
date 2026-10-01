@@ -453,6 +453,14 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       roi: '', roi_may_quote: false,
       solution: 'Scheduling, job tracking and on-site sign-off in one app.',
       answered_at: iso(20), source: 'milla_offer_card',
+    },
+    // ⚑ 1 Oct (Coaching F6) — two of the four sales-context answers, so the Coaching page shows
+    // a client part-way through, as a real one would be.
+    sales_context: {
+      objections: '"We already have a system" — ours replaces the spreadsheets they still keep beside it.',
+      lead_proof: 'Tidewater Maintenance stopped double-booking engineers in their first month.',
+      decider: '', won_deal: '',
+      answered_at: iso(10), source: 'milla_coaching',
     } },
   } : null
 

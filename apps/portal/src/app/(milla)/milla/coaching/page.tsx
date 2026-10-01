@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { replyWord } from '@kind/shared'
 import { createClient } from '@/lib/supabase/client'
+import SalesContextCard from '@/components/milla/SalesContextCard'
 
 type Meeting = {
   booking_id: string; lead_id: string; start_time: string | null; status: string | null
@@ -57,6 +58,9 @@ export default function MillaCoachingPage() {
           We got you the meeting. Here&apos;s how to win it — built from what we know about each prospect.
         </p>
       </div>
+
+      {/* ⚑ 1 Oct (Coaching F6) — how the client sells, used by every prep brief below. */}
+      <SalesContextCard />
 
       {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{error}</div>}
       {!meetings && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}

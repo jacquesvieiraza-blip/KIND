@@ -95,6 +95,8 @@ export type SendDueHaltReason =
   | 'active_campaigns_unreadable'
   | 'campaign_tallies_unreadable'
   | 'due_enrolments_unreadable'
+  // ⚑ 1 Oct (#2141) — another send run is still going; this one stepped aside.
+  | 'run_in_progress'
 
 type RotationSlot = { id: string; dailyCap: number | null; sentThisBatch: number; row: InboxRow }
 
@@ -138,7 +140,36 @@ const empty = (mode: SendDueMode, dailyLimit: number, extra: Partial<SendDueResu
   ...extra,
 })
 
+// ── ⚑ 1 Oct (#2141 · POST-006) — ONE SEND RUN AT A TIME ─────────────────────────────────────
+//
+// The daily budget is read ONCE, at the start of a run ("sent today" → "remaining"), and each
+// mailbox is seeded from what it has sent today. Two runs overlapping — the 2-hourly cron and an
+// operator's Run-once, or a cron that fires while a slow run is still going — would both read the
+// same "remaining" and both spend it: the day's limit sent twice. Each enrolment's step claim
+// (#354) already stops the SAME email going twice; this stops the RUN overlapping.
+//
+// A second run arriving while one is in progress steps aside — it selects nothing and sends
+// nothing, and says so. It raises no alert: the run already going is doing the work.
+// ⚠️ IN-PROCESS: this holds for one API process (how the API runs today). A run-level lock across
+// several processes needs a database lock — a migration, which the frozen schema does not allow.
+let sendRunInProgress = false
+
 export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
+  const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : 200
+  if (sendRunInProgress) {
+    const detail = 'another send run is still in progress, so this one stepped aside. Nothing was selected and nothing was sent; the run already going is doing the work.'
+    console.warn(`[send-due] SKIPPED (run_in_progress) — ${detail}`)
+    return empty(mode, dailyLimit, { halted: { reason: 'run_in_progress', detail } })
+  }
+  sendRunInProgress = true
+  try {
+    return await runSendDueAlone(mode)
+  } finally {
+    sendRunInProgress = false
+  }
+}
+
+async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : 200
   const todayUTC = new Date()
   todayUTC.setUTCHours(0, 0, 0, 0)

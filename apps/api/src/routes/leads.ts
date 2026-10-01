@@ -972,12 +972,26 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
     const { latestOutcomes, needsAnswer } = await import('../lib/meeting-outcome')
     const outcomes = await latestOutcomes(clientId, rows.map(r => r.id))
 
+    // ⚑ 1 Oct (Coaching #2495 · #2502) — the follow-up, for a meeting that went somewhere: what the
+    // plan earns ('none' → the quiet Growth line, 'draft', 'coach') and the latest kept draft.
+    // Access is only read when a meeting qualifies, so a page with none costs nothing extra.
+    const { canFollowUp, followUpLevel, latestFollowUps, forLevel } = await import('../lib/follow-up')
+    const followable = new Set(rows.filter(r => r.state !== 'NO_SHOW' && canFollowUp(outcomes?.get(r.id)?.answer)).map(r => r.id))
+    let followLevel: 'none' | 'draft' | 'coach' = 'none'
+    let drafts: Awaited<ReturnType<typeof latestFollowUps>> = null
+    if (followable.size) {
+      const { coachingAccessFor } = await import('../lib/coaching-access')
+      followLevel = followUpLevel(await coachingAccessFor(clientId))
+      if (followLevel !== 'none') drafts = await latestFollowUps(clientId, Array.from(followable))
+    }
+
     const meetings = rows.map(r => {
       const l = byId.get(r.leadId ?? '') as Record<string, unknown> | undefined
       const outcome = outcomes?.get(r.id) ?? null
       return {
         outcome,
         ask: outcomes !== null && needsAnswer(r, outcome !== null),
+        followUp: followable.has(r.id) ? { level: followLevel, draft: forLevel(drafts?.get(r.id) ?? null, followLevel) } : null,
         id: r.id,
         // `meetings` stores no title by design — it holds no prospect identity at all. The
         // page's existing default is used rather than inventing one from the lead's name.
@@ -1020,6 +1034,77 @@ leadRouter.post('/meetings/:id/outcome', rateLimit({ limit: 30, windowMs: 60_000
     if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
     res.json({ success: true, data: r.outcome })
   } catch (err) { console.error('[leads/meetings/outcome]', err); res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." }) }
+})
+
+// ── ⚑ 1 Oct (Coaching #2495 · #2502 · R180) — THE FOLLOW-UP DRAFT, AND FULL COACHING'S COACH ────
+// Scoped exactly as the outcome route above: the meeting must be this client's, in their current
+// programme. Allowed only after the client's own F1 answer said the meeting went somewhere. What
+// the plan earns, what grounds the draft and the R87 figure check live in `lib/follow-up.ts`.
+// The latest draft is returned as-is unless the client asks for it again (`again: true`), so a
+// press after a refresh costs no model call.
+leadRouter.post('/meetings/:id/follow-up', rateLimit({ limit: 10, windowMs: 60_000, key: 'meeting-follow-up', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+    if (scope.mode === 'none') { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+    if (scope.mode === 'unreadable') { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Please try again." }); return }
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const rows = await meetingsForClient({ clientId, ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}), limit: 100 })
+    if (rows === null) { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Please try again." }); return }
+    const m = rows.find(r => r.id === req.params.id)
+    if (!m) { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+
+    const { coachingAccessFor } = await import('../lib/coaching-access')
+    const { followUpLevel, canFollowUp, FOLLOW_UP_LOCKED, latestFollowUps, forLevel, writeFollowUp } = await import('../lib/follow-up')
+    const level = followUpLevel(await coachingAccessFor(clientId))
+    if (level === 'none') { res.status(403).json({ success: false, error: FOLLOW_UP_LOCKED }); return }
+
+    const { latestOutcomes } = await import('../lib/meeting-outcome')
+    const outcomes = await latestOutcomes(clientId, [m.id])
+    if (outcomes === null) { res.status(503).json({ success: false, error: "We couldn't read how the meeting went just now. Please try again." }); return }
+    const outcome = outcomes.get(m.id)
+    if (!outcome || !canFollowUp(outcome.answer) || m.state === 'NO_SHOW') {
+      res.status(409).json({ success: false, error: 'A follow-up draft is for a meeting that agreed a next step or left them interested for later.' }); return
+    }
+
+    if (req.body?.again !== true) {
+      const kept = await latestFollowUps(clientId, [m.id])
+      const d = forLevel(kept?.get(m.id) ?? null, level)
+      if (d) { res.json({ success: true, data: { ...d, level } }); return }
+    }
+    if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ success: false, error: 'Coaching is not configured yet' }); return }
+
+    const { data: lead } = m.leadId
+      ? await db.from('leads').select('id, first_name, last_name, job_title, company').eq('id', m.leadId).eq('client_id', clientId).maybeSingle()
+      : { data: null }
+    const { data: reply } = lead
+      // ⛓️ 25 Sep (P5d) — never our own outbound as "their own words".
+      ? await db.from('figsy_replies').select('body_text, body').eq('client_id', clientId).eq('lead_id', lead.id)
+        .neq('classification', 'sent_reply').order('received_at', { ascending: false }).limit(1).maybeSingle()
+      : { data: null }
+    const { data: me } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
+    const { data: pitchRow } = await db.from('figsy_knowledge').select('data').eq('client_id', clientId).eq('kind', 'pitch').maybeSingle()
+    const { salesContextLines } = await import('../lib/sales-context')
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const r = await writeFollowUp({
+      level,
+      seller: (me?.company_name as string | null) ?? null,
+      prospect: {
+        name: lead ? [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim() || 'the prospect' : 'the prospect',
+        role: (lead?.job_title as string | null) ?? null, company: (lead?.company as string | null) ?? null,
+      },
+      theirWords: ((reply?.body_text ?? reply?.body ?? null) as string | null) || null,
+      outcome: { answer: outcome.answer, note: outcome.note },
+      sellerLines: salesContextLines((pitchRow as { data?: Record<string, unknown> | null } | null)?.data ?? null),
+      clientId, meetingId: m.id, by: req.authEmail ?? req.userId!,
+      ai: new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) as never,
+    })
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: { ...r.draft, level } })
+  } catch (err) { console.error('[leads/meetings/follow-up]', err); res.status(500).json({ success: false, error: "We couldn't write that draft just now. Please try again." }) }
 })
 
 // ── CREATE ────────────────────────────────────────────────────────────────────

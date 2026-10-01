@@ -100,6 +100,8 @@ const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: K
   { file: 'apps/api/src/routes/casey.ts',    line: 58,   surface: 'Casey chat',                             klass: 'OTHER' },
   { file: 'apps/api/src/routes/vida.ts',     line: 165,  surface: 'POST /vida/help — UNREFERENCED, REPORTED', klass: 'OTHER' },
   { file: 'apps/api/src/routes/leads.ts',    line: 733,  surface: 'lead coaching brief',                    klass: 'OTHER' },
+  // ⚑ 1 Oct (Coaching #2495 · #2502) — background like the prep brief beside it; prospect-read text, unruled (models.test.ts).
+  { file: 'apps/api/src/lib/follow-up.ts',  line: 172,  surface: 'Coaching follow-up draft + coach',       klass: 'OTHER' },
   { file: 'apps/api/src/routes/leads.ts',    line: 1854, surface: 'lead enrich',                            klass: 'OTHER' },
   { file: 'apps/api/src/routes/leads.ts',    line: 1980, surface: 'lead draft-email',                       klass: 'OTHER' },
   { file: 'apps/api/src/routes/leads.ts',    line: 2583, surface: 'lead research',                          klass: 'OTHER' },

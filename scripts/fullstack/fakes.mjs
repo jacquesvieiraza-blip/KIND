@@ -322,6 +322,26 @@ const anthropicHandler = async (req, body, res, state) => {
     }), true
   }
 
+  // ── ⚑ 1 Oct (Coaching · follow-up drafts) — A SCRIPTED FOLLOW-UP ANSWER ──────────────────
+  // The follow-up feature asks for `{subject, body, confirm?, next_step?, risk?}` and refuses anything
+  // it cannot parse, so against the generic completion the Meetings card could only ever show an
+  // error. The words are the harness's — what this exercises is the card, the ladder and the storage.
+  // (The prompt arrives inside the JSON request body, so its own quotes are escaped — match plain words.)
+  if (prompt.includes('Reply with JSON only, exactly this shape') && prompt.includes('follow-up email')) {
+    const draft = {
+      subject: 'Following up on our call',
+      body: 'Thanks for your time today. As agreed, I will send the proposal by Friday, with the pricing options we discussed.\n\nWould Tuesday or Wednesday next week suit a short call to go through it?\n\nBest regards',
+      confirm: 'That pricing is the main question, and who else signs off.',
+      next_step: 'Send the proposal by Friday and book a 20-minute review for early next week.',
+      risk: 'Finance has not been in the conversation yet. Ask who signs off before the review.',
+    }
+    return json(res, 200, {
+      id: 'msg_fake_followup', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify(draft) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
   // ── ⚑ 18 Sep (P6 §8.2) — THE SECOND SCRIPTED SHAPE: SEQUENCE GENERATION ─────────────────
   //
   // 🛑 WITHOUT IT, PREPARATION DIES ON A TypeError. `generateSequence` hands its answer

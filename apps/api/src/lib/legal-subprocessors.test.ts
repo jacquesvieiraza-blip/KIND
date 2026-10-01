@@ -40,25 +40,27 @@ const dpaUs = page('dpa-us.html')
 const LEGAL: [string, string][] =
   [['privacy.html', privacy], ['dpa.html', dpa], ['terms.html', terms], ['dpa-us.html', dpaUs]]
 
-/** Every provider that can receive prospect personal data. */
-const PROVIDERS = ['PeopleDataLabs', 'Hunter', 'Apollo']
+// ⛓️ 1 Oct (R182 · W-1) — REWRITTEN FOR R146 (23 Sep): Apollo is the ONLY data provider; PDL and
+// Hunter are retired and must be named NOWHERE. Was: PROVIDERS = ['PeopleDataLabs','Hunter','Apollo']
+// with Apollo framed as "conditional / own prospecting". The intent is unchanged — every legal page
+// names the same providers, the DPA table is complete with a location per row, each role is said.
 
-describe('all three legal pages name the SAME providers', () => {
+/** Every provider that can receive prospect personal data (R146: Apollo only). */
+const PROVIDERS = ['Apollo']
+/** Retired providers (R146) — a legal page naming one misdescribes where prospect data comes from. */
+const RETIRED = ['PeopleDataLabs', 'People Data Labs', 'Hunter']
+
+describe('all the legal pages name the SAME providers', () => {
   for (const [name, html] of LEGAL) {
     for (const provider of PROVIDERS) {
       it(`${name} names ${provider}`, () => {
         expect(html).toContain(provider)
       })
     }
+    it(`${name} names no retired provider`, () => {
+      for (const r of RETIRED) expect(html, r).not.toContain(r)
+    })
   }
-
-  it('none of them names a provider the others do not — the whole defect in one assertion', () => {
-    // Three pages, three different answers, all live at once. A client's counsel reads the
-    // DPA; a prospect reads privacy; a signer reads terms. They must not disagree.
-    const named = LEGAL.map(([name, html]) => [name, PROVIDERS.filter(p => html.includes(p))] as const)
-    const [, first] = named[0]
-    for (const [name, list] of named) expect(list, name).toEqual(first)
-  })
 })
 
 describe('the FORMAL DPA table is complete — it is what a client\'s lawyer reads', () => {
@@ -71,8 +73,6 @@ describe('the FORMAL DPA table is complete — it is what a client\'s lawyer rea
   }
 
   it('every data provider row carries a LOCATION — a blank is a disclosure gap', () => {
-    // The location column decides whether a transfer mechanism (SCCs) is required, so a row
-    // without one is worse than no row: it looks complete and answers nothing.
     for (const provider of PROVIDERS) {
       const i = table.indexOf(provider)
       const row = table.slice(i, i + 400)
@@ -80,54 +80,17 @@ describe('the FORMAL DPA table is complete — it is what a client\'s lawyer rea
     }
   })
 
-  it('the other sub-processors are still listed — nothing was dropped adding these', () => {
+  it('the other sub-processors are still listed — nothing was dropped', () => {
     for (const p of ['Supabase', 'Resend', 'Anthropic', 'Stripe', 'Railway']) {
       expect(table, p).toContain(p)
     }
   })
 })
 
-describe('the pages describe each provider\'s ROLE, not just its name', () => {
-  it('PDL is identified as the primary source', () => {
-    expect(privacy).toContain('primary')
-    expect(dpa).toContain('primary lead sourcing')
-  })
-
-  it('Hunter is identified as email VERIFICATION, not sourcing', () => {
-    // Hunter does not prospect — it verifies a work email for a person we already found
-    // (docs/legal.md is explicit about this). Calling it a data source would misdescribe
-    // what it receives and why.
-    expect(privacy.toLowerCase()).toContain('work-email verification')
-    expect(dpa.toLowerCase()).toContain('work-email verification')
-  })
-
-  it('Apollo is qualified as conditional — the key is retired, it is BYO-configured', () => {
-    // startup-check.ts: "optional / BYO-key; not used in the day-to-day PDL+Hunter stack".
-    // docs/legal.md: "K.I.N.D no longer uses Apollo." Listing it flatly as a live source
-    // would be the same overclaim in the other direction.
-    //
-    // BROADENED 1 Aug (#410). This matched only the literal word "configure", which was the
-    // old phrasing — "used only where a Client configures it". That sentence was replaced
-    // because it framed Apollo as part of the standard client stack; the pages now say it is
-    // K.I.N.D's OWN prospecting, reaching a client's data only where that client supplies
-    // their own key. The qualification got STRONGER and the assertion still failed, which is
-    // the signature of a test pinned to a sentence rather than to what the sentence has to
-    // mean. Either wording satisfies the requirement: Apollo must never read as standard.
-    for (const [name, html] of LEGAL) {
-      const i = html.indexOf('Apollo')
-      const around = html.slice(Math.max(0, i - 200), i + 300)
-      expect(around, `${name}: Apollo is not qualified as conditional`).toMatch(/configure|supplies their own Apollo key|own prospecting/i)
-    }
-  })
-})
-
-describe('the claim that started this is gone', () => {
-  it('no page still presents Apollo as the SOLE source of lead data', () => {
-    // privacy.html said "sourced via Apollo.io" in four places, naming neither provider we
-    // actually use.
-    for (const [name, html] of LEGAL) {
-      expect(html, name).not.toMatch(/sourced via Apollo\.io[^,]/)
-      expect(html, name).not.toContain('Lead data is sourced via <strong>Apollo.io</strong>.')
-    }
+describe('the pages describe the provider\'s ROLE, not just its name', () => {
+  it('Apollo is identified as the only source of prospect data', () => {
+    expect(dpa).toMatch(/only source of prospect data/i)
+    expect(privacy).toMatch(/only source of prospect data/i)
+    expect(terms).toMatch(/sourced from Apollo\.io, a licensed B2B data provider/)
   })
 })

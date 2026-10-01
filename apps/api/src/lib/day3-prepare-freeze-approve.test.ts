@@ -635,6 +635,7 @@ describe('🛑 ⑧ P2 authority', () => {
     recommended_volume: 3000, paused_at: null, went_live_at: null,
     approved_at: '2026-09-10T10:00:00Z', second_paid_at: null, second_payment_ref: null,
     second_authorised_at: null, first_paid_at: '2026-09-01T10:00:00Z',
+    first_payment_cents: 118_800, second_payment_cents: 118_800,
   }
 
   async function checkoutSecond(opts: { drift: Record<string, unknown> }) {
@@ -664,6 +665,8 @@ describe('🛑 ⑧ P2 authority', () => {
       createProgrammeCheckoutSession: async (p: Record<string, unknown>) => {
         sessions.push(p); return { url: 'https://stripe.test/session' }
       },
+      // ⚑ 1 Oct (#2226) — the stored quote for the stage, as the real helper reads it.
+      quotedStageCents: (p: Record<string, unknown>, s: string) => Number(s === 'programme_first' ? p.first_payment_cents : p.second_payment_cents) || 0,
     }))
     vi.doMock('./preparation-snapshot', () => ({
       preparationDrift: async () => opts.drift,

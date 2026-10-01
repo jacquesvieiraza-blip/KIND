@@ -583,7 +583,8 @@ async function programmeCheckout(
   let walletCreditCents = 0
   if (stage === 'programme_first') {
     try {
-      const { walletCreditForPayment, programmeStripeAmountCents } = await import('@kind/shared')
+      const { walletCreditForPayment } = await import('@kind/shared')
+      const { quotedStageCents } = await import('../lib/programme-checkout')
       const { data: w } = await db.from('clients')
         .select('wallet_balance_usd').eq('id', clientId).maybeSingle()
       const balanceUsd = Number((w as { wallet_balance_usd?: number | null } | null)?.wallet_balance_usd ?? 0)
@@ -593,16 +594,16 @@ async function programmeCheckout(
       // ⚑ 25 Sep (R166 ⑤ · P11) — expired shortfall credit is not spendable.
       const { availableCreditCents, readCreditExpiry } = await import('../lib/shortfall-credit')
       walletCreditCents = walletCreditForPayment(
-        availableCreditCents(balanceCents, await readCreditExpiry(clientId)), programmeStripeAmountCents(p.meeting_target, stage, (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null))
+        availableCreditCents(balanceCents, await readCreditExpiry(clientId)), quotedStageCents(p, stage))
     } catch (err) {
       console.error('[programme/me/checkout] wallet balance unreadable — charging full price', err)
       walletCreditCents = 0
     }
   }
 
-  const { createProgrammeCheckoutSession } = await import('../lib/programme-checkout')
+  const { createProgrammeCheckoutSession, quotedStageCents } = await import('../lib/programme-checkout')
   const r = await createProgrammeCheckoutSession({
-    clientId, programmeId: p.id, meetings: p.meeting_target, stage, walletCreditCents, band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
+    clientId, programmeId: p.id, meetings: p.meeting_target, stage, quotedCents: quotedStageCents(p, stage), walletCreditCents, band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String((req.body ?? {}).successUrl ?? ''),
     cancelUrl: String((req.body ?? {}).cancelUrl ?? ''),
     clientEmail: email.trim(),

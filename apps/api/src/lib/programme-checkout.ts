@@ -11,7 +11,7 @@
 
 import Stripe from 'stripe'
 import { stripeSdkHostOptions } from './provider-hosts'
-import { programmeStripeAmountCents, meetingsPhrase, type ProgrammeStage } from '@kind/shared'
+import { meetingsPhrase, type ProgrammeStage } from '@kind/shared'
 
 const key = process.env.STRIPE_SECRET_KEY
 // ⛓️ 18 Sep (Batch 1b) — spreads to `{}` when `STRIPE_BASE_URL` is unset: production unchanged.
@@ -30,16 +30,33 @@ function stripeErrorMessage(err: unknown): string {
  * Stripe catalogue; #414 already records that this checkout path renders no dashboard product
  * at all.
  *
- * ⚠️ THE AMOUNT COMES FROM THE SHARED CURVE IN INTEGER CENTS AND IS NOT RE-DERIVED HERE.
- * Re-computing the half locally is exactly the two-places-one-number defect R68 records.
- * Stripe takes integer minor units, so the cents figure IS the Stripe amount — no float
- * multiplication at the money boundary.
+ * ⛓️ 1 Oct (#2226 · MONEY-003) — 🛑 THE AMOUNT IS THE ONE STORED ON THE PROGRAMME WHEN IT WAS
+ * QUOTED, NEVER A FRESH PRICE. ~~"The amount comes from the shared curve"~~ — `programmeStripeAmountCents`
+ * re-priced the programme at the moment of checkout, so a price change between the quote the
+ * client accepted and the moment they pressed Pay would have charged a number they never saw
+ * (and the webhook's B8 check would then refuse to start the programme — money taken, nothing
+ * delivered). `first_payment_cents` / `second_payment_cents` are written once, at quote time,
+ * and are what the client agreed to. Stripe takes integer minor units, so the stored cents
+ * figure IS the Stripe amount — no float multiplication at the money boundary.
  */
+export function quotedStageCents(
+  p: { first_payment_cents?: number | null; second_payment_cents?: number | null },
+  stage: ProgrammeStage,
+): number {
+  const v = Number(stage === 'programme_first' ? p.first_payment_cents : p.second_payment_cents)
+  return Number.isFinite(v) ? Math.floor(v) : 0
+}
 export async function createProgrammeCheckoutSession(params: {
   clientId:    string
   programmeId: string
   meetings:    number
   stage:       ProgrammeStage
+  /**
+   * ⚑ 1 Oct (#2226) — the amount stored on the programme for THIS stage when it was quoted
+   * (`quotedStageCents`). Required: there is no fallback to a fresh price, so a caller that
+   * forgets it charges nothing rather than the wrong amount.
+   */
+  quotedCents: number
   successUrl:  string
   cancelUrl:   string
   clientEmail: string
@@ -66,7 +83,7 @@ export async function createProgrammeCheckoutSession(params: {
     return { url: null, error: 'This is a demo account, so nothing is ever charged.' }
   }
   try {
-    const owedCents = programmeStripeAmountCents(params.meetings, params.stage, params.band ?? null)
+    const owedCents = Number.isFinite(params.quotedCents) ? Math.floor(params.quotedCents) : 0
     // ⚑ 25 Sep (P9) — nothing is owed at this stage (a programme paid in full has no second
     // payment). Refused before Stripe, which would reject a zero amount anyway.
     if (owedCents < 1) return { url: null, error: 'Nothing is owed at this stage — this programme was paid in full.' }

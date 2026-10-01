@@ -43,7 +43,7 @@ import { sendAs } from './mailer'
 
 const BOX = { id: 'inbox-1', email: 'jacques@kindoutreach.com', kind: 'branded', status: 'active', smtp_host: 'smtp.gmail.com', smtp_port: 465, smtp_secure: true, smtp_user: 'u', smtp_pass_enc: 'enc' } as never
 const checkout = () => createProgrammeCheckoutSession({
-  clientId: 'client-1', programmeId: 'p-1', meetings: 10, stage: 'programme_second',
+  clientId: 'client-1', programmeId: 'p-1', meetings: 10, stage: 'programme_second', quotedCents: 225_000,
   successUrl: 'https://x/ok', cancelUrl: 'https://x/no', clientEmail: 'c@realco.com',
 })
 

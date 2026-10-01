@@ -91,6 +91,8 @@ vi.mock('../lib/stripe', async (orig) => {
 vi.mock('../lib/programme-checkout', () => ({
   createProgrammeCheckoutSession: (...a: unknown[]) => progSession(...(a as [])),
   programmeStripeAmountCents: () => 45000,
+  // ⚑ 1 Oct (#2226) — the stored quote for the stage, as the real helper reads it.
+  quotedStageCents: (p: Record<string, unknown>, s: string) => Number(s === 'programme_first' ? p.first_payment_cents : p.second_payment_cents) || 0,
 }))
 vi.mock('../lib/alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 vi.mock('../middleware/auth', () => ({

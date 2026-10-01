@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import ws from 'ws'
+import { timedFetch, dbRequestTimeoutMs } from './timed-fetch'
 
 // Node 20 has no native WebSocket. Supabase Realtime needs it before createClient runs.
 if (!globalThis.WebSocket) {
@@ -15,6 +16,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 export const db = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false },
+  // ⚑ 1 Oct (#2050) — every request has a deadline; a hung call returns an error, never hangs.
+  global: { fetch: timedFetch(dbRequestTimeoutMs()) },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   realtime: { transport: ws as any },
 })

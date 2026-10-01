@@ -516,16 +516,19 @@ export function northwindRows(stage: NorthwindStage, ids: NorthwindIds, now: Dat
       // Results: the earliest meetings have happened, the latest is still to come.
       // Complete: every meeting has happened.
       const upcoming = stage === 'Results' && r.meeting === delivered
+      // ⚑ 1 Oct (Coaching F1) — at Results the most recent past meeting is still waiting for the
+      // client's "How did it go?", so the demo shows the question. Complete: every one answered.
+      const awaitingAnswer = stage === 'Results' && r.meeting === delivered - 1
       // Held the day after booking (or half a day ago for the latest), so every meeting has its
       // own date — never several stacked on one day.
       const scheduled = upcoming ? iso(-2, 2) : iso(Math.max(0.5, bookedDaysAgo - 1), 2)
       return {
         client_id: ids.clientId, programme_id: ids.programmeId, campaign_id: ids.campaignId,
         lead_id: ids.leadIds[r.cast],
-        state: upcoming ? 'BOOKED' : 'HELD',
+        state: upcoming || awaitingAnswer ? 'BOOKED' : 'HELD',
         booked_at: iso(bookedDaysAgo), scheduled_at: scheduled,
         verified_at: iso(bookedDaysAgo),
-        held_confirmed_at: upcoming ? null : scheduled,
+        held_confirmed_at: upcoming || awaitingAnswer ? null : scheduled,
         qualification: {
           icp_fit: true, role_fit: true, agreed_to_meet: true, date_time_set: true,
           genuine_relevance: true, not_existing_customer: true, acceptance_evidenced: true,

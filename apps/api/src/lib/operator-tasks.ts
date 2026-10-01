@@ -85,6 +85,14 @@ export const OPERATOR_TASK_KINDS = [
    * needs looking at — most often `20260911_onboarding_brief_drafts` never applied.
    */
   'brief_write_failed',
+  /**
+   * ⚑ 1 Oct (Coaching F1 · #2483) — A CLIENT SAYS THE PROSPECT DID NOT SHOW.
+   *
+   * The client's "they didn't show" is NOT a no-show confirmation: it would let a meeting be
+   * uncounted by the person who pays for it. Our team checks it, then records the absence and
+   * the one free reschedule through Vida's existing route (the Terms' no-show rule).
+   */
+  'meeting_no_show_reported',
   // ── the existing founder-alert classes, now records ──
   'sends_stalled',
   'api_down',

@@ -40,7 +40,9 @@ describe('② the Meetings page splits upcoming from past by the meeting itself'
 
   it('the badge is the API\'s own label, not a hard-coded "Confirmed"', () => {
     expect(src).not.toMatch(/'Confirmed'/)
-    expect(src).toContain("{m.status || 'Booked'}")
+    // ⛓️ 1 Oct (Coaching F1) — WAS `{m.status || 'Booked'}`. The badge now reads "How did it go?" while the
+    // client is being asked, then their answer; otherwise still the API's own label, never "Confirmed".
+    expect(src).toContain("(m.status || 'Booked')")
   })
 
   it('a page file exports nothing but the page (Next.js refuses other exports)', () => {

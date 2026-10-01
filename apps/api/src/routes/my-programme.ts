@@ -197,6 +197,23 @@ myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 1 Oct (R180 · Coaching #2494) — WHAT'S CONVERTING ──────────────────────────────────────
+// Growth and above (or Full Coaching). Plain-English findings counted from the client's own rows;
+// the gate, the read and every rule live in `lib/whats-converting.ts` — nothing here decides.
+myProgrammeRouter.get('/whats-converting', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { whatsConvertingFor } = await import('../lib/whats-converting')
+    const r = await whatsConvertingFor(clientId)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.data })
+  } catch (err) {
+    console.error('[programme/me/whats-converting GET]', err)
+    res.status(503).json({ success: false, error: "We couldn't read what's converting just now. Nothing has changed." })
+  }
+})
+
 myProgrammeRouter.post('/offer/skip', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

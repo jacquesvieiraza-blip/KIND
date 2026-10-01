@@ -316,8 +316,16 @@ describe('STAGE AWARENESS — NO ACTIVITY IS CLAIMED BEFORE IT WAS AUTHORISED', 
     expect(REPORTS).toContain('What were we trying to achieve?')
     expect(REPORTS).toContain('What happened?')
     expect(REPORTS).toContain('What happens next?')
+    // ⛓️ 1 Oct (R180 · #2497) — "What worked?" now HAS a client-scoped source: the client's own
+    // "How did it go?" answers and What's converting, read from /my/programme/growth-report (Growth
+    // and above, "too early" below the minimum). It may render ONLY behind that read, once outreach
+    // has run. ~~`.not.toMatch(/What worked\?|What did not work\?|What Milla learned/)`~~ — the other
+    // two still have no source and stay forbidden.
     expect(REPORTS, 'a narrative section was invented without a source')
-      .not.toMatch(/What worked\?|What did not work\?|What Milla learned/)
+      .not.toMatch(/What did not work\?|What Milla learned/)
+    expect(REPORTS).toContain("'/my/programme/growth-report'")
+    expect(REPORTS).toMatch(/\{g && outreachHasRun\(p\.stage\) && \(\s*<Section q="What worked\?">/)
+    expect(REPORTS.match(/What worked\?/g)).toHaveLength(1)
   })
 })
 

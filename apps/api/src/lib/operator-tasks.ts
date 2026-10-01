@@ -93,9 +93,10 @@ export const OPERATOR_TASK_KINDS = [
    * the one free reschedule through Vida's existing route (the Terms' no-show rule).
    */
   'meeting_no_show_reported',
-  /** ⚑ 1 Oct (R180 · Coaching F2) — a client said yes to Full Coaching at 50%. Until Coaching
-   *  billing (F3) exists our team confirms it and sends the one payment; nothing is charged here. */
-  'full_coaching_requested',
+  // ⛓️ 1 Oct (F3 · #2485) — ~~'full_coaching_requested'~~ REMOVED: a yes to Full Coaching now opens
+  // the one payment itself (`lib/coaching-billing.ts`), so no task is raised and nothing used the kind.
+  // It was added the same day and never reached main (the live site); a preview-database row with
+  // it, if any, is still readable — the column is free text, only the TypeScript list narrowed.
   // ── the existing founder-alert classes, now records ──
   'sends_stalled',
   'api_down',

@@ -1986,7 +1986,7 @@ export async function settleProgrammeShortfall(params: {
   programmeId: string
   deliveredMeetings: number
   note: string
-}): Promise<ProgrammeResult & { creditCents?: number; alreadySettled?: boolean }> {
+}): Promise<ProgrammeResult & { creditCents?: number; upliftReturnedCents?: number; alreadySettled?: boolean }> {
   const { programmeId, deliveredMeetings, note } = params
   if (!Number.isInteger(deliveredMeetings) || deliveredMeetings < 0) {
     return { ok: false, reason: 'Delivered meetings must be a whole number of at least 0.' }
@@ -2048,6 +2048,28 @@ export async function settleProgrammeShortfall(params: {
     }
   }
 
+  // ── ⚑ 1 Oct (R180 Q2 · F3 · #2485) — THE FULL COACHING UPLIFT COMES BACK IN THE SAME SETTLEMENT ──
+  // The founder: Full Coaching is paid at activation for the meetings still to come, and *"any of
+  // those meetings not delivered returns its uplift with the shortfall credit"* (R180 Q2). Covered
+  // meetings not delivered = max(0, covered − max(0, delivered − delivered at activation)), each
+  // returning the uplift it was paid at. A switched-off (refunded) activation returns nothing.
+  //
+  // ⚠️⚠️ NOT SUBJECT TO THE ONCE-PER-CLIENT SHORTFALL RULE ABOVE (R166 ⑤ · P11), AND NOT GIVEN THE
+  // 90-DAY EXPIRY. This is the RECOMMENDED READING, NOT YET RULED BY THE FOUNDER: the once-only rule
+  // governs the programme's shortfall credit; the uplift is money paid for Coaching on meetings we
+  // did not deliver, so withholding it because the client once had a shortfall credit would keep
+  // money for nothing. If the founder rules otherwise, this is the block to change.
+  //
+  // ⚠️ READ BEFORE THE CLAIM, AND AN UNREADABLE ACTIVATION REFUSES THE SETTLEMENT (retryable) —
+  // settling without it would close the programme and strand the client's uplift for good.
+  const { coachingUpliftForSettlement, markUpliftReturned } = await import('./coaching-billing')
+  const coaching = await coachingUpliftForSettlement(p as { id: string; size_band?: string | null }, deliveredMeetings)
+  if (!coaching.ok) {
+    return { ok: false, reason: `Whether this programme has Full Coaching could not be read (${coaching.reason}). Nothing was settled — try again.` }
+  }
+  const upliftCents = coaching.cents
+  const walletCents = creditCents + upliftCents
+
   // ① CLAIM. `.is('shortfall_credited_at', null)` makes this a compare-and-set: two concurrent
   // presses cannot both win, and the loser updates zero rows.
   const now = new Date().toISOString()
@@ -2069,15 +2091,18 @@ export async function settleProgrammeShortfall(params: {
 
   // ② PAY. Skipped entirely when nothing is owed — a $0 wallet movement is a ledger row that
   // says something happened when nothing did.
-  if (creditCents > 0) {
+  // ⛓️ 1 Oct (F3) — ONE wallet movement for the shortfall credit AND the Coaching uplift, so the
+  // two can never half-land: either both are in the wallet or the claim is released and neither is.
+  if (walletCents > 0) {
     const { error: walletErr } = await db.rpc('increment_wallet', {
-      p_client_id: p.client_id, p_amount: creditCents / 100,
+      p_client_id: p.client_id, p_amount: walletCents / 100,
     })
     if (walletErr) {
       await release()
       return { ok: false, reason: `The wallet could not be credited (${walletErr.message}). Nothing was settled — try again.` }
     }
-
+  }
+  if (creditCents > 0) {
     // ③ RECORD. `reference` is uniquely indexed, so a row for this programme already existing
     // means a previous attempt got here — that is the dedup working, not a failure.
     const { error: ledgerErr } = await db.from('credit_transactions').insert({
@@ -2108,9 +2133,31 @@ export async function settleProgrammeShortfall(params: {
     }
   }
 
+  // ⚑ 1 Oct (F3) — ③ RECORD the Coaching uplift: its own ledger row (unique reference) and the
+  // activation's `uplift_returned_cents` (compare-and-set on 0). The money has moved, so neither
+  // failure releases the claim — it is alerted, exactly like the shortfall ledger above.
+  if (upliftCents > 0 && coaching.row) {
+    const { error: upliftLedgerErr } = await db.from('credit_transactions').insert({
+      client_id: p.client_id, type: 'wallet_topup', amount: upliftCents / 100, plan: 'work_model',
+      reference: `coaching-uplift-return:${programmeId}`,
+      note: `Full Coaching: ${upliftCents / coaching.row.uplift_cents_per_meeting} covered meeting(s) not delivered — uplift returned`,
+      created_at: now,
+    })
+    const marked = await markUpliftReturned(coaching.row.id, upliftCents)
+    if ((upliftLedgerErr && upliftLedgerErr.code !== '23505') || !marked) {
+      void sendFounderAlert('payment_failed', 'Full Coaching uplift returned but not fully recorded', [
+        `Programme ${programmeId} (client ${p.client_id}): ${upliftCents} cents of Coaching uplift were added to the wallet.`,
+        upliftLedgerErr && upliftLedgerErr.code !== '23505' ? `The ledger row FAILED (${upliftLedgerErr.message}).` : '',
+        !marked ? 'The activation\'s uplift_returned_cents did not write.' : '',
+        'Do NOT re-run the settlement — it would credit the wallet twice. Record the missing piece by hand.',
+      ])
+    }
+  }
+
   // The credit reduces revenue for contribution, exactly as operator-decided make-whole does.
+  // ⛓️ 1 Oct (F3) — and so does the returned Coaching uplift.
   await db.from('programmes').update({
-    make_whole_cents: p.make_whole_cents + creditCents,
+    make_whole_cents: p.make_whole_cents + creditCents + upliftCents,
     value_settled_at: now,
     updated_at: new Date().toISOString(),
   }).eq('id', programmeId)
@@ -2120,10 +2167,11 @@ export async function settleProgrammeShortfall(params: {
     creditCents > 0
       ? `${creditCents} cents credited to their wallet toward another run.${bandProgramme ? ' It expires in 90 days (R166).' : ''}`
       : `Nothing was owed back.${creditNote}`,
+    upliftCents > 0 ? `${upliftCents} cents of Full Coaching uplift returned to their wallet (covered meetings not delivered, R180 Q2).` : '',
     note,
     'This is WALLET CREDIT, not a Stripe refund. If money is also to be returned, do that separately.',
   ])
-  return { ok: true, creditCents }
+  return { ok: true, creditCents, upliftReturnedCents: upliftCents }
 }
 
 /**

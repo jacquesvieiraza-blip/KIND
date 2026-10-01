@@ -201,6 +201,30 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       }
       const meta = session.metadata || {}
 
+      // ── ⚑ 1 Oct (R180 Q2 · R184 · Coaching F3 · #2485) — FULL COACHING, ONE PAYMENT ─────────────
+      //
+      // ⚠️ BESIDE THE PROGRAMME BRANCH AND BEFORE EVERY LEGACY ONE, for the same reason: Coaching
+      // money must never reach the wallet or the credit handlers below. All the rules live in
+      // `lib/coaching-billing.ts`: the amount must equal meetings × uplift (a mismatch records
+      // nothing, tells the founder, 200); the same session again is success, not a second row; a
+      // different session for a programme already on is refused and alerted (200); a storage
+      // failure is 500 so Stripe retries — the table's UNIQUE keys make the retry safe.
+      if (meta.type === 'coaching_activation') {
+        const { recordCoachingActivation } = await import('../lib/coaching-billing')
+        const r = await recordCoachingActivation(session as never)
+        if (!r.ok && r.retry) {
+          console.error(`[Stripe] Full Coaching payment could not be recorded — 500 for retry. ${r.reason}`)
+          void sendFounderAlert('payment_failed', 'Full Coaching payment could not be recorded', [
+            `Programme ${meta.programmeId ?? '?'} (client ${meta.clientId ?? '?'}) paid session ${session.id}.`,
+            `Reason: ${r.reason}`,
+            'The client has paid. Stripe will retry; if the retries exhaust, record it by hand.',
+          ])
+          res.status(500).json({ error: 'coaching activation record failed — retry' }); return
+        }
+        console.log(`[Stripe] Full Coaching ${r.ok ? (r.alreadyRecorded ? 'already recorded (replay)' : 'switched on') : `NOT recorded (${r.reason})`} — programme ${meta.programmeId ?? '?'}, session ${session.id}.`)
+        res.sendStatus(200); return
+      }
+
       // ── PROGRAMME PAYMENTS (BUILD-002) ────────────────────────────────────────────
       //
       // ⚠️ FIRST, BECAUSE PROGRAMME MONEY MUST NEVER FALL THROUGH INTO A LEGACY BRANCH. A
@@ -925,6 +949,13 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       const obj = event.data.object as { id: string; payment_intent?: string | null }
       const linked = await getSessionMetaByPaymentIntent(obj.payment_intent)
       const meta = linked?.metadata ?? {}
+
+      // ⚑ 1 Oct (F3) — Coaching reversed: Coaching OFF, and stop here, never pausing the programme.
+      if (meta.type === 'coaching_activation') {
+        const { coachingReversalStatus: off } = await import('../lib/coaching-billing')
+        res.sendStatus(await off(event.type, event.data.object, linked?.sessionId ?? null, meta)); return
+      }
+
       const credits = parseInt(meta.credits ?? '', 10)
       if (meta.clientId && meta.creditType && Number.isFinite(credits) && credits > 0) {
         const isFigsy = meta.creditType === 'figsy'

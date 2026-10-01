@@ -186,9 +186,12 @@ myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {
     const p = await openProgrammeForSession(clientId)
     if (!p) { res.status(409).json({ success: false, error: 'There is no programme running.' }); return }
     const { respondToMoment } = await import('../lib/expansion-moments')
-    const r = await respondToMoment(clientId, p as never, req.body?.milestone, req.body?.response)
+    // ⚑ 1 Oct (F3 · #2485) — "accepted" opens the one Full Coaching payment; the URL comes back
+    // and the screen sends the client to Stripe. The programme is still the session's, never the body's.
+    const r = await respondToMoment(clientId, p as never, req.body?.milestone, req.body?.response,
+      { successUrl: req.body?.successUrl, cancelUrl: req.body?.cancelUrl })
     if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
-    res.json({ success: true })
+    res.json({ success: true, ...(r.url ? { data: { url: r.url } } : {}) })
   } catch (err) {
     console.error('[programme/me/moment/respond POST]', err)
     res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." })

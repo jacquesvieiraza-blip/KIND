@@ -176,7 +176,7 @@ export default function ExpansionMoment() {
     body = m.coachingActive ? (
       <p className="text-[12.5px] text-[#4c4368] leading-relaxed">Full Coaching is on for the meetings still to come. Open Coaching before each meeting.</p>
     ) : <>
-      <p className="text-[12.5px] text-[#4c4368] leading-relaxed">Follow-up coach, objection coach, deal strategy, roleplay and meeting debriefs, from your next meeting onward.</p>
+      <p className="text-[12.5px] text-[#4c4368] leading-relaxed">Follow-up coach, meeting debriefs, Objection Coach and roleplay, from your next meeting onward.</p>
       <div className="mv-kv-list mt-2">
         <div className="mv-kv-row"><span>Your plan today</span><strong>{usd(m.pricePerMeeting)} per meeting</strong></div>
         <div className="mv-kv-row"><span>With Full Coaching</span><strong>{usd(m.pricePerMeeting + m.upliftPerMeeting)} per meeting</strong></div>

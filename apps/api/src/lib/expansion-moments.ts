@@ -81,7 +81,9 @@ export function momentChat(v: Pick<MomentView, 'milestone' | 'plan' | 'delivered
     // The client now pays at the press (R180 Q2), so the line says what is true: on, or not finished.
     if (v.coachingActive) return `You're halfway: ${part} are delivered. Full Coaching is on for the meetings still to come.`
     if (v.coachingRequested) return `You're halfway: ${part} are delivered. You started turning on Full Coaching. Finish the one payment and it switches on.`
-    return `You're halfway: ${part} are delivered. From here, Full Coaching would help turn the next ${v.remaining === 1 ? 'meeting' : `${v.remaining} meetings`} into deals: follow-up, objections, deal strategy and roleplay. It's $${FULL_COACHING_UPLIFT_PER_MEETING_USD} more for each meeting still to come, paid once.`
+    // ⛓️ 1 Oct — ~~"follow-up, objections, deal strategy and roleplay"~~: Deal Coach is Phase 2 and not built.
+    // A paid offer names only what the client gets today (guarded by coaching-promise.test.ts).
+    return `You're halfway: ${part} are delivered. From here, Full Coaching would help turn the next ${v.remaining === 1 ? 'meeting' : `${v.remaining} meetings`} into deals: your follow-up written for you, a debrief after each meeting, and practice on objections and the call itself. It's $${FULL_COACHING_UPLIFT_PER_MEETING_USD} more for each meeting still to come, paid once.`
   }
   const next = `You're three-quarters of the way: ${part} are delivered. Before we finish, let's plan your next programme so there's no gap in your pipeline.`
   // ⚑ 1 Oct (#2522) — the founder's 75%: "Coaching active → continue alongside". What is true today

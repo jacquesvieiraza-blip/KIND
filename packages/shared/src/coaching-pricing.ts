@@ -9,6 +9,8 @@
 import type { SizeBand } from './size-band'
 
 export const FULL_COACHING_UPLIFT_PER_MEETING_USD = 100
+/** ⚑ 1 Oct (F3 · #2485) — the same price in integer cents, for Stripe and the ledger. Derived, never typed. */
+export const FULL_COACHING_UPLIFT_PER_MEETING_CENTS = FULL_COACHING_UPLIFT_PER_MEETING_USD * 100
 
 /** Does this plan already include Full Coaching? Enterprise does (R180). */
 export const coachingIncluded = (band: SizeBand | null | undefined): boolean => band === 'enterprise'
@@ -16,4 +18,9 @@ export const coachingIncluded = (band: SizeBand | null | undefined): boolean => 
 /** The one payment to turn on Full Coaching now: uplift × the meetings still to come. */
 export function fullCoachingActivationUsd(remainingMeetings: number): number {
   return Math.max(0, Math.floor(remainingMeetings)) * FULL_COACHING_UPLIFT_PER_MEETING_USD
+}
+
+/** ⚑ 1 Oct (F3 · #2485) — the same one payment in integer cents: what Stripe is asked to charge. */
+export function fullCoachingActivationCents(remainingMeetings: number): number {
+  return Math.max(0, Math.floor(remainingMeetings)) * FULL_COACHING_UPLIFT_PER_MEETING_CENTS
 }

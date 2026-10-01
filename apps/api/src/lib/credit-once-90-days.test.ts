@@ -19,7 +19,9 @@ vi.mock('@kind/db', () => ({
         select: () => q, eq: () => q, is: () => q,
         insert: () => Promise.resolve({ error: null }),
         update: (p: Row) => { patch = p; return q },
-        maybeSingle: async () => ({ data: t === 'programmes' ? state.programme : state.client, error: null }),
+        // ⛓️ 1 Oct (F3 · #2485) — the settlement now also reads `coaching_activations`; this programme
+        // has none, so that table answers "no row" (it used to fall through to the client row).
+        maybeSingle: async () => ({ data: t === 'programmes' ? state.programme : t === 'coaching_activations' ? null : state.client, error: null }),
         single: async () => ({ data: t === 'programmes' ? state.programme : state.client, error: null }),
         then: (res: (v: unknown) => unknown) => {
           if (patch) { state.updates.push({ t, p: patch }); Object.assign(t === 'programmes' ? state.programme! : state.client, patch) }

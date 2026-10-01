@@ -105,6 +105,15 @@ export async function wipeNorthwind(userId: string, opts: { keepDraft?: boolean 
     await must('enrolments', db.from('figsy_enrollments').delete().eq('client_id', id))
     await must('sequences', db.from('figsy_sequences').delete().eq('client_id', id))
     await must('campaigns', db.from('figsy_campaigns').delete().eq('client_id', id))
+    // ⚑ 1 Oct (Coaching F3) — a Full Coaching activation points at the programme and the client with
+    // ON DELETE RESTRICT (money records are never cascaded away), so it goes first or the account
+    // cannot be cleared. The demo is never charged; a row exists only if one was written for a walk.
+    // A database that has not run 20261001_coaching_activations has nothing to clear.
+    {
+      const { error } = await db.from('coaching_activations').delete().eq('client_id', id)
+      const { isRelationAbsent } = await import('./relation-absent')
+      if (error && !isRelationAbsent(error)) throw new Error(`Could not clear Coaching: ${error.message}`)
+    }
     await must('the account', db.from('clients').delete().eq('id', id).eq('is_demo', true))
   }
   if (!opts.keepDraft) await must('the Brief', db.from('onboarding_brief_drafts').delete().eq('user_id', userId))

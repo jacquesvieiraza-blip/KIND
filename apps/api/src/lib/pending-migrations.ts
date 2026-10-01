@@ -7396,6 +7396,45 @@ COMMENT ON COLUMN public.leads.state IS
   'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
 `,
   },
+  {
+    // ── ⚑ 1 Oct (R180 Q2 · R184 · Coaching F3 · #2485) — FULL COACHING, BOUGHT FOR A PROGRAMME ──
+    // One row per programme and per Stripe session (both UNIQUE), so a redelivery never records a
+    // second activation. A refund or dispute stamps deactivated_at; the row is never deleted.
+    // EXPAND ONLY: one new table, RLS on with no policy (service role only).
+    key: '20261001_coaching_activations',
+    title: 'coaching_activations — Full Coaching bought for a programme, one payment (R180 Q2, R184, F3)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.coaching_activations (
+  id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id              uuid NOT NULL UNIQUE REFERENCES public.programmes(id) ON DELETE RESTRICT,
+  client_id                 uuid NOT NULL REFERENCES public.clients(id) ON DELETE RESTRICT,
+  meetings_covered          integer NOT NULL CHECK (meetings_covered > 0),
+  delivered_at_activation   integer NOT NULL CHECK (delivered_at_activation >= 0),
+  uplift_cents_per_meeting  integer NOT NULL CHECK (uplift_cents_per_meeting > 0),
+  paid_cents                integer NOT NULL,
+  payment_ref               text NOT NULL UNIQUE,
+  payment_intent_id         text,
+  activated_at              timestamptz NOT NULL DEFAULT now(),
+  deactivated_at            timestamptz,
+  deactivated_reason        text,
+  uplift_returned_cents     integer NOT NULL DEFAULT 0 CHECK (uplift_returned_cents >= 0),
+  created_at                timestamptz NOT NULL DEFAULT now(),
+  updated_at                timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT coaching_activations_paid_matches_check
+    CHECK (paid_cents = meetings_covered * uplift_cents_per_meeting),
+  CONSTRAINT coaching_activations_returned_within_paid_check
+    CHECK (uplift_returned_cents <= paid_cents)
+);
+
+CREATE INDEX IF NOT EXISTS coaching_activations_client_idx ON public.coaching_activations (client_id);
+CREATE INDEX IF NOT EXISTS coaching_activations_intent_idx ON public.coaching_activations (payment_intent_id);
+
+ALTER TABLE public.coaching_activations ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.coaching_activations IS
+  'Full Coaching bought for a programme: one payment of uplift x meetings still to come (R180 Q2, R184). A refund or dispute stamps deactivated_at; never deleted.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

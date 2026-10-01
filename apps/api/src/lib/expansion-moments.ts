@@ -42,8 +42,11 @@ export type MomentView = {
   response: MomentResponse | null
   response50: MomentResponse | null
   coachingIncluded: boolean
-  /** The client said yes at 50%. Until Coaching billing (F3) exists that is a REQUEST, not "on". */
+  /** ⛓️ 1 Oct (F3): the client pressed "Turn on" (50% or 75%) and the payment is NOT recorded yet —
+   *  they opened the payment page and left. ~~Until F3 a yes was a request to our team.~~ */
   coachingRequested: boolean
+  /** ⚑ 1 Oct (F3 · #2485) — Full Coaching is ON for this programme: a paid, not-refunded activation. */
+  coachingActive: boolean
   pricePerMeeting: number
   upliftPerMeeting: number
   activationTotal: number
@@ -51,7 +54,7 @@ export type MomentView = {
 }
 
 /** Milla's opening line for the moment. Pure — the copy is tested, not eyeballed. */
-export function momentChat(v: Pick<MomentView, 'milestone' | 'plan' | 'delivered' | 'target' | 'remaining' | 'response50' | 'coachingRequested'>): string {
+export function momentChat(v: Pick<MomentView, 'milestone' | 'plan' | 'delivered' | 'target' | 'remaining' | 'response50' | 'coachingRequested'> & { coachingActive?: boolean }): string {
   const part = `${v.delivered} of your ${v.target} qualified meetings`
   if (v.milestone === 25) {
     if (v.plan === 'enterprise') return `You're a quarter of the way: ${part} are delivered. Full Coaching is part of your plan, so open Coaching before each meeting for your prep brief.`
@@ -60,7 +63,10 @@ export function momentChat(v: Pick<MomentView, 'milestone' | 'plan' | 'delivered
   }
   if (v.milestone === 50) {
     if (v.plan === 'enterprise') return `You're halfway: ${part} are delivered. Full Coaching is already part of your plan, so I'm not going to sell it to you again. Let's look at what's next: more meetings, another segment, or your next programme.`
-    if (v.coachingRequested) return `You're halfway: ${part} are delivered. You asked for Full Coaching. Our team will confirm it and send the one payment.`
+    // ⛓️ 1 Oct (F3) — ~~"You asked for Full Coaching. Our team will confirm it and send the one payment."~~
+    // The client now pays at the press (R180 Q2), so the line says what is true: on, or not finished.
+    if (v.coachingActive) return `You're halfway: ${part} are delivered. Full Coaching is on for the meetings still to come.`
+    if (v.coachingRequested) return `You're halfway: ${part} are delivered. You started turning on Full Coaching. Finish the one payment and it switches on.`
     return `You're halfway: ${part} are delivered. From here, Full Coaching would help turn the next ${v.remaining === 1 ? 'meeting' : `${v.remaining} meetings`} into deals: follow-up, objections, deal strategy and roleplay. It's $${FULL_COACHING_UPLIFT_PER_MEETING_USD} more for each meeting still to come, paid once.`
   }
   const next = `You're three-quarters of the way: ${part} are delivered. Before we finish, let's plan your next programme so there's no gap in your pipeline.`
@@ -93,7 +99,11 @@ async function writeResponse(clientId: string, programmeId: string, milestone: M
   return !error
 }
 
-type ProgrammeLite = { id: string; meeting_target: number | null; size_band?: string | null; status?: string | null; coaching_on?: boolean }
+type ProgrammeLite = {
+  id: string; meeting_target: number | null; size_band?: string | null; status?: string | null; coaching_on?: boolean
+  // ⚑ 1 Oct (F3) — what the Coaching checkout checks; the route passes the full open-programme row.
+  client_id?: string | null; paused_at?: string | null; disputed_at?: string | null; shortfall_credited_at?: string | null
+}
 
 /**
  * The moment this programme is at, firing it (once) if it is new: a remembered `shown`, and Milla's
@@ -112,11 +122,19 @@ export async function ensureMoment(clientId: string, p: ProgrammeLite): Promise<
   const memo = await latestResponses(p.id)
   if (!memo) return null
 
+  // ⚑ 1 Oct (F3) — is Full Coaching on? Enterprise owns it and is never read. An unreadable answer
+  // shows "not on" here; the checkout re-reads it and refuses on unreadable, so this never charges.
+  let coachingActive = false
+  if (!coachingIncluded(plan)) {
+    const { coachingActivated } = await import('./coaching-access')
+    coachingActive = await coachingActivated(p.id)
+  }
   const response50 = memo.get(50) ?? null
   const view: MomentView = {
     milestone, plan, delivered: d.delivered, target, remaining: Math.max(0, target - d.delivered),
     response: memo.get(milestone) ?? null, response50,
-    coachingIncluded: coachingIncluded(plan), coachingRequested: response50 === 'accepted',
+    coachingIncluded: coachingIncluded(plan), coachingActive,
+    coachingRequested: !coachingActive && (response50 === 'accepted' || memo.get(75) === 'accepted'),
     pricePerMeeting: BAND_PRICE_PER_MEETING_USD[plan], upliftPerMeeting: FULL_COACHING_UPLIFT_PER_MEETING_USD,
     activationTotal: fullCoachingActivationUsd(Math.max(0, target - d.delivered)), chat: '',
   }
@@ -144,31 +162,36 @@ async function postChat(clientId: string, programmeId: string, milestone: Milest
   } catch (err) { console.error('[expansion-moments] chat line not posted:', err) }
 }
 
-export type RespondResult = { ok: true } | { ok: false; status: number; error: string }
+export type RespondResult = { ok: true; url?: string } | { ok: false; status: number; error: string }
 
-/** The client's answer to the moment on screen. Only the current milestone can be answered. */
-export async function respondToMoment(clientId: string, p: ProgrammeLite, milestone: unknown, response: unknown): Promise<RespondResult> {
+/**
+ * The client's answer to the moment on screen. Only the current milestone can be answered.
+ *
+ * ⛓️ 1 Oct (F3 · #2485) — "accepted" NOW OPENS THE ONE PAYMENT (R180 Q2). ~~Until Coaching billing
+ * existed, a yes raised a `full_coaching_requested` task and our team sent the payment by hand.~~
+ * The answer is remembered only once the checkout exists: a refused checkout (demo, Enterprise,
+ * already on, nothing still to come) changes nothing. Coaching switches on when Stripe confirms
+ * the payment (`recordCoachingActivation`), never at this press.
+ */
+export async function respondToMoment(
+  clientId: string, p: ProgrammeLite, milestone: unknown, response: unknown,
+  urls?: { successUrl?: string; cancelUrl?: string },
+): Promise<RespondResult> {
   if (!isResponse(response) || response === 'shown') return { ok: false, status: 400, error: 'Unknown answer.' }
   const view = await ensureMoment(clientId, p)
   if (!view || view.milestone !== Number(milestone)) return { ok: false, status: 409, error: 'This moment has moved on. Refresh to see the current one.' }
   // 🛑 ENTERPRISE IS NEVER SOLD COACHING — "accepted" means nothing for a plan that owns it.
   if (response === 'accepted' && view.coachingIncluded) return { ok: false, status: 400, error: 'Full Coaching is already part of your plan.' }
+  if (response === 'accepted') {
+    const { createCoachingCheckout } = await import('./coaching-billing')
+    const r = await createCoachingCheckout(clientId, p, String(urls?.successUrl ?? ''), String(urls?.cancelUrl ?? ''))
+    if (!r.ok) return r
+    // Memory only: a failed write never blocks a payment the client chose (logged in writeResponse).
+    await writeResponse(clientId, p.id, view.milestone, 'accepted')
+    return { ok: true, url: r.url }
+  }
   if (!(await writeResponse(clientId, p.id, view.milestone, response))) {
     return { ok: false, status: 503, error: "We couldn't save that just now. Nothing changed — please try again." }
-  }
-  if (response === 'accepted') {
-    const { isDemoClient } = await import('./demo')
-    if (await isDemoClient(clientId).catch(() => false)) return { ok: true }
-    // ⚠️ UNTIL COACHING BILLING (F3) EXISTS, A "YES" IS A REQUEST TO OUR TEAM — never a charge
-    // taken by this screen. The team confirms the price and sends the one payment.
-    const { raiseOperatorTask } = await import('./operator-tasks')
-    await raiseOperatorTask({
-      kind: 'full_coaching_requested', severity: 'warn', clientId, programmeId: p.id,
-      subjectKind: 'programme', subjectId: p.id,
-      title: 'A client asked to turn on Full Coaching',
-      detail: `${view.remaining} meetings still to come × $${view.upliftPerMeeting} = $${view.activationTotal}, one payment (R180 Q2). Confirm and send the payment.`,
-      evidence: { milestone: view.milestone, remaining: view.remaining, total_usd: view.activationTotal },
-    }).catch(err => console.error('[expansion-moments] coaching request task not raised:', err))
   }
   return { ok: true }
 }

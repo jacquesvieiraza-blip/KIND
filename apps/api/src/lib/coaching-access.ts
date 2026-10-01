@@ -31,11 +31,18 @@ export function accessFrom(plan: SizeBand | null, activated: boolean): Omit<Coac
   return { plan, activated, full, growthExtras: full || plan === 'growth' }
 }
 
-/** Has Full Coaching been bought for this programme? An absent table (F3 not migrated) is "no". */
+/**
+ * Has Full Coaching been bought for this programme? An absent table (F3 not migrated) is "no".
+ * ⛓️ 1 Oct (F3 · #2485) — AND NOT SWITCHED OFF. A refunded or disputed payment stamps
+ * `deactivated_at` (the row is kept as the record), so a row alone is no longer "on".
+ */
 export async function coachingActivated(programmeId: string): Promise<boolean> {
-  const { data, error } = await db.from('coaching_activations').select('id').eq('programme_id', programmeId).limit(1)
-  if (error) return false
-  return (data ?? []).length > 0
+  try {
+    const { data, error } = await db.from('coaching_activations').select('id')
+      .eq('programme_id', programmeId).is('deactivated_at', null).limit(1)
+    if (error) return false
+    return (data ?? []).length > 0
+  } catch { return false }
 }
 
 /** The client's Coaching access, from their open programme (or their latest one). */

@@ -81,7 +81,7 @@ const NOT_MILLA_NOT_VIDA: Array<[string, string]> = [
   ['apps/api/src/routes/casey.ts',   'Casey chat — a human reads it, and the founder still ruled Haiku'],
   ['apps/api/src/routes/denise.ts',  'Denise chat — same ruling'],
   ['apps/api/src/routes/figsy.ts',   'FIGSY chat — same ruling'],
-  ['apps/api/src/routes/support.ts', 'Support chat — same ruling'],
+  // ⛓️ 1 Oct (R182 · W-7): the support chat is retired — support.ts holds no model call any more.
   ['apps/api/src/lib/vida.ts',       "the website chat widget — a visitor on a CLIENT's site, not the operator's Vida"],
   ['apps/api/src/lib/scoring.ts',           'lead scoring'],
   ['apps/api/src/lib/scrape.ts',            'website reading'],

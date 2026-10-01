@@ -27,6 +27,7 @@ import {
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
   recordMakeWhole, settleProgrammeFromRecord, nextBatchSize, ProgrammeStorageError,
+  firstInternallyAuthorised,
 } from '../lib/programme'
 import { createProgrammeCheckoutSession } from '../lib/programme-checkout'
 
@@ -186,6 +187,15 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
   const p = await getProgramme(req.params.id)
   if (!p) { res.status(404).json({ success: false, error: 'No such programme.' }); return }
   if (p.first_payment_ref) { res.status(400).json({ success: false, error: 'The first payment is already recorded.' }); return }
+  // ⚑ 1 Oct (#2229) — A PROGRAMME SETTLED BY INTERNAL AUTHORITY OWES NOTHING. House's programme is
+  // authorised internally, not paid. This door checked only for a payment, so an
+  // operator could still mint a live Stripe checkout for it — a real charge on a programme that must
+  // never be shown a price. The client door (`/my/programme/checkout/first`) already refuses this; the
+  // operator door now asks the same question, through the module that owns the columns.
+  if (firstInternallyAuthorised(p)) {
+    res.status(400).json({ success: false, error: 'This programme is authorised internally, so there is nothing to pay. No checkout was created and nothing was charged.' })
+    return
+  }
 
   const email = await clientEmailOrRefuse(p.client_id, res)
   if (email === null) return

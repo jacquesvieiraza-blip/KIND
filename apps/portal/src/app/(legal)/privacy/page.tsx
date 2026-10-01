@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026</p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 1 October 2026</p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>

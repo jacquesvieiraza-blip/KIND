@@ -51,6 +51,8 @@ for (const f of ['public/terms.html', 'src/app/(legal)/terms/page.tsx']) {
       expect(t).toMatch(/under our earlier terms/i)
       expect(t).toMatch(/Payment 2 is never charged/)
     })
-    it('dated 25 September 2026', () => { expect(t).toMatch(/Last updated: 25 September 2026/) })
+    // ⛓️ 1 Oct — WAS 'dated 25 September 2026'. The Terms changed on 1 Oct (R182 · W-6) and the
+    // founder said "yes fix the dates"; `legal-pages-dated.test.ts` now pins the date on every page.
+    it('dated 1 October 2026', () => { expect(t).toMatch(/Last updated: 1 October 2026/) })
   })
 }

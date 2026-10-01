@@ -875,6 +875,12 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
       .neq('classification', 'sent_reply')
       .order('received_at', { ascending: false }).limit(1).maybeSingle()
     const { data: me } = await db.from('clients').select('company_name, industry').eq('id', clientId).maybeSingle()
+    // ⚑ 1 Oct (Coaching F6 · #2486) — the client's own sales context grounds the prep: their
+    // offer, the objections they hear and their answers, the proof they lead with, who decides.
+    // Unreadable → the brief is built without it (it is a help, never a gate).
+    const { data: pitchRow } = await db.from('figsy_knowledge').select('data').eq('client_id', clientId).eq('kind', 'pitch').maybeSingle()
+    const { salesContextLines } = await import('../lib/sales-context')
+    const sellerLines = salesContextLines((pitchRow as { data?: Record<string, unknown> | null } | null)?.data ?? null)
 
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -885,7 +891,8 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
         `THEM: ${[lead.first_name, lead.last_name].filter(Boolean).join(' ')} — ${lead.job_title ?? 'unknown role'} at ${lead.company ?? 'unknown company'}` +
         `${lead.industry ? ` (${lead.industry})` : ''}.\n` +
         `${lead.score_reasoning ? `WHY THEY FIT: ${lead.score_reasoning}\n` : ''}` +
-        `${reply ? `THEIR OWN WORDS: "${(reply.body_text ?? reply.body ?? '').slice(0, 800)}"\n` : ''}\n` +
+        `${reply ? `THEIR OWN WORDS: "${(reply.body_text ?? reply.body ?? '').slice(0, 800)}"\n` : ''}` +
+        `${sellerLines.length ? `HOW THE SELLER SELLS (their own words — use it, never invent beyond it):\n${sellerLines.map(l => `- ${l}`).join('\n')}\n` : ''}\n` +
         `Give exactly four short sections with these headings and nothing else:\n` +
         `WHAT THEY LIKELY CARE ABOUT\nTHREE QUESTIONS TO ASK\nTHE OBJECTION TO EXPECT\nHOW TO CLOSE THE NEXT STEP\n` +
         `Be specific to this person. Plain text, no markdown, no preamble.` }],

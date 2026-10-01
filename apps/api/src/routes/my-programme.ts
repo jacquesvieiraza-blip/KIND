@@ -132,6 +132,36 @@ myProgrammeRouter.post('/offer', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 1 Oct (Coaching F6 · #2486) — THE CLIENT'S SALES CONTEXT ──────────────────────────────
+// Four answers about how they sell, beside the offer (`lib/sales-context.ts`). Skippable.
+myProgrammeRouter.get('/sales-context', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readSalesContext } = await import('../lib/sales-context')
+    const { readOffer } = await import('../lib/client-offer')
+    const [context, offer] = await Promise.all([readSalesContext(clientId), readOffer(clientId)])
+    res.json({ success: true, data: { context, offer } })
+  } catch (err) {
+    console.error('[programme/me/sales-context GET]', err)
+    res.status(503).json({ success: false, error: "We couldn't load your sales context just now." })
+  }
+})
+myProgrammeRouter.post('/sales-context', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { cleanSalesContext, saveSalesContext } = await import('../lib/sales-context')
+    const input = cleanSalesContext(req.body)
+    if (!input) { res.status(400).json({ success: false, error: 'Write at least one answer, or skip for now.' }); return }
+    await saveSalesContext(clientId, input)
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[programme/me/sales-context POST]', err)
+    res.status(503).json({ success: false, error: "We couldn't save that just now. Nothing changed — please try again." })
+  }
+})
+
 myProgrammeRouter.post('/offer/skip', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

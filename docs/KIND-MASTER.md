@@ -556,6 +556,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **1 Oct (AUTO — merge #2533):** #2050: every database request has a one-minute deadline → flipped #2050 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2532):** #2229: the operator checkout refuses a programme authorised internally (House) → flipped #2229 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2526):** W-1a (R182): the legal pages say only what is true today → flipped #1811 #1771 #1762 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2481):** C2: the website no longer states "250 leads per meeting" (preview approved) → flipped #2038 🩷 (live, founder walk owed for 🟢).

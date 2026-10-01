@@ -369,7 +369,10 @@ const anthropicHandler = async (req, body, res, state) => {
   if (prompt.includes('You are role-playing a prospect on a sales call')) {
     return json(res, 200, {
       id: 'msg_fake_prospect', type: 'message', role: 'assistant', model: 'fake-harness-model',
-      content: [{ type: 'text', text: "Hi, thanks for calling. I've only got ten minutes — and to be honest we already have a system for scheduling, so what's different about yours?" }],
+      // Once the seller has replied (a prospect turn is already in the call), answer them — never repeat the greeting.
+      content: [{ type: 'text', text: /"role"\s*:\s*"assistant"/.test(prompt)
+        ? "Honestly? Mornings are chaos. Two coordinators spend the first hour on the phone moving engineers around. If yours fixes that without retraining everyone, I'm listening."
+        : "Hi, thanks for calling. I've only got ten minutes — and to be honest we already have a system for scheduling, so what's different about yours?" }],
       stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
     }), true
   }

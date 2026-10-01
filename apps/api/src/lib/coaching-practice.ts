@@ -63,11 +63,14 @@ const s = (v: unknown, max: number): string => (typeof v === 'string' ? v.trim()
  * Their F6 answer, split into one objection per line. ⚠️ STRUCTURE, NOT MEANING: it splits on
  * the line breaks, semicolons and bullets the client typed, and keeps the part before their own
  * "→" (the placeholder teaches "objection → our answer"). Nothing here decides what they meant.
+ * ⛓️ 1 Oct (real-screen preview) — a spaced dash also ends the objection (`"Objection" — answer`,
+ * how the demo's own answer is written), and quotes are stripped only as a wrapping pair.
+ * ~~`.split(/→|->/)` then `.replace(/^["“]|["”]$/g, '')`~~ — that left half a quote and their answer.
  */
 export function splitObjections(raw: string): string[] {
   return raw
     .split(/\n|;|•/)
-    .map(part => part.split(/→|->/)[0].replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim().replace(/^["“]|["”]$/g, '').trim())
+    .map(part => part.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').split(/→|->|\s[—–-]\s/)[0].trim().replace(/^["“](.*)["”]$/, '$1').trim())
     .filter(Boolean)
     .map(o => o.slice(0, OBJECTION_MAX))
 }

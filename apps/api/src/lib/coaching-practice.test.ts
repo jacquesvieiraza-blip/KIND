@@ -226,6 +226,12 @@ describe('🛑 Objection Coach is grounded in the client\'s own sales context', 
   it('splitObjections keeps the objection, drops their answer and list marks', () => {
     expect(splitObjections('1. "Too pricey" → we show the pilot\n- No time; Already have a vendor')).toEqual(['Too pricey', 'No time', 'Already have a vendor'])
     expect(splitObjections('')).toEqual([])
+    // ⚑ 1 Oct (real-screen preview) — the demo's own answer is written `"objection" — answer`: the chip
+    // showed `We already have a system" — ours replaces…` (half a quote, plus their answer).
+    expect(splitObjections('"We already have a system" — ours replaces the spreadsheets.')).toEqual(['We already have a system'])
+    expect(splitObjections('Too pricey – we show the pilot')).toEqual(['Too pricey'])
+    expect(splitObjections('A long-term contract scares us')).toEqual(['A long-term contract scares us'])
+    expect(splitObjections('No budget; - Too busy - call in Q3')).toEqual(['No budget', 'Too busy'])
   })
 
   it('inventedFigures ignores figures that are in the facts, catches the rest', () => {

@@ -107,24 +107,16 @@ describe('#413 — the contract matches the payment path', () => {
 describe('#410 — the sub-processor lists describe the real stack', () => {
   const legal = ['privacy.html', 'dpa.html', 'dpa-us.html']
 
-  it('every legal page names PDL and Hunter as the client sourcing stack', () => {
+  // ⛓️ 1 Oct (R182 · W-1) — REWRITTEN FOR R146 (23 Sep). Was: "every legal page names PDL and Hunter
+  // as the client sourcing stack" + "none frames Apollo as a standard client sub-processor" (30 Jul /
+  // 1 Aug). The founder retired PDL and Hunter on 23 Sep and made Apollo the only provider, so the
+  // paper must now say exactly that.
+  it('every legal page names Apollo, and no page names a retired provider', () => {
     for (const f of legal) {
       const s = read(f)
-      expect(s, `${f} omits PeopleDataLabs`).toMatch(/PeopleDataLabs/)
-      expect(s, `${f} omits Hunter`).toMatch(/Hunter/)
-    }
-  })
-
-  it('and none of them frames Apollo as a standard client sub-processor', () => {
-    // Founder-locked 30 Jul, re-affirmed 1 Aug: "Apollo is for OUR hunting only — PDL +
-    // Hunter stay the client-facing stack." The BYO-key path exists, so the DISCLOSURE stays
-    // (removing it would under-disclose if a client ever supplied a key) — but it must not
-    // read as part of the standard stack.
-    for (const f of legal) {
-      const s = read(f)
-      if (!/Apollo/i.test(s)) continue
-      expect(s, `${f} still says Apollo is "used only where configured"`).not.toMatch(/used only where (a )?[Cc]lient configures it/)
-      expect(s, `${f} does not say Apollo is ours`).toMatch(/own prospecting/)
+      expect(s, `${f} omits Apollo`).toMatch(/Apollo/)
+      expect(s, `${f} still names PeopleDataLabs`).not.toMatch(/PeopleDataLabs|People Data Labs/)
+      expect(s, `${f} still names Hunter`).not.toMatch(/\bHunter\b/)
     }
   })
 

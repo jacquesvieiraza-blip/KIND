@@ -21,6 +21,7 @@
 
 import ExpansionMoment, { MomentHandoff } from './ExpansionMoment'
 import WhatsConverting from './WhatsConverting'
+import PlanOverview from './PlanOverview'
 import Link from 'next/link'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
 import type { CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -156,6 +157,8 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: 
   return (
     <div className="flex flex-col gap-4">
       {hero}
+      {/* ⚑ 1 Oct (R180 · #2490 · #2493 · #2499) — the client's plan in plain words, prices from @kind/shared. */}
+      <PlanOverview />
       {/* ⚑ 1 Oct (R180 · Coaching F2) — the 25/50/75% moment, while the programme is delivering. */}
       <ExpansionMoment />
       {/* ⚑ 1 Oct (R180 · Coaching #2494) — what's converting, Growth and above; absent for Founders. */}

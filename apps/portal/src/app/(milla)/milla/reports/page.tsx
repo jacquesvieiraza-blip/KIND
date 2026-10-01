@@ -37,6 +37,13 @@ import { outreachHasRun, sourcingHasRun } from '@/lib/programme-report'
 // ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
 // zero"). The type was the last place still claiming a number was always available.
 type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null; totals_scope?: TotalsScope }
+// ⚑ 1 Oct (R180 · #2497) — Growth Reporting, from `/my/programme/growth-report` (`lib/growth-report.ts`).
+type GrowthReport = {
+  progression: { ready: boolean; answered: number; rows: { label: string; count: number }[]; text: string } | null
+  patterns: { kind: string; text: string }[]
+  note: string | null
+  suggestion: { text: string; note: string; ask: string } | null
+}
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -46,15 +53,18 @@ export default function MillaReportsPage() {
   const ask = useMillaConversation().ask
   const [p, setP] = useState<CustomerProgramme | null>(null)
   const [o, setO] = useState<Outcomes | null>(null)
+  // `null` = not on the plan (Founders), or unreadable — the Growth sections are then simply absent.
+  const [g, setG] = useState<GrowthReport | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     ;(async () => {
       const tok = await token()
-      const [pr, sr] = await Promise.allSettled([
+      const [pr, sr, gr] = await Promise.allSettled([
         api.get<{ data: CustomerProgramme }>('/my/programme', tok),
         api.get<{ data: Outcomes }>('/leads/milla-summary', tok),
+        api.get<{ data: { report: GrowthReport | null } }>('/my/programme/growth-report', tok),
       ])
       if (pr.status === 'fulfilled') setP(pr.value.data)
       else {
@@ -62,6 +72,7 @@ export default function MillaReportsPage() {
         setFailed(msg && msg.length < 200 ? msg : MILLA_FAILURE_COPY.pipelineFailed)
       }
       setO(sr.status === 'fulfilled' ? sr.value.data : null)
+      setG(gr.status === 'fulfilled' ? (gr.value.data?.report ?? null) : null)
       setLoading(false)
     })()
   }, [])
@@ -131,8 +142,14 @@ export default function MillaReportsPage() {
               )}
             </Section>
 
-            {/* 3–5 · WHAT WORKED · WHAT DID NOT · WHAT MILLA LEARNED
-                🛑 NOT RENDERED, AND THAT IS THE HONEST ANSWER RATHER THAN A GAP.
+            {/* ⛓️ 1 Oct (R180 · #2497) — "WHAT WORKED?" NOW HAS A TRUTHFUL SOURCE, for Growth and above:
+                F1's "How did it go?" answers (progression) and the What's converting findings (patterns),
+                both counted from the client's own rows by `lib/growth-report.ts`. Below the minimum the
+                server says "too early" — never a thin number. Founders (no Full Coaching) see no section,
+                exactly as before. The note below stood for all three questions and still stands for any
+                plan without these sources:
+                ~~3–5 · WHAT WORKED · WHAT DID NOT · WHAT MILLA LEARNED
+                🛑 NOT RENDERED, AND THAT IS THE HONEST ANSWER RATHER THAN A GAP.~~
                 "What worked" needs per-message or per-segment outcome attribution; "what did
                 not" needs the same in reverse; "what Milla learned" is the Nexus profile,
                 which is OUTREACH-performance learning and is not truthful before outreach has
@@ -140,12 +157,57 @@ export default function MillaReportsPage() {
                 client-scoped source these routes can read today, and manufacturing a
                 narrative out of a reply count would be exactly the invention the brief
                 forbids. Reported as a gap for the founder rather than filled. */}
+            {/* Only once outreach has run — before that there is nothing to have worked (the 'What happened?' rule). */}
+            {g && outreachHasRun(p.stage) && (
+              <Section q="What worked?">
+                <div className="grid gap-3">
+                  {g.progression && (
+                    <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-4" data-testid="growth-progression">
+                      <div className="text-[14px] font-extrabold text-[#1f1235]">{g.progression.text}</div>
+                      {g.progression.ready && (
+                        <div className="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
+                          {g.progression.rows.map(r => (
+                            <div key={r.label}>
+                              <div className="text-[15px] font-extrabold tabular-nums">{r.count}</div>
+                              <div className="text-[12px] text-[#9b8ec4]">{r.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-4" data-testid="growth-patterns">
+                    <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1.5">Patterns from your own replies and meetings</div>
+                    {g.patterns.length === 0 ? (
+                      <p className="text-[12.5px] text-[#9b8ec4]">{g.note}</p>
+                    ) : (
+                      <ul className="flex flex-col gap-1.5">
+                        {g.patterns.map(f => <li key={f.kind + f.text} className="text-[12.5px] text-[#4c4368] leading-relaxed">{f.text}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </Section>
+            )}
 
             {/* 6 · WHAT HAPPENS NEXT?
                 ⚠️ THE STAGE, STATED — not a promise and not a date. `quickAction` is the
                 founder's own per-stage wording, already approved and already used on the
                 workspace, so this invents nothing. */}
             <Section q="What happens next?">
+              {/* ⚑ 1 Oct (R180 · #2497) — Milla's suggestion, WORDS ONLY. Nothing here changes the
+                  programme: the button asks Milla in the one chat, and any change is the client's to approve. */}
+              {g?.suggestion && (
+                <div className="bg-[#faf8ff] border border-[#f2ecfb] rounded-xl px-3.5 py-2.5 mb-3" data-testid="growth-suggestion">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Milla&apos;s suggestion</span>
+                  <p className="text-[12.5px] text-[#4c4368] leading-relaxed mt-1">{g.suggestion.text}</p>
+                  <p className="text-[12px] text-[#9b8ec4] mt-0.5">{g.suggestion.note}</p>
+                  <button type="button" onClick={() => ask(g.suggestion!.ask)}
+                    className="mt-2 inline-block border border-[#ece5fb] rounded-xl px-3.5 py-2 text-[12.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors">
+                    Talk it through with Milla
+                  </button>
+                </div>
+              )}
               {/* ⚑ 29 Sep (R174 · 6a) — ⛓️ WAS a link to `/milla?ask=…`, which nothing reads. It asks Milla. */}
               <button type="button" onClick={() => ask(p.quickAction)}
                 className="inline-block border border-[#ece5fb] rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors"

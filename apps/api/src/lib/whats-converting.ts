@@ -33,7 +33,8 @@ export const NOT_IN_PLAN = "What's converting comes with Growth or Full Coaching
 export const POSITIVE_REPLY = ['hot', 'warm', 'interested', 'referral'] as const
 const isPositive = (c: string | null | undefined) => (POSITIVE_REPLY as readonly string[]).includes(String(c ?? ''))
 /** A meeting that counts here: booked or held. A no-show is not a conversion. */
-const COUNTED_MEETING = ['BOOKED', 'BOOKED_UNVERIFIED', 'HELD']
+// ⚑ 1 Oct (#2497 · Growth Reporting) — exported, unchanged, so the Reports screen counts the same meetings.
+export const COUNTED_MEETING = ['BOOKED', 'BOOKED_UNVERIFIED', 'HELD']
 
 export type LeadFacts = { id: string; job_title?: string | null; seniority?: string | null; industry?: string | null }
 export type ReplyRow = { lead_id: string; classification: string | null; body_text?: string | null; body?: string | null; received_at: string }
@@ -112,7 +113,9 @@ const THEMES: Array<[string, (r: ReplyRow, words: string) => boolean]> = [
 ]
 
 // ── Counting helpers ─────────────────────────────────────────────────────────────────────
-function tally<T>(items: T[], key: (t: T) => string | null): { total: number; top: [string, number] | null; counts: Map<string, number> } {
+// ⚑ 1 Oct (#2497 · Growth Reporting) — `tally` and `isPattern` are exported, unchanged, so the
+// Reports screen's suggestion uses the very same "what counts as a pattern" rule as these findings.
+export function tally<T>(items: T[], key: (t: T) => string | null): { total: number; top: [string, number] | null; counts: Map<string, number> } {
   const counts = new Map<string, number>()
   let total = 0
   for (const it of items) {
@@ -126,7 +129,7 @@ function tally<T>(items: T[], key: (t: T) => string | null): { total: number; to
   return { total, top, counts }
 }
 /** A pattern: at least two, and more than half of the group that could be classified. */
-const isPattern = (n: number, total: number) => n >= 2 && n * 2 > total
+export const isPattern = (n: number, total: number) => n >= 2 && n * 2 > total
 
 /** "3 of your 4 meetings" · "Both of your meetings" · "All 3 of your meetings". */
 export function countPhrase(n: number, total: number, noun: string, whose = 'your'): string {

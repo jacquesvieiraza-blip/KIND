@@ -31,6 +31,7 @@
 
 import { Router } from 'express'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 import { db } from '@kind/db'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 // ⚑ 30 Aug (BUILD-004A-2) — THE READ MOVED, THE CONTRACT DID NOT. Milla's chat now needs the
@@ -213,13 +214,52 @@ myProgrammeRouter.get('/moment', async (req: AuthRequest, res) => {
     const p = await openProgrammeForSession(clientId)
     // ⚠️ NEVER `data: null` — `milla-programme.test.ts` forbids a successful null on this router (a
     // null reads as "no programme" to somebody who has paid). No moment is `{ moment: null }`.
-    if (!p) { res.json({ success: true, data: { moment: null } }); return }
+    if (!p) { res.json({ success: true, data: { moment: null, taste: null } }); return }
     const { ensureMoment } = await import('../lib/expansion-moments')
-    res.json({ success: true, data: { moment: await ensureMoment(clientId, p as never) } })
+    const moment = await ensureMoment(clientId, p as never)
+    // ⚑ 1 Oct (#2516) — Founders at 25%: the taste of Coaching, from one of their own meetings.
+    // A failed read is no taste, never a broken moment.
+    let taste = null
+    try { const { tasteFor } = await import('../lib/coaching-taste'); taste = await tasteFor(clientId, (p as { id: string }).id, moment) }
+    catch (err) { console.error('[programme/me/moment GET] taste not read:', err) }
+    res.json({ success: true, data: { moment, taste } })
   } catch (err) {
     // A moment is never shown on a number we could not read — and never breaks the page.
     console.error('[programme/me/moment GET]', err)
-    res.json({ success: true, data: { moment: null } })
+    res.json({ success: true, data: { moment: null, taste: null } })
+  }
+})
+// ⚑ 1 Oct (R180 · #2516) — "Show me on a real meeting": the one Coaching example, written once from
+// one of the client's own meetings. Every rule lives in `lib/coaching-taste.ts`.
+myProgrammeRouter.post('/moment/taste', rateLimit({ limit: 5, windowMs: 60_000, key: 'moment-taste', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.status(409).json({ success: false, error: 'There is no programme running.' }); return }
+    const { writeTaste } = await import('../lib/coaching-taste')
+    const r = await writeTaste(clientId, p as never, req.authEmail ?? req.userId!, async () => {
+      const { default: Anthropic } = await import('@anthropic-ai/sdk')
+      return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    })
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.taste })
+  } catch (err) {
+    console.error('[programme/me/moment/taste POST]', err)
+    res.status(503).json({ success: false, error: "Milla couldn't put that together just now. Nothing was lost — please try again." })
+  }
+})
+// ⚑ 1 Oct (R180 · #2523) — the Complete hand-off: the finished programme's milestone memory.
+// ⚠️ Never a successful `data: null` — nothing to carry forward is `{ handoff: null }`.
+myProgrammeRouter.get('/handoff', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { handoffFor } = await import('../lib/expansion-moments')
+    res.json({ success: true, data: { handoff: await handoffFor(clientId) } })
+  } catch (err) {
+    console.error('[programme/me/handoff GET]', err)
+    res.json({ success: true, data: { handoff: null } })
   }
 })
 myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {
@@ -231,8 +271,9 @@ myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {
     const { respondToMoment } = await import('../lib/expansion-moments')
     // ⚑ 1 Oct (F3 · #2485) — "accepted" opens the one Full Coaching payment; the URL comes back
     // and the screen sends the client to Stripe. The programme is still the session's, never the body's.
+    // ⚑ 1 Oct (#2520 · #2522) — `choice`: which next move an "engaged" asked about (validated there).
     const r = await respondToMoment(clientId, p as never, req.body?.milestone, req.body?.response,
-      { successUrl: req.body?.successUrl, cancelUrl: req.body?.cancelUrl })
+      { successUrl: req.body?.successUrl, cancelUrl: req.body?.cancelUrl }, req.body?.choice)
     if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
     res.json({ success: true, ...(r.url ? { data: { url: r.url } } : {}) })
   } catch (err) {

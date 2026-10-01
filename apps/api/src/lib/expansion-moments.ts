@@ -16,13 +16,21 @@
 // MEMORY lives in `outcome_events` (event_type `expansion_moment`) — append-only, no migration.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { db } from '@kind/db'
-import { BAND_PRICE_PER_MEETING_USD, FULL_COACHING_UPLIFT_PER_MEETING_USD, coachingIncluded, fullCoachingActivationUsd, type SizeBand } from '@kind/shared'
+import { BAND_PRICE_PER_MEETING_USD, FULL_COACHING_UPLIFT_PER_MEETING_USD, MAX_PROGRAMME_MEETINGS, coachingIncluded, fullCoachingActivationUsd, type SizeBand } from '@kind/shared'
 
 export const MILESTONES = [25, 50, 75] as const
 export type Milestone = typeof MILESTONES[number]
 export const RESPONSES = ['shown', 'engaged', 'accepted', 'not_now', 'declined'] as const
 export type MomentResponse = typeof RESPONSES[number]
 export const isResponse = (v: unknown): v is MomentResponse => typeof v === 'string' && (RESPONSES as readonly string[]).includes(v)
+
+// ⚑ 1 Oct (R180 · #2520 · #2522) — WHICH NEXT MOVE an "engaged" answer chose. The founder's
+// expansion options that exist today: the next programme, or the next programme pointed at a
+// different segment. (More meetings in a running programme and "another team" are not products yet.)
+// Remembered on the `engaged` row's payload — append-only, so 75% and Complete can read it.
+export const CHOICES = ['next_programme', 'segment'] as const
+export type MomentChoice = typeof CHOICES[number]
+export const isChoice = (v: unknown): v is MomentChoice => typeof v === 'string' && (CHOICES as readonly string[]).includes(v)
 
 /** The highest milestone this delivery has crossed, or null below 25%. */
 export function milestoneFor(delivered: number, target: number): Milestone | null {
@@ -50,6 +58,9 @@ export type MomentView = {
   pricePerMeeting: number
   upliftPerMeeting: number
   activationTotal: number
+  /** ⚑ 1 Oct (#2520) — the most one programme takes (`@kind/shared`), so a bigger next programme
+   *  is never offered past it. */
+  maxMeetings: number
   chat: string
 }
 
@@ -70,29 +81,40 @@ export function momentChat(v: Pick<MomentView, 'milestone' | 'plan' | 'delivered
     return `You're halfway: ${part} are delivered. From here, Full Coaching would help turn the next ${v.remaining === 1 ? 'meeting' : `${v.remaining} meetings`} into deals: follow-up, objections, deal strategy and roleplay. It's $${FULL_COACHING_UPLIFT_PER_MEETING_USD} more for each meeting still to come, paid once.`
   }
   const next = `You're three-quarters of the way: ${part} are delivered. Before we finish, let's plan your next programme so there's no gap in your pipeline.`
+  // ⚑ 1 Oct (#2522) — the founder's 75%: "Coaching active → continue alongside". What is true today
+  // is that it stays on to the end of THIS programme; carrying it into the next one is not a product.
+  if (v.plan !== 'enterprise' && v.coachingActive) return `${next} Full Coaching stays on to the end of this programme.`
   if (v.plan !== 'enterprise' && v.response50 === 'not_now') return `${next} And since you said "not now" to Full Coaching at halfway, it's still open if the timing is better now.`
   return next
 }
 
-async function latestResponses(programmeId: string): Promise<Map<Milestone, MomentResponse> | null> {
+/** ⚑ 1 Oct (#2522 · #2523) — a programme's milestone memory: the latest answer per milestone, and
+ *  every next move it asked about. ⛓️ ~~`latestResponses` returned the answers only.~~ */
+export type MomentMemory = { responses: Map<Milestone, MomentResponse>; choices: Map<Milestone, Set<MomentChoice>> }
+
+export async function readMemory(programmeId: string): Promise<MomentMemory | null> {
   const { data, error } = await db.from('outcome_events')
     .select('payload, occurred_at')
     .eq('event_type', 'expansion_moment').eq('payload->>programme_id', programmeId)
     .order('occurred_at', { ascending: false }).limit(100)
   if (error) { console.error('[expansion-moments] read failed:', error.message); return null }
-  const out = new Map<Milestone, MomentResponse>()
+  const responses = new Map<Milestone, MomentResponse>()
+  const choices = new Map<Milestone, Set<MomentChoice>>()
   for (const r of (data ?? []) as Array<{ payload?: Record<string, unknown> | null }>) {
     const m = Number(r.payload?.milestone) as Milestone
+    if (!(MILESTONES as readonly number[]).includes(m)) continue
     const resp = r.payload?.response
-    if ((MILESTONES as readonly number[]).includes(m) && isResponse(resp) && !out.has(m)) out.set(m, resp)
+    if (isResponse(resp) && !responses.has(m)) responses.set(m, resp)
+    const c = r.payload?.choice
+    if (isChoice(c)) choices.set(m, (choices.get(m) ?? new Set<MomentChoice>()).add(c))
   }
-  return out
+  return { responses, choices }
 }
 
-async function writeResponse(clientId: string, programmeId: string, milestone: Milestone, response: MomentResponse): Promise<boolean> {
+export async function writeResponse(clientId: string, programmeId: string, milestone: Milestone, response: MomentResponse, choice?: MomentChoice): Promise<boolean> {
   const { error } = await db.from('outcome_events').insert({
     client_id: clientId, event_type: 'expansion_moment', channel: 'milla',
-    payload: { programme_id: programmeId, milestone, response },
+    payload: { programme_id: programmeId, milestone, response, ...(choice ? { choice } : {}) },
     occurred_at: new Date().toISOString(),
   })
   if (error) console.error('[expansion-moments] write failed:', error.message)
@@ -119,8 +141,9 @@ export async function ensureMoment(clientId: string, p: ProgrammeLite): Promise<
   if (!d) return null
   const milestone = milestoneFor(d.delivered, target)
   if (!milestone) return null
-  const memo = await latestResponses(p.id)
-  if (!memo) return null
+  const memory = await readMemory(p.id)
+  if (!memory) return null
+  const memo = memory.responses
 
   // ⚑ 1 Oct (F3) — is Full Coaching on? Enterprise owns it and is never read. An unreadable answer
   // shows "not on" here; the checkout re-reads it and refuses on unreadable, so this never charges.
@@ -136,7 +159,9 @@ export async function ensureMoment(clientId: string, p: ProgrammeLite): Promise<
     coachingIncluded: coachingIncluded(plan), coachingActive,
     coachingRequested: !coachingActive && (response50 === 'accepted' || memo.get(75) === 'accepted'),
     pricePerMeeting: BAND_PRICE_PER_MEETING_USD[plan], upliftPerMeeting: FULL_COACHING_UPLIFT_PER_MEETING_USD,
-    activationTotal: fullCoachingActivationUsd(Math.max(0, target - d.delivered)), chat: '',
+    activationTotal: fullCoachingActivationUsd(Math.max(0, target - d.delivered)),
+    maxMeetings: MAX_PROGRAMME_MEETINGS,
+    chat: '',
   }
   view.chat = momentChat(view)
 
@@ -176,8 +201,13 @@ export type RespondResult = { ok: true; url?: string } | { ok: false; status: nu
 export async function respondToMoment(
   clientId: string, p: ProgrammeLite, milestone: unknown, response: unknown,
   urls?: { successUrl?: string; cancelUrl?: string },
+  choice?: unknown,
 ): Promise<RespondResult> {
   if (!isResponse(response) || response === 'shown') return { ok: false, status: 400, error: 'Unknown answer.' }
+  // ⚑ 1 Oct (#2520 · #2522) — a next move rides only on "engaged", and only at 50% or 75%.
+  if (choice !== undefined && choice !== null && (!isChoice(choice) || response !== 'engaged' || Number(milestone) === 25)) {
+    return { ok: false, status: 400, error: 'Unknown answer.' }
+  }
   const view = await ensureMoment(clientId, p)
   if (!view || view.milestone !== Number(milestone)) return { ok: false, status: 409, error: 'This moment has moved on. Refresh to see the current one.' }
   // 🛑 ENTERPRISE IS NEVER SOLD COACHING — "accepted" means nothing for a plan that owns it.
@@ -190,8 +220,60 @@ export async function respondToMoment(
     await writeResponse(clientId, p.id, view.milestone, 'accepted')
     return { ok: true, url: r.url }
   }
-  if (!(await writeResponse(clientId, p.id, view.milestone, response))) {
+  if (!(await writeResponse(clientId, p.id, view.milestone, response, isChoice(choice) ? choice : undefined))) {
     return { ok: false, status: 503, error: "We couldn't save that just now. Nothing changed — please try again." }
   }
   return { ok: true }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 1 Oct (R180 · #2523) — THE COMPLETE HAND-OFF: the Complete page reads the milestone memory.
+//
+// The founder's 75% room: *"The 75% decision becomes the handoff into Complete … Complete should
+// never lose that context."* So the finished programme's own memory is read back — the 75% answer
+// about the next programme, a different segment asked about at 50% or 75%, and whether Full
+// Coaching was on. Nothing here offers anything: 75% was the last Coaching offer (R180: re-opens
+// once after "not now", never after "no thanks"), so a declined or not-now Coaching says nothing.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+export type Handoff = {
+  plan: Plan
+  /** The 75% decision. `planning` = asked to plan the next programme; `not_yet`; null = never answered. */
+  nextProgramme: 'planning' | 'not_yet' | null
+  /** Asked Milla about pointing the next programme at a different segment (50% or 75%). */
+  segment: boolean
+  /** Full Coaching was bought for this programme (Founders/Growth; Enterprise owns it, so false). */
+  coachingWasOn: boolean
+}
+
+/** Pure: the hand-off from the memory. Tested directly. */
+export function handoffFrom(plan: Plan, memory: MomentMemory, coachingWasOn: boolean): Handoff {
+  const r75 = memory.responses.get(75) ?? null
+  const asked75 = (memory.choices.get(75)?.size ?? 0) > 0
+  // Latest answer wins: a "not yet" after asking is the decision the client left it on.
+  const nextProgramme = r75 === 'not_now' ? 'not_yet' : r75 === 'engaged' || asked75 ? 'planning' : null
+  const segment = [50, 75].some(m => memory.choices.get(m as Milestone)?.has('segment'))
+  return { plan, nextProgramme, segment, coachingWasOn: plan !== 'enterprise' && coachingWasOn }
+}
+
+/**
+ * The hand-off for the client's finished programme, or null: no finished programme (the latest is
+ * open or cancelled), no plan, a memory we could not read, or nothing to carry forward.
+ */
+export async function handoffFor(clientId: string): Promise<Handoff | null> {
+  const { data, error } = await db.from('programmes').select('id, size_band, status, created_at')
+    .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
+  if (error) { console.error('[expansion-moments] hand-off read failed:', error.message); return null }
+  const p = ((data ?? []) as Array<{ id: string; size_band: string | null; status: string }>)[0]
+  if (!p || p.status !== 'COMPLETED') return null
+  const plan = (['founders', 'growth', 'enterprise'] as const).find(b => b === p.size_band)
+  if (!plan) return null
+  const memory = await readMemory(p.id)
+  if (!memory) return null
+  let coachingWasOn = false
+  if (!coachingIncluded(plan)) {
+    const { coachingActivated } = await import('./coaching-access')
+    coachingWasOn = await coachingActivated(p.id)
+  }
+  const h = handoffFrom(plan, memory, coachingWasOn)
+  return h.nextProgramme || h.segment || h.coachingWasOn ? h : null
 }

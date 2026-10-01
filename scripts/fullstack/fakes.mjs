@@ -407,6 +407,21 @@ const anthropicHandler = async (req, body, res, state) => {
     }), true
   }
 
+  // ⚑ 1 Oct (demo previews) — Milla's own chat answers in words, never the canned JSON below. Plain words
+  // are matched because the prompt arrives escaped inside the JSON body.
+  if (prompt.includes("programme partner inside the Milla portal")) {
+    const tail = prompt.slice(-600)
+    const text = /different segment/i.test(tail)
+      ? "Good idea. Tell me which segment you have in mind, or I can suggest two from what's converting for you. I'll price it so you can compare before anything changes."
+      : /plan my next programme/i.test(tail)
+        ? "Let's do it. I'll keep everything I've learned about who says yes to you. How many meetings would you like next time? I'll show you the price before anything is set up."
+        : "Here's where things stand: your meetings and replies are on the Programme screen, and I'll tell you the moment anything changes."
+    return json(res, 200, {
+      id: 'msg_fake_chat', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
   // The Messages API shape, enough for the SDK to parse. No model is called and nothing is
   // generated — a canned completion is the correct evidence for "the model seam is wired".
   return json(res, 200, {

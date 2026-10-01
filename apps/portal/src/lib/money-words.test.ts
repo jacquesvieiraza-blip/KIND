@@ -85,9 +85,12 @@ describe('B5 · the credit line says how long it lasts', () => {
 })
 
 describe('B7 · the website band wording is the founder\'s own, and the code reads it right', () => {
-  it('"200+" stays (R166, verbatim); Enterprise starts above 200', () => {
+  // ⛓️ 1 Oct (R182 · W-2) — WAS '"200+" stays (R166, verbatim)'. The founder then ruled the label
+  // "201+" ("all yes", W-2): 200 employees is Growth, so "200+" read as overlapping it.
+  it('"201+" (R182, chaining R166\'s "200+"); Enterprise starts above 200', () => {
     const site = readFileSync(join(__dirname, '../../../website/pricing.html'), 'utf8')
-    expect(site).toContain('Enterprise &mdash; 200+ employees')
+    expect(site).toContain('Enterprise &mdash; 201+ employees')
+    expect(site).not.toContain('200+')
     expect(readFileSync(join(__dirname, '../../../../packages/shared/src/size-band.ts'), 'utf8'))
       .toContain("{ key: 'enterprise', label: 'Enterprise', min: 201, max: null }")
   })

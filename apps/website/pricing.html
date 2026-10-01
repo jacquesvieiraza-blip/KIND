@@ -569,7 +569,7 @@ textarea{min-height:130px;resize:vertical}
 <p class="calc-help">This is your close rate. We get them to the table; you win them.</p>
 </div>
 <hr class="calc-rule"/>
-<p class="calc-help"><strong style="color:var(--ink)">The meeting target is a target.</strong> It is the number we aim for and build the programme around &mdash; it is not a guarantee. If fewer qualified meetings are delivered, the difference is credited against your next programme. That credit is given once per client and lasts 90 days. We source around 250 leads for every targeted qualified meeting, and that volume is inside the price you see. <strong style="color:var(--ink)">Free Proof comes first</strong> &mdash; nothing is charged until you have seen the work on your own market.</p>
+<p class="calc-help"><strong style="color:var(--ink)">The meeting target is a target.</strong> It is the number we aim for and build the programme around &mdash; it is not a guarantee. If fewer qualified meetings are delivered, the difference is credited against your next programme. That credit is given once per client and lasts 90 days. All the prospecting it takes is inside the price you see. <strong style="color:var(--ink)">Free Proof comes first</strong> &mdash; nothing is charged until you have seen the work on your own market.</p>
 </div>
 
 <div class="calc-panel out">
@@ -577,7 +577,6 @@ textarea{min-height:130px;resize:vertical}
 <div class="calc-row"><span>Price per meeting</span><b id="c-per">$199.00</b></div>
 <div class="calc-row"><span>Programme price</span><b id="c-total">$1,990.00</b></div>
 <div class="calc-row"><span>One payment &mdash; before we start</span><b id="c-p1">$1,990.00</b></div>
-<div class="calc-row"><span>Leads we source for it</span><b id="c-leads">2,500</b></div>
 <div class="calc-split">
 <p class="calc-lab">What it could return &mdash; your figures</p>
 <div class="calc-row"><span>New clients</span><b id="c-clients">2.5</b></div>
@@ -644,7 +643,6 @@ textarea{min-height:130px;resize:vertical}
     var rate=Math.max(0,Math.min(100,parseInt(c.value,10)||0));
     var per=perMeetingUsd();
     var total=per*n*100;                      // flat: meetings × price, whole cents
-    var leads=n*250;                          // LEADS_PER_TARGETED_MEETING
     set('c-meet-v',n);
     set('c-band-v','$'+per+' / meeting');
     set('c-deal-v',whole(deal));
@@ -652,7 +650,6 @@ textarea{min-height:130px;resize:vertical}
     set('c-per',money(per*100));
     set('c-total',money(total));
     set('c-p1',money(total));                 // one payment, in full
-    set('c-leads',leads.toLocaleString('en-US'));
     var clients=n*(rate/100);
     var revenue=clients*deal;
     set('c-clients',(Math.round(clients*10)/10).toLocaleString('en-US'));

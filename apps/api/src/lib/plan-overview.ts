@@ -44,7 +44,9 @@ export const EVERY_PLAN = [
 /** Growth's own extras (`growthExtras` in `coaching-access.ts`). */
 export const GROWTH_EXTRAS = ['What’s converting for you', 'Follow-up drafted after each meeting'] as const
 /** Full Coaching features that are BUILT today. Add a row here the day a feature ships. */
-export const FULL_COACHING_BUILT = ['Objection Coach and roleplay'] as const
+// ⛓️ 1 Oct — ~~['Objection Coach and roleplay']~~: pitch-aware prep (F6) and the meeting debrief (#2501)
+// are built in this same release, so they are listed too, in the website comparison's own words.
+export const FULL_COACHING_BUILT = ['Prep built on your own pitch', 'Meeting debrief with Milla', 'Objection Coach and roleplay'] as const
 
 export type FullCoachingState = 'included' | 'on' | 'off'
 export const FULL_COACHING_LINE: Record<FullCoachingState, string> = {

@@ -410,7 +410,8 @@ const anthropicHandler = async (req, body, res, state) => {
   // ⚑ 1 Oct (demo previews) — Milla's own chat answers in words, never the canned JSON below. Plain words
   // are matched because the prompt arrives escaped inside the JSON body.
   if (prompt.includes("programme partner inside the Milla portal")) {
-    const tail = prompt.slice(-600)
+    // The client's LAST message only — the system prompt itself mentions these words.
+    const tail = prompt.slice(prompt.lastIndexOf('"role":"user"'))
     const text = /different segment/i.test(tail)
       ? "Good idea. Tell me which segment you have in mind, or I can suggest two from what's converting for you. I'll price it so you can compare before anything changes."
       : /plan my next programme/i.test(tail)

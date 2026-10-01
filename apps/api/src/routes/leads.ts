@@ -881,21 +881,21 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
     const { data: pitchRow } = await db.from('figsy_knowledge').select('data').eq('client_id', clientId).eq('kind', 'pitch').maybeSingle()
     const { salesContextLines } = await import('../lib/sales-context')
     const sellerLines = salesContextLines((pitchRow as { data?: Record<string, unknown> | null } | null)?.data ?? null)
+    // ⚑ 1 Oct (Coaching #2496 · R180) — MEETING LEARNING. Full Coaching's brief is also grounded in
+    // what this client's own past meetings taught (their F1 answers and notes). `[]` for every
+    // other plan and on any unreadable read, and the prompt is then exactly what it was.
+    const { meetingLearningFor, prepBriefPrompt } = await import('../lib/meeting-learning')
+    const learningLines = await meetingLearningFor(clientId)
 
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await ai.messages.create({
       model: BACKGROUND_MODEL, max_tokens: 700,
-      messages: [{ role: 'user', content:
-        `Prepare ${me?.company_name ?? 'a seller'} for a first sales call.\n\n` +
-        `THEM: ${[lead.first_name, lead.last_name].filter(Boolean).join(' ')} — ${lead.job_title ?? 'unknown role'} at ${lead.company ?? 'unknown company'}` +
-        `${lead.industry ? ` (${lead.industry})` : ''}.\n` +
-        `${lead.score_reasoning ? `WHY THEY FIT: ${lead.score_reasoning}\n` : ''}` +
-        `${reply ? `THEIR OWN WORDS: "${(reply.body_text ?? reply.body ?? '').slice(0, 800)}"\n` : ''}` +
-        `${sellerLines.length ? `HOW THE SELLER SELLS (their own words — use it, never invent beyond it):\n${sellerLines.map(l => `- ${l}`).join('\n')}\n` : ''}\n` +
-        `Give exactly four short sections with these headings and nothing else:\n` +
-        `WHAT THEY LIKELY CARE ABOUT\nTHREE QUESTIONS TO ASK\nTHE OBJECTION TO EXPECT\nHOW TO CLOSE THE NEXT STEP\n` +
-        `Be specific to this person. Plain text, no markdown, no preamble.` }],
+      messages: [{ role: 'user', content: prepBriefPrompt({
+        sellerName: me?.company_name, lead,
+        replyText: reply ? String(reply.body_text ?? reply.body ?? '') : null,
+        sellerLines, learningLines,
+      }) }],
     })
     const brief = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
     res.json({ success: true, data: { brief } })

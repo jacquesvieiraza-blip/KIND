@@ -163,7 +163,7 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // ⚑ 10 Sep (C06) — THE PROOF DESK JOINS THE SAME PARALLEL BATCH, for the same reason the
   // programme did: it is two bounded reads, so it costs nothing against the portal's 15s
   // abort, and serialising it is what pushed first questions over that edge in August.
-  const [chunks, snapshot, programme, proof, briefMemory] = await Promise.all([
+  const [chunks, snapshot, programme, proof, briefMemory, converting] = await Promise.all([
     searchChunks(clientId, userMessage),
     (async (): Promise<import('./milla-chat-system').MillaSnapshot | null> => {
       try {
@@ -213,6 +213,20 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
         return null
       }
     })(),
+    // ⚑ 1 Oct (R180 · Coaching #2494) — WHAT'S CONVERTING, read by the SAME function as the
+    // Programme screen's section, so "What's working?" in the chat and the screen can never
+    // disagree. Growth extras only (a Founders client gets no block, as before). Fail-soft, and in
+    // the same parallel batch for the same browser-budget reason as every lookup above.
+    (async (): Promise<import('./whats-converting').WhatsConverting | null> => {
+      try {
+        const { whatsConvertingFor } = await import('./whats-converting')
+        const r = await whatsConvertingFor(clientId)
+        return r.ok ? r.data : null
+      } catch (e) {
+        console.error('[milla/chat] what\'s converting lookup failed — answering without it', e)
+        return null
+      }
+    })(),
   ])
 
   const hasContext = chunks.length > 0
@@ -231,8 +245,10 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // throws, she gets an explicit "numbers unavailable — never invent" block instead;
   // a chat that answers without numbers beats a chat that is down.
   const { buildMillaChatSystem } = await import('./milla-chat-system')
+  const { describeWhatsConverting } = await import('./whats-converting')
   const systemPrompt =
     buildMillaChatSystem(snapshot, programme, proof, briefMemory) +
+    (converting ? '\n\n' + describeWhatsConverting(converting) : '') +
     '\n\n' +
     (hasContext
       ? 'The client has uploaded business documents, and relevant excerpts are provided below. ' +

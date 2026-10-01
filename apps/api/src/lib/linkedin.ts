@@ -50,12 +50,12 @@ export async function enqueueLinkedInStep(params: {
   return data.id
 }
 
-export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boolean; method: 'phantombuster' | 'manual' }> {
-  const pbKey = process.env.PHANTOMBUSTER_API_KEY
-  if (!pbKey) {
-    return { sent: false, method: 'manual' }
-  }
-
+// ⚑ 1 Oct (C1, card #2074) — THE SYSTEM NEVER SENDS A LINKEDIN MESSAGE. The founder: "C1 yes".
+// The PhantomBuster auto-send that used to sit at the end of this function is deleted: automated
+// LinkedIn breaks LinkedIn's terms, and the path could only get stuck or send by surprise. Every
+// gate below still runs (an opted-out or paused prospect is still marked as such), and an
+// approved step is left for a PERSON to send by hand. `method` is always 'manual'.
+export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boolean; method: 'manual' }> {
   const { data: step } = await db
     .from('figsy_linkedin_queue')
     .select('linkedin_url, connection_note, lead_id')
@@ -124,28 +124,6 @@ export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boo
     return { sent: false, method: 'manual' }
   }
 
-  // PhantomBuster: trigger LinkedIn Connection Request phantom
-  const pbRes = await fetch('https://api.phantombuster.com/api/v2/agents/launch', {
-    method: 'POST',
-    headers: { 'X-Phantombuster-Key': pbKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: process.env.PHANTOMBUSTER_LINKEDIN_AGENT_ID,
-      argument: JSON.stringify({
-        profileUrls: [step.linkedin_url],
-        message: step.connection_note,
-        numberOfProfilesToProcess: 1
-      })
-    })
-  })
-
-  if (!pbRes.ok) return { sent: false, method: 'phantombuster' }
-
-  const pbData = await pbRes.json() as { containerId?: string }
-  await db.from('figsy_linkedin_queue').update({
-    status: 'sent',
-    sent_at: new Date().toISOString(),
-    phantombuster_launch_id: pbData.containerId ?? null
-  }).eq('id', queueId)
-
-  return { sent: true, method: 'phantombuster' }
+  // ⚑ C1 — the step has passed every gate and stays `approved`: a person sends it by hand.
+  return { sent: false, method: 'manual' }
 }

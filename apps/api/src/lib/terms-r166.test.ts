@@ -8,6 +8,8 @@
 // ⚠️ NO PRICE IS TYPED INTO LEGAL TEXT — the rates live on the Pricing page (rule 7: money
 // sentences are interpolated, never typed). The founder's scope for the qualified-meeting
 // definition was "not the portals", so that section is deliberately unchanged here.
+// ⛓️ 1 Oct (R182 · W-6): the founder then ruled the portals too ("all yes") — the qualified-meeting
+// section is now pinned by `portal-terms-qualified-meeting.test.ts`.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'

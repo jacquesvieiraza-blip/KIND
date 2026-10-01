@@ -62,4 +62,5 @@ export * from './proof-readiness'
 export * from './milla-notices'
 // ⚑ 25 Sep (R166 ② · P7) — the client's size band (Founders · Growth · Enterprise).
 export * from './size-band'
+export * from './coaching-pricing'
 export * from './real-clients-filter'

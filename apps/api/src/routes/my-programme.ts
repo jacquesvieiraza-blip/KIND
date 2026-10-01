@@ -162,6 +162,41 @@ myProgrammeRouter.post('/sales-context', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 1 Oct (R180 · Coaching F2 · #2484) — EXPANSION MOMENTS: 25% · 50% · 75% ────────────────
+// The moment the open programme is at (fired once, remembered), and the client's answer to it.
+// All the rules live in `lib/expansion-moments.ts`; nothing here decides anything.
+myProgrammeRouter.get('/moment', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const p = await openProgrammeForSession(clientId)
+    // ⚠️ NEVER `data: null` — `milla-programme.test.ts` forbids a successful null on this router (a
+    // null reads as "no programme" to somebody who has paid). No moment is `{ moment: null }`.
+    if (!p) { res.json({ success: true, data: { moment: null } }); return }
+    const { ensureMoment } = await import('../lib/expansion-moments')
+    res.json({ success: true, data: { moment: await ensureMoment(clientId, p as never) } })
+  } catch (err) {
+    // A moment is never shown on a number we could not read — and never breaks the page.
+    console.error('[programme/me/moment GET]', err)
+    res.json({ success: true, data: { moment: null } })
+  }
+})
+myProgrammeRouter.post('/moment/respond', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.status(409).json({ success: false, error: 'There is no programme running.' }); return }
+    const { respondToMoment } = await import('../lib/expansion-moments')
+    const r = await respondToMoment(clientId, p as never, req.body?.milestone, req.body?.response)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[programme/me/moment/respond POST]', err)
+    res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." })
+  }
+})
+
 myProgrammeRouter.post('/offer/skip', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

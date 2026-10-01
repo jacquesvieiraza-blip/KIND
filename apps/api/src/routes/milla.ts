@@ -318,6 +318,13 @@ millaRouter.get('/sessions', async (req: AuthRequest, res) => {
     // the message is in the thread before the page asks for it; a floating promise
     // would race the very fetch it exists to populate.
     await ensureTodaysBrief(clientId)
+    // ⚑ 1 Oct (R180 · Coaching F2) — the 25/50/75% moment opens in the chat the first time it is
+    // reached, the same way the brief does. Never throws into this response.
+    try {
+      const { openProgrammeForClient } = await import('../lib/programme')
+      const p = await openProgrammeForClient(clientId)
+      if (p) { const { ensureMoment } = await import('../lib/expansion-moments'); await ensureMoment(clientId, p as never) }
+    } catch (err) { console.error('[milla/sessions] expansion moment not checked:', err) }
 
     const { data, error } = await db.from('milla_sessions')
       .select('id, title, created_at')

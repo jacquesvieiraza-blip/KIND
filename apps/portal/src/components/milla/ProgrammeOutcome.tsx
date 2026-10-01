@@ -20,7 +20,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import ExpansionMoment, { MomentHandoff } from './ExpansionMoment'
-import WhatsConverting from './WhatsConverting'
 import PlanOverview from './PlanOverview'
 import Link from 'next/link'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
@@ -161,8 +160,8 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: 
       <PlanOverview />
       {/* ⚑ 1 Oct (R180 · Coaching F2) — the 25/50/75% moment, while the programme is delivering. */}
       <ExpansionMoment />
-      {/* ⚑ 1 Oct (R180 · Coaching #2494) — what's converting, Growth and above; absent for Founders. */}
-      <WhatsConverting />
+      {/* ⛓️ 1 Oct (placement — founder: "coaching for example is coaching and not programme.") — What's
+          converting (#2494) MOVED to the Coaching screen. WAS ~~the What's converting section rendered here, after the moment~~. */}
       <div className="mv-section">
         <div className="mv-section-head">
           <b>Replies</b>

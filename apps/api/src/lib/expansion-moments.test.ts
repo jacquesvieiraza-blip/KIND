@@ -49,7 +49,7 @@ vi.mock('./meeting-debrief', () => ({
   },
 }))
 
-import { milestoneFor, momentChat, ensureMoment, respondToMoment, handoffFrom, handoffFor, readMemory } from './expansion-moments'
+import { milestoneFor, momentChat, ensureMoment, respondToMoment, handoffFrom, handoffFor, readMemory, coachingReviewFor } from './expansion-moments'
 
 const P = (band = 'growth', target = 8) => ({ id: 'p-1', meeting_target: target, size_band: band })
 beforeEach(() => {
@@ -158,6 +158,28 @@ describe('#2518 — Enterprise Coaching Review #1 at 25%', () => {
     expect(v?.review).toBeNull()
     state.reviewThrows = false; state.review = null
     expect((await ensureMoment('c-1', P('enterprise', 8)))?.review).toBeNull()
+  })
+
+  // ⚑ 1 Oct (placement) — the Coaching screen reads the review itself; the 25% panel only points there.
+  it('🛑 the Coaching screen read: Enterprise at 25%, 50% and 75% — fires no moment, writes nothing', async () => {
+    for (const delivered of [2, 4, 6]) {
+      state.delivered = delivered
+      expect(await coachingReviewFor('c-1', P('enterprise', 8))).toEqual({ ready: false, lines: ['too early'] })
+    }
+    expect(state.reviews).toHaveLength(3)
+    expect(state.inserts).toEqual([])
+    expect(state.messages).toEqual([])
+  })
+
+  it('no review below 25%, for any other plan, or when the read fails', async () => {
+    state.delivered = 1
+    expect(await coachingReviewFor('c-1', P('enterprise', 8))).toBeNull()
+    state.delivered = 4
+    expect(await coachingReviewFor('c-1', P('growth', 8))).toBeNull()
+    expect(await coachingReviewFor('c-1', P('founders', 8))).toBeNull()
+    expect(state.reviews).toEqual([])
+    state.reviewThrows = true
+    expect(await coachingReviewFor('c-1', P('enterprise', 8))).toBeNull()
   })
 })
 

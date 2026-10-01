@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
-// ⚑ 1 Oct (R180 · Coaching #2494) — WHAT'S CONVERTING, as one section on the existing Programme
-// screen, in its existing style (R167). Growth and above (or Full Coaching). Every sentence is the
+// ⚑ 1 Oct (R180 · Coaching #2494) — WHAT'S CONVERTING, as one section on the existing Coaching
+// screen (⛓️ 1 Oct, placement — ~~Programme screen~~), in its existing style (R167). Growth and above (or Full Coaching). Every sentence is the
 // server's (`lib/whats-converting.ts`), counted from the client's own replies and meetings — this
 // component adds no number and no wording of its own, so the screen and Milla's "What's working?"
 // answer are the same findings.

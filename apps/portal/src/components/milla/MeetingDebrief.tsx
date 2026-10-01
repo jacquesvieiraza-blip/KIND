@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 
 // ⚑ 1 Oct (Coaching #2501 Meeting Debrief · Phase 1 · R180) — five short questions under a meeting
 // the client said happened. Full Coaching only: the API sends `debrief` only to a plan that has it,
-// so every other plan sees nothing here (no upsell line). Inside the existing Meetings card, in the
+// so every other plan sees nothing here (no upsell line). Inside the meeting's card in Coaching's
+// "After your meetings" (⛓️ 1 Oct, placement — ~~the Meetings card~~), in the
 // existing inline-panel and button style of the "How did it go?" and follow-up panels (R167).
 // Typed answers only — nothing is recorded or transcribed. What may be saved is decided by the API
 // (`lib/meeting-debrief.ts`); this only asks and shows.

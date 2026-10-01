@@ -4,7 +4,7 @@
 //
 // DEBRIEF (Full Coaching: Enterprise, or Founders/Growth with Full Coaching on). Once the client
 // has said a meeting happened (F1: next step · not now · not a fit), they can answer five short
-// questions under it on the Meetings screen: who was in the room, what they cared about most,
+// questions under it in Coaching's "After your meetings" (⛓️ 1 Oct, placement — ~~on the Meetings screen~~): who was in the room, what they cared about most,
 // what objections came up, what was agreed next, and what they would do differently. Every answer
 // is optional; at least one is needed to save. PHASE 1 IS TYPED ONLY — no call recording and no
 // transcription (that is Phase 3, #2501's F4). Nothing here calls a model.
@@ -182,7 +182,9 @@ export function computeCoachingReview(input: { answers: MeetingAnswer[]; debrief
   ].filter((p): p is string => !!p)
   const lines = [`You've told me how ${answered} meetings went: ${parts.join(', ')}.`]
   if (debriefs === 0) {
-    lines.push("You haven't written a debrief yet. Add one under a meeting on the Meetings screen, and I'll show you which objections keep coming up.")
+    // ⛓️ 1 Oct (placement) — the debrief moved to Coaching's "After your meetings", where this review
+    // now shows too. WAS ~~"Add one under a meeting on the Meetings screen"~~.
+    lines.push("You haven't written a debrief yet. Add one under a meeting in After your meetings, below, and I'll show you which objections keep coming up.")
   } else {
     lines.push(`You've written ${debriefs} ${plural(debriefs, 'debrief', 'debriefs')}.`)
     for (const r of recurring) lines.push(`${r.label} came up in ${lower1(countPhrase(r.count, debriefs, 'debriefs'))}.`)

@@ -5,8 +5,9 @@ import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // ⚑ 1 Oct (Coaching #2495 follow-up drafts · #2502 follow-up coach · R180) — under a meeting the
-// client said went somewhere ("next step agreed" / "interested, not now"). Inside the existing
-// Meetings card, in its existing inline-panel and button style (R167): no new page, no layout.
+// client said went somewhere ("next step agreed" / "interested, not now"). Inside the meeting's card
+// in Coaching's "After your meetings" (⛓️ 1 Oct, placement — ~~the Meetings card~~), in its existing
+// inline-panel and button style (R167): no new page, no layout.
 //   · Growth+       → "Draft my follow-up" → subject + body, Copy, Write it again.
 //   · Full Coaching → the same, with the three coaching lines above the draft.
 //   · Founders      → one quiet line; no button, no sell.

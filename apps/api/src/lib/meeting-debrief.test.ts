@@ -143,7 +143,9 @@ describe('#2518 — Coaching Review #1', () => {
 
   it('no debriefs yet, one debrief, and nothing recurring each say so plainly', () => {
     expect(computeCoachingReview({ answers: ['next_step', 'not_now'], debriefs: [] }).lines[1])
-      .toBe("You haven't written a debrief yet. Add one under a meeting on the Meetings screen, and I'll show you which objections keep coming up.")
+      // ⛓️ 1 Oct (placement) — WAS ~~"Add one under a meeting on the Meetings screen"~~: the debrief
+      // and this review both live on the Coaching screen now.
+      .toBe("You haven't written a debrief yet. Add one under a meeting in After your meetings, below, and I'll show you which objections keep coming up.")
     expect(computeCoachingReview({ answers: ['next_step', 'not_now'], debriefs: [D('price')] }).lines[2])
       .toBe("Once you've written a second debrief, I'll show you any objection that keeps coming up.")
     expect(computeCoachingReview({ answers: ['next_step', 'not_now'], debriefs: [D('price'), D('timing is wrong')] }).lines[2])

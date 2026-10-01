@@ -199,6 +199,26 @@ async function postChat(clientId: string, programmeId: string, milestone: Milest
   } catch (err) { console.error('[expansion-moments] chat line not posted:', err) }
 }
 
+/**
+ * ⚑ 1 Oct (#2518 · placement — founder: *"make sure the right product is in the right area. coaching
+ * for example is coaching and not programme."*) — COACHING REVIEW #1 ON THE COACHING SCREEN.
+ * Enterprise only, once the programme has crossed 25% (and on through 50% and 75%). A plain read:
+ * it fires no moment, writes nothing and posts no chat line — looking at Coaching is not a milestone.
+ * `null` = not Enterprise, below 25%, or a read failed (never "too early" on a number we could not read).
+ */
+export async function coachingReviewFor(clientId: string, p: ProgrammeLite): Promise<import('./meeting-debrief').CoachingReview | null> {
+  if (p.size_band !== 'enterprise') return null
+  const target = Number(p.meeting_target ?? 0)
+  if (!(target > 0)) return null
+  const { programmeDelivery } = await import('./meeting-truth')
+  const d = await programmeDelivery(p.id)
+  if (!d || !milestoneFor(d.delivered, target)) return null
+  try {
+    const { readCoachingReview } = await import('./meeting-debrief')
+    return await readCoachingReview(clientId, p.id)
+  } catch (err) { console.error('[expansion-moments] coaching review not read:', err); return null }
+}
+
 export type RespondResult = { ok: true; url?: string } | { ok: false; status: number; error: string }
 
 /**

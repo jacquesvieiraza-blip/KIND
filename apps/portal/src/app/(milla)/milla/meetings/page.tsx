@@ -5,8 +5,9 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import MeetingOutcomeAsk from '@/components/milla/MeetingOutcomeAsk'
-import MeetingFollowUp, { type FollowUp } from '@/components/milla/MeetingFollowUp'
-import MeetingDebrief, { type DebriefSlot } from '@/components/milla/MeetingDebrief'
+import Link from 'next/link'
+import type { FollowUp } from '@/components/milla/MeetingFollowUp'
+import type { DebriefSlot } from '@/components/milla/MeetingDebrief'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 
 // #507 — MILLA MEETINGS tab: the client's booked meetings, from `GET /leads/meetings`, which
@@ -18,6 +19,20 @@ type Outcome = { answer: string; label: string; note: string | null; at: string 
 // ⚑ 1 Oct (Coaching #2495 · #2502) — `followUp` is set only for a meeting that went somewhere.
 // ⚑ 1 Oct (Coaching #2501 · Phase 1) — `debrief` is set only on Full Coaching, for a meeting that happened.
 type Meeting = { id: string; title: string; start_time: string | null; status: string; state?: string; name: string; company: string | null; outcome?: Outcome | null; ask?: boolean; followUp?: FollowUp | null; debrief?: DebriefSlot | null }
+
+// ⛓️ 1 Oct (placement — founder: *"make sure the right product is in the right area. coaching for
+// example is coaching and not programme."*) — the follow-up drafts (#2495 · #2502) and the debrief
+// (#2501) MOVED to the Coaching screen's "After your meetings". WAS ~~the follow-up panel and the
+// debrief panel rendered here, under the answered meeting~~. "How did it go?" (F1) stays here.
+// Under an answered meeting, one quiet line points there — only for a plan that has either piece;
+// a Founders client without Coaching sees nothing extra here (their quiet line lives in Coaching).
+function coachingLine(m: Meeting): string | null {
+  const follow = !!m.followUp && m.followUp.level !== 'none'
+  const debrief = !!m.debrief
+  return follow && debrief ? 'Follow-up and debrief are in'
+    : follow ? 'Your follow-up is in'
+    : debrief ? 'Your debrief is in' : null
+}
 
 // ⛓️ 28 Sep — UPCOMING IS A BOOKED MEETING IN THE FUTURE. WAS ~~`m.status === 'confirmed'`~~ — a
 // value the API has not sent since meetings moved to `public.meetings` (it sends a label:
@@ -78,8 +93,11 @@ export default function MillaMeetingsPage() {
     </div>
     {m.outcome?.note && !m.ask && <p className="text-[12.5px] text-[#6b5f8c] mt-2 bg-[#faf8ff] rounded-lg px-3 py-2">&ldquo;{m.outcome.note}&rdquo;</p>}
     {m.ask && <MeetingOutcomeAsk meetingId={m.id} onSaved={load} />}
-    {!m.ask && m.followUp && <MeetingFollowUp meetingId={m.id} followUp={m.followUp} onSaved={load} />}
-    {!m.ask && m.debrief && <MeetingDebrief meetingId={m.id} debrief={m.debrief} onSaved={load} />}
+    {!m.ask && coachingLine(m) && (
+      <p className="text-[12px] text-[#9b8ec4] mt-2" data-testid="meeting-coaching-pointer">
+        {coachingLine(m)} <Link href="/milla/coaching" className="font-bold text-[#5b21b6]">Coaching</Link>.
+      </p>
+    )}
     </div>
   )
 

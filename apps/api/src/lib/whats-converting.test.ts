@@ -257,6 +257,10 @@ describe("#2494 — one answer: the screen and Milla's \"What's working?\" read 
     expect(route).toContain("myProgrammeRouter.get('/whats-converting'")
     expect(route).toContain('whatsConvertingFor(clientId)')
     expect(read('apps/portal/src/components/milla/WhatsConverting.tsx')).toContain("'/my/programme/whats-converting'")
-    expect(read('apps/portal/src/components/milla/ProgrammeOutcome.tsx')).toContain('<WhatsConverting />')
+    // ⛓️ 1 Oct (placement — founder: "coaching for example is coaching and not programme.") — WAS
+    // ~~expect(read('apps/portal/src/components/milla/ProgrammeOutcome.tsx')).toContain('<WhatsConverting />')~~.
+    // The section moved to the Coaching screen (coaching-placement.test.ts holds the whole move).
+    expect(read('apps/portal/src/app/(milla)/milla/coaching/page.tsx')).toContain('<WhatsConverting />')
+    expect(read('apps/portal/src/components/milla/ProgrammeOutcome.tsx')).not.toContain('<WhatsConverting />')
   })
 })

@@ -6,7 +6,7 @@
 // roles, seniorities and industries booked meetings or replied well, which email step drew the
 // positive replies, what those replies said, and (from F1 "How did it go?") which meetings moved
 // forward. Nothing here is a model's opinion — every finding is counted from their own rows, so
-// it is the same answer every time it is asked, on the Programme screen and in Milla's chat.
+// it is the same answer every time it is asked, on the Coaching screen (⛓️ 1 Oct, placement — ~~Programme~~) and in Milla's chat.
 //
 // 🛑 WHAT A FINDING MAY NEVER SAY (R136 · R87):
 //   · never a percentage, a rate or a ratio — only small whole counts ("3 of your 4 meetings")
@@ -228,7 +228,8 @@ export function computeWhatsConverting(input: ConvertingInput): WhatsConverting 
  */
 export function describeWhatsConverting(v: WhatsConverting | null | undefined): string {
   if (!v) return ''
-  const head = "WHAT'S CONVERTING IN THIS CLIENT'S PROGRAMME (counted from their own replies and meetings — the same findings their Programme screen shows; when they ask what's working, answer from these, in these counts, and never as a percentage or rate):"
+  // ⛓️ 1 Oct (placement) — the section moved to the Coaching screen. WAS ~~"their Programme screen shows"~~.
+  const head = "WHAT'S CONVERTING IN THIS CLIENT'S PROGRAMME (counted from their own replies and meetings — the same findings their Coaching screen shows; when they ask what's working, answer from these, in these counts, and never as a percentage or rate):"
   if (!v.ready || v.findings.length === 0) return `${head}\n- ${TOO_EARLY}`
   return [head, ...v.findings.map(f => `- ${f.text}`)].join('\n')
 }

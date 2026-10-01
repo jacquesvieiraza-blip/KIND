@@ -229,6 +229,22 @@ myProgrammeRouter.get('/moment', async (req: AuthRequest, res) => {
     res.json({ success: true, data: { moment: null, taste: null } })
   }
 })
+// ⚑ 1 Oct (#2518 · placement) — Coaching Review #1, read by the Coaching screen (Enterprise, 25%+).
+// A plain read — no moment fired, nothing written. Every rule lives in `lib/expansion-moments.ts`.
+// ⚠️ Never a successful `data: null` — no review is `{ review: null }`, and a failure never breaks the page.
+myProgrammeRouter.get('/coaching/review', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.json({ success: true, data: { review: null } }); return }
+    const { coachingReviewFor } = await import('../lib/expansion-moments')
+    res.json({ success: true, data: { review: await coachingReviewFor(clientId, p as never) } })
+  } catch (err) {
+    console.error('[programme/me/coaching/review GET]', err)
+    res.json({ success: true, data: { review: null } })
+  }
+})
 // ⚑ 1 Oct (R180 · #2516) — "Show me on a real meeting": the one Coaching example, written once from
 // one of the client's own meetings. Every rule lives in `lib/coaching-taste.ts`.
 myProgrammeRouter.post('/moment/taste', rateLimit({ limit: 5, windowMs: 60_000, key: 'moment-taste', byUser: true }), async (req: AuthRequest, res) => {

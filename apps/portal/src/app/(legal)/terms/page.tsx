@@ -14,7 +14,7 @@ export default function TermsPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: 25 September 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 1 October 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>

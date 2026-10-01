@@ -19,7 +19,10 @@ type Moment = {
   response: string | null; response50: string | null
   coachingIncluded: boolean; coachingRequested: boolean; coachingActive?: boolean
   pricePerMeeting: number; upliftPerMeeting: number; activationTotal: number; chat: string
+  // ⚑ 1 Oct (#2518) — Enterprise at 25% only: Coaching Review #1, counted from the client's own answers.
+  review?: Review | null
 }
+type Review = { ready: boolean; lines: string[] }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -62,8 +65,18 @@ export default function ExpansionMoment() {
 
   let body: React.ReactNode
   if (m.milestone === 25) {
+    // ⚑ 1 Oct (#2518 · R180 · R136 · R87) — ENTERPRISE COACHING REVIEW #1. Every line and count is
+    // the server's, from the client's own "How did it go?" answers and debriefs — never a rate,
+    // never a value claim. Too few answered meetings → Milla's one plain "too early" line.
+    const r = m.plan === 'enterprise' ? m.review : null
     body = <>
       <p className="text-[12.5px] text-[#4c4368] leading-relaxed">{m.chat}</p>
+      {r && (
+        <div className="mt-3 bg-[#faf8ff] border border-[#f2ecfb] rounded-xl px-3.5 py-2.5" data-testid="coaching-review">
+          <b className="block text-[12.5px] text-[#1f1235]">Coaching Review #1</b>
+          {r.lines.map((l, i) => <p key={i} className="text-[12.5px] text-[#4c4368] leading-relaxed mt-2">{l}</p>)}
+        </div>
+      )}
       <div className="mv-cta-row flex-wrap mt-3">
         <Link href="/milla/coaching" className="mv-btn primary" onClick={() => void answer('engaged')}>Open Coaching</Link>
       </div>

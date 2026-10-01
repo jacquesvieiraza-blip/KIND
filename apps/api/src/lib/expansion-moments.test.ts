@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   tasks: [] as Array<Record<string, unknown>>, demo: false,
   checkouts: [] as Array<Record<string, unknown>>, checkout: { ok: true, url: 'https://stripe.test/coaching' } as Record<string, unknown>,
   active: false,
+  reviews: [] as Array<[string, string]>, review: { ready: false, lines: ['too early'] } as Record<string, unknown> | null, reviewThrows: false,
 }))
 vi.mock('@kind/db', () => ({
   db: {
@@ -38,6 +39,13 @@ vi.mock('./coaching-billing', () => ({
   },
 }))
 vi.mock('./coaching-access', () => ({ coachingActivated: async () => state.active }))
+// ⚑ 1 Oct (#2518) — Coaching Review #1 is `meeting-debrief.ts`'s job (tested in meeting-debrief.test.ts);
+// here it is a spy, so "Enterprise at 25% only" is a call count.
+vi.mock('./meeting-debrief', () => ({
+  readCoachingReview: async (clientId: string, programmeId: string) => {
+    state.reviews.push([clientId, programmeId]); if (state.reviewThrows) throw new Error('down'); return state.review
+  },
+}))
 
 import { milestoneFor, momentChat, ensureMoment, respondToMoment } from './expansion-moments'
 
@@ -45,6 +53,7 @@ const P = (band = 'growth', target = 8) => ({ id: 'p-1', meeting_target: target,
 beforeEach(() => {
   state.delivered = 3; state.events = []; state.inserts = []; state.messages = []; state.tasks = []; state.demo = false
   state.checkouts = []; state.checkout = { ok: true, url: 'https://stripe.test/coaching' }; state.active = false
+  state.reviews = []; state.review = { ready: false, lines: ['too early'] }; state.reviewThrows = false
 })
 
 describe('F2 — the trigger', () => {
@@ -120,5 +129,31 @@ describe('F2 — fires once, remembers the answer', () => {
 
   it('only the moment on screen can be answered', async () => {
     expect(await respondToMoment('c-1', P(), 50, 'not_now')).toMatchObject({ ok: false, status: 409 })
+  })
+})
+
+describe('#2518 — Enterprise Coaching Review #1 at 25%', () => {
+  it('🛑 Enterprise at 25% carries the review for THIS programme; no other plan or milestone reads it', async () => {
+    const v = await ensureMoment('c-1', P('enterprise', 8))
+    expect(v?.milestone).toBe(25)
+    expect(v?.review).toEqual({ ready: false, lines: ['too early'] })
+    expect(state.reviews).toEqual([['c-1', 'p-1']])
+
+    state.reviews = []
+    expect((await ensureMoment('c-1', P('growth', 8)))?.review).toBeUndefined()
+    state.active = true
+    expect((await ensureMoment('c-1', P('founders', 8)))?.review).toBeUndefined()
+    state.delivered = 4
+    expect((await ensureMoment('c-1', P('enterprise', 8)))?.review).toBeUndefined()
+    expect(state.reviews).toEqual([])
+  })
+
+  it('a review that cannot be read drops the review, never the moment', async () => {
+    state.reviewThrows = true
+    const v = await ensureMoment('c-1', P('enterprise', 8))
+    expect(v?.milestone).toBe(25)
+    expect(v?.review).toBeNull()
+    state.reviewThrows = false; state.review = null
+    expect((await ensureMoment('c-1', P('enterprise', 8)))?.review).toBeNull()
   })
 })

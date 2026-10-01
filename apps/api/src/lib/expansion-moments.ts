@@ -51,6 +51,9 @@ export type MomentView = {
   upliftPerMeeting: number
   activationTotal: number
   chat: string
+  /** ⚑ 1 Oct (#2518) — Enterprise at 25% only: Coaching Review #1, from the client's own answers
+   *  (`meeting-debrief.ts`). `null` when it could not be read — the moment still shows. */
+  review?: import('./meeting-debrief').CoachingReview | null
 }
 
 /** Milla's opening line for the moment. Pure — the copy is tested, not eyeballed. */
@@ -139,6 +142,15 @@ export async function ensureMoment(clientId: string, p: ProgrammeLite): Promise<
     activationTotal: fullCoachingActivationUsd(Math.max(0, target - d.delivered)), chat: '',
   }
   view.chat = momentChat(view)
+  // ⚑ 1 Oct (#2518 · R180) — ENTERPRISE COACHING REVIEW #1 at 25%. Counted from the client's own
+  // "How did it go?" answers and debriefs for THIS programme; "too early" below two. A failed read
+  // drops the review, never the moment (and never shows "too early" on a number we could not read).
+  if (plan === 'enterprise' && milestone === 25) {
+    try {
+      const { readCoachingReview } = await import('./meeting-debrief')
+      view.review = await readCoachingReview(clientId, p.id)
+    } catch (err) { console.error('[expansion-moments] coaching review not read:', err); view.review = null }
+  }
 
   if (!view.response) {
     // FIRES ONCE: the remembered `shown` is what stops it firing again.

@@ -979,10 +979,18 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
     const followable = new Set(rows.filter(r => r.state !== 'NO_SHOW' && canFollowUp(outcomes?.get(r.id)?.answer)).map(r => r.id))
     let followLevel: 'none' | 'draft' | 'coach' = 'none'
     let drafts: Awaited<ReturnType<typeof latestFollowUps>> = null
-    if (followable.size) {
+    // ⚑ 1 Oct (Coaching #2501 · Phase 1) — the five-question debrief, for a meeting the client said
+    // happened, on Full Coaching only. A plan without it gets `debrief: null` and sees nothing.
+    // An unreadable debrief log offers no debrief (it never shows an empty form over a saved one).
+    const { canDebrief, latestDebriefs } = await import('../lib/meeting-debrief')
+    const debriefable = new Set(rows.filter(r => r.state !== 'NO_SHOW' && canDebrief(outcomes?.get(r.id)?.answer)).map(r => r.id))
+    let debriefs: Awaited<ReturnType<typeof latestDebriefs>> = null
+    if (followable.size || debriefable.size) {
       const { coachingAccessFor } = await import('../lib/coaching-access')
-      followLevel = followUpLevel(await coachingAccessFor(clientId))
+      const access = await coachingAccessFor(clientId)
+      if (followable.size) followLevel = followUpLevel(access)
       if (followLevel !== 'none') drafts = await latestFollowUps(clientId, Array.from(followable))
+      if (access.full && debriefable.size) debriefs = await latestDebriefs(clientId, Array.from(debriefable))
     }
 
     const meetings = rows.map(r => {
@@ -992,6 +1000,7 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
         outcome,
         ask: outcomes !== null && needsAnswer(r, outcome !== null),
         followUp: followable.has(r.id) ? { level: followLevel, draft: forLevel(drafts?.get(r.id) ?? null, followLevel) } : null,
+        debrief: debriefs && debriefable.has(r.id) ? { saved: debriefs.get(r.id) ?? null } : null,
         id: r.id,
         // `meetings` stores no title by design — it holds no prospect identity at all. The
         // page's existing default is used rather than inventing one from the lead's name.
@@ -1034,6 +1043,42 @@ leadRouter.post('/meetings/:id/outcome', rateLimit({ limit: 30, windowMs: 60_000
     if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
     res.json({ success: true, data: r.outcome })
   } catch (err) { console.error('[leads/meetings/outcome]', err); res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." }) }
+})
+
+// ── ⚑ 1 Oct (Coaching #2501 Meeting Debrief · Phase 1 · R180) — FIVE QUESTIONS AFTER A MEETING ────
+// Scoped exactly as the outcome route above: the meeting must be this client's, in their current
+// programme. Full Coaching only, and only once the client's own F1 answer said the meeting
+// happened. Typed answers only — nothing is recorded or transcribed, and no model is called. The
+// rules (what may be saved, where it lives) are in `lib/meeting-debrief.ts`, nowhere else.
+leadRouter.post('/meetings/:id/debrief', rateLimit({ limit: 30, windowMs: 60_000, key: 'meeting-debrief', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+    if (scope.mode === 'none') { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+    if (scope.mode === 'unreadable') { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Nothing changed." }); return }
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const rows = await meetingsForClient({ clientId, ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}), limit: 100 })
+    if (rows === null) { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Nothing changed." }); return }
+    const m = rows.find(r => r.id === req.params.id)
+    if (!m) { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+
+    const { coachingAccessFor } = await import('../lib/coaching-access')
+    const { DEBRIEF_LOCKED, recordDebrief } = await import('../lib/meeting-debrief')
+    if (!(await coachingAccessFor(clientId)).full) { res.status(403).json({ success: false, error: DEBRIEF_LOCKED }); return }
+
+    const { latestOutcomes } = await import('../lib/meeting-outcome')
+    const outcomes = await latestOutcomes(clientId, [m.id])
+    if (outcomes === null) { res.status(503).json({ success: false, error: "We couldn't read how the meeting went just now. Nothing changed." }); return }
+    const r = await recordDebrief({
+      clientId,
+      meeting: { id: m.id, state: m.state, programmeId: scope.mode === 'ids' ? scope.programmeId : null },
+      answer: outcomes.get(m.id)?.answer ?? null, body: req.body, by: req.authEmail ?? req.userId!,
+    })
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.debrief })
+  } catch (err) { console.error('[leads/meetings/debrief]', err); res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." }) }
 })
 
 // ── ⚑ 1 Oct (Coaching #2495 · #2502 · R180) — THE FOLLOW-UP DRAFT, AND FULL COACHING'S COACH ────

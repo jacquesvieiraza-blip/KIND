@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import MeetingOutcomeAsk from '@/components/milla/MeetingOutcomeAsk'
 import MeetingFollowUp, { type FollowUp } from '@/components/milla/MeetingFollowUp'
+import MeetingDebrief, { type DebriefSlot } from '@/components/milla/MeetingDebrief'
 import { useLiveRefresh } from '@/lib/use-live-refresh'
 
 // #507 — MILLA MEETINGS tab: the client's booked meetings, from `GET /leads/meetings`, which
@@ -15,7 +16,8 @@ import { useLiveRefresh } from '@/lib/use-live-refresh'
 // ⚑ 1 Oct (Coaching F1) — `outcome` is the client's "How did it go?" answer; `ask` = it's time to ask.
 type Outcome = { answer: string; label: string; note: string | null; at: string }
 // ⚑ 1 Oct (Coaching #2495 · #2502) — `followUp` is set only for a meeting that went somewhere.
-type Meeting = { id: string; title: string; start_time: string | null; status: string; state?: string; name: string; company: string | null; outcome?: Outcome | null; ask?: boolean; followUp?: FollowUp | null }
+// ⚑ 1 Oct (Coaching #2501 · Phase 1) — `debrief` is set only on Full Coaching, for a meeting that happened.
+type Meeting = { id: string; title: string; start_time: string | null; status: string; state?: string; name: string; company: string | null; outcome?: Outcome | null; ask?: boolean; followUp?: FollowUp | null; debrief?: DebriefSlot | null }
 
 // ⛓️ 28 Sep — UPCOMING IS A BOOKED MEETING IN THE FUTURE. WAS ~~`m.status === 'confirmed'`~~ — a
 // value the API has not sent since meetings moved to `public.meetings` (it sends a label:
@@ -77,6 +79,7 @@ export default function MillaMeetingsPage() {
     {m.outcome?.note && !m.ask && <p className="text-[12.5px] text-[#6b5f8c] mt-2 bg-[#faf8ff] rounded-lg px-3 py-2">&ldquo;{m.outcome.note}&rdquo;</p>}
     {m.ask && <MeetingOutcomeAsk meetingId={m.id} onSaved={load} />}
     {!m.ask && m.followUp && <MeetingFollowUp meetingId={m.id} followUp={m.followUp} onSaved={load} />}
+    {!m.ask && m.debrief && <MeetingDebrief meetingId={m.id} debrief={m.debrief} onSaved={load} />}
     </div>
   )
 

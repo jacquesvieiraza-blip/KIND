@@ -410,7 +410,8 @@ export async function processInboundReply(
   // reply from that prospect matched nothing and skipped every hot path — no alert, no CRM
   // deal, no counter. The most valuable reply in the funnel is usually the second one.
   const { data: enrollment } = await db.from('figsy_enrollments')
-    .select('id, campaign_id')
+    // ⚑ 2 Oct (#2558) — `programme_id` too: a programme sequence stops on any human reply.
+    .select('id, campaign_id, programme_id')
     .eq('lead_id', lead.id)
     .in('status', [...REPLY_LOOKUP_STATUSES])
     .order('enrolled_at', { ascending: false })
@@ -549,6 +550,27 @@ export async function processInboundReply(
         `This reply tripped the legal/complaint risk filter — review and respond by hand; do not let it auto-follow-up.`,
       ])
     })().catch(() => {})
+  }
+
+  // ── ⚑ 2 Oct (card #2558 · S3) — ANY HUMAN REPLY STOPS A PROGRAMME'S FOLLOW-UPS ──────────
+  //
+  // A prospect who answered "not interested", "send me more info" or "talk to Sarah" still got
+  // steps 2–5 ("just bumping this") in the client's name: only `hot` (below) or an opt-out
+  // stopped the sequence. For a programme, every reply now stops it — status `replied`, nothing
+  // scheduled — except an out-of-office, which is a robot. A reply the classifier could not
+  // read counts as human: we never email somebody who may have answered us. Hot and opt-out keep
+  // their own handling below; a legacy (non-programme) enrolment is unchanged.
+  if (enrollment && (enrollment as { programme_id?: string | null }).programme_id
+      && !['hot', 'out_of_office', 'opt_out', 'unsubscribe'].includes(classification ?? '')) {
+    const { error: stopErr } = await db.from('figsy_enrollments')
+      .update({ status: 'replied', next_send_at: null }).eq('id', enrollment.id)
+    if (stopErr) {
+      console.error('[reply-pipeline] REPLY NOT RECORDED — this prospect may be emailed again', enrollment.id, stopErr.message)
+      void sendFounderAlert('sends_stalled', 'A prospect who replied is still in sequence', [
+        `Enrollment ${enrollment.id}: a "${classification ?? 'unclassified'}" reply was received but stopping the sequence failed (${stopErr.message}).`,
+        'The send run checks again before every step, so the next step is held — but set that figsy_enrollments row to status=replied now.',
+      ])
+    }
   }
 
   // Handle opt-out — pause enrollment and add to blocklist. #312: the classifier

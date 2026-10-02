@@ -5843,6 +5843,27 @@ operatorRouter.post('/replies/:id/qualify', async (req: Request, res: Response) 
   } catch (err) { console.error('[operator/qualify]', err); res.status(500).json({ success: false, error: 'Failed to qualify reply' }) }
 })
 
+// ── ⚑ 2 Oct (R189 ⑤ · #2556) — RECORD A MEETING AGREED BY EMAIL ────────────────────────
+// *"Vida gets a 'Record meeting' control for a time agreed by email."* The operator gives the
+// agreed time; `recordMeetingFromReply` records it through the one meeting writer, against
+// the reply's own prospect, as booked-not-yet-on-a-calendar. Scoped to the client; audited.
+operatorRouter.post('/replies/:id/record-meeting', async (req: Request, res: Response) => {
+  try {
+    const { client_id, scheduled_at } = (req.body ?? {}) as { client_id?: string; scheduled_at?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { recordMeetingFromReply } = await import('../lib/record-meeting')
+    const r = await recordMeetingFromReply({ clientId: client.id, replyId: req.params.id, scheduledAt: String(scheduled_at ?? '') })
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'record_meeting',
+      subjectType: 'reply', subjectId: req.params.id,
+      detail: { meeting_id: r.meetingId, scheduled_at: r.scheduledAt, lead_id: r.leadId, programme_id: r.programmeId, state: r.state },
+    })
+    res.json({ success: true, data: { meeting_id: r.meetingId, scheduled_at: r.scheduledAt, state: r.state } })
+  } catch (err) { console.error('[operator/record-meeting]', err); res.status(500).json({ success: false, error: 'Failed to record the meeting' }) }
+})
+
 // ── #487 DRAFT-QUEUE RELEASE (operator releases a FIGSY-written draft) ──────────
 // The "Needs approval" column is the figsy_approval_queue (drafts FIGSY wrote, awaiting a
 // human gate). These are NOT the $4 lead-approve — the $4 already fired when the lead was

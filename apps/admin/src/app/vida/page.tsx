@@ -1704,6 +1704,8 @@ export default function VidaConsolePage() {
   const [draft, setDraft] = useState('')
   const [replyBusy, setReplyBusy] = useState<string | null>(null)
   const [replyMsg, setReplyMsg] = useState<string | null>(null)
+  /** ⚑ 2 Oct (R189 ⑤) — the time a meeting was agreed for by email, in the operator's own clock. */
+  const [meetAt, setMeetAt] = useState('')
 
   // Launch-path state — everything the operator now actually authors.
   const [people, setPeople] = useState<Person[] | null>(null)
@@ -1770,7 +1772,7 @@ export default function VidaConsolePage() {
 
   async function openThread(id: string) {
     if (!selected) return
-    setOpenReply(id); setThread(null); setDraft(''); setReplyMsg(null)
+    setOpenReply(id); setThread(null); setDraft(''); setReplyMsg(null); setMeetAt('')
     try {
       const j = await fetch(`/api/proxy/operator/replies/${id}?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
       if (j?.success) setThread(j.data)
@@ -1804,6 +1806,26 @@ export default function VidaConsolePage() {
         setDraft(''); setOpenReply(null); setThread(null); loadCockpit(selected)
       } else setReplyMsg(j?.error || 'Could not send')
     } catch { setReplyMsg('Could not send') }
+    setReplyBusy(null)
+  }
+
+  // ⚑ 2 Oct (R189 ⑤ · #2556) — RECORD A MEETING AGREED BY EMAIL. The time is read in the
+  // operator's own clock and sent as an exact instant; the server says what was recorded.
+  async function recordMeeting() {
+    if (!selected || !openReply || !meetAt) return
+    const at = new Date(meetAt)
+    if (isNaN(at.getTime())) { setReplyMsg('Pick the date and time the meeting was agreed for.'); return }
+    setReplyBusy('meeting'); setReplyMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/replies/${encodeURIComponent(openReply)}/record-meeting`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, scheduled_at: at.toISOString() }),
+      }).then(r => r.json())
+      if (j?.success) {
+        setReplyMsg(`Meeting recorded for ${at.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}. It counts once you qualify it in Meetings.`)
+        setMeetAt(''); loadCockpit(selected)
+      } else setReplyMsg(j?.error || 'Could not record the meeting')
+    } catch { setReplyMsg('Could not record the meeting') }
     setReplyBusy(null)
   }
 
@@ -3768,6 +3790,16 @@ export default function VidaConsolePage() {
                             className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[13.5px] font-bold disabled:opacity-50">Mark qualified</button>
                           <a href={`/vida/record?lead_id=${encodeURIComponent(String(thread.reply.lead_id ?? ''))}`}
                             className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Record</a>
+                        </div>
+                        {/* ⚑ 2 Oct (R189 ⑤) — a time agreed by email becomes a recorded meeting. */}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <label htmlFor="meet-at" className="text-[12.5px] text-[#5c5279] font-semibold">Meeting agreed for</label>
+                          <input id="meet-at" type="datetime-local" value={meetAt} onChange={e => setMeetAt(e.target.value)}
+                            className="border border-[#ece5fb] rounded-lg px-2 py-1.5 text-[13px] outline-none focus:border-[#7C3AED]" />
+                          <button onClick={recordMeeting} disabled={replyBusy !== null || !meetAt}
+                            className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[13px] font-bold text-[#5c5279] hover:bg-[#f7f4fd] disabled:opacity-40">
+                            {replyBusy === 'meeting' ? 'Recording…' : 'Record meeting'}
+                          </button>
                         </div>
                         {replyMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{replyMsg}</p>}
                       </>)}

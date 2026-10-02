@@ -100,6 +100,40 @@ export type SendDueHaltReason =
 
 type RotationSlot = { id: string; dailyCap: number | null; sentThisBatch: number; row: InboxRow }
 
+// ── ⚑ 2 Oct (R185 ② · card #2545) — THE DAY'S SENDS ARE SPREAD ACROSS THE RUNS ─────────────
+//
+// The founder: *"Q3 Yes spread."* Each run used to spend the whole remaining allowance at once,
+// so a mailbox's day went out in one burst at the first run that could send. Now an automatic
+// run sends only its share: what is left of the day, divided by the runs left today, rounded up
+// (about 9 every 2 hours for a client with two 50-a-day mailboxes). The last run may finish the
+// day. A run the founder presses with an explicit number is not spread — the number is the
+// decision.
+
+// The send run fires every two hours, on the hour (UTC) — the send-due-all line in `cron.ts`.
+// A test holds the two together, so the share maths can never drift from the real timetable.
+export const SEND_RUN_EVERY_HOURS = 2
+
+/** How many scheduled runs are left in this UTC day (the day every daily limit counts), this one included. */
+export function runsLeftToday(at: Date): number {
+  return Math.floor(23 / SEND_RUN_EVERY_HOURS) - Math.floor(at.getUTCHours() / SEND_RUN_EVERY_HOURS) + 1
+}
+
+/**
+ * This run's share of each mailbox's day. `sentThisBatch` is what the box has already sent today
+ * (the rotation is seeded from that), so the share is narrowed onto `dailyCap` — the one number
+ * `nextFromRotation` reads — and never past the box's real limit.
+ */
+export function spreadForThisRun<T extends { dailyCap: number | null; sentThisBatch: number }>(
+  slots: T[], runsLeft: number,
+): T[] {
+  const runs = Math.max(1, Math.floor(runsLeft))
+  return slots.map(s => {
+    if (s.dailyCap == null) return s
+    const left = Math.max(0, s.dailyCap - s.sentThisBatch)
+    return { ...s, dailyCap: Math.min(s.dailyCap, s.sentThisBatch + Math.ceil(left / runs)) }
+  })
+}
+
 /**
  * ⚑ 18 Sep (J20-C1 · LR 21) — STOP THE RUN, AND LEAVE A RECORD THAT IT STOPPED.
  *
@@ -195,7 +229,12 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   // ⚠️ `max_sends` NARROWS, IT NEVER WIDENS. The founder's ceiling is intersected with the
   // shared daily budget rather than replacing it, so an operator run cannot be used to send
   // past a limit the automatic path would have respected.
-  const budget = mode.mode === 'operator_run' ? Math.min(remaining, mode.maxSends) : remaining
+  // ⚑ 2 Oct (R185 ②) — and an AUTOMATIC run spends only its share of what is left today, so a
+  // shared limit of 20 goes out 2 a run through the day instead of 20 in the first run.
+  const runsLeft = runsLeftToday(new Date())
+  const budget = mode.mode === 'operator_run'
+    ? Math.min(remaining, mode.maxSends)
+    : Math.ceil(remaining / runsLeft)
   if (budget === 0) return empty(mode, dailyLimit, { remaining_today: remaining })
 
   // Only send for ACTIVE campaigns — paused / archived / low-performance campaigns must stop
@@ -271,16 +310,43 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   // ⚠️ THE UNIT SUITE CANNOT SEE THIS, and that is the point of the full-stack run. Those
   // tests construct the `lead` object by hand and naturally include `client_id`; only a real
   // PostgREST answering a real embedded select omits what the projection did not name.
-  const { data: due, error: dueErr } = await db.from('figsy_enrollments')
+  //
+  // ── ⚑ 2 Oct (R185 · card #2545) — ONE READ PER CLIENT, SO NO CLIENT IS STARVED ──────────
+  //
+  // ~~One read across every active campaign, oldest first, up to the ceiling.~~ A client with a
+  // long overdue backlog filled that ceiling with its own rows, so another client's newer due
+  // work was never even fetched — the round-robin below can only share out what was read. Each
+  // client's campaigns are now read on their own, with their own ceiling, and the round-robin
+  // shares the run between everyone who has something due.
+  // ⚠️ `activeCampaignIds` INSIDE THIS READ IS ONE CLIENT'S SLICE of the active list above, so
+  // every due read is still restricted to ACTIVE campaigns — never a draft, never a paused one.
+  const readDue = (activeCampaignIds: string[]) => db.from('figsy_enrollments')
     .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
     .in('status', ['enrolled', 'in_progress'])
     .in('campaign_id', activeCampaignIds)
     .lte('next_send_at', now)
     .order('next_send_at', { ascending: true })
     .limit(fetchCeil)
-  if (dueErr) {
-    return halt(mode, dailyLimit, 'due_enrolments_unreadable',
-      `the due enrolments could not be read (${dueErr.message}). Nothing was selected and nothing was sent.`, remaining)
+  const campaignsByClient = new Map<string, string[]>()
+  for (const c of activeCamps ?? []) {
+    const row = c as { id: string; client_id?: string | null }
+    const key = row.client_id ?? ''
+    campaignsByClient.set(key, [...(campaignsByClient.get(key) ?? []), row.id])
+  }
+  const allDue: NonNullable<Awaited<ReturnType<typeof readDue>>['data']> = []
+  const seenEnrolments = new Set<string>()
+  for (const clientCampaignIds of campaignsByClient.values()) {
+    const { data: due, error: dueErr } = await readDue(clientCampaignIds)
+    if (dueErr) {
+      return halt(mode, dailyLimit, 'due_enrolments_unreadable',
+        `the due enrolments could not be read (${dueErr.message}). Nothing was selected and nothing was sent.`, remaining)
+    }
+    for (const row of due ?? []) {
+      const id = String((row as { id?: unknown }).id)
+      if (seenEnrolments.has(id)) continue
+      seenEnrolments.add(id)
+      allDue.push(row)
+    }
   }
 
   // ── ⚑ POSITIVE ATTRIBUTION AT THE SELECTION LAYER ───────────────────────────────────────
@@ -299,7 +365,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   // ⚠️ ONE READ PER CLIENT, not one per enrollment — a per-row read would issue hundreds of
   // queries per run for the exact case this exists to reject.
   const openProgrammeByClient = new Map<string, string | null>()
-  for (const cid of new Set((due ?? []).map(e => (e as { client_id?: string | null }).client_id).filter(Boolean))) {
+  for (const cid of new Set(allDue.map(e => (e as { client_id?: string | null }).client_id).filter(Boolean))) {
     try {
       // ⛓️ C2 — THE COMMERCIAL MODEL DECIDES, NOT THE ABSENCE OF A ROW. `openId == null` below
       // means "genuine legacy client, select their work as before". For a DECLARED programme
@@ -338,7 +404,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
     }
   }
 
-  const dueRows = (due ?? []).filter(e => {
+  const dueRows = allDue.filter(e => {
     const cid = (e as { client_id?: string | null }).client_id ?? null
     if (!cid) return false
     const openId = openProgrammeByClient.get(cid)
@@ -402,7 +468,10 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
     // "unlimited". Unreadable → no rotation for this client this run (it is held, not guessed).
     const { seedRotationFromToday } = await import('./mailbox-daily-cap')
     const seeded = await seedRotationFromToday(base)
-    const slots: RotationSlot[] = seeded ?? []
+    // ⚑ 2 Oct (R185 ②) — an automatic run takes only each box's share of its day.
+    const slots: RotationSlot[] = seeded
+      ? (mode.mode === 'automatic' ? spreadForThisRun(seeded, runsLeft) : seeded)
+      : []
     if (!seeded) console.warn(`[send-due] client ${clientId} — today's mailbox counts could not be read; nothing sent for this client this run.`)
     rotationByClient.set(clientId, slots)
     return slots
@@ -415,6 +484,11 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   const r = empty(mode, dailyLimit)
   const exhaustedClients = new Set<string>()
   const evicted = new Set<string>()
+  // ⚑ 2 Oct (R185 ①) — programme emails go Monday to Friday (UK days). The authority gate
+  // refuses a weekend send anyway; this stops the run OFFERING one, so a Saturday run does not
+  // attempt every due email only to have each refused one by one.
+  const { isUkSendingDay } = await import('./send-schedule')
+  const sendingDay = isUkSendingDay(new Date())
 
   for (const enrollment of fairOrder) {
     // The founder's ceiling and the shared budget are the same test — `budget` already
@@ -439,6 +513,10 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
     // than guess — a guessed client is how one client's mail leaves another's mailbox.
     if (!clientId) { r.skipped++; continue }
 
+    // ⚑ 2 Oct (R185 ①) — a programme email waits for Monday; a legacy client's is untouched.
+    const programmeId = openProgrammeByClient.get(clientId)
+    if (!sendingDay && programmeId && !programmeId.startsWith('__')) { r.window_skips++; r.skipped++; continue }
+
     // 🛑 EXHAUSTION IS PER CLIENT AND NEVER ENDS THE RUN. `break` here would abandon every
     // OTHER client still in `fairOrder` because one of them ran out of mailbox capacity.
     if (exhaustedClients.has(clientId)) { r.skipped++; continue }
@@ -460,7 +538,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
       // Logged ONCE per client, not once per enrolment — a per-enrolment warning on a large
       // backlog is an error storm that buries the line that matters.
       exhaustedClients.add(clientId)
-      console.warn(`[send-due] client ${clientId} — every mailbox is at its daily cap (or none is sendable); remaining enrolments left due and untouched.`)
+      console.warn(`[send-due] client ${clientId} — every mailbox has sent its share for this run or is at its daily cap (or none is sendable); remaining enrolments left due and untouched.`)
       r.skipped++
       continue
     }

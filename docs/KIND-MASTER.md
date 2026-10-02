@@ -561,6 +561,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **2 Oct (AUTO — merge #2536):** Safety (#2024 · R183): a warming mailbox never sends → flipped #2024 🩷 (live, founder walk owed for 🟢).
 > ⛓️ **2 Oct:** lines marked **AUTO** are written by the `inventory-autoflip` workflow when a PR merges. It changes no dot and no card (the inventory is frozen, R85a), so read *"flipped … 🩷"* as *"merged"* — the card is closed by hand. The order below is mixed: AUTO lines on top, then 24–29 Sep oldest-first, then 29 Sep–1 Oct newest-first.
 - **1 Oct (AUTO — merge #2533):** #2050: every database request has a one-minute deadline → flipped #2050 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2532):** #2229: the operator checkout refuses a programme authorised internally (House) → flipped #2229 🩷 (live, founder walk owed for 🟢).

@@ -1,5 +1,7 @@
 # 🎛️ FOUNDER OPERATING TRUTH — the daily operating layer
 
+> ⛓️ **FROZEN — 2 Oct.** This page was last regenerated on 29 Aug and predates the board rule (**R85a**, 24 Sep), the new prices (**R166**, 25 Sep) and "nothing goes to GPT" (**R154**, 24 Sep). **It is history, not today.** For where things stand, open **the K.I.N.D Operating Board (GitHub Project #5)** — every item is a card, its column is its status, READY is the founder's GO — and the START HERE box at the top of KIND-MASTER. Rulings are in PRODUCT-RULES. The dated corrections below fix the lines a reader would act on wrongly; everything else is kept as written.
+
 > **What this is.** The one page the founder opens to answer *"what is happening right now, and what needs me?"* It is the **operating** layer: today, this week, who is doing what, what is blocked, what needs a decision.
 >
 > **What it is NOT — and this is the rule that keeps it honest.** It **does not own any canonical truth**. Product status lives in **PRODUCT-INVENTORY**. Rulings live in **PRODUCT-RULES**. Strategy and history live in **KIND-MASTER**. Future detail lives in **V2-TRACKER**. Daily execution lists live in **LAUNCH-PAD**. **Where this page and a canonical home disagree, the canonical home wins and this page is the bug.**
@@ -62,12 +64,12 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 | 1 | **NOT SCOUTED** | nobody has investigated it yet |
 | 2 | **SCOUTING** | investigation in progress |
 | 3 | **SCOUT RETURNED** | findings are back, unverified |
-| 4 | **GPT VERIFIED** | independent review of the Scout findings passed |
+| 4 | ~~**GPT VERIFIED**~~ ⛓️ retired 24 Sep (R154) | independent review of the Scout findings passed |
 | 5 | **FOUNDER APPROVED** | the founder has approved the scope |
 | 6 | **READY FOR BUILDER** | frozen scope, waiting for a builder |
 | 7 | **BUILDING** | build in progress |
 | 8 | **BUILDER RETURNED** | build is back with evidence, unverified |
-| 9 | **GPT VERIFIED** | independent review of the build passed |
+| 9 | ~~**GPT VERIFIED**~~ ⛓️ retired 24 Sep (R154) | independent review of the build passed |
 | 10 | **FOUNDER MERGED** | the founder merged it |
 | 11 | **DEPLOY VERIFIED** | proved working in production, not just merged |
 | 12 | **COMPLETE** | done |
@@ -83,7 +85,7 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 |---|---|---|
 | **BUILD-002** · Programme Commercial + Money Engine | DONE/LEARNED | **COMPLETE** *(merged `a77752b0` · `2c56f201` · `1769e18c`; migration applied; live walkthrough done — under the §9 evidence boundary)* |
 | **BUILD-001** · Step 7 Founder Truth System | DONE/LEARNED | **FOUNDER MERGED** *(in `main` at `5dfd34dc`)* |
-| **#704** · retention duration | **WAITING** | **FOUNDER DECISION REQUIRED** |
+| **#704** · retention duration | ⛓️ **RESOLVED 23 Sep (R145): 90 days** | ~~**FOUNDER DECISION REQUIRED**~~ — decided |
 | **#706** · AE playbook trial script | **WAITING** | **NOT SCOUTED** — waiting on the programme model, not on a decision |
 
 ---
@@ -100,17 +102,17 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | # | Blocker | Owner | Why it is blocked |
 |---|---|---|---|
-| **#704** | **The data-retention duration** — four live surfaces state four different clocks (90 days · 12 months · 24 months, with the DPA inverting the privacy policy) | 🧍 founder + counsel (**W18**) | **No authoritative basis exists in the repo to choose.** Choosing would be inventing a legal position. **Unresolved is the correct state.** |
+| **#704** | ⛓️ **RESOLVED 23 Sep by R145 — 90 days**; the legal pages say so since PR #2526 (R182, 1 Oct). · **The data-retention duration** — four live surfaces state four different clocks (90 days · 12 months · 24 months, with the DPA inverting the privacy policy) | 🧍 founder + counsel (**W18**) | **No authoritative basis exists in the repo to choose.** Choosing would be inventing a legal position. **Unresolved is the correct state.** |
 | **F13 / W18** | PDL Order Form — cross-client reuse right | 🧍 counsel | ⛓️ **23 Sep (checked against main `83e9c1b`):** PDL is retired as a provider (**FD-6**, 17 Sep — `apps/api/src/lib/retired-providers.ts`); **Apollo is the only data provider.** Whether PDL-sourced records already held keep this question open is counsel's call, not settled here. · The signed paper has not been found |
 | **F5** | Is `eu-west-1` the **only** place client data lives? (backups · PITR · sub-regions) | 🧍 | Unverified — see *Product truth* below |
 | **T10** | The proof runtime path, end to end | 🤖 | Each fix so far closed one segment; the journey is unproved |
-| **#706** | ⛓️ **23 Sep (checked against main `83e9c1b`):** still true in code — `apps/admin/src/app/playbook/page.tsx` still says "trial" 11 times. The programme model it waited on is now live, so nothing blocks the cleanup. · **The AE sales playbook still scripts the dead 14-day trial** — six places in `apps/admin/src/app/playbook/page.tsx`, including two prospect email templates | 🤖 | ⛓️ **NOT a founder decision — corrected 28 Aug.** The direction is already settled: **no launch free trial · no 90-Day Pipeline Guarantee · the programme model is the launch commercial destination.** This is **implementation / operator-surface cleanup**, waiting on an implementation dependency rather than on an answer. ⚠️ Operator-facing, so not a live client-facing claim — but it is what a human then says to a prospect |
+| **#706** | ⛓️ **CLOSED 29 Sep (R174 4a·2):** the old playbook page now redirects into Vida — no "trial" wording remains on main. · ⛓️ **23 Sep (checked against main `83e9c1b`):** still true in code — `apps/admin/src/app/playbook/page.tsx` still says "trial" 11 times. The programme model it waited on is now live, so nothing blocks the cleanup. · **The AE sales playbook still scripts the dead 14-day trial** — six places in `apps/admin/src/app/playbook/page.tsx`, including two prospect email templates | 🤖 | ⛓️ **NOT a founder decision — corrected 28 Aug.** The direction is already settled: **no launch free trial · no 90-Day Pipeline Guarantee · the programme model is the launch commercial destination.** This is **implementation / operator-surface cleanup**, waiting on an implementation dependency rather than on an answer. ⚠️ Operator-facing, so not a live client-facing claim — but it is what a human then says to a prospect |
 
 ## ✋ FOUNDER DECISIONS REQUIRED
 
 | # | Decision | Why it cannot be taken by an agent |
 |---|---|---|
-| **#704** | Retention duration: 90 days / 12 months / 24 months | A legal position, not a fact in the repo |
+| **#704** | ⛓️ **RESOLVED 23 Sep by R145 — 90 days**; the legal pages say so since PR #2526 (R182, 1 Oct). · Retention duration: 90 days / 12 months / 24 months | A legal position, not a fact in the repo |
 | **#705** | Whether the removed 90-Day Pipeline Guarantee needs a Terms-change notice, and the rights of anyone who signed under it | Counsel (W18), not an agent |
 
 ---
@@ -119,7 +121,7 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 **Verified live against GitHub at the time of writing. Never quote a PR number without re-checking it is open.**
 
-⛓️ **23 Sep (checked against main `83e9c1b`):** open PRs re-checked on GitHub: **#1739 · #1644 · #1629 · #1625 · #1463 · #1436**. **#1427** and **#1465** are merged (`09014f43`, `5dfd34dc`). The table below is the 29-Aug record.
+⛓️ **2 Oct:** stale — open PRs are linked to their cards on the Operating Board. · ⛓️ **23 Sep (checked against main `83e9c1b`):** open PRs re-checked on GitHub: **#1739 · #1644 · #1629 · #1625 · #1463 · #1436**. **#1427** and **#1465** are merged (`09014f43`, `5dfd34dc`). The table below is the 29-Aug record.
 
 | PR | What | Conveyor state | Note |
 |---|---|---|---|
@@ -158,11 +160,11 @@ From the Register: **39 launch-blocking (🔴) · 29 needs-work (🟠) · 20 pro
 
 | Register | What | Where |
 |---|---|---|
-| **LIVE NOW** | ⛓️ **23 Sep (checked against main `83e9c1b`):** **the programme, for every account.** **$450 per QUALIFIED meeting** (**R141**) on the curve **$450 → $437.50 at 10 → $400 floor from 50** (**R81**), paid **50/50 — P1 at start, P2 at approval**. Free Proof before paying. The meeting count is a **target**; a shortfall is **credited to the wallet** (**R136**). ~~**$299 onboarding pack · first 100 approved leads included · $4 per approved lead thereafter.** Reviewing is free. One wallet.~~ | `packages/shared/src/programme-pricing.ts` ~~`packages/shared/src/constants/index.ts`~~ — **money sentences are interpolated, never typed** |
+| **LIVE NOW** | ⛓️ **SUPERSEDED 25 Sep by R166 / R168:** new programmes are a flat **$99 Founders · $199 Growth · $299 Enterprise per qualified meeting** by company size, **one payment** at Recommendation; a shortfall is credited **once per client, for 90 days**. The 23-Sep text follows as history. · ⛓️ **23 Sep (checked against main `83e9c1b`):** **the programme, for every account.** **$450 per QUALIFIED meeting** (**R141**) on the curve **$450 → $437.50 at 10 → $400 floor from 50** (**R81**), paid **50/50 — P1 at start, P2 at approval**. Free Proof before paying. The meeting count is a **target**; a shortfall is **credited to the wallet** (**R136**). ~~**$299 onboarding pack · first 100 approved leads included · $4 per approved lead thereafter.** Reviewing is free. One wallet.~~ | `packages/shared/src/programme-pricing.ts` ~~`packages/shared/src/constants/index.ts`~~ — **money sentences are interpolated, never typed** |
 | **SUPERSEDED HISTORY** | The $1/+$3 ladder (dead 24 Jul) · **R68's $4 → $8 migration** (superseded 27 Aug — **do not start it**) · ⛓️ **23 Sep (checked against main `83e9c1b`):** **the $299 pack, $4 per approved lead, top-ups, subscriptions and trials** — retired in code (**R124 · R137**; `apps/api/src/lib/commercial-model.ts:99` answers no for every client; Stripe `/checkout` and `/subscribe` return **410**) | **R68** · LAUNCH-PAD **T9** · **R124 · R137** |
 | **CURRENT DIRECTION — UNBUILT** | ⛓️ **23 Sep (checked against main `83e9c1b`):** **built and live** — see LIVE NOW. ~~The **programme model**: priced per targeted booked meeting on the locked curve (**R81**), 250 leads per targeted meeting (**R77**), contribution defined (**R78**)~~ | **R74 · R77 · R78 · R81** · V2 Founder Idea Bank |
 
-⛓️ **23 Sep (checked against main `83e9c1b`):** the programme is built and $450 is on the website (**R141** supersedes R124's "not published" clause); 250 per meeting is still the **expected** rate and **400 is the limit, never shown to clients** (**R136**). ~~⚠️ **NOTHING IN THE PROGRAMME MODEL IS BUILT, AND NONE OF IT MAY BE QUOTED** to a client, a partner or the website until it ships.~~ ⚠️ **NO OUTCOME GUARANTEE** — meetings are targets and planning estimates, never promises (**R69 / R77**).
+⛓️ **2 Oct:** superseded by R166 (see LIVE NOW above). · ⛓️ **23 Sep (checked against main `83e9c1b`):** the programme is built and $450 is on the website (**R141** supersedes R124's "not published" clause); 250 per meeting is still the **expected** rate and **400 is the limit, never shown to clients** (**R136**). ~~⚠️ **NOTHING IN THE PROGRAMME MODEL IS BUILT, AND NONE OF IT MAY BE QUOTED** to a client, a partner or the website until it ships.~~ ⚠️ **NO OUTCOME GUARANTEE** — meetings are targets and planning estimates, never promises (**R69 / R77**).
 
 **💵 Money and economics** → [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) · model of record [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html) (**PR6** — if the lab and the workings disagree, the lab wins).
 
@@ -189,7 +191,7 @@ From the Register: **39 launch-blocking (🔴) · 29 needs-work (🟠) · 20 pro
 | **T5** `acquisition_memory` migration | Code shipped; **migration not applied to production** |
 | **T3** run-outcome `failed` migration | `20260826_run_outcome_failed` **must be run after the deploy** |
 | **T4** paid providers | `PAID_PROVIDERS_ENABLED=true` must be set on @kind/api or live sourcing will not run |
-| **GitHub Actions** | **Dead since 3 Jul 2026** (account flag; support unresponsive). `scripts/check.sh` is the only gate — a red lint is fixed, never bypassed |
+| **GitHub Actions** | ⛓️ **CORRECTED 2 Oct:** Actions came back on 25 Sep (R169) — doc-lint runs and passes on PRs; the Tests workflow is red for a setup reason (#2553). Per R169 *"nothing changes in how we work"*: `scripts/check.sh` stays the gate. ~~**Dead since 3 Jul 2026** (account flag; support unresponsive). `scripts/check.sh` is the only gate — a red lint is fixed, never bypassed~~ |
 
 ---
 

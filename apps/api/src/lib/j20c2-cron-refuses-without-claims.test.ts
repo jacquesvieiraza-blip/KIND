@@ -90,8 +90,10 @@ describe('J20-C2 · an unclaimed slot stops the send before anything runs', () =
   it('🛑 IT RETURNS — the job does not carry on to the internal call', () => {
     expect(branch).toContain('if (refusesWithoutClaim(path)) {')
     expect(branch).toMatch(/return\s*$|return\n/m)
-    // And it stands down BEFORE the fetch, which is what makes "nothing was sent" true.
-    const fetchAt = code.indexOf('await fetch(`${API_BASE}/internal${path}`')
+    // And it stands down BEFORE the internal call, which is what makes "nothing was sent" true.
+    // ⛓️ 2 Oct (R185 ⑥ · #2545) — the call is `postInternal` now (it waits for the run's real
+    // answer instead of giving up at five minutes); the ordering this guards is unchanged.
+    const fetchAt = code.indexOf('await postInternal(`${API_BASE}/internal${path}`')
     expect(fetchAt, 'the internal call moved').toBeGreaterThan(-1)
     expect(code.indexOf('if (refusesWithoutClaim(path)) {')).toBeLessThan(fetchAt)
   })

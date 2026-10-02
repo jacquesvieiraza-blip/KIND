@@ -104,7 +104,11 @@ function installDb(store: Store) {
     return { db: { from: (t: string) => build(t), rpc: async () => ({ data: null, error: null }) } }
   })
 
-  vi.doMock('../lib/real-clients', () => ({ getExcludedClientIds: async () => new Set<string>() }))
+  vi.doMock('../lib/real-clients', () => ({
+    getExcludedClientIds: async () => new Set<string>(),
+    // ⚑ 2 Oct (#2557) — the feed's meetings-to-qualify section leaves only the demo out.
+    getClientExclusions: async () => ({ excludedClientIds: new Set<string>(), demoClientIds: new Set<string>(), houseClientIds: new Set<string>() }),
+  }))
   vi.doMock('./admin', () => ({ adminKeyValid: (k: unknown) => k === 'right-key' }))
   vi.doMock('../routes/admin', () => ({ adminKeyValid: (k: unknown) => k === 'right-key' }))
 }

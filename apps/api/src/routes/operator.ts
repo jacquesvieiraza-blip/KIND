@@ -2261,6 +2261,27 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
     // ⚠️ AND NO REPLY BODY IS IN THE LABEL. These render into a shared chip row beside every
     // other alert; an inbound message from a stranger is not list decoration. The sender, the
     // candidate count and the id are what the decision needs.
+    // ── ⚑ 2 Oct (R189 ⑤ · #2557) — EVERY UNQUALIFIED MEETING, ONE ROW PER CLIENT ───────────
+    // Only qualified meetings count (R141), and nothing asked anyone to qualify one. Derived on
+    // every read, so it clears itself the moment the meeting is qualified. House is listed like
+    // any client (R187 ①); only the demo is left out. A failed read is reported, never "none".
+    const meetingOut: typeof out = []
+    let meetingDegraded: string | null = null
+    try {
+      const { meetingsToQualify, meetingsToQualifyAlert } = await import('../lib/meetings-to-qualify')
+      const { getClientExclusions } = await import('../lib/real-clients')
+      const { demoClientIds } = await getClientExclusions()
+      const m = await meetingsToQualify(demoClientIds)
+      meetingDegraded = m.degraded
+      const names = new Map(((clients.data ?? []) as Record<string, unknown>[]).map(c => [c.id as string, (c.company_name as string | null) ?? null]))
+      for (const row of m.rows) {
+        const a = meetingsToQualifyAlert(row, new Date())
+        meetingOut.push({ client_id: row.clientId, company_name: names.get(row.clientId) ?? null, kind: 'meetings_to_qualify', label: a.label, severity: a.severity })
+      }
+    } catch (err) {
+      meetingDegraded = `Meetings waiting to be qualified could not be checked (${err instanceof Error ? err.message : String(err)}). An empty list does NOT mean none are waiting.`
+    }
+
     const replyOut: typeof out = []
     const replyDegraded: string[] = []
     try {
@@ -2316,12 +2337,13 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: [...replyOut, ...proofOut, ...programmeOut, ...out],
-      ...(proofReviewErr || programmeDegraded.length > 0 || replyDegraded.length > 0
+      data: [...replyOut, ...proofOut, ...programmeOut, ...meetingOut, ...out],
+      ...(proofReviewErr || programmeDegraded.length > 0 || replyDegraded.length > 0 || meetingDegraded
         ? { degraded: {
             ...(proofReviewErr ? { proof_review: `Proof-review queue could not be checked — operator review state may be incomplete. Do NOT read an empty list as "nobody is waiting". Check the database and whether 20260827_proof_review_handoff has been run (Vida → Engine). Reason: ${proofReviewErr.message}` } : {}),
             ...(programmeDegraded.length > 0 ? { programme: programmeDegraded.join(' ') } : {}),
             ...(replyDegraded.length > 0 ? { unattributed_replies: replyDegraded.join(' ') } : {}),
+            ...(meetingDegraded ? { meetings_to_qualify: meetingDegraded } : {}),
           } }
         : {}),
     })

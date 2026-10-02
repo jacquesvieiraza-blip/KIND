@@ -2,7 +2,9 @@
 
 > A signpost, not a tracker. This file holds **no status, no tasks, no strategy** — it only tells you which doc to open. (Single-source-of-truth rule stays intact.)
 
-**Simplest mental model:** **LAUNCH-PAD = today · INVENTORY = status · KIND-MASTER = why/where · V2 = future.**
+⛓️ **24 Sep (R85a) — the model changed:** **the K.I.N.D Operating Board (GitHub Project #5) = status and today** (every item a card, its column its status, READY = the founder's GO) · **PRODUCT-RULES = every founder ruling** · **KIND-MASTER = why/where** (its START HERE box is the current summary) · **V2 = future.** LAUNCH-PAD and PRODUCT-INVENTORY are frozen history — the sections below describe them as they were.
+
+~~**Simplest mental model:** **LAUNCH-PAD = today · INVENTORY = status · KIND-MASTER = why/where · V2 = future.**~~
 
 ---
 

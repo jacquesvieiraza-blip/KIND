@@ -360,30 +360,37 @@ async function checkSendsStalled(): Promise<void> {
     if (claim.kind === 'taken') return
     if (claim.kind === 'unavailable') reportClaimUnavailable('watchdog:sends-stalled', claim)
 
-    const now      = new Date()
-    const sixHrAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString()
+    // ── ⛓️ 2 Oct (R185 ⑥ · #2547) — PER CLIENT, ONLY WHAT WAS ALLOWED, ONCE PER STALL ──────
+    //
+    // ~~"enrollments past due anywhere + zero sends anywhere in 6h → alert"~~, every hour. It
+    // never asked whether anything was ALLOWED to send, so a paused programme, an inactive
+    // campaign or a weekend each read as a stall — about eighteen alerts a weekday, and one an
+    // hour while House was paused. The founder: *"no 'stalled' alert when nothing was allowed
+    // to send"*. The judgement now lives in `lib/sends-stalled.ts`; this raises it.
+    const { sendsStalledVerdict, STALL_WINDOW_HOURS } = await import('./lib/sends-stalled')
+    const { dedupeKeyFor, resolveOperatorTasksForCondition } = await import('./lib/operator-tasks')
+    const keyFor = (clientId: string) => `alert:sends_stalled:${dedupeKeyFor({ clientId, subjectKind: 'send_stall' })}`
+    const verdict = await sendsStalledVerdict(new Date())
 
-    // How many enrollments are overdue right now (should have sent already)?
-    const { count: dueCount } = await db.from('figsy_enrollments')
-      .select('id', { count: 'exact', head: true })
-      .in('status', ['enrolled', 'in_progress'])
-      .lte('next_send_at', now.toISOString())
+    for (const s of verdict.stalled) {
+      // ONCE PER STALL: an open Vida task for this client means it has already been said.
+      const { data: open } = await db.from('operator_tasks')
+        .select('id').eq('dedupe_key', keyFor(s.clientId)).eq('status', 'open').limit(1)
+      if ((open ?? []).length > 0) continue
+      const { data: c } = await db.from('clients').select('company_name').eq('id', s.clientId).maybeSingle()
+      const name = (c as { company_name?: string | null } | null)?.company_name ?? s.clientId
+      await sendFounderAlert('sends_stalled', `${name}: sending has stalled`, [
+        `${s.due} email(s) are due and allowed to send, but none has gone out for ${name} in the last ${STALL_WINDOW_HOURS} hours.`,
+        'Check the API logs (one "[send]" line per email) and this client\'s mailboxes in Vida → Sending.',
+      ], { clientId: s.clientId, subjectKind: 'send_stall' })
+      console.warn(`[cron] sends-stalled alert fired for ${name} — ${s.due} due, 0 sent in ${STALL_WINDOW_HOURS}h`)
+    }
 
-    // Nothing is due — nothing to send, so a lack of sends is NOT a stall. Skip.
-    if (!dueCount || dueCount <= 0) return
-
-    // Real sends in the last 6 hours.
-    const { count: recentSends } = await db.from('figsy_sent_emails')
-      .select('id', { count: 'exact', head: true })
-      .gte('sent_at', sixHrAgo)
-
-    if ((recentSends ?? 0) > 0) return  // pipeline is moving — healthy.
-
-    await sendFounderAlert('sends_stalled', 'FIGSY sending has stalled', [
-      `${dueCount} enrollment(s) are past due to send, but 0 emails have gone out in the last 6 hours.`,
-      'The FIGSY send pipeline (/figsy/send-due-all) may be failing silently — check the API/worker logs and the send provider (Resend) key.',
-    ])
-    console.warn(`[cron] sends-stalled alert fired — ${dueCount} due, 0 sent in 6h`)
+    // And a client that is sending again closes its stall, so the NEXT stall is news.
+    for (const clientId of verdict.sending) {
+      await resolveOperatorTasksForCondition('sends_stalled', keyFor(clientId),
+        `Sending resumed: emails have gone out in the last ${STALL_WINDOW_HOURS} hours.`)
+    }
   } catch (err) {
     console.error('[cron] sends-stalled check failed:', err)
   }

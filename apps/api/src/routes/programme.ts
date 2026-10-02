@@ -29,7 +29,7 @@ import {
   recordMakeWhole, settleProgrammeFromRecord, nextBatchSize, ProgrammeStorageError,
   firstInternallyAuthorised,
 } from '../lib/programme'
-import { createProgrammeCheckoutSession } from '../lib/programme-checkout'
+import { createProgrammeCheckoutSession, quotedStageCents } from '../lib/programme-checkout'
 
 /**
  * The client's checkout address, or a 400 — never a blank string.
@@ -179,8 +179,9 @@ programmeRouter.post('/:id/recommend', guard(async (req: Request, res: Response)
 /**
  * FIRST PAYMENT — mint the checkout for the first 50%.
  *
- * The amount comes from `programmeStripeAmountCents` inside the checkout module, derived
- * from the meeting target. The programme moves to AWAITING_FIRST_PAYMENT; the ceiling is NOT
+ * ⛓️ 1 Oct (#2226) — ~~The amount comes from `programmeStripeAmountCents`, derived from the
+ * meeting target.~~ The amount is the one STORED on the programme when it was quoted
+ * (`quotedStageCents`) — never a fresh price. The programme moves to AWAITING_FIRST_PAYMENT; the ceiling is NOT
  * set here — that happens when the webhook confirms the money actually arrived.
  */
 programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Response) => {
@@ -200,7 +201,7 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
   const email = await clientEmailOrRefuse(p.client_id, res)
   if (email === null) return
   const r = await createProgrammeCheckoutSession({
-    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_first', band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
+    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_first', quotedCents: quotedStageCents(p, 'programme_first'), band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
     clientEmail: email,
   })
@@ -394,7 +395,7 @@ programmeRouter.post('/:id/checkout/second', guard(async (req: Request, res: Res
   const email = await clientEmailOrRefuse(p.client_id, res)
   if (email === null) return
   const r = await createProgrammeCheckoutSession({
-    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_second', band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
+    clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_second', quotedCents: quotedStageCents(p, 'programme_second'), band: (p as { size_band?: import('@kind/shared').SizeBand | null }).size_band ?? null,
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
     clientEmail: email,
   })

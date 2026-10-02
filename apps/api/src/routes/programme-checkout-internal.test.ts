@@ -30,6 +30,8 @@ vi.mock('./admin', () => ({ adminKeyValid: () => true }))
 // 🛑 NO REAL STRIPE.
 vi.mock('../lib/programme-checkout', () => ({
   createProgrammeCheckoutSession: async (p: Row) => { state.sessions.push(p); return { url: 'https://stripe.test/s', sessionId: 'cs_test' } },
+  // ⚑ 1 Oct (#2226) — the stored quote for the stage, as the real helper reads it.
+  quotedStageCents: (p: Row, s: string) => Number(s === 'programme_first' ? p.first_payment_cents : p.second_payment_cents) || 0,
 }))
 
 async function callCheckoutFirst() {
@@ -50,7 +52,7 @@ const PROG = (over: Row = {}): Row => ({
   id: 'prog-1', client_id: 'client-1', status: 'AWAITING_FIRST_PAYMENT', meeting_target: 10,
   first_payment_ref: null, first_paid_at: null, first_authorised_at: null,
   second_payment_ref: null, second_paid_at: null, second_authorised_at: null, paused_at: null,
-  size_band: 'growth', ...over,
+  size_band: 'growth', first_payment_cents: 199_000, second_payment_cents: 0, ...over,
 })
 
 beforeEach(() => {

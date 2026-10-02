@@ -74,6 +74,8 @@ vi.mock('../middleware/auth', () => ({
 // 🛑 NO REAL STRIPE, EVER. Every case below that reaches this has already failed.
 vi.mock('./programme-checkout', () => ({
   createProgrammeCheckoutSession: async (p: Row) => { state.sessions.push(p); return { url: 'https://stripe.test/session' } },
+  // ⚑ 1 Oct (#2226) — the stored quote for the stage, as the real helper reads it.
+  quotedStageCents: (p: Record<string, unknown>, s: string) => Number(s === 'programme_first' ? p.first_payment_cents : p.second_payment_cents) || 0,
 }))
 
 async function callMyProgramme(path: string, body: Row = {}) {

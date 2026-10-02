@@ -103,13 +103,17 @@ describe('🛑 the one payment settles both stages', () => {
 describe('the doors', () => {
   it('checkout charges the programme\'s own band quote, and refuses a zero amount', () => {
     const src = readFileSync(join(__dirname, 'programme-checkout.ts'), 'utf8')
-    expect(src).toContain('programmeStripeAmountCents(params.meetings, params.stage, params.band ?? null)')
+    // ⛓️ 1 Oct (#2226) — WAS the curve call `programmeStripeAmountCents(params.meetings, …)`. The
+    // checkout now charges the amount STORED at quote time; the band quote is what was stored.
+    expect(src).toContain('const owedCents = Number.isFinite(params.quotedCents) ? Math.floor(params.quotedCents) : 0')
+    expect(src).not.toContain('programmeStripeAmountCents(')
     expect(src).toContain('if (owedCents < 1) return { url: null')
     for (const f of ['../routes/programme.ts', '../routes/my-programme.ts']) {
       const r = readFileSync(join(__dirname, f), 'utf8')
       const calls = r.split('createProgrammeCheckoutSession({').slice(1)
       expect(calls.length).toBeGreaterThan(0)
       for (const c of calls) expect(c.slice(0, 400)).toContain('band: (p as')
+      for (const c of calls) expect(c.slice(0, 400)).toMatch(/quotedCents: quotedStageCents\(p, /)
     }
   })
 

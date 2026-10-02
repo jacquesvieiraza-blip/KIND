@@ -101,7 +101,7 @@ export async function createProgrammeCheckoutSession(params: {
       // a checkout error rather than as the rule violation it actually is.
       return { url: null, error: 'Wallet credit cannot cover the whole payment.' }
     }
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
       mode:                 'payment',
       payment_method_types: ['card'],
       customer_email:       params.clientEmail,
@@ -134,7 +134,17 @@ export async function createProgrammeCheckoutSession(params: {
         // and never draws more than is actually there.
         walletCreditCents: String(credit),
       },
-    })
+    }
+    // ── ⚑ 2 Oct (#2561) — ONE PAY PRESS, ONE CHECKOUT ──────────────────────────────────────
+    // ~~A new checkout on every press~~ — a double click, a second tab or a back-and-press left
+    // two open checkouts for one programme stage, and both could be paid ("money taken, not
+    // recorded"). The same request now carries the same idempotency key, so Stripe returns the
+    // SAME checkout (its keys last 24 hours, as long as a checkout stays open). Anything different
+    // — stage, programme, amount, wallet credit, return addresses — hashes to a different key and
+    // is never blocked. The key holds no personal detail: the email is inside the hash only.
+    const { createHash } = await import('node:crypto')
+    const idempotencyKey = `programme-checkout:${params.programmeId}:${params.stage}:${createHash('sha256').update(JSON.stringify(sessionParams)).digest('hex').slice(0, 32)}`
+    const session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey })
     return { url: session.url, sessionId: session.id }
   } catch (err) {
     console.error('[Stripe] createProgrammeCheckoutSession error:', err)

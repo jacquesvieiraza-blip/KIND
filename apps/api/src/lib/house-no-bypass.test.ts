@@ -170,6 +170,8 @@ const ALLOWED: Record<string, string> = {
   'real-clients-logic.ts': 'OPERATIONS — the same, as a pure rule',
   'system-probes.ts': 'OPERATIONS — health checks name the account they probe',
   'house-audit.ts': 'OPERATIONS — an audit OF House',
+  // ⚑ 2 Oct (R187 ① · #2547) — Vida's Sending health puts House on its own line; it decides nothing.
+  'sending-health-lines.ts': 'OPERATIONS — R187 ①: House shows its sending numbers in Vida on its own line, never in the totals',
 }
 
 describe('② anything else that learns about House has to say why', () => {

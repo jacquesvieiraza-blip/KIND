@@ -7154,10 +7154,16 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
 
     const [today, last7] = await Promise.all([windowFor(startOfToday), windowFor(sevenDaysAgo)])
 
+    // ⚑ 2 Oct (R187 ① · #2547) — House, and every client with an open programme, on its OWN
+    // line beside these totals (which leave House and the demo out, R174 ⑧). The founder:
+    // *"house account needs to show the sending stats."* See `lib/sending-health-lines.ts`.
+    const { sendingLinesByClient } = await import('../lib/sending-health-lines')
+    const byClient = clientId ? [] : await sendingLinesByClient(now)
+
     res.json({
       success: true,
       data: {
-        today, last7,
+        today, last7, byClient,
         // Empty until failures are recorded at all — NOT an assertion that none happened.
         recentFailures: [],
         sendingExpected: expected.expected,

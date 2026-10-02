@@ -74,13 +74,28 @@
 // frozen file's own text stays as the founder certified it.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const REPO = join(__dirname, '../../../..')
 const BASELINE = '60e6e9ba'
+
+// ⚑ 2 Oct (#2553) — A CHECKOUT OF ONE COMMIT HAS NO BASELINE, SO FETCH THAT ONE COMMIT.
+// GitHub's Tests workflow checks out only the latest commit (actions/checkout's default depth),
+// so `60e6e9ba` was "not reachable" there and all nine assertions below failed for that reason
+// alone — never because a frozen file changed (RUNTIME VERIFIED, PR #2584's run). The workflow
+// is not edited (the founder: don't touch workflow settings): this fetches the one commit the
+// file compares against, by its full id, ONLY when it is missing. Every comparison is unchanged.
+const BASELINE_FULL = '60e6e9ba118425aa398be068b3b832141b260611'
+beforeAll(() => {
+  try {
+    execFileSync('git', ['cat-file', '-e', `${BASELINE_FULL}^{commit}`], { cwd: REPO, stdio: 'ignore' })
+  } catch {
+    execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', BASELINE_FULL], { cwd: REPO, stdio: 'ignore' })
+  }
+}, 120_000)
 
 /** The five frozen guarantees, by the file that holds each. */
 const FROZEN: Record<string, string> = {

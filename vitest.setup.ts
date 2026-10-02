@@ -20,6 +20,17 @@
 // ⚠️ A test that genuinely wants to prove the guard REFUSES sets its own env inside the
 // test and restores it afterwards. See `acquisition-memory.test.ts`.
 
+// ⚑ 2 Oct (#2553) — and a WebSocket for Supabase when the Node running the tests has none
+// (GitHub's Tests runner is Node 20). See `vitest.websocket.ts`.
+import './vitest.websocket'
+
+// ⚑ 2 Oct (#2553) — EVERY TEST READS THE REPO FROM ITS ROOT, WHEREVER THE RUN STARTED. Many tests
+// open repo files by a root-relative path ('apps/portal/src/...'). `scripts/check.sh` runs from
+// the root, so they pass there; GitHub's Tests workflow runs `yarn workspace @kind/api test` from
+// `apps/api`, where the same paths point at `apps/api/apps/...` and 14 files failed. Each test
+// file runs in its own process (vitest's default pool), so this changes nothing between files.
+process.chdir(__dirname)
+
 const PROVIDER_KEYS = [
   'PDL_API_KEY',
   'APOLLO_API_KEY',

@@ -270,6 +270,8 @@ describe('⑤ it appears where the client already is, and only when it should', 
     // ⛓️ 24 Sep (R145 step 5) — the same two states, now drawn as two places: the panel while it
     // can be approved, and its approved state after. Still silent at every other stage.
     expect(PAGE).toContain('review?.programme && review.canApprove && !review.programme.approved_at ? (')
-    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && (')
+    // ⛓️ 2 Oct (R187 ② · #2551): ~~`approved_at && (`~~ — the approved state now goes once the
+    // programme is live; it read "nothing is sent until the programme goes Live" on a live one.
+    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && !p.wentLiveAt && (')
   })
 })

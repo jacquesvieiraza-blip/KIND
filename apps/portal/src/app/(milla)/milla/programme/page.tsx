@@ -247,8 +247,10 @@ export default function ProgrammePage() {
           />
         </div>
       )}
-      {/* After approval the panel's approved state stays with the programme's status. */}
-      {review?.programme && review.programme.approved_at && (
+      {/* After approval the panel's approved state stays with the programme's status — until it
+          goes live. ⛓️ 2 Oct (R187 ② · #2551): it used to stay for good, so a LIVE programme read
+          "Approved — nothing is sent until the programme goes Live" under "20 emails sent". */}
+      {review?.programme && review.programme.approved_at && !p.wentLiveAt && (
         <ProgrammeApproval data={review} onApproved={onApproved} />
       )}
     </div>

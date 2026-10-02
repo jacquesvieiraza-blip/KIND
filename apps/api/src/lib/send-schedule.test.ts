@@ -1,5 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// RECIPIENT-LOCAL MEANS RECIPIENT-LOCAL, AND THE STEP COUNT COMES FROM THE WORK.
+// ⛓️ 2 Oct (R185 ① · #2545): PROGRAMME EMAILS GO AT ANY HOUR, TO ANY ZONE, MONDAY TO FRIDAY (UK
+// DAYS) — the recipient-local window below is retired. *History below unchanged.*
+//
+// ~~RECIPIENT-LOCAL MEANS RECIPIENT-LOCAL~~, AND THE STEP COUNT COMES FROM THE WORK.
 //
 // 🛑 THERE WAS NO SCHEDULE ANYWHERE. `getDay`, `getHours` and "send window" appear nowhere in
 // the send path, so the product was ready to cold-email founders at 03:00 on a Sunday.
@@ -29,7 +32,7 @@ import {
   maySendNow, isSendSchedule, resolveRecipientZones, type SendSchedule,
 } from './send-schedule'
 
-/** The founder-locked House default: Mon–Fri, 08:30–17:00, recipient-local. */
+/** The stored House default — still part of the approval record; its hours no longer decide (R185 ①). */
 const SCHEDULE: SendSchedule = {
   days: [1, 2, 3, 4, 5], start: '08:30', end: '17:00', default_tz: 'Europe/London',
 }
@@ -38,178 +41,114 @@ const utc = (iso: string) => new Date(iso)
 /** 2026-09-09 is a Wednesday. September: London BST (+1), New York EDT (−4), LA PDT (−7). */
 const WED = '2026-09-09'
 
-// ── ① THE DEFECT THAT WAS CAUGHT ─────────────────────────────────────────────────────
+// ── ⛓️ 2 Oct (R185 ① · #2545) — THE RECIPIENT-LOCAL WINDOW IS RETIRED ────────────────
+//
+// The founder: *"we need to send no matter the time of day or zone. when the campaign is hit go.
+// we go. simple. we dont align in time zones."* · *"Only on weekdays."* ~~Sections ①–⑥ below held
+// the 08:30–17:00 recipient-local window: the 05:30-Pacific refusal, the US intersection, DST
+// per recipient, refusing an unknown location and refusing a missing schedule.~~ The window cost
+// House all but one run a day and could never send to South Africa, so the founder retired it.
+// What the guard now holds is one rule — Monday to Friday in London, any hour, any zone — and
+// these are the same instants, re-asserted under it.
 
-describe('① 08:30 New York is 05:30 Los Angeles, and that must not be a send', () => {
-  it('🛑 AN UNPLACED AMERICAN IS NOT EMAILED AT 05:30 PACIFIC', () => {
-    // 12:30 UTC = 08:30 New York = 05:30 Los Angeles. The old implementation allowed this.
+describe('① any hour, any zone: the instants the old window refused now send on a weekday', () => {
+  it('🛑 12:30 UTC on a Wednesday (05:30 in Los Angeles) sends to an unplaced American', () => {
     const v = maySendNow(SCHEDULE, utc(`${WED}T12:30:00Z`), { country: 'United States' })
-    expect(v.allowed, 'a West Coast founder is being cold-emailed at half past five').toBe(false)
-    expect(v.allowed === false && v.reason).toBe('outside_window')
+    expect(v.allowed).toBe(true)
+    expect(v.allowed && v.precision).toBe('uk_day')
   })
 
-  it('🛑 an EXPLICIT Los Angeles recipient is refused at their own 05:30', () => {
-    const v = maySendNow(SCHEDULE, utc(`${WED}T12:30:00Z`), { region: 'CA', country: 'United States' })
-    expect(v.allowed).toBe(false)
+  it('early, late and overnight hours all send on a weekday, for any recipient', () => {
+    for (const hhmm of ['00:05', '05:30', '07:29', '16:00', '21:00', '23:55']) {
+      expect(maySendNow(SCHEDULE, utc(`${WED}T${hhmm}:00Z`), { region: 'NY' }).allowed, hhmm).toBe(true)
+      expect(maySendNow(SCHEDULE, utc(`${WED}T${hhmm}:00Z`), { country: 'United Kingdom' }).allowed, hhmm).toBe(true)
+    }
   })
 
-  it('🛑 a New York recipient is refused before THEIR 08:30', () => {
-    // 12:00 UTC = 08:00 New York.
-    expect(maySendNow(SCHEDULE, utc(`${WED}T12:00:00Z`), { region: 'NY' }).allowed).toBe(false)
-    // 12:30 UTC = 08:30 New York exactly — allowed once we actually know they are in New York.
-    expect(maySendNow(SCHEDULE, utc(`${WED}T12:30:00Z`), { region: 'NY' }).allowed).toBe(true)
-  })
-
-  it('🛑 a UK recipient is refused before THEIR 08:30', () => {
-    // 07:29 UTC = 08:29 London (BST).
-    expect(maySendNow(SCHEDULE, utc(`${WED}T07:29:00Z`), { country: 'United Kingdom' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T07:30:00Z`), { country: 'United Kingdom' }).allowed).toBe(true)
-  })
-
-  it('🛑 nothing goes out after 17:00 recipient-local', () => {
-    // 16:00 UTC = 17:00 London exactly — the window has closed (end is exclusive).
-    expect(maySendNow(SCHEDULE, utc(`${WED}T16:00:00Z`), { country: 'United Kingdom' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T15:59:00Z`), { country: 'United Kingdom' }).allowed).toBe(true)
-    // 21:00 UTC = 17:00 New York.
-    expect(maySendNow(SCHEDULE, utc(`${WED}T21:00:00Z`), { region: 'NY' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T20:59:00Z`), { region: 'NY' }).allowed).toBe(true)
-  })
-
-  it('the unplaced-American window is the INTERSECTION, and it is genuinely open somewhere', () => {
-    // Opens when it is 08:30 in the westernmost zone (Honolulu, UTC−10) and closes when it is
-    // 17:00 in the easternmost (New York, EDT). 18:30 UTC is inside; 18:00 and 21:00 are not.
-    expect(maySendNow(SCHEDULE, utc(`${WED}T18:30:00Z`), { country: 'United States' }).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T18:00:00Z`), { country: 'United States' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T21:00:00Z`), { country: 'United States' }).allowed).toBe(false)
+  it('🛑 a location we cannot place is no longer a refusal — an unmapped country, a bad zone, or nothing at all', () => {
+    expect(maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), { country: 'Sweden' }).allowed).toBe(true)
+    expect(maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), { country: 'South Africa' }).allowed).toBe(true)
+    expect(maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), { timezone: 'Not/AZone', country: 'United Kingdom' }).allowed).toBe(true)
+    expect(maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), null).allowed).toBe(true)
   })
 })
 
-// ── ② WEEKENDS ───────────────────────────────────────────────────────────────────────
+// ── ② WEEKENDS — THE ONE REFUSAL THAT REMAINS ────────────────────────────────────────
 
-describe('② Monday to Friday, in the recipient\'s week', () => {
+describe('② Monday to Friday, in the UK week', () => {
   it('🛑 Saturday and Sunday refuse', () => {
-    expect(maySendNow(SCHEDULE, utc('2026-09-12T10:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc('2026-09-13T10:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(false)
+    for (const iso of ['2026-09-12T10:00:00Z', '2026-09-13T10:00:00Z']) {
+      const v = maySendNow(SCHEDULE, utc(iso), { country: 'United Kingdom' })
+      expect(v.allowed, iso).toBe(false)
+      expect(v.allowed === false && v.reason).toBe('wrong_day')
+      expect(v.allowed === false && v.detail).toContain('Monday to Friday')
+    }
   })
 
-  it('Monday is a sending day — the locked default is Mon–Fri, not Tue–Thu', () => {
+  it('Monday and Friday are sending days', () => {
     expect(maySendNow(SCHEDULE, utc('2026-09-07T10:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
     expect(maySendNow(SCHEDULE, utc('2026-09-11T10:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
   })
 
-  it('🛑 and the DAY is the recipient\'s, not ours', () => {
-    // 23:00 UTC on Friday is already Saturday nowhere in scope — but 02:00 UTC Saturday is
-    // still Friday evening in New York, and Friday evening is outside the window anyway.
+  it('🛑 and the DAY is the UK\'s, not the recipient\'s', () => {
+    // 02:00 UTC Saturday is still Friday evening in New York — but Saturday in London: no send.
     expect(maySendNow(SCHEDULE, utc('2026-09-12T02:00:00Z'), { region: 'NY' }).allowed).toBe(false)
+    // 22:00 UTC Sunday is already Monday in Sydney — but Sunday in London: no send.
+    expect(maySendNow(SCHEDULE, utc('2026-09-13T22:00:00Z'), { country: 'Australia' }).allowed).toBe(false)
   })
 })
 
-// ── ③ DST — THE HOUR MUST NOT DRIFT TWICE A YEAR ─────────────────────────────────────
+// ── ③ DST — THE UK DAY MOVES WITH LONDON'S CLOCK, NEVER BY A TABLE WE MAINTAIN ──────
 
-describe('③ daylight saving is applied by the zone, never by a table we maintain', () => {
-  it('🛑 London: the SAME UTC instant is inside the window in summer and outside in winter', () => {
-    // 08:00 UTC → 09:00 BST in July (inside) and 08:00 GMT in January (before 08:30).
-    expect(maySendNow(SCHEDULE, utc('2026-07-08T08:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, utc('2026-01-07T08:00:00Z'), { country: 'United Kingdom' }).allowed,
-      'a hand-rolled offset would have sent this at 08:00 GMT').toBe(false)
-  })
-
-  it('🛑 New York: 12:30 UTC is 08:30 EDT in September and 07:30 EST in January', () => {
-    expect(maySendNow(SCHEDULE, utc('2026-09-09T12:30:00Z'), { region: 'NY' }).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, utc('2026-01-07T12:30:00Z'), { region: 'NY' }).allowed).toBe(false)
-  })
-
-  it('Arizona does not observe DST, and is its own zone for that reason', () => {
-    const r = resolveRecipientZones({ region: 'AZ' })
-    expect(r.ok && r.zones).toEqual(['America/Phoenix'])
-    // ⚠️ THE DISCRIMINATING INSTANT IS IN SUMMER, NOT WINTER. In January both Phoenix and Denver
-    // are UTC−7, so a January case would pass whether or not Phoenix were folded into Denver —
-    // it would prove nothing. In July Denver moves to UTC−6 and Phoenix does not, so 14:30 UTC
-    // is 08:30 in Denver (inside) and 07:30 in Phoenix (before the window opens).
-    expect(maySendNow(SCHEDULE, utc('2026-07-08T14:30:00Z'), { region: 'CO' }).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, utc('2026-07-08T14:30:00Z'), { region: 'AZ' }).allowed,
-      'Arizona is being given Denver\'s daylight saving, so it sends an hour early all summer').toBe(false)
+describe('③ daylight saving is applied by the zone', () => {
+  it('🛑 Friday 23:30 UTC is Saturday in a London summer (no send) and still Friday in winter (send)', () => {
+    expect(maySendNow(SCHEDULE, utc('2026-07-10T23:30:00Z'), { country: 'United States' }).allowed).toBe(false)
+    expect(maySendNow(SCHEDULE, utc('2026-01-09T23:30:00Z'), { country: 'United States' }).allowed).toBe(true)
   })
 })
 
-// ── ④ THE RESOLUTION HIERARCHY, AND FAILING CLOSED ───────────────────────────────────
+// ── ④ THE RESOLUTION HIERARCHY STILL ANSWERS "WHICH ZONE" — IT NO LONGER DECIDES A SEND ─
 
-describe('④ an unknown location is refused, never assumed', () => {
-  it('🛑 no country, region or timezone → FAIL CLOSED', () => {
-    const v = maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), null)
-    expect(v.allowed).toBe(false)
-    expect(v.allowed === false && v.reason).toBe('unknown_timezone')
-  })
-
-  it('🛑 an UNMAPPED country is refused — it does not silently become Eastern', () => {
-    const v = maySendNow(SCHEDULE, utc(`${WED}T12:30:00Z`), { country: 'Sweden' })
-    expect(v.allowed, 'an unmapped country is being judged in somebody else\'s timezone').toBe(false)
-    expect(v.allowed === false && v.reason).toBe('unknown_timezone')
-    expect(v.allowed === false && v.detail).toContain('Sweden')
-  })
-
-  it('🛑 the programme\'s default_tz does NOT grant anything', () => {
-    // Falling back to our home zone for an unknown recipient is the same defect as assuming
-    // New York: it makes the window mean something true about US rather than about them.
-    // 10:00 UTC is comfortably inside the London window, and this still refuses.
-    expect(maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), { country: 'Sweden' }).allowed).toBe(false)
-  })
-
-  it('a bad persisted timezone is refused rather than ignored', () => {
-    const v = maySendNow(SCHEDULE, utc(`${WED}T10:00:00Z`), { timezone: 'Not/AZone', country: 'United Kingdom' })
-    expect(v.allowed).toBe(false)
-    expect(v.allowed === false && v.reason).toBe('unknown_timezone')
-  })
-
+describe('④ resolveRecipientZones is unchanged, and no longer consulted by the send guard', () => {
   it('the hierarchy is exact → region → country set, in that order', () => {
-    // ① a persisted zone wins over both.
     expect(resolveRecipientZones({ timezone: 'America/Los_Angeles', region: 'NY', country: 'United States' }))
       .toEqual({ ok: true, zones: ['America/Los_Angeles'], precision: 'exact' })
-    // ② a region wins over the country set.
     expect(resolveRecipientZones({ region: 'Texas', country: 'United States' }))
       .toEqual({ ok: true, zones: ['America/Chicago'], precision: 'region' })
-    // ③ country alone gives the whole set.
     const set = resolveRecipientZones({ country: 'United States' })
     expect(set.ok && set.precision).toBe('country_set')
-    expect(set.ok && set.zones.length, 'the American set no longer spans the country').toBeGreaterThan(4)
-    // A single-zone country is exact by construction.
     expect(resolveRecipientZones({ country: 'United Kingdom' }))
       .toEqual({ ok: true, zones: ['Europe/London'], precision: 'exact' })
+    expect(resolveRecipientZones({ region: 'AZ' }).ok && resolveRecipientZones({ region: 'AZ' })).toMatchObject({ zones: ['America/Phoenix'] })
   })
 })
 
-// ── ⑤ A MISSING OR MALFORMED SCHEDULE ────────────────────────────────────────────────
+// ── ⑤ THE STORED SCHEDULE IS LEFT AS APPROVED — AND DOES NOT DECIDE ──────────────────
 
-describe('⑤ no schedule is not "no restriction"', () => {
-  it('🛑 null refuses', () => {
-    const v = maySendNow(null, utc(`${WED}T10:00:00Z`), { country: 'United Kingdom' })
-    expect(v.allowed === false && v.reason).toBe('no_schedule')
+describe('⑤ the stored schedule stays exactly as approved, and its hours no longer decide', () => {
+  it('🛑 a missing or half-written schedule no longer blocks a live programme on a weekday', () => {
+    expect(maySendNow(null, utc(`${WED}T10:00:00Z`), { country: 'United Kingdom' }).allowed).toBe(true)
+    expect(maySendNow({ ...SCHEDULE, start: '17:00', end: '09:00' }, utc(`${WED}T10:00:00Z`), null).allowed).toBe(true)
   })
 
-  it('🛑 a half-written schedule is unreadable, not permissive', () => {
+  it('isSendSchedule still recognises a well-formed schedule (readiness reads it before approval)', () => {
     for (const bad of [{}, { days: [] }, { days: [1], start: '9am', end: '17:00', default_tz: 'Europe/London' },
                        { days: [1], start: '08:30', end: '17:00' },
                        { days: [0], start: '08:30', end: '17:00', default_tz: 'Europe/London' },
                        { days: [8], start: '08:30', end: '17:00', default_tz: 'Europe/London' }]) {
       expect(isSendSchedule(bad), JSON.stringify(bad)).toBe(false)
-      expect(maySendNow(bad, utc(`${WED}T10:00:00Z`), { country: 'United Kingdom' }).allowed).toBe(false)
     }
     expect(isSendSchedule(SCHEDULE)).toBe(true)
   })
-
-  it('🛑 a window that ends at or before it starts describes no time at all', () => {
-    const v = maySendNow({ ...SCHEDULE, start: '17:00', end: '09:00' }, utc(`${WED}T10:00:00Z`), { country: 'United Kingdom' })
-    expect(v.allowed === false && v.reason).toBe('unreadable')
-  })
 })
 
-// ── ⑥ RUN AND RETRY CANNOT OUTLAST THE WINDOW ────────────────────────────────────────
+// ── ⑥ RUN AND RETRY CANNOT OUTLAST THE WEEKEND ───────────────────────────────────────
 
 describe('⑥ the verdict is taken at the moment of the attempt', () => {
-  it('🛑 work refused at 19:00 is refused again five minutes later, and allowed next morning', () => {
-    expect(maySendNow(SCHEDULE, utc(`${WED}T18:00:00Z`), { country: 'United Kingdom' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc(`${WED}T18:05:00Z`), { country: 'United Kingdom' }).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, utc('2026-09-10T08:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
+  it('🛑 work refused on Saturday is refused again five minutes later, and allowed on Monday', () => {
+    expect(maySendNow(SCHEDULE, utc('2026-09-12T18:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(false)
+    expect(maySendNow(SCHEDULE, utc('2026-09-12T18:05:00Z'), { country: 'United Kingdom' }).allowed).toBe(false)
+    expect(maySendNow(SCHEDULE, utc('2026-09-14T00:30:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
   })
 
   it('🛑 the guard sits at the ONE authority door, so cron, Run and retries all inherit it', async () => {
@@ -221,13 +160,13 @@ describe('⑥ the verdict is taken at the moment of the attempt', () => {
     expect(at).toBeGreaterThan(-1)
     const gate = AUTH.slice(at, at + 1600)
     expect(gate).toContain('maySendNow(')
-    expect(gate, 'the window verdict is computed and then ignored').toContain('if (!when.allowed) {')
+    expect(gate, 'the weekday verdict is computed and then ignored').toContain('if (!when.allowed) {')
     // ⚠️ DEFAULT-ON. Forgetting the flag yields the enforced answer; only an explicit
     // `enforceSchedule: false` opts out, and campaign activation is the one caller that does.
     expect(AUTH).toContain("if (ctx?.enforceSchedule !== false) {")
     const START = readFileSync(join(__dirname, './start-work.ts'), 'utf8')
     expect(START).toContain('{ enforceSchedule: false }')
-    // And the recipient's location is threaded in precision order, not as a bare country.
+    // And the recipient's location is still threaded in precision order (it no longer decides).
     expect(gate).toContain('timezone: ctx?.recipientTimezone')
     expect(gate).toContain('region: ctx?.recipientRegion')
   })

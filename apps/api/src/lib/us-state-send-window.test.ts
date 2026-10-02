@@ -31,25 +31,22 @@ const at = (hhmm: string) => new Date(`${WED}T${hhmm}:00Z`)
 const house = (state: string | null) =>
   ({ country: 'United States', region: windowRegionFor('United States', state) })
 
-describe('#2473 — a New York prospect is judged on New York time', () => {
-  it('12:30 UTC (08:30 in New York): WITH a state it sends; WITHOUT one it still waits', () => {
-    expect(maySendNow(SCHEDULE, at('12:30'), house('New York')).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, at('12:30'), house(null)).allowed).toBe(false)
+// ⛓️ 2 Oct (R185 ① · #2545) — ~~"a New York prospect is judged on New York time"~~. The founder
+// retired the recipient-local window: *"we need to send no matter the time of day or zone"*. A
+// US prospect is now emailed at any hour on a UK weekday, with or without a state on file — the
+// state is still kept (below), it simply no longer decides when.
+describe('⛓️ R185 ① — with or without a state, a US prospect is emailed at any hour on a weekday', () => {
+  it('🛑 the instants the old window refused (06:00, 08:29 Pacific, 18:00 and 21:00 UTC) all send now', () => {
+    for (const hhmm of ['10:00', '12:30', '15:29', '18:00', '21:00']) {
+      expect(maySendNow(SCHEDULE, at(hhmm), house(null)).allowed, `${hhmm} no state`).toBe(true)
+      expect(maySendNow(SCHEDULE, at(hhmm), house('New York')).allowed, `${hhmm} New York`).toBe(true)
+      expect(maySendNow(SCHEDULE, at(hhmm), house('California')).allowed, `${hhmm} California`).toBe(true)
+    }
   })
 
-  it('10:00 UTC — the run that deferred all 100 on 30 Sep — is 06:00 in New York: still no', () => {
-    expect(maySendNow(SCHEDULE, at('10:00'), house('New York')).allowed).toBe(false)
-  })
-
-  it('a prospect with NO state keeps the old whole-country window: 18:30–21:00 UTC only', () => {
-    expect(maySendNow(SCHEDULE, at('18:00'), house(null)).allowed).toBe(false)
-    expect(maySendNow(SCHEDULE, at('19:00'), house(null)).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, at('21:00'), house(null)).allowed).toBe(false)
-  })
-
-  it('a California prospect opens at 15:30 UTC (08:30 Pacific), not at 18:30', () => {
-    expect(maySendNow(SCHEDULE, at('15:30'), house('California')).allowed).toBe(true)
-    expect(maySendNow(SCHEDULE, at('15:29'), house('California')).allowed).toBe(false)
+  it('a Saturday still sends nothing, state or no state', () => {
+    expect(maySendNow(SCHEDULE, new Date('2026-10-03T15:00:00Z'), house('New York')).allowed).toBe(false)
+    expect(maySendNow(SCHEDULE, new Date('2026-10-03T15:00:00Z'), house(null)).allowed).toBe(false)
   })
 })
 

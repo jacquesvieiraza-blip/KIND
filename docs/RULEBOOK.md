@@ -4,6 +4,8 @@
 > points to the rule number and Claude fixes it — no debate.
 > **Read this at the start of every session, before touching anything.**
 > _Created 14 Jun 2026. Living doc — add a rule whenever a recurring mistake happens._
+>
+> ⛓️ **24 Sep (R85a) — read this book with the Operating Board in mind** *(banner added 2 Oct)*. Wherever a rule below names **PRODUCT-INVENTORY** as the home of status or **LAUNCH-PAD** as the home of today's work (§3 dots, §4, §8, §9 steals, §10, §15.4 authority, §15.15 checkpoint), read **the K.I.N.D Operating Board (GitHub Project #5)** instead: every item is a card, its column is its status, and READY is the founder's GO. PRODUCT-INVENTORY and LAUNCH-PAD are frozen history. Since 30 Sep every client-facing item also gets a preview HTML the founder approves before it goes live (**R177**). The rules themselves are kept as written.
 
 ---
 

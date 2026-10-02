@@ -4,7 +4,7 @@
 >
 > **🧭 Four-doc contract:** **KIND-MASTER** *(this doc)* = strategy, decisions, why, dated session log · **LAUNCH-PAD** = daily execution · **PRODUCT-INVENTORY** = status (one dot, one owner) · **V2-TRACKER** = future. **Conflict rule:** strategy/decision truth = here; status = PRODUCT-INVENTORY; daily action = LAUNCH-PAD; future = V2-TRACKER. No fifth core doc. *(This supersedes every older "two docs" / "three source docs" line below — those are archived history.)* **Money model of record → [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html)** (founder-locked 25 Jul, #556).
 
-## ▶️ START HERE — WHERE WE ARE, 30 SEP 2026 *(the box below this one is history)*
+## ▶️ START HERE — WHERE WE ARE, 30 SEP 2026 · ⛓️ UPDATED 2 OCT *(the box below this one is history)*
 
 > ⛓️ **WRITTEN 30 SEP, checked against the code on `main` and the live build `9256cc6` (API, Milla and Vida all report it).** It replaces the 21-Aug box below, which still describes the retired wallet model and the MBF demo. That box is kept as history, not deleted. **Status of record is the Operating Board (R85a, 24 Sep), not this box.**
 
@@ -24,8 +24,13 @@
 - **The demo is Northwind** (**R164**, 25 Sep): a demo login on the live site, made-up people, any of the six stages set from Vida. It can never charge, take a mailbox or send. It must match the product exactly (**R173**), and the demo walk is part of `check.sh`. The MBF demo is gone (#2427).
 - **The product is locked** (**R167**, 25 Sep): no redesign; changes improve it in the look it already has. The 151-item Milla + Vida audit (**R174**, 29 Sep) is built and live, #2409–#2455.
 - **How we work.** The founder merges; nothing goes to GPT (**R154**, 24 Sep). Every PR carries the full check and a red proof. Everything merged to `main` is live after `scripts/ship.sh`.
+- ⛓️ **1–2 Oct, since this box was written:**
+  - **House sent its first 20 emails on 1 Oct** (20:00 UTC, the only slot the time-zone rule left), then the founder **paused House on 2 Oct** until his own 8 Sep emails are on, laid out properly, behind his new Vida approval gate (**R185–R187**; the fixes are cards #2541–#2552).
+  - **R178:** House runs on Auto-Pilot — the batch Send press is the review. **R179:** the system never sends a LinkedIn message. **R180:** the commercial model — same meetings for every band, Coaching grows with the band, and the 25/50/75/100% moments; Phase 1 / 2 / 3 are cards #2482–#2539. **R181–R182:** the pricing page compares the plans, and the website and legal pages say only what is true.
+  - **Coaching:** F1 is built and waiting for the founder's merge; F2 and F6 are approved and wait for it; the other Phase 1 pieces are previews the founder is still reviewing — nothing else is built into the product before he approves (**R188**).
+  - **Where things stand day to day:** the Operating Board (R85a). GitHub's "Tests" check is red on every change for a setup reason (#2553); `scripts/check.sh` is the gate.
 - **Next, in order (founder, 30 Sep):**
-  1. confirm House's first emails went out;
+  1. ~~confirm House's first emails went out;~~ ⛓️ **2 Oct:** done — 20 went out on 1 Oct. Next: the sending fixes S2–S7 (#2541), then the founder sets the limits and resumes House (#2552);
   2. the live smoke test, end to end;
   3. record the demo, one Milla video and one Vida video (#2458);
   4. the domain move `get-kind.com` → `millaandvida.ai` (#2456, mapped; the founder buys the domain first).
@@ -556,6 +561,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+> ⛓️ **2 Oct:** lines marked **AUTO** are written by the `inventory-autoflip` workflow when a PR merges. It changes no dot and no card (the inventory is frozen, R85a), so read *"flipped … 🩷"* as *"merged"* — the card is closed by hand. The order below is mixed: AUTO lines on top, then 24–29 Sep oldest-first, then 29 Sep–1 Oct newest-first.
 - **1 Oct (AUTO — merge #2533):** #2050: every database request has a one-minute deadline → flipped #2050 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2532):** #2229: the operator checkout refuses a programme authorised internally (House) → flipped #2229 🩷 (live, founder walk owed for 🟢).
 - **1 Oct (AUTO — merge #2526):** W-1a (R182): the legal pages say only what is true today → flipped #1811 #1771 #1762 🩷 (live, founder walk owed for 🟢).

@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import ImportLeads from '@/components/ImportLeads'
 import AddMailbox from '@/components/AddMailbox'
+import { DEFAULT_MAILBOX_DAILY_CAP } from '@kind/shared'
 import HouseClient from '@/components/HouseClient'
 import HouseAudit from '@/components/HouseAudit'
 import SchemaProbe from '@/components/SchemaProbe'
@@ -1029,7 +1030,8 @@ export default function VidaEnginePage() {
                       mailbox that sent it. Showing a today-count we cannot compute would be
                       worse than showing none — see #610. */}
                   <span className="shrink-0 text-[10.5px] font-bold rounded-full border border-[#ece5fb] bg-[#f8f6fd] text-[#5c5279] px-2 py-0.5">
-                    {i.daily_cap == null ? 'no cap' : `cap ${i.daily_cap}/day`}
+                    {/* ⛓️ 2 Oct (#2547) — this used to say there was no limit; a blank limit is held to the default by the sender. */}
+                    {i.daily_cap == null ? `cap ${DEFAULT_MAILBOX_DAILY_CAP}/day (default)` : `cap ${i.daily_cap}/day`}
                   </span>
                   <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.kind === 'branded' ? 'text-[#7C3AED] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#0369a1] bg-[#e0f2fe] border-[#bae6fd]'}`}>
                     {i.kind}

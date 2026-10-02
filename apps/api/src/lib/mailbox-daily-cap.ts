@@ -17,8 +17,12 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { db } from '@kind/db'
 
-/** A mailbox with no limit set gets this one (the Vida form's own default). Never "unlimited". */
-export const DEFAULT_MAILBOX_DAILY_CAP = 30
+/**
+ * A mailbox with no limit set gets this one. Never "unlimited".
+ * ⛓️ 2 Oct (#2547) — its home is now `@kind/shared`, so Vida shows the same number the sender uses.
+ */
+import { DEFAULT_MAILBOX_DAILY_CAP } from '@kind/shared'
+export { DEFAULT_MAILBOX_DAILY_CAP }
 
 /** The limit a box is actually held to. Blank → the default; an explicit number (even 0) stands. */
 export function mailboxDailyCap(cap: number | null | undefined): number {

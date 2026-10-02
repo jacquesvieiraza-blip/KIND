@@ -26,6 +26,7 @@
 // which is stated here before you type rather than discovered on submit.
 
 import { useEffect, useState } from 'react'
+import { DEFAULT_MAILBOX_DAILY_CAP } from '@kind/shared'
 
 type Client = { id: string; company_name: string | null; is_demo?: boolean; house_or_demo?: boolean }
 type Saved = { id: string; email: string; kind: string; status: string; provider: string | null; warmup_ready_at: string | null }
@@ -182,7 +183,8 @@ export default function AddMailbox({ secretKeySet, onSaved }: { secretKeySet?: b
         </div>
         <div>
           <label className={LABEL}>Daily cap</label>
-          <input value={f.daily_cap} onChange={ev => set('daily_cap', ev.target.value)} placeholder="blank = no cap" className={FIELD} />
+          {/* ⛓️ 2 Oct (#2547) — this used to promise no limit for a blank; blank is held to the default by the sender. */}
+          <input value={f.daily_cap} onChange={ev => set('daily_cap', ev.target.value)} placeholder={`blank = ${DEFAULT_MAILBOX_DAILY_CAP} a day (the default)`} className={FIELD} />
         </div>
 
         <div>

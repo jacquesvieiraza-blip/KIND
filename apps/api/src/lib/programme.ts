@@ -1631,9 +1631,16 @@ export async function pauseProgramme(programmeId: string, reason: PauseReason): 
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `Cannot pause a ${p.status} programme.` }
   if (p.paused_at) return { ok: true } // idempotent — pausing twice is not an error
-  await db.from('programmes').update({
+  // ⚑ 2 Oct (R185 ⑦ · #2548) — THE SAVE IS CHECKED. ~~The write's error was ignored~~, so a pause
+  // that never saved still answered "paused" — and a client who believes nothing is sending is
+  // the one promise this button makes.
+  const { error } = await db.from('programmes').update({
     paused_at: new Date().toISOString(), pause_reason: reason, updated_at: new Date().toISOString(),
   }).eq('id', programmeId)
+  if (error) {
+    console.error(`[programme] pause NOT saved for ${programmeId}:`, error.message)
+    return { ok: false, reason: 'Not paused — the change did not save, so nothing changed. Please try again.' }
+  }
   return { ok: true }
 }
 
@@ -1727,9 +1734,14 @@ export async function raiseApprovalConcern(params: {
 export async function resumeProgramme(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
-  await db.from('programmes').update({
+  // ⚑ 2 Oct (R185 ⑦ · #2548) — and Resume checks its save the same way Pause does.
+  const { error } = await db.from('programmes').update({
     paused_at: null, pause_reason: null, updated_at: new Date().toISOString(),
   }).eq('id', programmeId)
+  if (error) {
+    console.error(`[programme] resume NOT saved for ${programmeId}:`, error.message)
+    return { ok: false, reason: 'Not resumed — the change did not save, so the programme is still paused. Please try again.' }
+  }
   return { ok: true }
 }
 

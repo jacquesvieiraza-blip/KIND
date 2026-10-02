@@ -1,9 +1,11 @@
 # 🗂️ FOUNDER TRUTH REGISTER — the index over the reconciliation
 
+> ⛓️ **2 Oct — HISTORICAL INDEX.** This register describes the 28-Aug reconciliation. Several of its rows have since been overruled — read these overrides before quoting any row: **`CMP-0001` / `CMP-0002`** (the $299 pack and $4 per lead) are **retired** (R124, R137) · **`CMP-0004` / `CMP-0018`** (~$450 per meeting, 50/50) are **superseded for new programmes** by R166/R168 — a flat $99 / $199 / $299 per qualified meeting by company size, one payment · **`CMP-0007`** (partner commission) — partners are **frozen** (R139) · **`CMP-0027` / `CMP-0174`** (PDL and Hunter) — **Apollo is the only data provider** (R146) · **`CMP-0181` / `CMP-0182`** (conversion coaching, V2) — Coaching is now **Phase 1 of the commercial model** (R180, cards #2482–#2539). Status lives on the Operating Board (R85a).
+>
 > **THIS PAGE IS AN INDEX. IT IS NOT A SOURCE OF TRUTH.**
 > Every row points at the doc that owns the truth. **No canonical truth is restated here** — that is the rule this page exists under, and it is the whole reason it is safe to keep. If a row and its canonical home disagree, **the canonical home wins and the row is a bug** (fix the row, same session).
 >
-> **Authority order, unchanged:** **PRODUCT-RULES > LAUNCH-PAD > PRODUCT-INVENTORY > KIND-MASTER > V2-TRACKER.**
+> **Authority order, unchanged:** **PRODUCT-RULES > LAUNCH-PAD > PRODUCT-INVENTORY > KIND-MASTER > V2-TRACKER.** ⛓️ *24 Sep (R85a): LAUNCH-PAD and PRODUCT-INVENTORY are frozen history — status and today's work are the Operating Board (GitHub Project #5).*
 >
 > ## Why this exists, and what it deliberately is not
 > The 28-Aug reconciliation produced **245 sources → 24,309 inventoried items → 197 comparison subjects → 194 classified truths**. That evidence chain is **frozen** and is the proof:

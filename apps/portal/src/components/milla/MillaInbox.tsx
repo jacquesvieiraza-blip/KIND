@@ -9,9 +9,12 @@
 // What it is: a list of the people who replied, and the whole conversation with each one in
 // order — our email, their reply, our answer — with a plain "what happens next" on top.
 //
-// 🛑 READ-ONLY FOR THE CLIENT (R150: *"Replies stay with us … offers no send."*). There is no
-// composer, no "Help me reply", no Send and no "Mark meeting booked" here: a client click must
-// never send an email, and must never create a billable meeting.
+// ⛓️ 2 Oct (R187 ④ amends R150 / R165): ~~READ-ONLY FOR THE CLIENT — no composer, no Send~~.
+// *"Replies are answered from the portal: Milla drafts, a person edits and presses Send, from the
+// same mailbox in the same thread; nothing is ever sent without the press."* So each conversation
+// now ends with an answer box: Milla's draft, editable, and ONE Send button that is the only path
+// to an email. 🛑 STILL NO "Mark meeting booked": a client click must never create a billable
+// meeting.
 //
 // ⚠️ NOTHING ON THIS SCREEN IS DECORATION. The old Unibox carried a LinkedIn filter (we only
 // send email), Unread/Archived/Replied folders and tags with nothing behind them, an "ICP fit —"
@@ -121,7 +124,7 @@ export default function MillaInbox() {
         <div className="min-w-0">
           <h1 className="text-[19px] font-extrabold text-[#17101f]">Inbox</h1>
           <p className="text-[12.5px] text-[#6b6187] mt-0.5 max-w-[60ch] leading-relaxed">
-            Every reply to your emails, in one place. We answer them for you and book the meetings. You can read every conversation here.
+            Every reply to your emails, in one place. Milla drafts an answer to each one — edit it and press Send, and it goes from your own mailbox. Nothing is sent until you press Send.
           </p>
         </div>
         {all.length > 0 && (
@@ -186,7 +189,7 @@ export default function MillaInbox() {
           </div>
 
           <section className={`min-w-0 flex-col ${reading ? 'flex' : 'hidden md:flex'}`} aria-live="polite">
-            {open && <Thread c={open} onBack={() => setReading(false)} />}
+            {open && <Thread c={open} onBack={() => setReading(false)} onSent={() => void load()} />}
           </section>
         </div>
       )}
@@ -194,7 +197,7 @@ export default function MillaInbox() {
   )
 }
 
-function Thread({ c, onBack }: { c: Conversation; onBack: () => void }) {
+function Thread({ c, onBack, onSent }: { c: Conversation; onBack: () => void; onSent: () => void }) {
   const next = NEXT[c.status]
   return (
     <>
@@ -230,8 +233,79 @@ function Thread({ c, onBack }: { c: Conversation; onBack: () => void }) {
             </div>
           </article>
         ))}
+        {/* ⚑ 2 Oct (R187 ④) — the answer box. Someone who asked not to be contacted gets none. */}
+        {c.status !== 'stop' && <Answer key={c.replyId} c={c} onSent={onSent} />}
       </div>
     </>
+  )
+}
+
+// ⚑ 2 Oct (R187 ④ · #2550) — MILLA DRAFTS, A PERSON PRESSES SEND.
+//
+// 🛑 ONE PATH TO AN EMAIL: `send()`, called only by the Send button. The draft writes into the box
+// and nothing else. It goes through the same server door as Vida's answers (`sendManualReply`):
+// the client's own mailbox, the opt-out list, the kill-switch — and nothing falls back to a
+// shared address. Milla drafts by herself only for someone interested who is still waiting;
+// otherwise a person asks for a draft, or writes their own.
+function Answer({ c, onSent }: { c: Conversation; onSent: () => void }) {
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState<'draft' | 'send' | null>(null)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function draft() {
+    setBusy('draft'); setNote(null)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      if (!session) return
+      const res = await api.post<{ data?: { draft?: string } }>(`/figsy/replies/${encodeURIComponent(c.replyId)}/ai-draft`, {}, session.access_token)
+      setText(res.data?.draft ?? '')
+    } catch (e) {
+      setNote({ ok: false, text: e instanceof Error ? e.message : 'Milla could not draft an answer just now — you can write one yourself.' })
+    } finally { setBusy(null) }
+  }
+
+  async function send() {
+    if (!text.trim()) return
+    setBusy('send'); setNote(null)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      if (!session) return
+      const res = await api.post<{ data?: { sent?: boolean; demo?: boolean } }>(`/figsy/replies/${encodeURIComponent(c.replyId)}/send-reply`, { body: text }, session.access_token)
+      setNote({ ok: true, text: res.data?.demo ? 'Demo account — nothing was emailed.' : 'Sent from your mailbox.' })
+      setText('')
+      onSent()
+    } catch (e) {
+      setNote({ ok: false, text: e instanceof Error ? e.message : 'It was not sent — nothing left your mailbox.' })
+    } finally { setBusy(null) }
+  }
+
+  useEffect(() => {
+    if (c.awaitingAnswer && c.status === 'interested') void draft()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.replyId])
+
+  return (
+    <div className="max-w-[640px] rounded-xl border border-[#c9b3f5] bg-white overflow-hidden" data-testid="inbox-answer">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 py-2 border-b border-[#e7e3ec]">
+        <b className="text-[12.5px] text-[#17101f]">Your answer</b>
+        <span className="text-[11.5px] text-[#6b6187]">Goes from your own mailbox. Nothing is sent until you press Send.</span>
+        <button onClick={() => void draft()} disabled={busy !== null}
+          className="ml-auto text-[12px] font-bold text-[#7C3AED] hover:underline disabled:opacity-50">
+          {busy === 'draft' ? 'Milla is drafting…' : text ? 'Draft again' : 'Draft with Milla'}
+        </button>
+      </div>
+      <label htmlFor={`answer-${c.replyId}`} className="sr-only">Your answer to {c.name}</label>
+      <textarea id={`answer-${c.replyId}`} value={text} onChange={e => setText(e.target.value)} rows={6}
+        placeholder="Write your answer, or let Milla draft it…"
+        className="w-full px-3.5 py-2.5 text-[13px] leading-relaxed text-[#17101f] outline-none resize-y" />
+      <div className="flex flex-wrap items-center gap-3 px-3.5 py-2 border-t border-[#e7e3ec]">
+        {note && <p className={`text-[12px] font-semibold ${note.ok ? 'text-[#166534]' : 'text-[#9f1f18]'}`}>{note.text}</p>}
+        <button onClick={() => void send()} disabled={busy !== null || !text.trim()}
+          className="ml-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-1.5 text-[12.5px] font-bold disabled:opacity-40">
+          {busy === 'send' ? 'Sending…' : 'Send'}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -250,13 +324,13 @@ function Empty({ sentTotal }: { sentTotal: number | null }) {
           {nothingSent
             ? 'Nothing is sent until your programme is live.'
             : sentTotal !== null
-              ? 'Your emails are going out. Every reply lands here, and we answer it for you.'
-              : 'Every reply lands here, and we answer it for you.'}
+              ? 'Your emails are going out. Every reply lands here, with an answer Milla has drafted for you to send.'
+              : 'Every reply lands here, with an answer Milla has drafted for you to send.'}
         </p>
         {nothingSent && (
           <>
             <ol className="text-left bg-[#faf8ff] border border-[#e7e3ec] rounded-xl px-3.5 py-3 mb-3.5 flex flex-col gap-2 text-[12.5px] text-[#4c4459]">
-              {['You approve your programme.', 'It goes live and your emails start going out.', 'Every reply lands here. We answer it and book the meeting.'].map((s, i) => (
+              {['You approve your programme.', 'It goes live and your emails start going out.', 'Every reply lands here, with an answer Milla has drafted for you.'].map((s, i) => (
                 <li key={i} className="flex gap-2.5"><span className="w-[18px] h-[18px] rounded-full bg-[#f3ecff] text-[#5b21b6] text-[10px] font-extrabold grid place-items-center shrink-0 mt-px">{i + 1}</span>{s}</li>
               ))}
             </ol>

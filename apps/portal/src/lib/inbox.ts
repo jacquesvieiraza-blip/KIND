@@ -24,6 +24,10 @@ export type Message = { kind: 'ours' | 'theirs' | 'our_reply'; label: string; su
 export type Conversation = {
   key: string; name: string; role: string | null; company: string | null
   status: InboxStatus; lastAt: string | null; snippet: string; messages: Message[]
+  /** ⚑ 2 Oct (R187 ④) — the reply a Send answers: the latest one FROM THEM, never our own. */
+  replyId: string
+  /** ⚑ 2 Oct (R187 ④) — the last word in the conversation is theirs, so they are waiting on us. */
+  awaitingAnswer: boolean
 }
 
 export const STATUS: Record<InboxStatus, { label: string; tone: string }> = {
@@ -40,7 +44,8 @@ export const STATUS: Record<InboxStatus, { label: string; tone: string }> = {
 // ⚠️ EVERY SENTENCE IS WHAT THE PRODUCT DOES. Opt-out is the blocklist + enrolment stop in
 // `suppressOptOut`; everything else is R150's "replies stay with us".
 export const NEXT: Record<InboxStatus, { title: string; text: string; meetings?: boolean }> = {
-  interested:     { title: 'We’re replying for you', text: 'We answer them to agree a time. When a meeting is booked it shows here and in', meetings: true },
+  // ⛓️ 2 Oct (R187 ④): ~~"We answer them to agree a time."~~ — replies are now answered from here.
+  interested:     { title: 'They’re interested', text: 'Milla has drafted an answer below to agree a time. When a meeting is booked it shows here and in', meetings: true },
   booked:         { title: 'Meeting booked', text: 'The time and details are in', meetings: true },
   not_interested: { title: 'Nothing for you to do', text: 'They’ve said no for now. We handle this reply.' },
   away:           { title: 'Nothing for you to do', text: 'They’re away. We handle this reply.' },
@@ -114,6 +119,8 @@ export function buildConversations(rows: ReplyRow[], sent: SentRow[] | null | un
       lastAt: when(latest),
       snippet: textOf(latest).replace(/\s+/g, ' ').slice(0, 160),
       messages,
+      replyId: latest.id,
+      awaitingAnswer: messages.length > 0 && messages[messages.length - 1].kind === 'theirs',
     })
   }
   return out.sort((a, b) => ms(b.lastAt) - ms(a.lastAt))

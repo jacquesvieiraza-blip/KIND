@@ -272,11 +272,19 @@ describe('A · the paths that must NOT retain anything', () => {
     expect(state.retained).toHaveLength(0)
   })
 
-  it('a reply matching nobody retains nothing — there is no collision to decide', async () => {
+  // ⛓️ 2 Oct (card #2564): ~~"a reply matching nobody retains nothing — there is no collision
+  // to decide"~~. True of a collision, and it was the silent drop: an assistant, a colleague or a
+  // personal address answering for a lead matched nobody, was kept nowhere, and the webhook was
+  // answered 200. It is now KEPT — with no candidate, because none exists — and written to nobody.
+  it('a reply matching nobody is KEPT with no candidate, and written to nobody', async () => {
     state.leadMatches = []
-    await postResend(RESEND)
-    expect(state.retained).toHaveLength(0)
+    const r = await postResend(RESEND)
+    expect(state.retained).toHaveLength(1)
+    expect(state.retained[0].candidate_client_ids).toEqual([])
+    expect(state.retained[0].candidate_lead_ids).toEqual([])
     expect(state.replyInserts).toHaveLength(0)
+    expect(r.statusCode).toBe(200)
+    expect(r.payload.dropped).toBe('no_lead_matches')
   })
 })
 

@@ -119,11 +119,30 @@ export type ReplyResult =
  *   · `unclassified_untasked` (19 Sep · J22-C1) — the reply is stored unclassified and the
  *     operator task that makes it somebody's job could not be written. A 200 there promises a
  *     human will see it, and nothing would ever tell one.
+ *   · `unmatched_unretained` (2 Oct · #2564) — the sender matched no lead and the reply could
+ *     not be kept for a person to read.
  */
 export const RETRYABLE_DROPS: ReadonlySet<string> = new Set([
   'ambiguous_owner_unretained',
   'unclassified_untasked',
+  'unmatched_unretained',
 ])
+
+/** ⚑ 2 Oct (#2564) — keep a reply no lead matches, in full, with no guessed candidate. */
+function keepUnmatchedReply(inbound: InboundReply, ctx: { rawPayload: Record<string, unknown>; eventKey?: string | null }) {
+  return retainUnattributedReply({
+    provider: inbound.provider,
+    providerEventKey: ctx.eventKey ?? null,
+    fromEmail: inbound.fromEmail,
+    fromName: inbound.fromName,
+    toEmail: inbound.toEmail ?? null,
+    subject: inbound.subject,
+    body: inbound.body,
+    rawPayload: ctx.rawPayload,
+    candidateClientIds: [],
+    candidateLeadIds: [],
+  })
+}
 
 /**
  * Process one inbound reply. Never throws for an ordinary bad-input case — every refusal is a
@@ -207,7 +226,33 @@ export async function processInboundReply(
     if (!retained.ok) return { ok: false as const, dropped: 'ambiguous_owner_unretained' as const }
     return { ok: false as const, dropped: 'lookup_failed' as const }
   }
-  if (matches.length === 0) return { ok: true as const, clients: 0, replyId: undefined }
+  // ── 🛑 ⚑ 2 Oct (#2564 · sending fix #10) — A REPLY NOBODY CAN MATCH IS KEPT, NEVER DROPPED ──
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`return { ok: true, clients: 0 }`~~ — answered 200 by the route. A
+  // prospect who answers from an alias, a personal address, their assistant or a colleague
+  // matches no lead, so the reply was kept nowhere, nobody was told, and the client and K.I.N.D
+  // both believed nobody had replied.
+  //
+  // Now it is RETAINED IN FULL in the record Vida's "Needs you" row reads, the founder is told
+  // who wrote and which mailbox it reached, and a retention failure refuses the webhook so the
+  // provider redelivers. ⚠️ NO CANDIDATE IS GUESSED: no lead matched, so there is none to
+  // offer — the receiving mailbox stays on the row (`to_email`), and Vida's re-check finds the
+  // lead if one is added later. ⚠️ AND NO WORDS OF THE REPLY IN THE ALERT: it becomes a Vida
+  // task, and R132 (17 Sep): *"Do not expose reply body in a generic list."*
+  //
+  // ⚠️ A PERSON ATTRIBUTING A KEPT REPLY (`resolvedOwnerClientId`) is refused here instead of
+  // being answered "0 clients" — that was a success with nothing written, which the resolve
+  // route would have recorded as attributed. Nothing is retained again: the record exists.
+  if (matches.length === 0) {
+    if (ctx.resolvedOwnerClientId) return { ok: false as const, dropped: 'no_lead_matches' as const }
+    const kept = await keepUnmatchedReply(inbound, ctx)
+    const where = inbound.toEmail ?? 'an unknown mailbox'
+    await alertDroppedReply('the sender is not one of our leads', inbound, kept.ok
+      ? `It came to ${where} and is KEPT IN FULL as unattributed_replies ${kept.id}, waiting in Vida (Needs you). Most likely an assistant, a colleague or a personal address answering for a lead.`
+      : `It came to ${where} and could NOT be kept (${kept.detail}), so the webhook was refused and the provider will redeliver it.`)
+    if (!kept.ok) return { ok: false as const, dropped: 'unmatched_unretained' as const }
+    return { ok: false as const, dropped: 'no_lead_matches' as const }
+  }
 
   // #551 — ROUTE BY THE RECEIVING MAILBOX, falling back to the fan-out when it is unknown.
   //
@@ -323,13 +368,27 @@ export async function processInboundReply(
     // dropped silently, and NOT handed to whichever other client happens to hold the lead —
     // that is the exact harm this routing exists to prevent.
     const { data: ownerRow } = await db.from('clients').select('company_name').eq('id', inboxOwner!).maybeSingle()
-    void sendFounderAlert('sends_stalled', 'A reply arrived at a client mailbox with no matching lead',
-      unmatchedAtKnownInboxLines({
+    // ⚑ 2 Oct (#2564) — KEPT, NOT ONLY ALERTED. ~~"this alert is the record"~~: the alert
+    // carried no words of the reply, so the record was a sender and nothing to answer. It is now
+    // retained in full, with NO candidate — still never handed to the other client — and a
+    // retention failure refuses the webhook. A person's attribution pass retains nothing again.
+    const kept = ctx.resolvedOwnerClientId ? null : await keepUnmatchedReply(inbound, ctx)
+    if (kept && !kept.ok) {
+      void sendFounderAlert('sends_stalled', 'A reply at a client mailbox could not be kept — the webhook was REFUSED', [
+        `A reply from ${inbound.fromEmail} arrived at ${inbound.toEmail ?? 'a client mailbox'}, which holds no lead for that address.`,
+        `It could not be stored (${kept.detail}), so the webhook was refused and the provider will redeliver it.`,
+      ]).catch(() => {})
+      return { ok: false as const, dropped: 'unmatched_unretained' as const }
+    }
+    void sendFounderAlert('sends_stalled', 'A reply arrived at a client mailbox with no matching lead', [
+      ...unmatchedAtKnownInboxLines({
         toEmail: inbound.toEmail ?? 'unknown',
         fromEmail: inbound.fromEmail,
         companyName: (ownerRow as { company_name?: string } | null)?.company_name ?? null,
         excludedCount: routed.excluded.length,
-      })).catch(() => {})
+      }),
+      ...(kept?.ok ? [`It is KEPT IN FULL as unattributed_replies ${kept.id} and is waiting in Vida (Needs you).`] : []),
+    ]).catch(() => {})
     return { ok: false as const, dropped: 'no_lead_at_this_inbox' as const }
   }
   matches = routed.matches

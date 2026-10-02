@@ -241,7 +241,11 @@ export async function applyHouseProgrammeSequence(programmeId: string): Promise<
   //
   // ⚠️ WHAT STAYS HOUSE'S: the five approved messages and the approved schedule constant, and
   // the identity gate above that decides they may be used at all. Nothing else.
-  const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s }))
+  // ⚑ 2 Oct (R189 ⑥) — the founder's 8 Sep emails carry no sign-off; House signs "The Milla &
+  // Vida Team" (*"our house account needs to end with the Milla & Vida Team"*).
+  const { ensureSignOff } = await import('./sequence-tokens')
+  const { HOUSE_SIGN_OFF } = await import('./house-client')
+  const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s, body: ensureSignOff(s.body, HOUSE_SIGN_OFF) }))
   const { applyProgrammeSequence } = await import('./programme-sequence')
   const applied = await applyProgrammeSequence(programmeId, steps, 'House programme sequence')
   if (!applied.ok) return { ok: false, reason: applied.reason }

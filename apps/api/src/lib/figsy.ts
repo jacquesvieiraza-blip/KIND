@@ -700,6 +700,18 @@ export async function applyReplyBranching(
 // (3-step behaviour, unchanged for pre-#212 enrollments). One source of truth so
 // the three send loops (internal.ts + routes/figsy.ts ×2) never diverge.
 export interface EnrollmentStepView { subject: string; body: string; wait_days: number; total: number }
+/**
+ * ⚑ 2 Oct (#2543 · R189 ⑥) — "Acme Ltd · 10 High Street, London": the client's own legal line,
+ * or null when either half is not on file (or the column cannot be read yet).
+ */
+export async function clientFooterLine(clientId: string): Promise<string | null> {
+  const { data, error } = await db.from('clients').select('company_name, registered_office').eq('id', clientId).maybeSingle()
+  if (error || !data) return null
+  const name = String((data as { company_name?: string | null }).company_name ?? '').trim()
+  const office = String((data as { registered_office?: string | null }).registered_office ?? '').trim()
+  return name && office ? `${name} · ${office}` : null
+}
+
 export function enrollmentStep(
   enrollment: Record<string, any>,
   stepNum: number,
@@ -1319,11 +1331,15 @@ async function sendSequenceEmailCore(
     // 26 Jul), not from our shared Resend domain. `sendAs` returns the same verdict shape as
     // `interpretSend` and never throws, so the rollback below is unchanged.
     let checked: ReturnType<typeof interpretSend>
-    // ⚑ 2 Oct (R189 ⑥) — House's emails carry House's legal line; every other client's carry
-    // K.I.N.D's until their own registered office address is held.
+    // ⚑ 2 Oct (R189 ⑥) — House's emails carry House's legal line; ⛓️ (#2543 · 5d part 3) every
+    // other client's carry THEIR company name and registered office, given in Milla Settings and
+    // checked before go-live (part 2). Only a client with neither on file (impossible once part 2
+    // gates Make Live) falls back to K.I.N.D's line rather than sending with no address at all.
     const { isHouseClient } = await import('./house-client')
     const { HOUSE_POSTAL_FOOTER_LINE, POSTAL_FOOTER_LINE } = await import('@kind/shared')
-    const footerLine = lead.client_id && await isHouseClient(lead.client_id) ? HOUSE_POSTAL_FOOTER_LINE : POSTAL_FOOTER_LINE
+    const footerLine = lead.client_id && await isHouseClient(lead.client_id)
+      ? HOUSE_POSTAL_FOOTER_LINE
+      : (lead.client_id ? await clientFooterLine(lead.client_id) : null) ?? POSTAL_FOOTER_LINE
     try {
       const { sendAs } = await import('./mailer')
       checked = await sendAs(sendingInbox, {

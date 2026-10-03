@@ -5,7 +5,7 @@ import { db } from '@kind/db'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { BACKGROUND_MODEL } from './models'
 import { normalizeRevealEmail } from './billing-rules'
-import { sequencePlan, normalisePurpose, normaliseDepth, VALUE_SPINE, type SequencePurpose, type SequenceDepth } from './sequence-templates'
+import { sequencePlan, normalisePurpose, normaliseDepth, VALUE_SPINE, JOBS_SPINE, type SequencePurpose, type SequenceDepth } from './sequence-templates'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
@@ -322,6 +322,11 @@ export type SequenceOptions = {
    * names that model itself.
    */
   model?: string
+  /**
+   * ⚑ 3 Oct (sequencing piece 5) — ONE JOB PER EMAIL, for a programme with an approved direction.
+   * Present only from the programme writer; every other caller writes exactly as before.
+   */
+  jobs?: readonly { job: string; guidance: string }[]
 }
 
 /**
@@ -377,9 +382,13 @@ export async function generateSequence(
       ? `⚠️ THIS IS AN EVENT SEQUENCE AND THE DATE IS FIXED. Every email must make sense on the day it lands, and the LAST one sends ${plan.event.daysUntilEvent - plan.dayOffsets[plan.depth - 1]} day(s) before the event. Never write as though the event has already happened, and never promise anything about who else attends.`
       : '',
     '',
-    ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
+    // ⚑ 3 Oct (piece 5) — ONE JOB EACH replaces the per-step angles when the programme's direction is approved.
+    ...(opts?.jobs && opts.jobs.length === plan.depth
+      ? opts.jobs.map((j, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}) — ONE JOB EACH — ${j.job.toUpperCase()}: ${j.guidance}`)
+      : plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`)),
     // ⚑ 24 Sep (R157) — the founder's problem → impact → return → solution, on every meeting email.
-    plan.purpose === 'meeting' ? `\n${VALUE_SPINE}` : '',
+    // ⛓️ 3 Oct (piece 5) — told ACROSS the five emails instead, when they have one job each.
+    opts?.jobs && opts.jobs.length === plan.depth ? `\n${JOBS_SPINE}` : plan.purpose === 'meeting' ? `\n${VALUE_SPINE}` : '',
     // ── P31 · THE BOOKING LINK ENTERS ONLY AFTER POSITIVE INTENT ────────────────────────
     //
     // Founder doctrine, 21 Aug: "the calendar/booking link enters only AFTER positive intent".

@@ -343,6 +343,8 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         body: String(st.body ?? ''),
         /** Days after this message before the next one. The final step's own wait is unused. */
         wait_days: Number.isFinite(st.wait_days as number) ? Number(st.wait_days) : 0,
+        /** ⚑ 3 Oct (piece 5) — the email's one job, on a programme written to an approved direction. */
+        ...(typeof (st as { job?: unknown }).job === 'string' ? { job: String((st as { job: string }).job) } : {}),
       })),
       /** How many prospects the frozen set holds — the exact population being approved. */
       prospects: frozenLeadIds.length,

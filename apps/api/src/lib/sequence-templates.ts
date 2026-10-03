@@ -191,6 +191,28 @@ export const VALUE_SPINE = [
   'Keep all four inside the step\'s word limit. Short sentences. No step may skip the problem or the impact.',
 ].join('\n')
 
+/**
+ * ⚑ 3 Oct (sequencing piece 5 — the founder's blueprint view 6; R195 plan ⑤, founder "GO 3–7").
+ * FIVE EMAILS, ONE JOB EACH, for a programme with an approved direction: problem → impact →
+ * solution → proof → ask. Each email does only its own job; the five tell one story together.
+ * ⛓️ This AMENDS R157's "every email carries the whole value spine" FOR THOSE PROGRAMMES ONLY —
+ * every other sequence keeps `VALUE_SPINE` exactly as before.
+ */
+export const DIRECTION_JOBS = [
+  { job: 'Problem', guidance: 'Name the ONE problem from the approved direction, the way this person would say it. No pitch yet. End on one low-friction question about it.' },
+  { job: 'Impact', guidance: 'What that problem costs them — time, missed work, lost visibility — from the approved direction. Describe it, never quantify it. One low-friction question.' },
+  { job: 'Solution', guidance: 'Our answer from the approved direction, in plain words: what changes for them. One low-friction question.' },
+  { job: 'Proof', guidance: 'Only the proof the approved direction allows. If it says no result is quoted, describe how it works instead — never invent a result, number, percentage or customer. One low-friction question.' },
+  { job: 'Ask', guidance: 'The approved direction\'s ask — small and specific — with an easy way to say no. This is the last email.' },
+] as const
+export type DirectionJob = typeof DIRECTION_JOBS[number]['job']
+
+export const JOBS_SPINE = [
+  'THESE FIVE EMAILS HAVE ONE JOB EACH (the client approved this direction): problem → impact → solution → proof → ask.',
+  'Each email does ONLY its own job, and the five read as one story to one person. Keep the problem and its cost in view; never repeat the same email five ways.',
+  'NEVER a number, percentage, price, result, timeframe or customer of our own — none may be invented. The ONLY exception is a result the grounding marks as PERMITTED to quote, used exactly as stated.',
+].join('\n')
+
 /** The per-purpose step briefs, written at depth 7 and trimmed to the chosen depth. */
 const PURPOSE_STEPS: Record<SequencePurpose, string[]> = {
   // ── P31 · THE MEETING SEQUENCE SELLS THE RESPONSE ────────────────────────────────────────

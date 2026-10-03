@@ -63,7 +63,7 @@ export type FrozenWork = {
    */
   version_number?: number | null
   at: string | null
-  messages: { step: number; subject: string; body: string; wait_days: number }[]
+  messages: { step: number; subject: string; body: string; wait_days: number; job?: string }[]
   prospects: number
   send_schedule: unknown
   /**
@@ -441,11 +441,22 @@ export default function ProgrammeApproval({
           {/* ── #78 · REVIEW FULL SEQUENCE — the frozen words, read from the snapshot. */}
           {showAll && frozen && frozen.messages.length > 0 && (
             <div className="mt-3 flex flex-col gap-1.5">
+              {/* ⚑ 3 Oct (piece 5 — the founder's blueprint view 6) — one job per email, one story. */}
+              {frozen.messages.some(m => m.job) && (
+                <div data-testid="one-job-each" className="flex items-center gap-2 flex-wrap">
+                  <b className="text-[11px]">{frozen.messages.length} emails · one person · one story</b>
+                  <span className="mv-muted-note">Each email has one job, written to the direction you approved.</span>
+                  <span className="ml-auto text-[9.5px] font-extrabold uppercase text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">Max 5 / person</span>
+                </div>
+              )}
               {frozen.messages.map((m, i) => (
                 <div key={m.step} className="border border-[color:var(--mv-line)] rounded-[10px]">
                   <button type="button" onClick={() => setOpen(open === i ? null : i)}
                     className="w-full text-left px-3 py-2 flex items-baseline justify-between gap-3">
-                    <span className="text-[10.5px] font-bold truncate">{m.subject || '(no subject)'}</span>
+                    <span className="flex items-baseline gap-2 min-w-0">
+                      {m.job && <span className="text-[9.5px] font-extrabold uppercase text-[#6f3df4] bg-[#f3edff] rounded-full px-2 py-0.5 shrink-0">{i + 1} · {m.job}</span>}
+                      <span className="text-[10.5px] font-bold truncate">{m.subject || '(no subject)'}</span>
+                    </span>
                     <span className="mv-muted-note shrink-0">{whenLabel(frozen.messages, i)}</span>
                   </button>
                   {open === i && <p className="px-3 pb-2.5 text-[10.5px] text-[color:var(--mv-muted)] whitespace-pre-wrap">{m.body}</p>}

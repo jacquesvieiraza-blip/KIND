@@ -582,7 +582,9 @@ programmeRouter.get('/:id/wording', guard(async (req: Request, res: Response) =>
     gate_on: founderGateOn(),
     version: row.review_preparation_hash, version_number: row.review_preparation_version,
     sample: who ? { name: [who.first_name, who.last_name].filter(Boolean).join(' ') || null, company: who.company ?? null } : null,
-    emails: steps.map((st, i) => ({ step: i + 1, subject: fill(String(st.subject ?? '')), body: fill(String(st.body ?? '')), wait_days: Number(st.wait_days ?? 0) })),
+    emails: steps.map((st, i) => ({ step: i + 1, subject: fill(String(st.subject ?? '')), body: fill(String(st.body ?? '')), wait_days: Number(st.wait_days ?? 0),
+      // ⚑ 3 Oct (piece 5) — the email's one job, on a programme written to an approved direction.
+      ...(typeof (st as { job?: unknown }).job === 'string' ? { job: String((st as { job: string }).job) } : {}) })),
     approved: !aErr && ((approvals ?? []) as { snapshot_hash: string }[]).some(a => a.snapshot_hash === row.review_preparation_hash),
     approvals: aErr ? null : approvals,
     approvals_unreadable: aErr ? `${aErr.message} — run migration ${FOUNDER_APPROVAL_MIGRATION}` : null,

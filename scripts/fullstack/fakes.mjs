@@ -379,7 +379,10 @@ const anthropicHandler = async (req, body, res, state) => {
     })
     return json(res, 200, {
       id: 'msg_fake_sequence', type: 'message', role: 'assistant', model: 'fake-harness-model',
-      content: [{ type: 'text', text: JSON.stringify({ step1: step(1), step2: step(2), step3: step(3) }) }],
+      // ⚑ 3 Oct (piece 5) — a programme written to an approved direction asks for FIVE emails, one job each.
+      content: [{ type: 'text', text: JSON.stringify(prompt.includes('ONE JOB EACH')
+        ? { step1: step(1), step2: step(2), step3: step(3), step4: step(4), step5: step(5) }
+        : { step1: step(1), step2: step(2), step3: step(3) }) }],
       stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
     }), true
   }

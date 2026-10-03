@@ -855,7 +855,16 @@ export function makeJourneyChecks(kit) {
     if (!prepared.review_preparation_version) {
       return bad(id, 'the preparation carries no version — an approval could not be tied to what was approved')
     }
-    ok(id, `campaign preparation ran server-side and recorded WHAT was prepared: snapshot stored, version ${prepared.review_preparation_version}, at ${prepared.review_preparation_at} · HTTP ${r.status}`)
+    // ⚑ 3 Oct (sequencing piece 5) — the client approved a direction in J11, so the prepared
+    // version is five emails with one job each, in order, and the job travels with the freeze.
+    const [jobs] = await sql(
+      `select string_agg(s->>'job', ',' order by ord) as jobs
+         from public.programmes p, jsonb_array_elements(p.review_preparation_snapshot->'steps') with ordinality as t(s, ord)
+        where p.id = $1`, [W.programmeId])
+    if (jobs?.jobs !== 'Problem,Impact,Solution,Proof,Ask') {
+      return bad(id, `the prepared version is not five emails with one job each (jobs: ${jobs?.jobs ?? 'none'}) — the approved direction did not reach the writer`)
+    }
+    ok(id, `campaign preparation ran server-side and recorded WHAT was prepared: snapshot stored (five emails: Problem, Impact, Solution, Proof, Ask), version ${prepared.review_preparation_version}, at ${prepared.review_preparation_at} · HTTP ${r.status}`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════

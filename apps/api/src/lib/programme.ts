@@ -825,12 +825,14 @@ export async function recordFirstPayment(params: {
    * session may have been created days ago.
    */
   walletCreditCents?: number
-}): Promise<{ ok: boolean; alreadyRecorded?: boolean; reason?: string }> {
+}): Promise<{ ok: boolean; alreadyRecorded?: boolean; duplicate?: boolean; reason?: string }> {
   const p = await getProgramme(params.programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.first_payment_ref === params.sessionId) return { ok: true, alreadyRecorded: true }
+  // ⚑ 2 Oct (#2561 · 14b) — `duplicate`: the client PAID a second time for a stage already
+  // paid. A retry can never record it, so the webhook must stop retrying and tell the founder.
   if (p.first_payment_ref) {
-    return { ok: false, reason: 'This programme already has a different first payment recorded.' }
+    return { ok: false, duplicate: true, reason: 'This programme already has a different first payment recorded.' }
   }
   // 🛑 XOR. A stage holds ONE authority. The DB CHECK would reject this write anyway —
   // refusing here turns a constraint violation into a sentence a human can read, and keeps
@@ -969,7 +971,7 @@ export async function recordSecondPayment(params: {
   sessionId: string
   paymentIntentId?: string | null
 }): Promise<{
-  ok: boolean; alreadyRecorded?: boolean; recordedNotLive?: boolean; reason?: string
+  ok: boolean; alreadyRecorded?: boolean; recordedNotLive?: boolean; duplicate?: boolean; reason?: string
   /** ⚑ What preparation achieved. `preparationIncomplete` means PAID + LIVE but not operable. */
   preparation?: import('./programme-preparation').PrepareResult
   preparationIncomplete?: boolean
@@ -980,7 +982,7 @@ export async function recordSecondPayment(params: {
     return { ok: true, alreadyRecorded: true, recordedNotLive: p.went_live_at === null }
   }
   if (p.second_payment_ref) {
-    return { ok: false, reason: 'This programme already has a different second payment recorded.' }
+    return { ok: false, duplicate: true, reason: 'This programme already has a different second payment recorded.' }
   }
   // 🛑 XOR — see recordFirstPayment.
   if (p.second_authorised_at) {

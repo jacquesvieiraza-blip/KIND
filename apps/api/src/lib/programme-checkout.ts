@@ -85,9 +85,15 @@ export async function createProgrammeCheckoutSession(params: {
   // ⚑ 2 Oct (#2560 · R189 ②) — THE FOUNDER HEARS AT THE FIRST PAYMENT IF THE CLIENT'S TWO
   // MAILBOXES ARE NOT THERE. ⛓️ 3 Oct: this REFUSED the payment; R189 ⑧ says the client pays in
   // full at Recommendation, so it now only tells the founder (see `warnIfMailboxesShort`).
+  // ⚑ 3 Oct — and a warning can never cost the client the payment: if the check itself fails,
+  // that is logged and the checkout goes ahead (R189 ⑧).
   if (params.stage === 'programme_first') {
-    const { warnIfMailboxesShort } = await import('./sender-claim')
-    await warnIfMailboxesShort(params.clientId)
+    try {
+      const { warnIfMailboxesShort } = await import('./sender-claim')
+      await warnIfMailboxesShort(params.clientId)
+    } catch (err) {
+      console.error(`[programme-checkout] the mailbox check failed for client ${params.clientId}; the payment goes ahead —`, err instanceof Error ? err.message : err)
+    }
   }
   try {
     const owedCents = Number.isFinite(params.quotedCents) ? Math.floor(params.quotedCents) : 0

@@ -50,7 +50,21 @@ describe('4c — Milla withholds and the server re-decides', () => {
     expect(route.indexOf("error: 'awaiting_founder'")).toBeGreaterThan(-1)
     expect(route.indexOf("error: 'awaiting_founder'")).toBeLessThan(route.indexOf('approveProgrammeAsCustomer('))
   })
-  it('the client is told plainly what is happening', () => {
-    expect(UI).toContain('Our team is checking your emails before you see them.')
+  // ⛓️ 3 Oct (review S8): was 'Our team is checking your emails before you see them.' — now R189 ⑧'s
+  // ruled words, which are also true on a live programme with a new version.
+  it('the client is told plainly what is happening, in R189 ⑧\'s words', () => {
+    expect(UI).toContain('Your emails are with our team for a final check, usually within 1 working day.')
+  })
+})
+
+// ⚑ 3 Oct (review S8 · RUNTIME: the real Approval screen showed the client nothing at all) — the
+// panel was mounted only when `canApprove`, which is false until the founder approves.
+describe('4a·2 — the client waiting on the founder SEES the notice', () => {
+  const PAGE = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
+  it('the approval panel opens while the founder is checking, at the approval stage', () => {
+    expect(PAGE).toContain("&& (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (")
+  })
+  it('the demo keeps its emails and its Approve button', () => {
+    expect(readFileSync(join(__dirname, 'founder-approval.ts'), 'utf8')).toContain('if (clientId && await isDemoProgrammeClient(clientId)) return true')
   })
 })

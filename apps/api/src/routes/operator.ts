@@ -4945,6 +4945,33 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
 // The password is encrypted here and never read back out. A blank `smtp_pass` means "leave
 // the stored one alone", so an operator can correct a typo'd port without re-typing the
 // password — the alternative is people pasting passwords more often than they need to.
+// ⚑ 3 Oct (#2552 · R185 ③ — *"Q5. Yes 50."*) — A MAILBOX'S DAILY LIMIT, SET IN VIDA. The founder's
+// setup card asked for "one SQL line" to set House's mailboxes to 50 a day; ad-hoc SQL is never the
+// way (O3 — the migration runner is the only sanctioned write outside the app). The limit is not
+// part of the approved preparation (the sender is its id and address), so changing it never stops
+// an approved programme. 1–100: R185 ③ sets 100 a day per client.
+operatorRouter.post('/inboxes/:id/daily-cap', async (req: Request, res: Response) => {
+  try {
+    const { client_id, daily_cap } = (req.body ?? {}) as Record<string, unknown>
+    const client = await requireClient(client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { parseDailyCap } = await import('../lib/inbox-limits')
+    const parsed = parseDailyCap(daily_cap)
+    if (!parsed.ok) { res.status(400).json({ success: false, error: parsed.error }); return }
+    const { data, error } = await db.from('client_inboxes')
+      .update({ daily_cap: parsed.cap, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id).eq('client_id', client.id)
+      .select('id, email, daily_cap').maybeSingle()
+    if (error) { res.status(503).json({ success: false, error: `The limit could not be saved (${error.message}). Nothing changed.` }); return }
+    if (!data) { res.status(404).json({ success: false, error: 'Inbox not found for this client' }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: req.params.id, detail: { daily_cap: parsed.cap },
+    })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/inbox-daily-cap]', err); res.status(500).json({ success: false, error: 'Failed to save the daily limit' }) }
+})
+
 operatorRouter.post('/inboxes/:id/credentials', async (req: Request, res: Response) => {
   try {
     const { client_id, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, from_name } =

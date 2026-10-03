@@ -1121,6 +1121,14 @@ export default function VidaEnginePage() {
                         Switch live
                       </button>
                     )}
+                    {/* ⚑ 3 Oct (#2552) — the daily limit, set here rather than by hand-typed SQL. */}
+                    {i.status !== 'released' && i.status !== 'retired' && (
+                      <button onClick={() => {
+                        const v = window.prompt(`Daily limit for ${i.email} (1–100 emails a day)`, String(i.daily_cap ?? 50))
+                        if (v !== null && v.trim() !== '') void post(`inboxes/${i.id}/daily-cap`, { client_id: i.client_id, daily_cap: Number(v) }, i.id)
+                      }} disabled={busy === i.id}
+                        className="text-[11.5px] font-bold text-[#7C3AED] disabled:opacity-50">Daily limit</button>
+                    )}
                     {i.status !== 'released' && (
                       <button onClick={() => post(`inboxes/${i.id}/status`, { client_id: i.client_id, status: 'released' }, i.id)} disabled={busy === i.id}
                         className="text-[11.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Release</button>

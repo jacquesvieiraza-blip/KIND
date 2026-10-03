@@ -331,43 +331,43 @@ export function mailboxGate(held: number, free: number): { ok: true; need: numbe
   return free >= need ? { ok: true, need } : { ok: false, need }
 }
 
-/** The client-facing refusal: plain, true, and clear that nothing was charged. */
-export const MAILBOX_NOT_READY_COPY =
-  "We can't take your payment just yet: the sending mailboxes for your programme aren't ready. Our team has been told and will be in touch shortly. Nothing has been charged."
-
 /**
- * Asked by the payment door before a first payment's checkout is opened. Refuses (and tells the
- * founder) when the client could not be given their two mailboxes; warns the founder when the
- * pool would be left with fewer than two free. An unreadable answer refuses — taking money on a
- * guess is the defect this exists to stop.
+ * ⛓️ 3 Oct (review S16) — THE PAYMENT IS NEVER REFUSED FOR A MAILBOX. The first version turned
+ * a buying client away at the till ("We can't take your payment just yet"). R189 ⑧ rules that
+ * *"a client still pays in full at Recommendation"*, and R189 ② only needs the mailboxes *"set
+ * up before approval"* — which preparation already enforces (no sender → nothing to approve).
+ * So the payment always goes ahead and the founder is told AT ONCE, while there is still the
+ * whole preparation to add a mailbox in; the client is held before approval, never at the till.
+ * An unreadable answer tells the founder too: a guess is never silent.
  */
-export async function mailboxesReadyForPayment(clientId: string, now = new Date()): Promise<{ ok: true } | { ok: false; detail: string }> {
+export async function warnIfMailboxesShort(clientId: string, now = new Date()): Promise<'enough' | 'short' | 'unreadable'> {
   const { sendFounderAlert } = await import('./alerts')
   const { data: held, error } = await db.from('client_inboxes')
     .select('id').eq('client_id', clientId).in('status', LIVE_CLAIM_STATUSES as unknown as string[])
   const stock = await pooledSenderStock()
   if (error || !stock.ok) {
     const why = error ? error.message : (stock as { detail: string }).detail
-    void sendFounderAlert('payment_failed', 'A client could not pay: their mailboxes could not be checked', [
-      `Client ${clientId}. ${why}`, 'The checkout was not opened, so nothing was charged.',
-    ], { clientId, dedupeKey: `mailbox_gate_unreadable:${clientId}` }).catch(() => {})
-    return { ok: false, detail: why }
+    void sendFounderAlert('support_escalation', 'A client is paying and their mailboxes could not be checked', [
+      `Client ${clientId}. ${why}`,
+      'The payment goes ahead. Check in Vida → Engine that two mailboxes are free for them before their emails are prepared (R189 ②).',
+    ], { clientId, dedupeKey: `mailbox_check_unreadable:${clientId}` }).catch(() => {})
+    return 'unreadable'
   }
   const gate = mailboxGate((held ?? []).length, stock.free)
   const day = now.toISOString().slice(0, 10)
   if (!gate.ok) {
-    void sendFounderAlert('payment_failed', 'A client tried to pay and no sending mailbox was free', [
+    void sendFounderAlert('support_escalation', 'A client is paying and there are not enough sending mailboxes for them', [
       `Client ${clientId} needs ${gate.need} more mailbox${gate.need === 1 ? '' : 'es'} (R189 ②: two per client); the pool has ${stock.free} free of ${stock.total}.`,
-      'Their checkout was refused, so nothing was charged. Add mailboxes to POOLED_SENDERS_JSON in Railway, then ask them to pay again.',
-    ], { clientId, dedupeKey: `mailbox_gate_refused:${clientId}:${day}` }).catch(() => {})
-    return { ok: false, detail: `needs ${gate.need}, ${stock.free} free` }
+      'The payment goes ahead. Add mailboxes to POOLED_SENDERS_JSON in Railway now — until then their emails cannot be prepared for approval.',
+    ], { clientId, dedupeKey: `mailbox_short:${clientId}:${day}` }).catch(() => {})
+    return 'short'
   }
   const left = stock.free - gate.need
   if (left < 2) {
-    void sendFounderAlert('sends_stalled', `Only ${left} pooled sending mailbox${left === 1 ? '' : 'es'} left`, [
+    void sendFounderAlert('support_escalation', `Only ${left} pooled sending mailbox${left === 1 ? '' : 'es'} left`, [
       `After this client's two, ${left} of ${stock.total} pooled mailboxes will be free. Each new client needs two (R189 ②).`,
       'Add mailboxes to POOLED_SENDERS_JSON in Railway before the next client pays.',
     ], { dedupeKey: `mailbox_pool_low:${day}` }).catch(() => {})
   }
-  return { ok: true }
+  return 'enough'
 }

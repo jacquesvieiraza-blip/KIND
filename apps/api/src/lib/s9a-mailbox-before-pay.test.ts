@@ -1,4 +1,9 @@
-// 9a (#2560 · R189 ②) — NO FIRST PAYMENT WITHOUT THE CLIENT'S TWO MAILBOXES.
+// 9a (#2560 · R189 ②) — THE FOUNDER HEARS AT THE FIRST PAYMENT IF THE CLIENT'S TWO MAILBOXES ARE NOT THERE.
+//
+// ⛓️ 3 Oct (review S16): this was "NO FIRST PAYMENT WITHOUT THE CLIENT'S TWO MAILBOXES" and the
+// door refused the checkout. R189 ⑧: *"a client still pays in full at Recommendation"*; the
+// mailboxes are needed before APPROVAL (R189 ②), which preparation already enforces. The intent —
+// nobody pays and waits unseen — is kept by telling the founder at once; the payment goes ahead.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -28,7 +33,7 @@ vi.mock('./sender-pool', () => ({
 vi.mock('./inbox-secret', () => ({ encryptSecret: (s: string) => s }))
 vi.mock('./alerts', () => ({ sendFounderAlert: async (_k: string, subject: string, _l: string[], about?: { dedupeKey?: string }) => { alerts.push({ subject, key: about?.dedupeKey }); return { delivered: true } } }))
 
-import { mailboxGate, mailboxesReadyForPayment, pooledSenderStock, MAILBOXES_PER_CLIENT, MAILBOX_NOT_READY_COPY } from './sender-claim'
+import { mailboxGate, warnIfMailboxesShort, pooledSenderStock, MAILBOXES_PER_CLIENT } from './sender-claim'
 
 beforeEach(() => { held = []; live = []; readErr = false; alerts.length = 0 })
 
@@ -47,34 +52,32 @@ describe('9a — the payment door', () => {
     live = [{ email: 'a@p.com' }, { email: 'B@p.com ' }]
     expect(await pooledSenderStock()).toEqual({ ok: true, total: 4, free: 2 })
   })
-  it('enough free → may pay; leaving fewer than 2 free → the founder is warned', async () => {
+  it('enough free → nothing to say; leaving fewer than 2 free → the founder is warned', async () => {
     live = [{ email: 'a@p.com' }]          // 3 free, client takes 2, 1 left
-    expect(await mailboxesReadyForPayment('c1', new Date('2026-10-02T09:00:00Z'))).toEqual({ ok: true })
+    expect(await warnIfMailboxesShort('c1', new Date('2026-10-02T09:00:00Z'))).toBe('enough')
     expect(alerts).toEqual([{ subject: 'Only 1 pooled sending mailbox left', key: 'mailbox_pool_low:2026-10-02' }])
   })
-  it('not enough free → refused, and the founder is told who and how many', async () => {
+  it('not enough free → the founder is told who and how many, and the payment is NOT refused', async () => {
     live = [{ email: 'a@p.com' }, { email: 'b@p.com' }, { email: 'c@p.com' }]
-    const r = await mailboxesReadyForPayment('c1')
-    expect(r.ok).toBe(false)
-    expect(alerts[0].subject).toBe('A client tried to pay and no sending mailbox was free')
+    expect(await warnIfMailboxesShort('c1')).toBe('short')
+    expect(alerts[0].subject).toBe('A client is paying and there are not enough sending mailboxes for them')
   })
-  it('unreadable → refused, never a guess', async () => {
+  it('unreadable → the founder is told; never silent', async () => {
     readErr = true
-    expect((await mailboxesReadyForPayment('c1')).ok).toBe(false)
-  })
-  it('the client is told plainly that nothing was charged', () => {
-    expect(MAILBOX_NOT_READY_COPY).toMatch(/Nothing has been charged\.$/)
+    expect(await warnIfMailboxesShort('c1')).toBe('unreadable')
+    expect(alerts[0].subject).toBe('A client is paying and their mailboxes could not be checked')
   })
 })
 
 describe('9a — wired in', () => {
-  it('the only Stripe door asks before a first payment; Vida shows the free count', async () => {
+  it('the only Stripe door tells the founder before a first payment, and never returns on it; Vida shows the free count', async () => {
     const { readFileSync } = await import('fs')
     const { join } = await import('path')
     const door = readFileSync(join(__dirname, 'programme-checkout.ts'), 'utf8')
-    const ask = door.indexOf('await mailboxesReadyForPayment(params.clientId)')
+    const ask = door.indexOf('await warnIfMailboxesShort(params.clientId)')
     expect(ask).toBeGreaterThan(-1)
     expect(door.indexOf('stripe.checkout.sessions.create(')).toBeGreaterThan(ask)
+    expect(door).not.toContain('MAILBOX_NOT_READY_COPY')
     expect(readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')).toContain('pooled_stock:')
     expect(readFileSync(join(__dirname, '../../../admin/src/app/vida/engine/page.tsx'), 'utf8')).toContain('Pooled mailboxes free:')
   })

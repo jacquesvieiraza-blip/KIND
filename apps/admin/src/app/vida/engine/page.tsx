@@ -896,14 +896,14 @@ export default function VidaEnginePage() {
             #565 shape. The verdict is now stated either way, and the colour separates
             "a job for you" from "not this client's problem": a missing INBOX_SECRET_KEY
             kills EVERY client, and an unknown state is never painted calm. */}
-        {/* ⚑ 2 Oct (#2560 · R189 ②) — every client needs two mailboxes before they can pay, so the
+        {/* ⚑ 2 Oct (#2560 · R189 ②) — every client needs two mailboxes before their emails can be approved, so the
             free pooled count is stated, and turns red below two. */}
         {e.pooled_stock !== undefined && (
           <div className={`rounded-xl border px-3.5 py-2 mb-4 ${e.pooled_stock && e.pooled_stock.free >= 2 ? 'border-emerald-200 bg-emerald-50' : 'border-red-300 bg-red-50'}`}>
             <b className="text-[12.5px]">
               {e.pooled_stock ? `Pooled mailboxes free: ${e.pooled_stock.free} of ${e.pooled_stock.total}` : 'Pooled mailboxes: could not be counted'}
             </b>
-            <p className="text-[11.5px] mt-0.5">Each new client needs two (R189). A client cannot pay while fewer are free than they need.</p>
+            <p className="text-[11.5px] mt-0.5">Each new client needs two (R189). A paying client waits for their emails until two are free — you are told the moment they pay.</p>
           </div>
         )}
         {(e.readiness?.length ?? 0) > 0 && (

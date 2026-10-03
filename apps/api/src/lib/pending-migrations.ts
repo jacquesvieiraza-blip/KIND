@@ -7413,6 +7413,19 @@ CREATE TABLE IF NOT EXISTS public.founder_wording_approvals (
 CREATE INDEX IF NOT EXISTS founder_wording_approvals_programme_idx ON public.founder_wording_approvals (programme_id);
 ALTER TABLE public.founder_wording_approvals ENABLE ROW LEVEL SECURITY;
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2564 · R191) — THE CLIENT'S "REPLY RECEIVED" SWITCH ─────────────────────────
+    // The reply webhook obeys it, and a webhook cannot read a browser. EXPAND ONLY: one nullable
+    // boolean, no DEFAULT — NULL reads as ON, so applying it changes nobody's mail.
+    key: '20261002_reply_received_pref',
+    title: 'clients.reply_received_emails_enabled — the client\'s "Reply received" switch (#2564)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS reply_received_emails_enabled boolean;
+
+COMMENT ON COLUMN public.clients.reply_received_emails_enabled IS
+  'The client''s "Reply received" switch. NULL = never chose = on. false = no email or phone alert when a prospect sounds interested.';
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

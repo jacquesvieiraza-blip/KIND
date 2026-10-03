@@ -166,6 +166,8 @@ describe('② every outbound path asks one of the two doors', () => {
       'sendCampaignPausedEmail', 'sendWeeklyLeadsDigest', 'sendFirstLeadsReadyEmail',
       'sendOnboardingEmail', 'sendWelcomeEmail', 'sendSeatInviteEmail', 'sendPartnerInvite',
       'sendPartnerLiveEmail', 'sendPushToClient', 'sendNurtureEmail',
+      // ⚑ 2 Oct (#2564) — tells the CLIENT a prospect sounds interested; never to a prospect.
+      'sendInterestedReplyEmail',
       // A human answering a human. `mayReplyToProspect` governs it, and a reply is deliberately
       // NOT blocked by a preparation change — see the note in ③.
       'sendManualReply',

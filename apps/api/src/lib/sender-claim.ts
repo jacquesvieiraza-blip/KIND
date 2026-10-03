@@ -105,6 +105,28 @@ export async function claimPooledSender(clientId: string): Promise<SenderClaim> 
     return { ok: false, reason: 'already_has_sender', inboxId: existing.id, email: existing.email }
   }
 
+  return claimFromPool(clientId)
+}
+
+/**
+ * ⚑ 2 Oct (#2559 · R189 ②) — the SECOND pooled mailbox. R189 ②: each client gets two
+ * mailboxes, set up before approval and approved together. Claims one more when the client
+ * holds fewer than two that can send (pooled, or branded and active); otherwise does nothing.
+ */
+export async function claimSecondPooledSender(clientId: string): Promise<SenderClaim | { ok: true; skipped: 'already_two' }> {
+  const { data, error } = await db.from('client_inboxes')
+    .select('id, kind, status').eq('client_id', clientId)
+    .in('status', LIVE_CLAIM_STATUSES as unknown as string[])
+  if (error) return { ok: false, reason: 'unreadable', detail: `the client's mailboxes could not be read (${error.message})` }
+  const sending = ((data ?? []) as { kind: string | null; status: string | null }[])
+    .filter(r => r.kind !== 'branded' || r.status === 'active').length
+  if (sending >= 2) return { ok: true, skipped: 'already_two' }   // R189 ②: two per client
+  if (sending === 0) return claimPooledSender(clientId)
+  return claimFromPool(clientId)
+}
+
+/** Steps ②–⑤: pick a free pooled mailbox, claim it, and prove it can log in. */
+async function claimFromPool(clientId: string): Promise<SenderClaim> {
   // ── ② WHAT IS AVAILABLE AT ALL? ────────────────────────────────────────────────────────
   const pool = senderPoolFromEnv()
   if (pool.problems.length > 0) {

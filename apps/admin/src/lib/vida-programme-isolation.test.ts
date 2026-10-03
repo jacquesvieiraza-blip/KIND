@@ -684,14 +684,18 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // `POST /programmes/:id/resume` (the route existed; nothing in Vida called it). It targets
       // `prog.programme.id` while its dialog names the SELECTED client, so it passes the same gate.
       'const resumeProgramme = useCallback(async () => {',
+      // ⛓️ 3 Oct (R191 4b · #2544) — REGISTERED HERE. `liveReword` posts `refreeze-live` or
+      // `house-approved-emails` on a LIVE, paused programme's id, so it passes the same gate.
+      'const liveReword = useCallback(async (path: \'refreeze-live\' | \'house-approved-emails\', ask: string) => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
     // Thirteen call sites, and no fourteenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
     // 9 → 10 on 24 Sep (rewrite messages); 10 → 12 on 25 Sep (resolve review, raise limit);
     // 12 → 13 on 29 Sep (resume); 13 → 14 on 3 Oct (#2542 · R186 ③ — the founder's approval panel
-    // takes its programme id from this gate, so it only ever approves the client on screen).
-    expect(code.split('programmeActionId()').length - 1).toBe(14)
+    // takes its programme id from this gate, so it only ever approves the client on screen);
+    // 14 → 15 on 3 Oct (R191 4b — `liveReword`, a live programme's new version).
+    expect(code.split('programmeActionId()').length - 1).toBe(15)
     expect(code).toContain('const id = programmeActionId(); return id ? <FounderWordingApproval key={id} programmeId={id} /> : null')
   })
 
@@ -709,6 +713,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       'const raiseCeiling = useCallback(async () => {',
       // ⛓️ 29 Sep (R174 · 2a) — Resume's dialog names the client, so the gate comes first.
       'const resumeProgramme = useCallback(async () => {',
+      // ⛓️ 3 Oct (R191 4b · #2544) — REGISTERED HERE. `liveReword` posts `refreeze-live` or
+      // `house-approved-emails` on a LIVE, paused programme's id, so it passes the same gate.
+      'const liveReword = useCallback(async (path: \'refreeze-live\' | \'house-approved-emails\', ask: string) => {',
     ]) {
       const body = fnBody(code, fn)
       const gate = body.indexOf('programmeActionId()')
@@ -769,8 +776,9 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     // carries the same generation-scoped finalizer.
     // ⛓️ 24 Sep — NINE: `rewriteMessages` is a programme-id action with the same finalizer.
     // ⛓️ 29 Sep (R174 · 2a) — TEN: `resumeProgramme` is a programme-id action with the same finalizer.
+    // ⛓️ 3 Oct (R191 4b) — ELEVEN: `liveReword` is a programme-id action with the same finalizer.
     expect(settlers.filter(x => x === 'settleBusy'),
-      'a programme-id action lost its generation-scoped finalizer').toHaveLength(10)
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(11)
     // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
     // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
     // with the guarded four but is likewise not a programme-id action — it posts

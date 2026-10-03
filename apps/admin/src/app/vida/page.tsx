@@ -1203,6 +1203,27 @@ export default function VidaConsolePage() {
     return !!p && !selectedIsDemo() && p.status === 'READY_FOR_APPROVAL' && !p.approved_at && !p.paused_at && prog?.preparing !== true
   }
 
+  // ⚑ 2 Oct (#2544 · item 6 · R191 4b) — CHANGING THE WORDS OF A LIVE, PAUSED PROGRAMME. Both
+  // produce a new version that goes founder (the panel below) → client (Milla) → Resume.
+  const liveReword = useCallback(async (path: 'refreeze-live' | 'house-approved-emails', ask: string) => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    if (!confirm(ask)) return
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    setLcBusy(path); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/${path}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Nothing was changed.')
+      say(String(j.message ?? 'Done.'))
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'Nothing was changed.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, loadProgramme])
+
   const rewriteMessages = useCallback(async () => {
     const id = programmeActionId()
     if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
@@ -4571,6 +4592,16 @@ export default function VidaConsolePage() {
                           <button onClick={() => void resumeProgramme()} disabled={lcBusy !== null}
                             className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
                             {lcBusy === 'resume' ? '…' : 'Resume'}</button>
+                        )}
+                        {prog.programme.status === 'LIVE' && prog.programme.paused_at && (
+                          <>
+                            <button onClick={() => void liveReword('house-approved-emails', "Put House's approved 8 Sep emails on this live programme?\n\nEvery person's remaining emails become the approved ones (people already emailed keep their place). A new version is made for you to approve here, then once in Milla. Nothing is sent; the programme stays paused. Only works for House.")} disabled={lcBusy !== null}
+                              className="text-[12.5px] font-bold text-[#7C3AED] bg-white border border-[#d9ccf5] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                              {lcBusy === 'house-approved-emails' ? '…' : "Use House's approved emails"}</button>
+                            <button onClick={() => void liveReword('refreeze-live', 'Make a new version of this live programme for approval?\n\nIt captures the emails and people as they are now. You approve it here, then the client approves it in Milla, then you resume. Nothing is sent.')} disabled={lcBusy !== null}
+                              className="text-[12.5px] font-bold text-[#7C3AED] bg-white border border-[#d9ccf5] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                              {lcBusy === 'refreeze-live' ? '…' : 'New version for approval'}</button>
+                          </>
                         )}
                         {canRewriteMessages() && (
                           <button onClick={() => void rewriteMessages()} disabled={lcBusy !== null}

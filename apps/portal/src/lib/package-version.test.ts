@@ -35,7 +35,9 @@ describe('🛑 the Approval screen updates itself', () => {
   })
 
   it('re-reads the package on a timer and when the client comes back to the tab — only while awaiting approval', () => {
-    expect(APPROVAL).toContain('const watching = data.canApprove && !data.programme?.approved_at')
+    // ⛓️ 3 Oct (R191 4b · #2544): was `data.canApprove && !data.programme?.approved_at` — a live
+    // programme's new version (`reapproval`) is awaiting approval too, so it is watched as well.
+    expect(APPROVAL).toContain('const watching = data.canApprove && (!data.programme?.approved_at || data.reapproval === true)')
     expect(APPROVAL).toContain("api.get<{ data: ApprovalPayload }>('/my/programme/review'")
     expect(APPROVAL).toContain('setInterval(() => { void check() }, PACKAGE_CHECK_MS)')
     expect(APPROVAL).toContain("document.addEventListener('visibilitychange', onReturn)")

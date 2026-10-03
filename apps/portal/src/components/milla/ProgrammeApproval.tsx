@@ -139,6 +139,8 @@ export type ApprovalPayload = {
   canApprove: boolean
   /** ⚑ 2 Oct (#2542 · 4c) — the founder has not approved this version yet; the emails are withheld. */
   awaiting_founder?: boolean
+  /** ⚑ 2 Oct (#2544 · R191 4b) — a live programme's changed emails, waiting for the client again. */
+  reapproval?: boolean
 }
 
 /**
@@ -191,7 +193,7 @@ export default function ProgrammeApproval({
   // whenever they come back to the tab. A different frozen version replaces what is on screen and
   // Milla says so in the chat, once per version. A failed check is simply tried again; the server
   // still refuses an approval of a version the client was not shown.
-  const watching = data.canApprove && !data.programme?.approved_at
+  const watching = data.canApprove && (!data.programme?.approved_at || data.reapproval === true)
   const shownVersion = data.frozen?.version ?? null
   useEffect(() => {
     if (!watching) return
@@ -220,7 +222,7 @@ export default function ProgrammeApproval({
       window.removeEventListener('focus', onReturn)
     }
   }, [watching, shownVersion, keepNotice])
-  const canApproveNow = data.canApprove && !data.programme?.approved_at
+  const canApproveNow = data.canApprove && (!data.programme?.approved_at || data.reapproval === true)
   useEffect(() => {
     if (!canApproveNow) return
     announceOnce('approval-intro', [
@@ -327,7 +329,10 @@ export default function ProgrammeApproval({
     : null
   const days = frozen ? frozen.messages.slice(0, -1).reduce((n, m) => n + (m.wait_days || 0), 0) : 0
 
-  if (p.approved_at) {
+  // ⚑ 3 Oct (seen on the real screen) — a live programme's NEW version is approved again here, so
+  // it must not draw the "Approved" card: that hid the button and said "nothing is sent until the
+  // programme goes Live" about a programme that is live.
+  if (p.approved_at && data.reapproval !== true) {
     return (
       <div data-testid="programme-approved" className="mv-hero-card">
         <div className="mv-eyebrow">Approved</div>
@@ -347,11 +352,19 @@ export default function ProgrammeApproval({
       <div className="mv-hero-card">
         <div className="mv-eyebrow">Frozen package · {vLabel}</div>
         <h2>Approve exactly what will go out.</h2>
-        <p>
-          People, messages, cadence and sender are pinned to this version. Nothing has been sent,
-          and nothing will be sent until you approve it. If anything changes, we will ask you again
-          with a new version.
-        </p>
+        {/* ⚑ 3 Oct — a live programme's new version (4b) has been sending, so it never says "nothing has been sent". */}
+        {data.reapproval === true ? (
+          <p>
+            Your programme is paused while you check this new version, so nothing more is being sent.
+            People, messages, cadence and sender are pinned to it. Once you approve it, our team resumes it.
+          </p>
+        ) : (
+          <p>
+            People, messages, cadence and sender are pinned to this version. Nothing has been sent,
+            and nothing will be sent until you approve it. If anything changes, we will ask you again
+            with a new version.
+          </p>
+        )}
       </div>
 
       <div className="mv-section">

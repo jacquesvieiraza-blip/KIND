@@ -170,6 +170,8 @@ const ALLOWED: Record<string, string> = {
   'real-clients-logic.ts': 'OPERATIONS — the same, as a pure rule',
   'system-probes.ts': 'OPERATIONS — health checks name the account they probe',
   'house-audit.ts': 'OPERATIONS — an audit OF House',
+  // ⚑ 2 Oct (#2544): the founder's approved House emails are only ever put on House's own programme.
+  'live-reword.ts': 'CONTENT — #2544: the founder\'s approved 8 Sep House emails are put on House\'s live programme and never on another client\'s',
   // ⚑ 2 Oct (R189 ⑥) — the founder: *"for House. It is Milla and Vida and Our address"*.
   'figsy.ts': 'CONTENT — R189 ⑥: a House email carries House\'s legal line at the bottom; it changes no gate and no send decision',
 }

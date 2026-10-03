@@ -54,3 +54,40 @@ export function doublePaymentAlert(args: {
     dedupeKey: `double_payment:${args.sessionId}`,
   }
 }
+
+/**
+ * ⚑ 3 Oct (#2561 · R191 ④) — IS A REFUND OR DISPUTE ABOUT THE PAYMENT ON RECORD, OR THE DUPLICATE?
+ *
+ * 🛑 WHAT THIS CLOSES. The duplicate's checkout carries the same `programmeId` as the real one,
+ * so refunding it — exactly what the alert above tells the founder to do — reached the
+ * "payment reversed" path: the client's live, paid programme was paused and marked disputed,
+ * its wallet credit returned and its campaigns paused. Only a reversal of a payment the
+ * programme RECORDED may stop the programme.
+ *
+ * ⚠️ UNKNOWN STOPS, AS BEFORE. No intent on the event, or a programme that recorded no intent
+ * (paid before intents were kept), cannot be told apart from the real payment — so it keeps the
+ * old behaviour, which stops the work. Only a provable duplicate is let through untouched.
+ */
+export function reversalTarget(
+  paymentIntentId: string | null | undefined,
+  recorded: { first_payment_intent_id?: string | null; second_payment_intent_id?: string | null } | null,
+): 'recorded' | 'duplicate' | 'unknown' {
+  if (!paymentIntentId || !recorded) return 'unknown'
+  const known = [recorded.first_payment_intent_id, recorded.second_payment_intent_id].filter((v): v is string => !!v)
+  if (known.length === 0) return 'unknown'
+  return known.includes(paymentIntentId) ? 'recorded' : 'duplicate'
+}
+
+export function duplicateRefundAlert(args: { programmeId: string; clientId: string | null; paymentIntentId: string; dispute: boolean }) {
+  return {
+    subject: args.dispute
+      ? 'A client disputed their duplicate payment — their programme keeps running'
+      : 'Duplicate payment refunded — the programme keeps running',
+    lines: [
+      `Programme ${args.programmeId} (client ${args.clientId ?? 'unknown'}): Stripe payment ${args.paymentIntentId} was ${args.dispute ? 'disputed' : 'refunded'}.`,
+      'It is not the payment this programme recorded, so nothing was paused, no credit was returned and no campaign was stopped.',
+      args.dispute ? 'Answer the dispute in Stripe: this payment was a duplicate.' : 'No action needed.',
+    ],
+    dedupeKey: `duplicate_reversal:${args.paymentIntentId}:${args.dispute ? 'dispute' : 'refund'}`,
+  }
+}

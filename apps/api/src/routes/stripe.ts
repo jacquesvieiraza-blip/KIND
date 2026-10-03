@@ -963,6 +963,24 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       const obj = event.data.object as { id: string; payment_intent?: string | null }
       const linked = await getSessionMetaByPaymentIntent(obj.payment_intent)
       const meta = linked?.metadata ?? {}
+      // ⚑ 3 Oct (#2561 · R191 ④) — A REFUND OF THE DUPLICATE IS NOT A REFUND OF THE PROGRAMME.
+      // Only the payment the programme recorded may stop it; see `reversalTarget`.
+      if (meta.programmeId && typeof meta.programmeId === 'string' && obj.payment_intent) {
+        const { reversalTarget, duplicateRefundAlert } = await import('../lib/double-payment')
+        const { data: recorded, error: recErr } = await db.from('programmes')
+          .select('first_payment_intent_id, second_payment_intent_id').eq('id', meta.programmeId).maybeSingle()
+        const target = recErr ? 'unknown' : reversalTarget(obj.payment_intent, recorded as never)
+        if (target === 'duplicate') {
+          const a = duplicateRefundAlert({
+            programmeId: meta.programmeId, clientId: meta.clientId ?? null,
+            paymentIntentId: obj.payment_intent, dispute: event.type === 'charge.dispute.created',
+          })
+          const d = await sendFounderAlert('payment_failed', a.subject, a.lines,
+            { clientId: meta.clientId ?? null, programmeId: meta.programmeId, dedupeKey: a.dedupeKey })
+          // Not told → Stripe retries, as for the double payment itself.
+          res.sendStatus(d.delivered ? 200 : 500); return
+        }
+      }
       const credits = parseInt(meta.credits ?? '', 10)
       if (meta.clientId && meta.creditType && Number.isFinite(credits) && credits > 0) {
         const isFigsy = meta.creditType === 'figsy'

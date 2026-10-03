@@ -36,15 +36,20 @@ vi.mock('@kind/db', () => {
   return { db: { from: q } }
 })
 vi.mock('./meeting-truth', () => ({ clientMeetingCounts: async () => ({ c1: 2 }) }))
+let verdict: unknown = { allowed: true }
+vi.mock('./programme-authority', () => ({
+  checkProgrammeAuthority: async () => { if (verdict instanceof Error) throw verdict; return verdict },
+}))
 
-import { clientSendingPanel } from './client-sending-panel'
+import { clientSendingPanel, sendingStateFor } from './client-sending-panel'
+import { nextSendLabel } from '../../../portal/src/lib/sending-panel-label'
 
-beforeEach(() => fail.clear())
+beforeEach(() => { fail.clear(); verdict = { allowed: true } })
 
 describe('13c — the panel', () => {
   it('every number the founder asked for', async () => {
     expect(await clientSendingPanel('c1', new Date('2026-10-02T12:00:00Z'))).toEqual({
-      sentToday: 12, sentTotal: 340, leftToEmail: 160, nextSendAt: '2026-10-05T08:12:00Z',
+      sentToday: 12, sentTotal: 340, leftToEmail: 160, nextSendAt: '2026-10-05T08:12:00Z', sendingState: 'sending',
       replies: 9, bounces: 1, optOuts: 1, meetings: 2,
     })
   })
@@ -54,6 +59,39 @@ describe('13c — the panel', () => {
     expect(p.replies).toBeNull()
     expect(p.leftToEmail).toBeNull()
     expect(p.sentTotal).toBe(340)
+  })
+})
+
+// ⚑ 3 Oct (review S12) — a programme that cannot send never reads "Due now".
+describe('13c — the next send tells the truth', () => {
+  it('paused → no date, and the panel says Paused', async () => {
+    verdict = { allowed: false, reason: 'programme_paused' }
+    const p = await clientSendingPanel('c1')
+    expect(p.nextSendAt).toBeNull()
+    expect(p.sendingState).toBe('paused')
+    expect(nextSendLabel(p.nextSendAt, new Date(), p.sendingState)).toBe('Paused')
+  })
+  it('held by the founder\'s check or a changed preparation → On hold, not Due now', async () => {
+    verdict = { allowed: false, reason: 'preparation_changed' }
+    const p = await clientSendingPanel('c1')
+    expect(nextSendLabel(p.nextSendAt, new Date(), p.sendingState)).toBe('On hold — our team is on it')
+  })
+  it('outside the sending days is not a stop — the next time still shows', () => {
+    expect(sendingStateFor({ allowed: false, reason: 'outside_send_window' })).toBe('sending')
+  })
+  it('finished and not-yet-started read as such', () => {
+    expect(sendingStateFor({ allowed: false, reason: 'programme_terminal' })).toBe('finished')
+    expect(sendingStateFor({ allowed: false, reason: 'programme_not_live' })).toBe('not_started')
+  })
+  it('the gate could not be asked → "—", never a date', async () => {
+    verdict = new Error('down')
+    const p = await clientSendingPanel('c1')
+    expect(p.sendingState).toBeNull()
+    expect(nextSendLabel(p.nextSendAt, new Date(), p.sendingState)).toBe('—')
+  })
+  it('only active campaigns are counted for the next send', () => {
+    expect(readFileSync(join(__dirname, 'client-sending-panel.ts'), 'utf8'))
+      .toContain(".from('figsy_campaigns').select('id').eq('client_id', clientId).eq('status', 'active')")
   })
 })
 

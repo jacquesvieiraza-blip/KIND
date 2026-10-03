@@ -17,10 +17,33 @@ export type SendingPanel = {
   sentTotal: number | null
   leftToEmail: number | null
   nextSendAt: string | null
+  /** ⚑ 3 Oct (review S12) — whether anything CAN go out, from the same gate the sender asks. */
+  sendingState: SendingState | null
   replies: number | null
   bounces: number | null
   optOuts: number | null
   meetings: number | null
+}
+
+export type SendingState = 'sending' | 'paused' | 'not_started' | 'finished' | 'on_hold'
+
+/**
+ * ⚑ 3 Oct (review S12) — "Next send: Due now" WAS SHOWN FOR A PROGRAMME THAT COULD NOT SEND. The
+ * date was the earliest `next_send_at` of any enrolment, which knows nothing of a pause, the
+ * founder's approval, a changed preparation or a finished programme. The panel now asks the SAME
+ * door the sender asks (`checkProgrammeAuthority(…, 'OUTREACH')`) and says why nothing is going.
+ * Outside the sending days or hours is not a stop: the next time is still the truth.
+ */
+export function sendingStateFor(v: { allowed: boolean; reason?: string }): SendingState {
+  if (v.allowed) return 'sending'
+  switch (v.reason) {
+    case 'outside_send_window': return 'sending'
+    case 'programme_paused': return 'paused'
+    case 'programme_terminal': return 'finished'
+    case 'first_payment_missing': case 'second_payment_missing': case 'programme_not_live':
+    case 'programme_not_approved': case 'programme_not_run': return 'not_started'
+    default: return 'on_hold'
+  }
 }
 
 const CHUNK = 200
@@ -35,7 +58,7 @@ export async function clientSendingPanel(clientId: string, now = new Date()): Pr
     db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }).gte('sent_at', startOfToday).eq('leads.client_id', clientId),
     db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }).eq('leads.client_id', clientId),
     db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-    db.from('figsy_campaigns').select('id').eq('client_id', clientId),
+    db.from('figsy_campaigns').select('id').eq('client_id', clientId).eq('status', 'active'),
     db.from('figsy_sent_emails').select('leads!inner(email, client_id)').eq('leads.client_id', clientId).limit(5000),
   ])
 
@@ -74,6 +97,12 @@ export async function clientSendingPanel(clientId: string, now = new Date()): Pr
     optOuts = await onBlocklist(OPT_OUT_REASONS)
   }
 
+  let sendingState: SendingState | null = null
+  try {
+    const { checkProgrammeAuthority } = await import('./programme-authority')
+    sendingState = sendingStateFor(await checkProgrammeAuthority(clientId, 'OUTREACH') as { allowed: boolean; reason?: string })
+  } catch { sendingState = null }
+
   const { clientMeetingCounts } = await import('./meeting-truth')
   const meetingsBy = await clientMeetingCounts([clientId])
 
@@ -81,7 +110,8 @@ export async function clientSendingPanel(clientId: string, now = new Date()): Pr
     sentToday: todayR.error ? null : (todayR.count ?? 0),
     sentTotal: totalR.error ? null : (totalR.count ?? 0),
     leftToEmail,
-    nextSendAt,
+    nextSendAt: sendingState === 'sending' ? nextSendAt : null,
+    sendingState,
     replies: replyR.error ? null : (replyR.count ?? 0),
     bounces,
     optOuts,

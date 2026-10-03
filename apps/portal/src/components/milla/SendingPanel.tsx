@@ -7,9 +7,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { nextSendLabel, type SendingState } from '@/lib/sending-panel-label'
 
 type Panel = {
   sentToday: number | null; sentTotal: number | null; leftToEmail: number | null; nextSendAt: string | null
+  sendingState?: SendingState | null
   replies: number | null; bounces: number | null; optOuts: number | null; meetings: number | null
 }
 
@@ -19,13 +21,6 @@ async function token(): Promise<string | undefined> {
 }
 
 const n = (v: number | null) => (v === null ? '—' : v.toLocaleString())
-
-export function nextSendLabel(iso: string | null, now = new Date()): string {
-  if (!iso) return 'Nothing scheduled'
-  const d = new Date(iso)
-  if (d.getTime() <= now.getTime()) return 'Due now'
-  return d.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function SendingPanel() {
   const [p, setP] = useState<Panel | null>(null)
@@ -42,7 +37,7 @@ export default function SendingPanel() {
   if (failed) return null
   const cells: [string, string][] = p ? [
     ['Sent today', n(p.sentToday)], ['Sent in total', n(p.sentTotal)],
-    ['Left to email', n(p.leftToEmail)], ['Next send', nextSendLabel(p.nextSendAt)],
+    ['Left to email', n(p.leftToEmail)], ['Next send', nextSendLabel(p.nextSendAt, new Date(), p.sendingState)],
     ['Replies', n(p.replies)], ['Bounces', n(p.bounces)],
     ['Opt-outs', n(p.optOuts)], ['Meetings', n(p.meetings)],
   ] : []

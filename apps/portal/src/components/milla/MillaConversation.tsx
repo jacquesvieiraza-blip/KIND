@@ -4,6 +4,7 @@ import { mvp1MillaStageFromLegacy } from '@kind/shared'   // ⚑ 29 Sep (R174 ·
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
+import { asksForEmails, emailsMessage, type FrozenEmail } from '@/lib/emails-message'
 import { loadError, millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
 // J3-C5 — the one rule for what an unrestored thread is allowed to claim.
 import { restoreView } from '@/lib/conversation-restore'
@@ -545,8 +546,25 @@ export function MillaConversationProvider(
    * The ordinary composer passes nothing and the server mints an id exactly as before.
    */
   sendRef.current = (t: string) => { void send(t) }
+  // ⚑ 2 Oct (#2551 · 13b · R187 ②) — "show me the emails" is answered with THE EMAILS: the
+  // programme's own frozen copy, read from the server, laid out one after another. Milla used to
+  // describe the stages instead, because the chat model never sees the copy.
+  async function showEmails(asked: string) {
+    setInput('')
+    setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: asked }])
+    let content: string
+    try {
+      const r = await api.get<{ data: { frozen?: { messages?: FrozenEmail[] } | null; awaiting_founder?: boolean } }>('/my/programme/review', await token())
+      content = emailsMessage(r.data?.frozen?.messages ?? [], { awaitingFounder: r.data?.awaiting_founder === true })
+    } catch {
+      content = 'I could not load your emails just now. Please try again in a minute.'
+    }
+    setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+  }
+
   async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
+    if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
     // 🛑 IDENTITY BEFORE THE NETWORK. A retry of the one unresolved turn reuses its id; a
     // new thing to say gets a new one. `millaSendIdentity` is the shared rule and the only
     // place that decision is made, for the composer and the handoff alike.
@@ -763,6 +781,8 @@ export function MillaConversationProvider(
     // ⚑ 24 Sep (R145 step 6) — the redesign's Results and Complete chips, as questions for Milla.
     // (Its "Who never got contacted?" is left out: D6 — no never-contacted count.)
     ...(prog.stage === 'Live' || prog.stage === 'Review' ? ['Show me my meetings'] : []),
+    // ⚑ 2 Oct (#2551 · 13b) — once live, the client can see the emails going out, any time.
+    ...(prog.stage === 'Live' || prog.stage === 'Review' ? ['Show me my emails'] : []),
     ...(prog.stage === 'Completion' ? ['Price twenty meetings'] : []),
     ...(prog.stage === 'Recommendation' && deskActions?.accept ? [deskActions.acceptLabel ?? CHIP_ACCEPT] : []),
     // ⚑ 29 Sep (R174 · 2d) — not offered once it is paused; pressing it pauses (see below).

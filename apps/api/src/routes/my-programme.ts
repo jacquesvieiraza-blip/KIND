@@ -101,6 +101,40 @@ async function openProgrammeForSession(clientId: string) {
   return openProgrammeForClient(clientId)
 }
 
+// ── ⚑ 3 Oct (R195 ④) — "YOUR BUSINESS", KEPT ONCE ───────────────────────────────────────
+// The facts Milla holds, shown on My ICP; a change is saved only when the client approves it in
+// the chat (`lib/client-business.ts`). Approved emails never move (R193 ①).
+myProgrammeRouter.get('/business', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readBusiness } = await import('../lib/client-business')
+    res.json({ success: true, data: await readBusiness(clientId) })
+  } catch (err) {
+    console.error('[my/programme/business GET]', err)
+    res.status(503).json({ success: false, error: 'Your business details could not be loaded just now. Please try again.' })
+  }
+})
+
+myProgrammeRouter.post('/business/change', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { cleanBusinessChange, approveBusinessChange } = await import('../lib/client-business')
+    const change = cleanBusinessChange(req.body)
+    if (!change) { res.status(400).json({ success: false, error: 'That change could not be read. Please tell Milla again.' }); return }
+    const r = await approveBusinessChange(clientId, change)
+    if (!r.ok) {
+      res.status(409).json({ success: false, version: r.version, error: 'Your business details changed since you looked. Please check them and ask Milla again.' })
+      return
+    }
+    res.json({ success: true, version: r.version })
+  } catch (err) {
+    console.error('[my/programme/business/change POST]', err)
+    res.status(503).json({ success: false, error: 'Your change could not be saved just now. Please try again.' })
+  }
+})
+
 // ── GET /my/programme/review — the masked prospects for THIS programme ─────────────────
 // ── ⚑ 25 Sep (R158 · R163) — THE CLIENT'S OFFER, IN THEIR OWN WORDS ─────────────────────────
 // Four answers — problems, impact, ROI (quoted only with the client's tick), solution — saved into

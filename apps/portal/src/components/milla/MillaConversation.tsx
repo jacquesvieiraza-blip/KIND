@@ -176,10 +176,29 @@ const MILLA_GREETING =
  * the live one exactly as it is. Same conversation, same composer, same proposal endpoint —
  * only the destination of the explicit Save differs.
  */
-type ConversationContext = 'icp' | 'icp-fresh' | null
+type ConversationContext = 'icp' | 'icp-fresh' | BusinessContext | null
 
 /** Both ICP contexts share the proposal builder; only the save destination differs. */
 const isIcpContext = (c: ConversationContext): boolean => c === 'icp' || c === 'icp-fresh'
+
+// ── ⚑ 3 Oct (R195 ④ · sequencing piece 2, founder's blueprint view 2) — "YOUR BUSINESS" ────
+// The facts Milla holds about the client's business, kept once on My ICP. A change is talked
+// through HERE, in the one conversation: Milla asks what the fact should say, shows the before
+// and after, and saves it ONLY when the client presses "Approve this change". Nothing is
+// written by the conversation itself, and emails already approved never move (R193 ①).
+/** The six facts, in the order My ICP shows them. Same keys as the server's `BUSINESS_KEYS`. */
+export const BUSINESS_FIELDS = [
+  ['sells', 'What you sell'], ['problems', 'Problems you solve'],
+  ['impact', 'What those problems cost your customers'], ['answer', 'Your answer'],
+  ['result', 'A result we may quote'], ['not_fit', 'Who isn’t a fit'],
+] as const
+export type BusinessKey = typeof BUSINESS_FIELDS[number][0]
+type BusinessContext = `business:${BusinessKey}`
+const isBusinessContext = (c: ConversationContext): c is BusinessContext => typeof c === 'string' && c.startsWith('business:')
+const businessLabel = (k: BusinessKey): string => BUSINESS_FIELDS.find(f => f[0] === k)?.[1] ?? k
+/** What the page knew when the client asked to change a fact — the base the approval is checked against. */
+type BusinessBase = { key: BusinessKey; current: string; version: number }
+type BusinessDraft = BusinessBase & { value: string; mayQuote: boolean }
 
 type MillaConversationApi = {
   /**
@@ -188,7 +207,7 @@ type MillaConversationApi = {
    * ⚠️ THIS IS NOT "OPEN A CHAT". There is only ever one, and it is already on screen; this
    * says what it is talking about and puts the cursor in it.
    */
-  focus: (context?: ConversationContext) => void
+  focus: (context?: ConversationContext, business?: { current: string; version: number }) => void
   /**
    * A route that has already fetched the calibration set publishes its size here, so the chip
    * row uses the SAME fact the list beside it was built from.
@@ -200,6 +219,8 @@ type MillaConversationApi = {
   publishDeskSet: (count: number | null) => void
   /** Bumped whenever a targeting revision is saved, so the ICP screen re-reads its versions. */
   icpRevision: number
+  /** Bumped whenever a "Your business" change is approved, so My ICP re-reads the facts. */
+  businessRevision: number
   /**
    * ── 🛑 ⚑ 24 Sep — ONE CHAT, FROM SIGN-UP TO COMPLETE ─────────────────────────────────────
    *
@@ -263,7 +284,7 @@ export function useMillaConversation(): MillaConversationApi {
   return useContext(Ctx) ?? INERT
 }
 const INERT: MillaConversationApi = {
-  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0,
+  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0, businessRevision: 0,
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
   setDeskActions: () => {}, announceOnce: () => {}, keepNotice: () => {}, ask: () => {},
 }
@@ -293,6 +314,10 @@ export function MillaConversationProvider(
   const [icpDraft, setIcpDraft] = useState<IcpDraft | null>(null)
   const [icpRevision, setIcpRevision] = useState(0)
   const [icpSaving, setIcpSaving] = useState(false)
+  const [businessBase, setBusinessBase] = useState<BusinessBase | null>(null)
+  const [businessDraft, setBusinessDraft] = useState<BusinessDraft | null>(null)
+  const [businessRevision, setBusinessRevision] = useState(0)
+  const [businessSaving, setBusinessSaving] = useState(false)
   const [deskSet, setDeskSet] = useState<number | null>(null)
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -465,8 +490,18 @@ export function MillaConversationProvider(
   // Scroll the CHAT container only — never the page.
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
-  const focus = useCallback((c: ConversationContext = null) => {
+  const focus = useCallback((c: ConversationContext = null, business?: { current: string; version: number }) => {
     setContext(c)
+    setBusinessDraft(null)
+    if (isBusinessContext(c)) {
+      const key = c.slice('business:'.length) as BusinessKey
+      setBusinessBase({ key, current: business?.current ?? '', version: business?.version ?? 0 })
+      const label = businessLabel(key)
+      const now = (business?.current ?? '').trim()
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content:
+        (now ? `What should “${label}” say instead? Right now it says: “${now}”.` : `What should “${label}” say? I don’t have anything for it yet.`)
+        + (key === 'result' ? ' Only a real result, and you’ll tell me before you approve whether I may quote it.' : '') }])
+    } else setBusinessBase(null)
     // A frame, so the strip above the composer is on screen before the cursor lands in it.
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
@@ -564,7 +599,18 @@ export function MillaConversationProvider(
 
   async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
-    if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
+    if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && !isBusinessContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
+    // ⚑ 3 Oct (R195 ④) — A "YOUR BUSINESS" TURN IS A PROPOSAL, NOT A REQUEST. What the client
+    // types is what the fact will say; it is shown as a before-and-after and saved only on
+    // "Approve this change". Nothing goes to the server here.
+    if (isBusinessContext(context) && businessBase && !opts?.handoffId) {
+      setInput('')
+      setMessages(m => [...m,
+        { id: `u-${Date.now()}`, role: 'user', content: msg },
+        { id: `a-${Date.now() + 1}`, role: 'assistant', content: 'Here’s the change. Approve it below and I’ll write your next emails from it. Emails you’ve already approved stay exactly as they are.' }])
+      setBusinessDraft({ ...businessBase, value: msg.slice(0, 600), mayQuote: false })
+      return
+    }
     // 🛑 IDENTITY BEFORE THE NETWORK. A retry of the one unresolved turn reuses its id; a
     // new thing to say gets a new one. `millaSendIdentity` is the shared rule and the only
     // place that decision is made, for the composer and the handoff alike.
@@ -657,6 +703,32 @@ export function MillaConversationProvider(
         content: chatFailureMessage(failureOf(e).status) }])
     }
     finally { setSending(false) }
+  }
+
+  /**
+   * ⚑ 3 Oct (R195 ④) — THE ONLY SAVE OF "YOUR BUSINESS": the client pressing "Approve this
+   * change". The server refuses a change made against an older version (409), so two tabs
+   * can never write over each other. The draft survives every failure.
+   */
+  async function approveBusinessDraft() {
+    if (!businessDraft || businessSaving) return
+    setBusinessSaving(true)
+    const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+    try {
+      const r = await api.post<{ version?: number }>('/my/programme/business/change', {
+        key: businessDraft.key, value: businessDraft.value,
+        may_quote: businessDraft.key === 'result' ? businessDraft.mayQuote : false,
+        base_version: businessDraft.version,
+      }, await token())
+      say(`Approved — your business details are now version ${r?.version ?? businessDraft.version + 1}. I’ll write your next emails from this. Emails you’ve already approved stay exactly as they are.`)
+      setBusinessDraft(null); setBusinessBase(null); setContext(null); setBusinessRevision(v => v + 1)
+    } catch (e) {
+      const status = failureOf(e).status
+      if (status === 409) {
+        say('Your business details changed since you opened them, so I haven’t saved this. Please check them on My ICP and press Change again.')
+        setBusinessDraft(null); setBusinessBase(null); setContext(null); setBusinessRevision(v => v + 1)
+      } else say('I couldn’t save that just now. Your change is still here — please press Approve again in a moment.')
+    } finally { setBusinessSaving(false) }
   }
 
   /**
@@ -833,8 +905,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
-    [focus, publishDeskSet, icpRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
+    () => ({ focus, publishDeskSet, icpRevision, businessRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
+    [focus, publishDeskSet, icpRevision, businessRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),
@@ -907,6 +979,36 @@ export function MillaConversationProvider(
                 className="ml-auto text-[10px] font-semibold text-[#766f7e] hover:text-[#17141c]">Done</button>
             </div>
           )}
+          {isBusinessContext(context) && businessBase && (
+            <div className="flex items-center gap-2 mx-[18px] mb-2 rounded-xl border border-[#e4d9fb] bg-[#fbf9fd] px-3 py-2">
+              <span className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a29aa9]">Talking about</span>
+              <b className="text-[11px]">Your business — {businessLabel(businessBase.key)}</b>
+              <button onClick={() => { setContext(null); setBusinessDraft(null); setBusinessBase(null) }}
+                className="ml-auto text-[10px] font-semibold text-[#766f7e] hover:text-[#17141c]">Done</button>
+            </div>
+          )}
+          {/* ⚑ 3 Oct (R195 ④) — THE PROPOSED CHANGE AND ITS APPROVAL. Nothing is saved until it is pressed. */}
+          {isBusinessContext(context) && businessDraft && (
+            <div data-testid="business-draft" className="mv-hero-card mx-[18px] mb-2">
+              <div className="mv-eyebrow">Your business — proposed change</div>
+              <b className="text-[13px] block mb-1.5">{businessLabel(businessDraft.key)}</b>
+              <div className="text-[12px] text-[#766f7e]">Now: {businessDraft.current.trim() || 'Nothing yet'}</div>
+              <div className="text-[12.5px] mt-1"><b>New:</b> {businessDraft.value || 'Nothing — remove it'}</div>
+              {businessDraft.key === 'result' && businessDraft.value && (
+                <label className="flex items-start gap-2 mt-2 text-[12px]">
+                  <input id="business-may-quote" type="checkbox" checked={businessDraft.mayQuote}
+                    onChange={e => setBusinessDraft(d => d ? { ...d, mayQuote: e.target.checked } : d)} />
+                  <span>You may quote this in my emails, exactly as written.</span>
+                </label>
+              )}
+              <div className="mv-cta-row mt-3">
+                <button disabled={businessSaving} onClick={approveBusinessDraft} className="mv-btn primary disabled:opacity-50">
+                  {businessSaving ? 'Saving…' : 'Approve this change'}
+                </button>
+                <button disabled={businessSaving} onClick={() => setBusinessDraft(null)} className="mv-btn">Keep talking</button>
+              </div>
+            </div>
+          )}
           {/* THE DRAFT AND ITS EXPLICIT SAVE. Nothing goes live until this is pressed. */}
           {isIcpContext(context) && icpDraft && (
             <div className="mv-hero-card mx-[18px] mb-2">
@@ -929,7 +1031,7 @@ export function MillaConversationProvider(
               pause my programme", "How is my ROI looking?" — and in ICP context the composer
               is talking to `/icps/chat-build`. Sending one of them there would put a
               programme question into a targeting conversation. */}
-          {context !== 'icp' && chips.length > 0 && (
+          {context !== 'icp' && !isBusinessContext(context) && chips.length > 0 && (
             <div className="mv-quickbar">
               {chips.map(c => <button key={c} onClick={() => {
                 if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
@@ -945,7 +1047,7 @@ export function MillaConversationProvider(
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla anything about your programme…'} />
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) ? 'Tell Milla what it should say…' : 'Ask Milla anything about your programme…'} />
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────

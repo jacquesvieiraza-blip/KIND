@@ -388,14 +388,18 @@ describe('③ the sender the panel reports is the sender the gate would accept',
     expect(d.senderDetail).toContain('Test connection')
   })
 
-  it('🛑 TWO EQUALLY-RANKED MAILBOXES ARE NOT SENDABLE — an arbitrary sender is not a decision', async () => {
+  // ⛓️ SUPERSEDED 2 Oct (#2559 · R189 ②): two mailboxes per client is now the rule, "approved
+  // together", and each person stays on the mailbox that first emailed them (#2559 part 1), so a
+  // tie decides nothing about anybody. Was: '🛑 TWO EQUALLY-RANKED MAILBOXES ARE NOT SENDABLE —
+  // an arbitrary sender is not a decision' (senderSendable false, detail 'equally-ranked').
+  it('two equally-ranked mailboxes are the R189 ② pair — sendable, and the panel agrees with the gate', async () => {
     state.client_inboxes = [
       state.client_inboxes[0],
       { ...state.client_inboxes[0], id: 'inbox-2', email: 'team@example.net' },
     ]
     const d = await lifecycleDetailFor(CLIENT)
-    expect(d.senderSendable).toBe(false)
-    expect(d.senderDetail).toContain('equally-ranked')
+    expect(d.senderSendable).toBe(true)
+    expect(d.senderDetail ?? '').not.toContain('equally-ranked')
   })
 
   it('🛑 MULTIPLE VALID MAILBOXES ARE FINE when one clearly outranks the rest', async () => {

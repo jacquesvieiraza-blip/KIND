@@ -46,7 +46,26 @@ describe('6 — the rules in the code', () => {
     expect(route).toContain("programmeRouter.post('/:id/house-approved-emails'")
     expect(route).toContain("programmeRouter.post('/:id/refreeze-live'")
     expect(my).toContain('const rr = await reapproveLive(clientId, p.id, version || null)')
-    expect(page).toContain('(!review.programme.approved_at || review.reapproval)')
+    // ⛓️ 3 Oct: was '(!review.programme.approved_at || review.reapproval)' — merged with 4a part 2's
+    // "show the notice while the founder checks" into one condition; a live new version still opens it.
+    expect(page).toContain('? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)')
     expect(vida).toContain("Use House's approved emails")
+  })
+})
+
+// ⚑ 3 Oct (review B2) — House's approved emails go on its live programme SIGNED, and only on a
+// branch that already carries the sign-off (#2572) and the opt-out line at send time (#2571).
+describe('6 — House\'s approved emails are signed "The Milla & Vida Team"', () => {
+  it('each body passes through ensureSignOff with House\'s sign-off', async () => {
+    const { readFileSync } = await import('fs')
+    const { join } = await import('path')
+    const src = readFileSync(join(__dirname, 'live-reword.ts'), 'utf8')
+    expect(src).toContain('const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s, body: ensureSignOff(s.body, HOUSE_SIGN_OFF) }))')
+  })
+  it('the sign-off and the opt-out line exist on this branch', async () => {
+    const { HOUSE_SIGN_OFF } = await import('./house-client')
+    const { ensureSignOff } = await import('./sequence-tokens')
+    expect(HOUSE_SIGN_OFF).toBe('The Milla & Vida Team')
+    expect(ensureSignOff('Hi Sam,\n\nOne question.', HOUSE_SIGN_OFF)).toMatch(/The Milla & Vida Team$/)
   })
 })

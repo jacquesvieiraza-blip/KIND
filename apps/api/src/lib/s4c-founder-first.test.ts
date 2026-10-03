@@ -62,7 +62,8 @@ describe('4c — Milla withholds and the server re-decides', () => {
 describe('4a·2 — the client waiting on the founder SEES the notice', () => {
   const PAGE = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
   it('the approval panel opens while the founder is checking, at the approval stage', () => {
-    expect(PAGE).toContain("&& (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (")
+    // ⛓️ 3 Oct (#2544 · 4b): one condition with the live re-approval now; the approval-stage half reads:
+    expect(PAGE).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
   })
   it('the demo keeps its emails and its Approve button', () => {
     expect(readFileSync(join(__dirname, 'founder-approval.ts'), 'utf8')).toContain('if (clientId && await isDemoProgrammeClient(clientId)) return true')

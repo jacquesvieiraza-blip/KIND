@@ -89,8 +89,13 @@ export async function applyHouseApprovedEmails(programmeId: string): Promise<Res
   }
   if (p.status !== 'LIVE' || !p.paused_at) return { ok: false, status: 409, reason: 'Pause House\'s live programme first. Nothing was changed.' }
 
+  // ⚑ 3 Oct (review B2 · R189 ⑥ — *"our house account needs to end with the Milla & Vida Team"*):
+  // the 8 Sep emails carry no sign-off, so they are signed here, exactly as the launch path signs
+  // them (`applyHouseProgrammeSequence`). The opt-out and legal lines are added at send time.
   const { HOUSE_SEQUENCE_STEPS } = await import('./house-sequence')
-  const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s }))
+  const { ensureSignOff } = await import('./sequence-tokens')
+  const { HOUSE_SIGN_OFF } = await import('./house-client')
+  const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s, body: ensureSignOff(s.body, HOUSE_SIGN_OFF) }))
   const { applyProgrammeSequence } = await import('./programme-sequence')
   const applied = await applyProgrammeSequence(programmeId, steps, 'House programme sequence')
   if (!applied.ok) return { ok: false, status: 409, reason: applied.reason }

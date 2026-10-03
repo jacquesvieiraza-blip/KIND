@@ -365,7 +365,11 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     : await claimPooledSender(p.client_id)
   // ⚑ 2 Oct (#2559 · R189 ②) — and the second of the client's two mailboxes. Its failure is
   // logged, never fatal: one verified mailbox still lets the programme be prepared.
-  if (senderClaim.ok || senderClaim.reason === 'already_has_sender') {
+  // ⚑ 3 Oct (review S3) — ONLY BEFORE APPROVAL. This function runs again at go-live; a second
+  // box claimed THEN would turn the approved single sender into a pair, the preparation would no
+  // longer match what the client approved, and every send would be refused with nobody told.
+  // R189 ② — *"set up before approval and approved together"* — so after approval, never.
+  if (stage.stage === 'pre_approval' && (senderClaim.ok || senderClaim.reason === 'already_has_sender')) {
     if (!(await isDemoClient(p.client_id))) {
       const { claimSecondPooledSender } = await import('./sender-claim')
       const second = await claimSecondPooledSender(p.client_id).catch(err => ({ ok: false as const, reason: 'unreadable' as const, detail: String(err) }))

@@ -34,6 +34,11 @@ describe('9d·2 — wired in', () => {
     expect(existsSync(join(__dirname, '../../../../supabase/migrations/20261002_two_mailboxes_per_client.sql'))).toBe(true)
     expect(read('pending-migrations.ts')).toContain('DROP INDEX IF EXISTS public.client_inboxes_one_live_per_kind;')
   })
+  // ⚑ 3 Oct (review S3) — preparation runs again at go-live; a second box claimed after approval
+  // would change the approved sender and stop every send.
+  it('the second box is claimed only BEFORE approval, never at go-live', () => {
+    expect(read('programme-preparation.ts')).toContain("if (stage.stage === 'pre_approval' && (senderClaim.ok || senderClaim.reason === 'already_has_sender')) {")
+  })
   it('preparation claims the second; Vida may assign a second and refuses a third', () => {
     expect(read('programme-preparation.ts')).toContain('await claimSecondPooledSender(p.client_id)')
     expect(read('sender-claim.ts')).toContain("if (sending >= 2) return { ok: true, skipped: 'already_two' }")

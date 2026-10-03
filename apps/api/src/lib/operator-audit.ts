@@ -127,6 +127,7 @@ export type OperatorAction =
                             // answer — and because the press starts a real provider run
                             // against a Proof attempt the failed run had released.
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
+  | 'founder_wording_approved'   // ⚑ 2 Oct (#2542 · R186 ③) — the founder approved a programme's emails
   // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
   // this is the grant that lets any send path consider the programme at all. Two acts, two
   // audit actions, so "who armed it" and "who started it" are separately answerable.

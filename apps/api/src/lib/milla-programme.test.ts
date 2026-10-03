@@ -148,9 +148,13 @@ describe('🛑 THE LOCKED CUSTOMER COPY IS EXACT — never paraphrased, never re
     // The server now sends the sentence for the pause's REASON (founder: the client is told why,
     // "in plain words"), through `pausedCopyFor` — whose fallback, for a pause with no reason, is
     // still this locked constant, unchanged.
-    expect(CUSTOMER_READ).toContain('pausedCopyFor(p.pause_reason as string | null)')
-    expect(readFileSync(join(__dirname, '..', '..', '..', '..', 'packages/shared/src/programme-stage.ts'), 'utf8'))
-      .toContain('?? MILLA_FAILURE_COPY.sourcingPaused')
+    // ⛓️ 3 Oct (#2561 · 14c): was `pausedCopyFor(p.pause_reason as string | null)` in the read — the
+    // read now asks `pausedCopyForProgramme(p)`, which says "refunded or disputed" only for the pause
+    // the reversal caused and otherwise calls `pausedCopyFor(p.pause_reason)`, fallback unchanged.
+    expect(CUSTOMER_READ).toContain('pausedCopy: pausedCopyForProgramme(p ')
+    const STAGE_SRC = readFileSync(join(__dirname, '..', '..', '..', '..', 'packages/shared/src/programme-stage.ts'), 'utf8')
+    expect(STAGE_SRC).toContain('return pausedCopyFor(p.pause_reason)')
+    expect(STAGE_SRC).toContain('?? MILLA_FAILURE_COPY.sourcingPaused')
     expect(PAGE_CODE, 'the page hard-codes the pause sentence instead of rendering the server\'s')
       .not.toContain('Sourcing is paused while we recover.')
     // ⛓️ REPOINTED: the pause banner moved into the shared ProgrammeWorkspace when the home

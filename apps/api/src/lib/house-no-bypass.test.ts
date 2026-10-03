@@ -170,6 +170,8 @@ const ALLOWED: Record<string, string> = {
   'real-clients-logic.ts': 'OPERATIONS — the same, as a pure rule',
   'system-probes.ts': 'OPERATIONS — health checks name the account they probe',
   'house-audit.ts': 'OPERATIONS — an audit OF House',
+  // ⚑ 2 Oct (#2543 · R189 ⑥): House carries its own legal line, so it is not asked for a registered office.
+  'client-legal-line.ts': 'CONTENT — R189 ⑥: House\'s emails carry House\'s own legal line, so Make Live does not ask it for a registered office; it changes no send decision',
 }
 
 describe('② anything else that learns about House has to say why', () => {

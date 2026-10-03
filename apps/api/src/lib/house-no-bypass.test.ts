@@ -174,6 +174,8 @@ const ALLOWED: Record<string, string> = {
   'live-reword.ts': 'CONTENT — #2544: the founder\'s approved 8 Sep House emails are put on House\'s live programme and never on another client\'s',
   // ⚑ 2 Oct (R189 ⑥) — the founder: *"for House. It is Milla and Vida and Our address"*.
   'figsy.ts': 'CONTENT — R189 ⑥: a House email carries House\'s legal line at the bottom; it changes no gate and no send decision',
+  // ⚑ 2 Oct (R187 ① · #2547) — Vida's Sending health puts House on its own line; it decides nothing.
+  'sending-health-lines.ts': 'OPERATIONS — R187 ①: House shows its sending numbers in Vida on its own line, never in the totals',
 }
 
 describe('② anything else that learns about House has to say why', () => {

@@ -33,8 +33,11 @@ type WindowCounts = {
   sent: Metric; failed: Metric; bounced: Metric; optOuts: Metric; replies: Metric
   repliesByClass: Record<string, number>
 }
+// ⚑ 2 Oct (R187 ①) — one line per client, House first. See the API's `lib/sending-health-lines.ts`.
+type ClientLine = { clientId: string; name: string; isHouse: boolean; today: WindowCounts; last7: WindowCounts }
 type Health = {
   today: WindowCounts; last7: WindowCounts
+  byClient?: ClientLine[]
   recentFailures: { at: string; detail: string }[]
   sendingExpected: boolean; sendingExpectedWhy: string
   blocklistIsGlobal: boolean; generated_at: string
@@ -88,6 +91,11 @@ function Stat({ label, m }: { label: string; m: Metric }) {
       {!m.measured && <p className="text-[11.5px] text-slate-600 mt-1 leading-snug">{m.why}</p>}
     </div>
   )
+}
+
+/** A number, or "not measured" — never a zero nobody counted. */
+function cell(m: Metric): string {
+  return m.measured ? m.value.toLocaleString() : 'not measured'
 }
 
 function Window({ title, w, expected }: { title: string; w: WindowCounts; expected: boolean }) {
@@ -153,6 +161,49 @@ export default async function SendingHealthPage() {
 
       <Window title="Today" w={data.today} expected={data.sendingExpected} />
       <Window title="Last 7 days" w={data.last7} expected={data.sendingExpected} />
+
+      {/* ⚑ 2 Oct (R187 ①) — the founder: "house account needs to show the sending stats. and
+          everything so we cna track results." The totals above leave House and the demo out
+          (R174 ⑧); every client, House first, has its own line here — never mixed in, never hidden. */}
+      <section className="mb-6">
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-700 mb-1">By client</h2>
+        <p className="text-[12.5px] text-slate-600 mb-2">
+          The totals above are your clients only. Here every client has its own line, <b>House first</b>.
+          Bounces and opt-outs on a line are the ones from addresses that client emailed.
+        </p>
+        {(data.byClient ?? []).length === 0 ? (
+          <p className="text-[13px] text-slate-600 rounded-xl border border-slate-200 bg-white px-4 py-3">No client has an open programme.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                  <th className="px-3 py-2">Client</th>
+                  <th className="px-3 py-2 text-right">Sent today</th>
+                  <th className="px-3 py-2 text-right">Sent · 7 days</th>
+                  <th className="px-3 py-2 text-right">Replies · 7 days</th>
+                  <th className="px-3 py-2 text-right">Bounced · 7 days</th>
+                  <th className="px-3 py-2 text-right">Opt-outs · 7 days</th>
+                  <th className="px-3 py-2 text-right">Failed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.byClient ?? []).map(c => (
+                  <tr key={c.clientId} className={`border-b border-slate-100 last:border-0 ${c.isHouse ? 'bg-violet-50/60' : ''}`}>
+                    <td className="px-3 py-2 font-semibold text-slate-900">{c.isHouse ? `House · ${c.name}` : c.name}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{cell(c.today.sent)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{cell(c.last7.sent)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{cell(c.last7.replies)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{cell(c.last7.bounced)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{cell(c.last7.optOuts)}</td>
+                    <td className="px-3 py-2 text-right text-slate-500" title={c.last7.failed.measured ? '' : c.last7.failed.why}>{cell(c.last7.failed)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[12.5px] text-slate-600 leading-relaxed">
         <p className="font-bold text-slate-800 mb-1">What these numbers are, and are not</p>

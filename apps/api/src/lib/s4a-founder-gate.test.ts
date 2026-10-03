@@ -47,7 +47,7 @@ describe('4a — wired into the one send door, and recorded in Vida', () => {
     const gate = read('programme-authority.ts')
     expect(gate).toContain("if (ctx?.enforceSchedule !== false) {\n    const { founderApprovalVerdict } = await import('./founder-approval')")
     expect(gate).toContain("reason: 'founder_not_approved'")
-    expect(read('figsy.ts')).toContain('followUp: step > 1 })')
+    expect(read('figsy.ts')).toContain('followUp: step > 1, leadId: lead.id ?? null })' /* ⛓️ 3 Oct (R191 4c): was 'followUp: step > 1 })' — the person now travels too */)
   })
   it('Vida can read the version and approve exactly that one; the act is audited', () => {
     const r = read('../routes/programme.ts')

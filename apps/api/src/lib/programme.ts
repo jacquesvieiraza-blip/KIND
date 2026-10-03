@@ -1736,6 +1736,15 @@ export async function raiseApprovalConcern(params: {
 export async function resumeProgramme(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
+  // ⚑ 2 Oct (#2561 · 14c · R191 — *"Refuse until it's settled"*): a programme whose payment
+  // was reversed asks Stripe first. Refunded → never; dispute open or lost → refused; won → ok.
+  if (p.disputed_at) {
+    const intents = [p.first_payment_intent_id, p.second_payment_intent_id].filter((x): x is string => !!x)
+    const { readPaymentReversals } = await import('./stripe')
+    const { reversalVerdict } = await import('./payment-reversal')
+    const v = reversalVerdict(intents.length ? await readPaymentReversals(intents) : null, intents.length > 0)
+    if (!v.mayResume) return { ok: false, reason: v.reason }
+  }
   // ⚑ 2 Oct (R185 ⑦ · #2548) — and Resume checks its save the same way Pause does.
   const { error } = await db.from('programmes').update({
     paused_at: null, pause_reason: null, updated_at: new Date().toISOString(),

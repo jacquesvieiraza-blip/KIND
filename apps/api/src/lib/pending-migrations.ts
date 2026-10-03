@@ -7395,6 +7395,15 @@ ALTER TABLE public.leads
 COMMENT ON COLUMN public.leads.state IS
   'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2559 · R189 ②) — TWO MAILBOXES PER CLIENT ─────────────────────────────────
+    // Drops the one-live-pooled-box-per-client index so the second can be assigned. The
+    // one-address-one-client index stays; the code stops at two.
+    key: '20261002_two_mailboxes_per_client',
+    title: 'client_inboxes: a client may hold two live pooled mailboxes (R189 ②, #2559)',
+    sql: `
+DROP INDEX IF EXISTS public.client_inboxes_one_live_per_kind;
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

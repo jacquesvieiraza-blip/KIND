@@ -356,3 +356,21 @@ export async function resolveSendingInbox(clientId: string): Promise<Resolution>
 
   return pickSendingInbox((data ?? []) as InboxRow[], secretState().ok)
 }
+
+
+/**
+ * ⚑ 2 Oct (#2559 · R189 ②) — WHO this client's sendable boxes are: id, address, status, kind.
+ * Never a credential: it is read by the approval snapshot, which must not touch one. `null` =
+ * the mailboxes could not be read.
+ */
+export async function liveSenderIdentities(clientId: string): Promise<{ id: string; email: string | null; status: string | null; kind: string | null }[] | null> {
+  const { db } = await import('@kind/db')
+  const { secretState } = await import('./inbox-secret')
+  const { data, error } = await db.from('client_inboxes')
+    .select('id, email, kind, status, provider, daily_cap, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
+    .eq('client_id', clientId)
+  if (error) return null
+  const pool = sendablePool((data ?? []) as unknown as InboxRow[], secretState().ok)
+  if (!pool.ok) return []
+  return pool.boxes.map(b => ({ id: String(b.id), email: (b.email as string | null) ?? null, status: (b.status as string | null) ?? null, kind: (b.kind as string | null) ?? null }))
+}

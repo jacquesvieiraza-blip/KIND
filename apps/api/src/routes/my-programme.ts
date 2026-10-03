@@ -886,7 +886,7 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
     {
       const { founderWordingApproved } = await import('../lib/founder-approval')
       if (!(await founderWordingApproved(p.id))) {
-        res.status(409).json({ success: false, error: 'awaiting_founder', message: 'Our team is still checking your emails. You can approve them as soon as they appear here.' }); return
+        res.status(409).json({ success: false, error: 'awaiting_founder', message: 'Your emails are with our team for a final check, usually within 1 working day. You can approve them as soon as they appear here.' }); return
       }
     }
     const { approveProgrammeAsCustomer } = await import('../lib/programme')

@@ -191,7 +191,11 @@ export default function ProgrammePage() {
           internalBilling={p.money.internalBilling === true}
           onChosen={() => { void load() }}
           onWiden={widen} />
-      ) : review?.programme && review.canApprove && !review.programme.approved_at ? (
+      ) : review?.programme && !review.programme.approved_at
+          // ⚑ 3 Oct (review S8) — WAS `review.canApprove` alone, and canApprove is false until the
+          // founder approves, so a client waiting on him saw no panel at all — not even "with our
+          // team for a final check". The panel (which shows that notice) now opens for them too.
+          && (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (
         /* ⚑ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE RIGHT SIDE IS THE APPROVAL PANEL, ALONE. */
         <ProgrammeApproval
           data={review}

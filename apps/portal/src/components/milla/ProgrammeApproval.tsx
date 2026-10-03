@@ -327,7 +327,10 @@ export default function ProgrammeApproval({
     : null
   const days = frozen ? frozen.messages.slice(0, -1).reduce((n, m) => n + (m.wait_days || 0), 0) : 0
 
-  if (p.approved_at) {
+  // ⚑ 3 Oct (seen on the real screen) — a live programme's NEW version is approved again here, so
+  // it must not draw the "Approved" card: that hid the button and said "nothing is sent until the
+  // programme goes Live" about a programme that is live.
+  if (p.approved_at && data.reapproval !== true) {
     return (
       <div data-testid="programme-approved" className="mv-hero-card">
         <div className="mv-eyebrow">Approved</div>

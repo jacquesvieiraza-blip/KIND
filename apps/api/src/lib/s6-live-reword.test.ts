@@ -69,3 +69,17 @@ describe('6 — House\'s approved emails are signed "The Milla & Vida Team"', ()
     expect(ensureSignOff('Hi Sam,\n\nOne question.', HOUSE_SIGN_OFF)).toMatch(/The Milla & Vida Team$/)
   })
 })
+
+// ⚑ 3 Oct — seen on the real screens (round previews): the client got the "with our team" card
+// TWICE, and after the founder approved the new version, two "Approved — nothing is sent until the
+// programme goes Live" cards and no button to approve again.
+describe('6 — the live re-approval draws once, with its button', () => {
+  it('the approved card is not drawn for a re-approval', () => {
+    const c = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeApproval.tsx'), 'utf8')
+    expect(c).toContain('if (p.approved_at && data.reapproval !== true) {')
+  })
+  it('the lower panel stays away when the upper one is already showing', () => {
+    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/programme/page.tsx'), 'utf8')
+    expect(page).toContain('&& !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
+  })
+})

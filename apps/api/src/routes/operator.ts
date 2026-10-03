@@ -5309,7 +5309,7 @@ operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
     // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
     {
       const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
-      const frozen = await mailboxChangeRefusal(client.id)
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'assign' })
       if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
     }
 
@@ -5386,7 +5386,7 @@ operatorRouter.post('/inboxes/:id/status', async (req: Request, res: Response) =
     // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
     {
       const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
-      const frozen = await mailboxChangeRefusal(client.id)
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'status', to: String(status) })
       if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
     }
 
@@ -7470,7 +7470,7 @@ operatorRouter.post('/inboxes', async (req: Request, res: Response) => {
     // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
     {
       const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
-      const frozen = await mailboxChangeRefusal(client.id)
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'add', status: String(v.status) })
       if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
     }
 

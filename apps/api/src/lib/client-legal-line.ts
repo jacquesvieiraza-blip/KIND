@@ -2,8 +2,8 @@
 // A CLIENT'S EMAILS END WITH THEIR OWN COMPANY NAME AND REGISTERED OFFICE.
 //
 // ⛓️ R189 ⑥ (founder-ruled 2 Oct): the legal line is the client's company name and registered
-// office, given by the client and CHECKED BEFORE GO-LIVE. House is the exception: it carries
-// "Milla & Vida · K.I.N.D Technologies Ltd, 33 Townsend Road, CV37 7DE, United Kingdom".
+// office, given by the client and CHECKED BEFORE GO-LIVE. House is the exception: it carries its
+// own line (HOUSE_POSTAL_FOOTER_LINE in @kind/shared — the address has one home).
 //
 // This file holds the line and the go-live check. Printing it on each email is part 3, once
 // the email layout (#2571) that carries a footer line is merged.

@@ -268,22 +268,68 @@ export function unsubscribeFooterText(email: string): string {
 // The separator is a blank line then the entity and address. Nothing else: no "unsubscribe"
 // link (the one-click header carries that, deliberately — see the note above), no logo.
 
-/** The plain-text body a cold message actually sends, footer included. */
-export function coldEmailText(body: string): string {
-  return `${(body || '').trimEnd()}\n\n${POSTAL_FOOTER_LINE}`
+// ── ⚑ 2 Oct (R186 ① · card #2543) — THE LAYOUT EVERY COLD EMAIL IS SENT WITH ───────────────
+//
+// The founder, on the 1 Oct email: *"one jamm packed email … we professoinals here. and this is
+// subject to every sequence ever built and sent."* R186 ①: a blank line between paragraphs · a
+// gap before the sign-off · the opt-out line and postal address small at the bottom.
+//
+// ⚠️ APPLIED AT SEND, NOT BY REWRITING WHAT IS STORED. The jammed copies already sit on every
+// enrolment (`figsy_enrollments.steps`) and inside approved snapshots; laying them out here is
+// what reaches every sequence ever built without touching an approval.
+//
+// The rules: every non-empty line is its own paragraph (a closing word such as "Thanks," stays
+// with the name under it); the "Reply STOP to opt out." line is lifted out of the body and set,
+// with the postal line, small at the very bottom — and added there if the copy had none, so the
+// founder's own 8 Sep emails carry it too. Copy that is one long line is left as written: only
+// its author can split it (the AI writing rules are part 2 of this card).
+
+/** The opt-out sentence every cold email ends on, at the bottom with the postal line. */
+export const OPT_OUT_LINE = 'Reply STOP to opt out.'
+const OPT_OUT_RE = /^reply\s+stop\s+to\s+opt[\s-]?out\.?$/i
+const CLOSING_RE = /^(best|thanks|thank you|many thanks|cheers|regards|kind regards|best regards|warm regards|all the best|speak soon)[,.!]?$/i
+
+/** The body's paragraphs (sign-off last) and the opt-out line, split out of a stored body. */
+export function coldEmailParts(body: string): { paragraphs: string[]; optOut: string } {
+  let optOut: string | null = null
+  const lines: string[] = []
+  for (const raw of (body || '').replace(/\r\n?/g, '\n').split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    if (OPT_OUT_RE.test(line)) { optOut ??= line; continue }
+    lines.push(line)
+  }
+  const paragraphs: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (CLOSING_RE.test(lines[i]) && i + 1 < lines.length) { paragraphs.push(`${lines[i]}\n${lines[i + 1]}`); i++; continue }
+    paragraphs.push(lines[i])
+  }
+  return { paragraphs, optOut: optOut ?? OPT_OUT_LINE }
+}
+
+/**
+ * The plain-text body a cold message actually sends, footer included.
+ * ⚑ 2 Oct (R189 ⑥) — `footerLine` is House's own line for House; K.I.N.D's for everyone else.
+ */
+export function coldEmailText(body: string, footerLine: string = POSTAL_FOOTER_LINE): string {
+  const { paragraphs, optOut } = coldEmailParts(body)
+  return `${paragraphs.join('\n\n')}\n\n${optOut}\n${footerLine}`
 }
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-export function coldEmailHtml(body: string, emailId: string | null = null): string {
-  const lines = (body || '').split('\n').map(line => (line.length ? line : '')).join('<br>')
+export function coldEmailHtml(body: string, emailId: string | null = null, footerLine: string = POSTAL_FOOTER_LINE): string {
+  // ⛓️ 2 Oct (R186 ①) — ~~every line joined with <br>~~, which sent the 1 Oct email as one
+  // jammed block. Each paragraph is its own block now; see `coldEmailParts`.
+  const { paragraphs, optOut } = coldEmailParts(body)
+  const lines = paragraphs.map(p => `<p style="margin:0 0 14px 0">${p.split('\n').join('<br>')}</p>`).join('')
   const pixel = emailId ? trackingPixelHtml(emailId) : ''
   // Escaped: the address is a founder-supplied string that ends up inside markup, and an
   // ampersand in a future address would otherwise produce broken HTML in a real inbox.
   const footer =
-    `<div style="margin-top:16px;color:#888;font-size:12px">${escapeHtml(POSTAL_FOOTER_LINE)}</div>`
+    `<div style="margin-top:22px;color:#888;font-size:12px">${escapeHtml(optOut)}<br>${escapeHtml(footerLine)}</div>`
   return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}${pixel}${footer}</div>`
 }
 

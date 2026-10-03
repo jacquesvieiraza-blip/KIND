@@ -72,16 +72,29 @@ function isUniqueViolation(e: { code?: string | null; message?: string | null } 
  * somebody's warmed mailbox and handing them a different one would be a destructive act taken
  * on their behalf.
  */
+/**
+ * ⚑ 2 Oct (#2560) — does this mailbox already give the client a sender, so no pooled one is
+ * claimed? A branded mailbox that is still warming does NOT: it cannot send yet.
+ */
+export function blocksPooledClaim(r: { kind: string | null; status: string | null }): boolean {
+  if (r.kind === 'branded') return r.status === 'active'
+  return true
+}
+
 export async function claimPooledSender(clientId: string): Promise<SenderClaim> {
   // ── ① DOES THIS CLIENT ALREADY HAVE ONE? ───────────────────────────────────────────────
   let existing: { id: string; email: string } | null = null
   try {
+    // ⛓️ 2 Oct (#2560) — ~~any live inbox counted~~, so a branded mailbox still WARMING (2–3
+    // weeks, and a warming box never sends — R183) blocked the pooled claim and the client
+    // waited weeks before they could approve. Only a mailbox that can send now counts: a pooled
+    // one, or a branded one that is active.
     const { data, error } = await db.from('client_inboxes')
-      .select('id, email').eq('client_id', clientId)
+      .select('id, email, kind, status').eq('client_id', clientId)
       .in('status', LIVE_CLAIM_STATUSES as unknown as string[])
-      .limit(1).maybeSingle()
     if (error) return { ok: false, reason: 'unreadable', detail: `the client's mailboxes could not be read (${error.message})` }
-    existing = (data as { id: string; email: string } | null) ?? null
+    existing = ((data ?? []) as { id: string; email: string; kind: string | null; status: string | null }[])
+      .find(r => blocksPooledClaim(r)) ?? null
   } catch (err) {
     return {
       ok: false, reason: 'unreadable',

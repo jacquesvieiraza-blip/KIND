@@ -72,6 +72,10 @@ vi.mock('../middleware/auth', () => ({
   requireAuth: (_q: unknown, _s: unknown, next: () => void) => next(),
 }))
 // 🛑 NO REAL STRIPE, EVER. Every case below that reaches this has already failed.
+// ⚑ 3 Oct (R195 ②) — the first payment now also needs the client's approved direction. These tests
+// are about ACCEPTANCE, so the direction is given as approved; its own refusal is proven in
+// `programme-direction.test.ts` and in the full-stack journey J11.
+vi.mock('./programme-direction', () => ({ requireApprovedDirection: async () => ({ ok: true }) }))
 vi.mock('./programme-checkout', () => ({
   createProgrammeCheckoutSession: async (p: Row) => { state.sessions.push(p); return { url: 'https://stripe.test/session' } },
   // ⚑ 1 Oct (#2226) — the stored quote for the stage, as the real helper reads it.

@@ -73,6 +73,8 @@ const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: K
   // STAYS gone is asserted below rather than left to the absence of a row here.
   { file: 'apps/api/src/routes/icps.ts',    line: 2781, surface: 'POST /icps/chat-build (targeting)',       klass: 'MILLA' },
   { file: 'apps/api/src/routes/icps.ts',    line: 3995, surface: 'POST /icps/builder/chat (onboarding)',    klass: 'MILLA' },
+  // ⚑ 3 Oct (R195 ② · sequencing piece 3) — Milla drafts the direction for a programme; a client waits on it.
+  { file: 'apps/api/src/lib/programme-direction.ts', line: 198, surface: 'POST /my/programme/direction/draft', klass: 'MILLA' },
   // ── VIDA — the operator's colleague ───────────────────────────────────────────────────
   { file: 'apps/api/src/routes/operator.ts', line: 1240, surface: 'POST /operator/icp/chat',                klass: 'VIDA' },
   { file: 'apps/api/src/routes/operator.ts', line: 4649, surface: 'POST /operator/command',                 klass: 'VIDA' },
@@ -221,6 +223,8 @@ const ENTRY_POINTS: Array<{ route: string; file: string; who: string; store: str
   { route: "operatorRouter.post('/ask'",      file: 'apps/api/src/routes/operator.ts', who: 'operator → client',         store: 'milla_messages (the client thread)' },
   { route: "'/escalate',",                    file: 'apps/api/src/routes/support.ts',  who: 'client — escalation',       store: 'founder_alerts' },
   { route: "millaRouter.get('/brief-draft'",  file: 'apps/api/src/routes/milla.ts',    who: 'client — re-entry read',    store: 'onboarding_brief_drafts' },
+  // ⚑ 3 Oct (R195 ②) — the programme direction: a goal in, Milla's draft out, kept for the client to approve.
+  { route: "myProgrammeRouter.post('/direction/draft'", file: 'apps/api/src/routes/my-programme.ts', who: 'client — programme direction', store: "figsy_knowledge (kind 'programme_direction')" },
 ]
 
 describe('M2 — every entry point exists and names its store', () => {
@@ -233,6 +237,7 @@ describe('M2 — every entry point exists and names its store', () => {
     // so it is named by the route that calls it rather than by its own path.
     const LIB_REACHED_BY: Record<string, string> = {
       'apps/api/src/lib/milla.ts': "millaRouter.post('/sessions/:sessionId/chat'",
+      'apps/api/src/lib/programme-direction.ts': "myProgrammeRouter.post('/direction/draft'",
     }
     for (const c of MODEL_CALLS.filter(x => x.klass !== 'OTHER')) {
       if (LIB_REACHED_BY[c.file]) {

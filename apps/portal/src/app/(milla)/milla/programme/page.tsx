@@ -33,6 +33,7 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
+import { ProgrammeDirection, DirectionFirstNote } from '@/components/milla/ProgrammeDirection'
 import OfferCard from '@/components/milla/OfferCard'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
@@ -47,6 +48,8 @@ export default function ProgrammePage() {
   const [summary, setSummary] = useState<OutcomeSummary | null>(null)
   // ⚑ 24 Sep (#39) — the next programme is priced on this same screen, from Complete.
   const [pricingNext, setPricingNext] = useState(false)
+  // ⚑ 3 Oct (R195 ②) — the price and the pay button wait for the client's approved direction.
+  const [directionApproved, setDirectionApproved] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -186,12 +189,18 @@ export default function ProgrammePage() {
           </p>
         </div>
       ) : choosing ? (
-        <ProgrammeCalculator
-          startAt={p.outcome.target}
-          alreadyAccepted={acceptanceGate(p) === 'accepted'}
-          internalBilling={p.money.internalBilling === true}
-          onChosen={() => { void load() }}
-          onWiden={widen} />
+        /* ⚑ 3 Oct (R195 ② · option A) — THE DIRECTION FIRST, THEN THE PRICE AND THE PAY BUTTON. */
+        <>
+          <ProgrammeDirection onApproved={setDirectionApproved} />
+          {directionApproved ? (
+            <ProgrammeCalculator
+              startAt={p.outcome.target}
+              alreadyAccepted={acceptanceGate(p) === 'accepted'}
+              internalBilling={p.money.internalBilling === true}
+              onChosen={() => { void load() }}
+              onWiden={widen} />
+          ) : <DirectionFirstNote />}
+        </>
       ) : review?.programme && (
           // ⚑ 3 Oct (review S8) — WAS `review.canApprove` alone, and canApprove is false until the
           // founder approves, so a client waiting on him saw no panel at all — not even "with our
@@ -212,8 +221,14 @@ export default function ProgrammePage() {
             else void load()
           }} />
       ) : p.stage === 'Completion' && pricingNext ? (
-        /* #39 — a next programme can start: the same calculator, the same one button. */
-        <ProgrammeCalculator onChosen={() => { setPricingNext(false); void load() }} onWiden={widen} />
+        /* #39 — a next programme can start: the same calculator, the same one button.
+           ⚑ 3 Oct (R195 ①) — and it starts from a NEW goal: a returning client's direction first. */
+        <>
+          <ProgrammeDirection onApproved={setDirectionApproved} />
+          {directionApproved ? (
+            <ProgrammeCalculator onChosen={() => { setPricingNext(false); void load() }} onWiden={widen} />
+          ) : <DirectionFirstNote />}
+        </>
       ) : (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') ? (
         /* ⚑ 24 Sep (R145 step 6 · #61 #62) — Results while it runs, Complete when it ends. */
         <ProgrammeOutcome p={p} summary={summary} onPriceNext={p.stage === 'Completion' ? () => setPricingNext(true) : undefined} onPaused={() => void load()} />

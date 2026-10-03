@@ -176,7 +176,7 @@ const MILLA_GREETING =
  * the live one exactly as it is. Same conversation, same composer, same proposal endpoint —
  * only the destination of the explicit Save differs.
  */
-type ConversationContext = 'icp' | 'icp-fresh' | BusinessContext | null
+type ConversationContext = 'icp' | 'icp-fresh' | BusinessContext | DirectionContext | null
 
 /** Both ICP contexts share the proposal builder; only the save destination differs. */
 const isIcpContext = (c: ConversationContext): boolean => c === 'icp' || c === 'icp-fresh'
@@ -200,6 +200,21 @@ const businessLabel = (k: BusinessKey): string => BUSINESS_FIELDS.find(f => f[0]
 type BusinessBase = { key: BusinessKey; current: string; version: number }
 type BusinessDraft = BusinessBase & { value: string; mayQuote: boolean }
 
+// ── ⚑ 3 Oct (R195 ① ② · sequencing piece 3) — THE DIRECTION FOR THIS PROGRAMME ────────────
+// "What are you trying to achieve this time?" is answered HERE, in the one conversation, and Milla
+// drafts the direction from it (`/my/programme/direction/draft`). A part of the direction is
+// changed here too (`/change`). Both are a draft — nothing is approved or paid for in the chat;
+// the client approves the direction on the Programme page, and only then can they pay.
+export const DIRECTION_FIELDS = [
+  ['goal', 'What you’re trying to achieve'], ['who', 'Who it’s for'], ['problem', 'The one problem we lead with'],
+  ['impact', 'What it costs them'], ['answer', 'Your answer'], ['proof', 'Proof we use'], ['ask', 'The ask'],
+] as const
+export type DirectionKey = typeof DIRECTION_FIELDS[number][0]
+type DirectionContext = `direction:${DirectionKey}`
+const isDirectionContext = (c: ConversationContext): c is DirectionContext => typeof c === 'string' && c.startsWith('direction:')
+const directionLabel = (k: DirectionKey): string => DIRECTION_FIELDS.find(f => f[0] === k)?.[1] ?? k
+type DirectionBase = { key: DirectionKey; current: string; version: number }
+
 type MillaConversationApi = {
   /**
    * Put the ONE conversation into a context and focus its composer.
@@ -221,6 +236,8 @@ type MillaConversationApi = {
   icpRevision: number
   /** Bumped whenever a "Your business" change is approved, so My ICP re-reads the facts. */
   businessRevision: number
+  /** Bumped whenever the programme direction is drafted or changed in the chat. */
+  directionRevision: number
   /**
    * ── 🛑 ⚑ 24 Sep — ONE CHAT, FROM SIGN-UP TO COMPLETE ─────────────────────────────────────
    *
@@ -284,7 +301,7 @@ export function useMillaConversation(): MillaConversationApi {
   return useContext(Ctx) ?? INERT
 }
 const INERT: MillaConversationApi = {
-  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0, businessRevision: 0,
+  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0, businessRevision: 0, directionRevision: 0,
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
   setDeskActions: () => {}, announceOnce: () => {}, keepNotice: () => {}, ask: () => {},
 }
@@ -318,6 +335,8 @@ export function MillaConversationProvider(
   const [businessDraft, setBusinessDraft] = useState<BusinessDraft | null>(null)
   const [businessRevision, setBusinessRevision] = useState(0)
   const [businessSaving, setBusinessSaving] = useState(false)
+  const [directionBase, setDirectionBase] = useState<DirectionBase | null>(null)
+  const [directionRevision, setDirectionRevision] = useState(0)
   const [deskSet, setDeskSet] = useState<number | null>(null)
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -502,6 +521,14 @@ export function MillaConversationProvider(
         (now ? `What should “${label}” say instead? Right now it says: “${now}”.` : `What should “${label}” say? I don’t have anything for it yet.`)
         + (key === 'result' ? ' Only a real result, and you’ll tell me before you approve whether I may quote it.' : '') }])
     } else setBusinessBase(null)
+    if (isDirectionContext(c)) {
+      const key = c.slice('direction:'.length) as DirectionKey
+      setDirectionBase({ key, current: business?.current ?? '', version: business?.version ?? 0 })
+      const now = (business?.current ?? '').trim()
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: key === 'goal'
+        ? `What are you trying to achieve with this programme? A sentence is enough.${now ? ` (Last time: “${now}”. Tell me what’s different now, or say it again if it’s the same.)` : ''}`
+        : `What should “${directionLabel(key)}” say instead? Right now it says: “${now}”` }])
+    } else setDirectionBase(null)
     // A frame, so the strip above the composer is on screen before the cursor lands in it.
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
@@ -599,10 +626,35 @@ export function MillaConversationProvider(
 
   async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
-    if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && !isBusinessContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
+    if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && !isBusinessContext(context) && !isDirectionContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
     // ⚑ 3 Oct (R195 ④) — A "YOUR BUSINESS" TURN IS A PROPOSAL, NOT A REQUEST. What the client
     // types is what the fact will say; it is shown as a before-and-after and saved only on
     // "Approve this change". Nothing goes to the server here.
+    // ⚑ 3 Oct (R195 ②) — A DIRECTION TURN: the goal is drafted into a direction, a part is changed.
+    // Both write a DRAFT only; approval happens on the Programme page.
+    if (isDirectionContext(context) && directionBase && !opts?.handoffId) {
+      setInput(''); setSending(true)
+      setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+      const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+      try {
+        const tok = await token()
+        if (directionBase.key === 'goal') {
+          await api.post('/my/programme/direction/draft', { goal: msg }, tok, AI_TURN_TIMEOUT_MS)
+          say('Here’s the direction I’d use for this programme — it’s on the right. Change any part with me, then press Approve direction. Nothing is paid for or written until you do.')
+        } else {
+          await api.post('/my/programme/direction/change', { key: directionBase.key, value: msg, base_version: directionBase.version }, tok)
+          say('Updated. Approve the direction on the right when it reads right.')
+        }
+        setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1)
+      } catch (e) {
+        const status = failureOf(e).status
+        setInput(prev => (prev.trim() ? prev : msg))
+        if (status === 409) { say('The direction changed since you opened it, so I haven’t saved that. Please check it on the right.'); setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1) }
+        else if (status === 400) say('Tell me in a sentence what you want from this programme — for example, the kind of meetings and with whom.')
+        else say('I couldn’t do that just now. Your words are still in the box — please send them again in a moment.')
+      } finally { setSending(false) }
+      return
+    }
     if (isBusinessContext(context) && businessBase && !opts?.handoffId) {
       setInput('')
       setMessages(m => [...m,
@@ -905,8 +957,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, businessRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
-    [focus, publishDeskSet, icpRevision, businessRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
+    () => ({ focus, publishDeskSet, icpRevision, businessRevision, directionRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
+    [focus, publishDeskSet, icpRevision, businessRevision, directionRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),
@@ -987,6 +1039,14 @@ export function MillaConversationProvider(
                 className="ml-auto text-[10px] font-semibold text-[#766f7e] hover:text-[#17141c]">Done</button>
             </div>
           )}
+          {isDirectionContext(context) && directionBase && (
+            <div className="flex items-center gap-2 mx-[18px] mb-2 rounded-xl border border-[#e4d9fb] bg-[#fbf9fd] px-3 py-2">
+              <span className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a29aa9]">Talking about</span>
+              <b className="text-[11px]">This programme — {directionLabel(directionBase.key)}</b>
+              <button onClick={() => { setContext(null); setDirectionBase(null) }}
+                className="ml-auto text-[10px] font-semibold text-[#766f7e] hover:text-[#17141c]">Done</button>
+            </div>
+          )}
           {/* ⚑ 3 Oct (R195 ④) — THE PROPOSED CHANGE AND ITS APPROVAL. Nothing is saved until it is pressed. */}
           {isBusinessContext(context) && businessDraft && (
             <div data-testid="business-draft" className="mv-hero-card mx-[18px] mb-2">
@@ -1031,7 +1091,7 @@ export function MillaConversationProvider(
               pause my programme", "How is my ROI looking?" — and in ICP context the composer
               is talking to `/icps/chat-build`. Sending one of them there would put a
               programme question into a targeting conversation. */}
-          {context !== 'icp' && !isBusinessContext(context) && chips.length > 0 && (
+          {context !== 'icp' && !isBusinessContext(context) && !isDirectionContext(context) && chips.length > 0 && (
             <div className="mv-quickbar">
               {chips.map(c => <button key={c} onClick={() => {
                 if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
@@ -1047,7 +1107,7 @@ export function MillaConversationProvider(
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) ? 'Tell Milla what it should say…' : 'Ask Milla anything about your programme…'} />
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) || (isDirectionContext(context) && context !== 'direction:goal') ? 'Tell Milla what it should say…' : context === 'direction:goal' ? 'What do you want from this programme?' : 'Ask Milla anything about your programme…'} />
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────

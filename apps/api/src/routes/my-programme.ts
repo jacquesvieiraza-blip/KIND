@@ -135,6 +135,82 @@ myProgrammeRouter.post('/business/change', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 3 Oct (R195 ① ② · sequencing piece 3) — THE DIRECTION FOR THIS PROGRAMME ─────────────
+// "What are you trying to achieve this time?" → Milla drafts → the client changes it with Milla
+// → approves it. The first payment is refused until then (`programmeCheckout`).
+myProgrammeRouter.get('/direction', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readDirectionView } = await import('../lib/programme-direction')
+    res.json({ success: true, data: await readDirectionView(clientId) })
+  } catch (err) {
+    console.error('[my/programme/direction GET]', err)
+    res.status(503).json({ success: false, error: 'The direction for your programme could not be loaded just now. Please try again.' })
+  }
+})
+
+myProgrammeRouter.post('/direction/draft', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { draftDirection, DirectionError } = await import('../lib/programme-direction')
+    try {
+      res.json({ success: true, data: await draftDirection(clientId, String((req.body ?? {}).goal ?? '')) })
+    } catch (e) {
+      if (e instanceof DirectionError) {
+        res.status(e.code === 'goal_too_short' ? 400 : 503).json({ success: false, error: e.code, message: e.message }); return
+      }
+      throw e
+    }
+  } catch (err) {
+    console.error('[my/programme/direction/draft POST]', err)
+    res.status(503).json({ success: false, error: 'Milla could not draft the direction just now. Please try again.' })
+  }
+})
+
+myProgrammeRouter.post('/direction/change', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { changeDirectionFor, DIRECTION_KEYS, DIRECTION_FIELD_MAX } = await import('../lib/programme-direction')
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const key = b.key as (typeof DIRECTION_KEYS)[number]
+    const value = typeof b.value === 'string' ? b.value.trim().slice(0, DIRECTION_FIELD_MAX) : ''
+    if (!DIRECTION_KEYS.includes(key) || key === 'goal' || !value || typeof b.base_version !== 'number') {
+      res.status(400).json({ success: false, error: 'That change could not be read. Please tell Milla again.' }); return
+    }
+    const r = await changeDirectionFor(clientId, { key, value, baseVersion: b.base_version })
+    if (!r.ok) {
+      res.status(409).json({ success: false, error: r.reason, message: 'The direction changed since you opened it. Please check it and try again.' }); return
+    }
+    res.json({ success: true, data: r.direction })
+  } catch (err) {
+    console.error('[my/programme/direction/change POST]', err)
+    res.status(503).json({ success: false, error: 'Your change could not be saved just now. Please try again.' })
+  }
+})
+
+myProgrammeRouter.post('/direction/approve', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const v = (req.body ?? {}).base_version
+    if (typeof v !== 'number') { res.status(400).json({ success: false, error: 'Which version are you approving? Please refresh and try again.' }); return }
+    const { approveDirectionFor } = await import('../lib/programme-direction')
+    const r = await approveDirectionFor(clientId, v)
+    if (!r.ok) {
+      res.status(409).json({ success: false, error: r.reason, message: r.reason === 'incomplete'
+        ? 'Every part of the direction needs filling in before it can be approved.'
+        : 'The direction changed since you opened it. Please check it and approve again.' }); return
+    }
+    res.json({ success: true, data: r.direction })
+  } catch (err) {
+    console.error('[my/programme/direction/approve POST]', err)
+    res.status(503).json({ success: false, error: 'Your approval could not be saved just now. Please try again.' })
+  }
+})
+
 // ── GET /my/programme/review — the masked prospects for THIS programme ─────────────────
 // ── ⚑ 25 Sep (R158 · R163) — THE CLIENT'S OFFER, IN THEIR OWN WORDS ─────────────────────────
 // Four answers — problems, impact, ROI (quoted only with the client's tick), solution — saved into
@@ -457,6 +533,7 @@ async function programmeCheckout(
   const p = await openProgrammeForSession(clientId)
   if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
 
+
   // ⚑ 25 Sep — THE HOUSE ACCOUNT OWES NOTHING, AT EITHER HALF, AND NO CHECKOUT IS EVER MINTED FOR IT.
   // The founder's House walk: after approving, Milla offered "Pay the second half — $2,187.50",
   // and this route would have opened a LIVE Stripe session for it until P2 was authorised
@@ -471,6 +548,10 @@ async function programmeCheckout(
     // return from Stripe would — no Stripe session, no money. Any other demo is refused as before.
     const { isNorthwindLogin } = await import('../lib/demo-northwind-data')
     if (stage === 'programme_first' && isNorthwindLogin(req.authEmail)) {
+      // ⚑ 3 Oct (R195 ②) — the demo's "Pay" needs an approved direction too, as a client's does.
+      const { requireApprovedDirection } = await import('../lib/programme-direction')
+      const demoGate = await requireApprovedDirection(clientId, p.id)
+      if (!demoGate.ok) { res.status(409).json({ success: false, error: 'direction_not_approved', message: demoGate.message }); return }
       const { advanceNorthwindOnPress } = await import('../lib/demo-northwind')
       const r = await advanceNorthwindOnPress(req.userId!, 'first_payment', p.meeting_target)
       if (!r.ok) { res.status(503).json({ success: false, error: 'demo_unavailable', message: `The demo could not move on: ${r.error}. Nothing was charged.` }); return }
@@ -495,6 +576,14 @@ async function programmeCheckout(
   // 🛑 THE SAME STATE RULES THE OPERATOR DOORS USE. Restating them loosely here is how a client
   // pays for a stage the programme is not in.
   if (stage === 'programme_first') {
+    // ── 🛑 ⚑ 3 Oct (R195 ② · option A) — NO FIRST PAYMENT WITHOUT AN APPROVED DIRECTION ─────
+    // The client approves what this programme is for (goal · who · problem · impact · answer ·
+    // proof · ask) before paying and before any email is written. Passing it attaches the
+    // direction to THIS programme, so its emails are written from it and it is never reused.
+    // (House never pays here — its P1 is Vida's internal authority, which carries the same gate.)
+    const { requireApprovedDirection } = await import('../lib/programme-direction')
+    const gate = await requireApprovedDirection(clientId, p.id)
+    if (!gate.ok) { res.status(409).json({ success: false, error: 'direction_not_approved', message: gate.message }); return }
     if (firstPaid(p)) {
       res.status(409).json({ success: false, error: 'already_paid', message: 'The first payment is already recorded.' }); return
     }

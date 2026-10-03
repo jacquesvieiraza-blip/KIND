@@ -498,6 +498,14 @@ programmeRouter.post('/:id/await-first-payment', guard(async (req: Request, res:
  * have to infer from this screen is whether pressing it charged somebody.
  */
 programmeRouter.post('/:id/authorise/first', guard(async (req: Request, res: Response) => {
+  // ⚑ 3 Oct (R195 ② · R194) — INTERNAL P1 IS P1: the client's direction must be approved first,
+  // exactly as for a paying client (House included). Passing attaches it to this programme.
+  const { data: owner, error: ownerErr } = await db.from('programmes').select('client_id').eq('id', req.params.id).maybeSingle()
+  if (ownerErr) { res.status(503).json({ success: false, error: `The programme could not be read (${ownerErr.message}). Nothing was authorised.` }); return }
+  if (!owner) { res.status(404).json({ success: false, error: 'No such programme.' }); return }
+  const { requireApprovedDirection } = await import('../lib/programme-direction')
+  const gate = await requireApprovedDirection((owner as { client_id: string }).client_id, req.params.id)
+  if (!gate.ok) { res.status(409).json({ success: false, error: 'direction_not_approved', message: 'The client has not approved the direction for this programme in Milla yet. Nothing was authorised.' }); return }
   const r = await authoriseFirstInternal(req.params.id)
   let started: { started: boolean; already_running: boolean; detail: string } | null = null
   if (r.ok) {

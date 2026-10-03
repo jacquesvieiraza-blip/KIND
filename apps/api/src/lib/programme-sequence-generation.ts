@@ -182,8 +182,23 @@ export async function generateProgrammeSequence(
 
   const { generateSequence, getClientKnowledgeForOutreach } = await import('./figsy')
   const knowledge = await getClientKnowledgeForOutreach(clientId).catch(() => undefined)
-  const briefContext = await import('./meeting-brief-deliver')
+  const meetingBrief = await import('./meeting-brief-deliver')
     .then(m => m.briefContextFor(clientId)).catch(() => null)
+  // ⚑ 3 Oct (R195 ② · sequencing piece 3) — THE DIRECTION THE CLIENT APPROVED FOR THIS PROGRAMME.
+  // A programme paid for after 3 Oct carries one; its emails are written to it. One paid before
+  // (House's current programme included) has none, and is written exactly as before.
+  // 🛑 AN UNREADABLE DIRECTION STOPS THE WRITING — never "write without it" for a client who approved one.
+  let direction: string | null
+  try {
+    const { approvedDirectionFor } = await import('./programme-direction')
+    direction = await approvedDirectionFor(programmeId, clientId)
+  } catch (err) {
+    return {
+      ok: false, alreadyPresent: false,
+      reason: `The client's approved direction for this programme could not be read (${err instanceof Error ? err.message : String(err)}). Nothing was written, and the programme is unchanged.`,
+    }
+  }
+  const briefContext = [meetingBrief, direction].filter(Boolean).join('\n\n') || null
 
   let draft: Record<string, { subject?: string; body?: string }>
   try {

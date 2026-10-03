@@ -322,6 +322,23 @@ const anthropicHandler = async (req, body, res, state) => {
     }), true
   }
 
+  // ── ⚑ 3 Oct (R195 ② · sequencing piece 3) — A SCRIPTED SHAPE: THE PROGRAMME DIRECTION ──────
+  // Milla drafts five parts as one JSON object; without this the walks could never approve a
+  // direction, and so could never pay. The words are the harness's and prove nothing about writing.
+  if (prompt.includes('PROGRAMME_DIRECTION_JSON')) {
+    return json(res, 200, {
+      id: 'msg_fake_direction', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({
+        who: 'Operations Directors at UK field-service firms, 51–500 staff.',
+        problem: 'Engineers booked from spreadsheets and whiteboards.',
+        impact: 'Coordinators lose hours a day and visits get missed.',
+        answer: 'Scheduling, job tracking and on-site sign-off in one app.',
+        ask: '15 minutes to compare how they book engineers today.',
+      }) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
   // ── ⚑ 18 Sep (P6 §8.2) — THE SECOND SCRIPTED SHAPE: SEQUENCE GENERATION ─────────────────
   //
   // 🛑 WITHOUT IT, PREPARATION DIES ON A TypeError. `generateSequence` hands its answer

@@ -895,8 +895,34 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
       .eq('status', 'active')
       .gt('leads_enrolled', 0)
       .gte('emails_sent', MIN_EMAILS)
+    // ⚑ 2 Oct (R185 ④) — and every campaign the old rule already left paused, so a programme
+    // stuck there is shown to the founder rather than silently left stopped.
+    const { data: stuckProgrammeRows } = await db.from('figsy_campaigns')
+      .select('id, client_id, name, status')
+      .eq('status', 'paused_low_performance')
 
     const paused: { id: string; name: string; client_id: string; reply_rate: number }[] = []
+
+    // ── ⚑ 2 Oct (R185 ④ · #2546) — A PROGRAMME IS NEVER PAUSED FOR LOW REPLIES ────────────
+    //
+    // The founder: *"No automatic low-reply pause for programmes — the system tells the founder
+    // in Vida and he decides"* (*"yes. lock"*). At 100 a day House reaches 50 sent on its first
+    // day, and no replies that early is normal — this check would have paused House the morning
+    // after it resumed, and emailed a paying client that their campaign was stopped.
+    //
+    // ⚠️ "CANNOT TELL" PAUSES NOTHING. If the programme list cannot be read, no campaign is
+    // paused this run: a robot must never guess a paying client off.
+    const programmeSet = await programmeClientIds(
+      [...new Set([...(campaigns ?? []), ...(stuckProgrammeRows ?? [])].map(c => c.client_id as string))])
+    const watched: string[] = []
+    for (const stuck of stuckProgrammeRows ?? []) {
+      if (onProgramme(programmeSet, stuck.client_id) === false) continue
+      await sendFounderAlert('churn_risk', `${stuck.name}: still paused by the old automatic low-reply rule — worth a look`, [
+        `Campaign ${stuck.id} for client ${stuck.client_id} is "paused_low_performance".`,
+        'It was paused by the old automatic low-reply rule, which no longer applies to programmes (R185 ④).',
+        'Nothing changes it back automatically — resume it in Vida if it should be sending.',
+      ], { clientId: stuck.client_id, subjectKind: 'campaign_low_replies', subjectId: stuck.id })
+    }
 
     for (const campaign of campaigns ?? []) {
       // Age gate — skip campaigns younger than the full sequence + reply window.
@@ -909,6 +935,16 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
       const repliesTotal = fresh?.replies_total ?? campaign.replies_total
       const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent
       const replyRate = emailsSent > 0 ? repliesTotal / emailsSent : 0
+      if (emailsSent >= MIN_EMAILS && replyRate < 0.01 && onProgramme(programmeSet, campaign.client_id) !== false) {
+        // ⚑ 2 Oct (R185 ④) — a programme (or one we cannot classify) is TOLD, never paused.
+        watched.push(campaign.id)
+        await sendFounderAlert('churn_risk',
+          `${campaign.name}: ${emailsSent} sent, ${repliesTotal} ${repliesTotal === 1 ? 'reply' : 'replies'} — worth a look`, [
+            `Reply rate ${(replyRate * 100).toFixed(2)}% after ${Math.floor(ageDays)} days (client ${campaign.client_id}).`,
+            'Not paused: programmes are never paused automatically for low replies (R185 ④). You decide in Vida.',
+          ], { clientId: campaign.client_id, subjectKind: 'campaign_low_replies', subjectId: campaign.id })
+        continue
+      }
       if (emailsSent >= MIN_EMAILS && replyRate < 0.01) {
         await db.from('figsy_campaigns')
           .update({ status: 'paused_low_performance' })
@@ -943,7 +979,7 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
       }
     }
 
-    res.json({ success: true, data: { checked: (campaigns ?? []).length, paused: paused.length, campaigns: paused } })
+    res.json({ success: true, data: { checked: (campaigns ?? []).length, paused: paused.length, campaigns: paused, founder_told: watched.length } })
   } catch (err) {
     console.error('[figsy/check-performance]', err)
     res.status(500).json({ success: false, error: 'FIGSY performance check failed' })
@@ -2404,7 +2440,14 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
     const changes: { campaignId: string; oldLimit: number; newLimit: number; reason: string }[] = []
     let adjusted = 0
 
+    // ⚑ 2 Oct (R189 ③ · #2546) — A PROGRAMME IS NEVER THROTTLED BY THIS JOB. The founder: each
+    // client is held by its own mailboxes, and nothing else slows a client. This job used to cut
+    // or raise a programme campaign's daily limit silently every morning. A programme — or a
+    // client we cannot classify, because the list could not be read — is left untouched.
+    const programmeSet = await programmeClientIds([...new Set((campaigns ?? []).map(c => c.client_id as string))])
+
     for (const campaign of campaigns ?? []) {
+      if (onProgramme(programmeSet, campaign.client_id) !== false) continue
       // Reconcile from source first — these counters drive send-volume throttling,
       // so a drifted opted_out/replies_total would mis-adjust the daily limit.
       const fresh = await recomputeCampaignCounters(campaign.id)

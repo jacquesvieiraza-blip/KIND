@@ -3,9 +3,12 @@
 // Vida's mailbox board and the System check asked only `pickSendingInbox`, and said "Can send"
 // for a mailbox the send gate refuses (a tie between two boxes, or a box live on another client).
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+
+vi.mock('@kind/db', () => ({ db: {} }))
+
 import { screenSendVerdict, senderSafetyLabel } from './programme-sender'
 
 describe('7e·2 — the screens use the gate\'s answer', () => {

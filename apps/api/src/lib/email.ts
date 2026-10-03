@@ -1096,6 +1096,38 @@ export async function sendCampaignPausedEmail(
   })
 }
 
+// ⚑ 2 Oct (#2564 · R191) — a prospect replied and sounds interested. Sent to the CLIENT.
+//
+// ⚠️ THE REPLY ITSELF IS NOT IN THE EMAIL (R132: *"Do not expose reply body in a generic
+// list"*). It names who replied and links to the Inbox, where the client reads it signed in.
+// The words come from `interestedReplyNotice`, so the email and the phone alert say one thing.
+// A prospect's name comes from a data provider, so it is escaped before it is HTML.
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+export async function sendInterestedReplyEmail(
+  to: string,
+  notice: { subject: string; greeting: string; line: string; button: string; link: string },
+) {
+  return sendTx({
+    from: FROM,
+    to,
+    subject: notice.subject,
+    text: `${notice.greeting}\n\n${notice.line}\n\n${notice.button}: ${notice.link}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <p>${escapeHtml(notice.greeting)}</p>
+        <p style="color:#555;line-height:1.6">${escapeHtml(notice.line)}</p>
+        <a href="${notice.link}"
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          ${escapeHtml(notice.button)} →
+        </a>
+      </div>
+    `,
+  })
+}
+
 // D5 — Weekly leads digest (send every Monday)
 export async function sendWeeklyLeadsDigest(
   to: string,

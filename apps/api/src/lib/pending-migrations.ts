@@ -7395,6 +7395,19 @@ ALTER TABLE public.leads
 COMMENT ON COLUMN public.leads.state IS
   'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2564 · R191) — THE CLIENT'S "REPLY RECEIVED" SWITCH ─────────────────────────
+    // The reply webhook obeys it, and a webhook cannot read a browser. EXPAND ONLY: one nullable
+    // boolean, no DEFAULT — NULL reads as ON, so applying it changes nobody's mail.
+    key: '20261002_reply_received_pref',
+    title: 'clients.reply_received_emails_enabled — the client\'s "Reply received" switch (#2564)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS reply_received_emails_enabled boolean;
+
+COMMENT ON COLUMN public.clients.reply_received_emails_enabled IS
+  'The client''s "Reply received" switch. NULL = never chose = on. false = no email or phone alert when a prospect sounds interested.';
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

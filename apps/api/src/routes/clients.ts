@@ -193,6 +193,9 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // in `internal.ts` via `mayNotify` (`lib/programme-notifications.ts`).
       campaign_paused_emails_enabled: z.boolean().optional(),
       weekly_digest_enabled:          z.boolean().optional(),
+      // ⚑ 2 Oct (#2564 · R191) — "Reply received": an email and a phone alert when a prospect
+      // sounds interested. Honoured in `lib/interested-reply-notice.ts`.
+      reply_received_emails_enabled:  z.boolean().optional(),
     }).parse(req.body)
     // ⚑ 29 Sep (R174 ② · 1e) — the browser never holds the saved key, so an EMPTY key field
     // means "keep the one on file", never "erase it". Switching the CRM off clears it.

@@ -345,6 +345,22 @@ async function detectIcpReviews(): Promise<void> {
   }
 }
 
+// ⚑ 2 Oct (#2561 · 14d) — every paid programme checkout is recorded on its programme, or the
+// founder is told (one alert per paid session). See `lib/payment-reconcile.ts`.
+async function reconcilePayments(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('reconcile:programme-payments', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('reconcile:programme-payments', claim)
+    const { reconcileProgrammePayments } = await import('./lib/payment-reconcile')
+    const res = await reconcileProgrammePayments()
+    if (!res.ok) console.error(`[cron] payment reconciliation could not run: ${res.error ?? 'unknown'}`)
+    else if (res.unrecorded > 0) console.error(`[cron] payment reconciliation — ${res.unrecorded} of ${res.checked} paid checkouts not recorded; the founder is told.`)
+  } catch (err) {
+    console.error('[cron] payment reconciliation threw', err)
+  }
+}
+
 // #285 — sends-stalled watchdog. FIGSY sending runs on /figsy/send-due-all every 2h;
 // if that pipeline silently dies (bad API key, crashed worker, DB error) enrollments
 // pile up "due" while nothing goes out. This detects that: enrollments that SHOULD have
@@ -559,6 +575,9 @@ export function startCrons(): void {
   // #285: Hourly (:20) — sends-stalled watchdog. Alerts the founder if FIGSY sending
   // has stalled (enrollments overdue but zero sends in the last 6 hours).
   cron.schedule('20 * * * *', () => { void checkSendsStalled() }, { timezone: 'UTC' })
+
+  // ⚑ 2 Oct (#2561 · 14d) — Daily 06:25 UTC: paid programme checkouts vs recorded payments.
+  cron.schedule('25 6 * * *', () => { void reconcilePayments() }, { timezone: 'UTC' })
 
   // #343 — Daily 02:30 UTC: drop claim rows older than 14 days. The claims table only needs
   // enough history to settle a race that lasts milliseconds; keeping it forever would grow

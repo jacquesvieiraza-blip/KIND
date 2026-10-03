@@ -446,7 +446,9 @@ async function auditProgramme(
   action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live'
     | 'programme_icp_attached' | 'programme_run' | 'programme_review_resolved'
     // ⚑ 25 Sep (R166 ⑥ · P3b) — raising a sourcing limit is a person's decision, so it is recorded.
-    | 'programme_ceiling_raised',
+    | 'programme_ceiling_raised'
+    // ⚑ 2 Oct (#2542 · R186 ③) — the founder approved the emails of one exact version.
+    | 'founder_wording_approved',
   programmeId: string, detail: Record<string, unknown>,
 ) {
   const { writeOperatorAudit } = await import('../lib/operator-audit')
@@ -534,6 +536,39 @@ programmeRouter.post('/:id/authorise/second', guard(async (req: Request, res: Re
     success: r.ok, error: r.reason, money: 'none',
     note: 'P2 authority is not Go Live. The programme goes live only when a human presses Make live.',
   })
+}))
+
+// ── ⚑ 2 Oct (#2542 · R186 ③) — THE FOUNDER'S WORDING APPROVAL ──────────────────────────────
+// GET shows the version to approve (the emails exactly as frozen) and whether he has approved it;
+// POST approves THAT version — a stale one is refused, so he never approves what he did not see.
+programmeRouter.get('/:id/wording', guard(async (req: Request, res: Response) => {
+  const { data: p, error } = await db.from('programmes')
+    .select('id, review_preparation_hash, review_preparation_snapshot, review_preparation_version').eq('id', req.params.id).maybeSingle()
+  if (error) { res.status(503).json({ success: false, error: error.message }); return }
+  if (!p) { res.status(404).json({ success: false, error: 'No such programme.' }); return }
+  const row = p as { review_preparation_hash: string | null; review_preparation_snapshot: { steps?: unknown } | null; review_preparation_version: number | null }
+  const { data: approvals, error: aErr } = await db.from('founder_wording_approvals')
+    .select('snapshot_hash, wording_hash, approved_at, approved_by').eq('programme_id', req.params.id).order('approved_at', { ascending: false })
+  const { founderGateOn, FOUNDER_APPROVAL_MIGRATION } = await import('../lib/founder-approval')
+  const steps = Array.isArray(row.review_preparation_snapshot?.steps) ? row.review_preparation_snapshot!.steps as Record<string, unknown>[] : []
+  res.json({ success: true, data: {
+    gate_on: founderGateOn(),
+    version: row.review_preparation_hash, version_number: row.review_preparation_version,
+    emails: steps.map((st, i) => ({ step: i + 1, subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 0) })),
+    approved: !aErr && ((approvals ?? []) as { snapshot_hash: string }[]).some(a => a.snapshot_hash === row.review_preparation_hash),
+    approvals: aErr ? null : approvals,
+    approvals_unreadable: aErr ? `${aErr.message} — run migration ${FOUNDER_APPROVAL_MIGRATION}` : null,
+  } })
+}))
+
+programmeRouter.post('/:id/wording/approve', guard(async (req: Request, res: Response) => {
+  const version = typeof req.body?.version === 'string' ? req.body.version : ''
+  if (!version) { res.status(400).json({ success: false, error: 'Say which version you are approving.' }); return }
+  const { recordFounderApproval } = await import('../lib/founder-approval')
+  const r = await recordFounderApproval(req.params.id, version, pressedBy(req))
+  if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+  await auditProgramme(req, 'founder_wording_approved', req.params.id, { version, by: pressedBy(req) })
+  res.json({ success: true })
 }))
 
 /** THE EXPLICIT GO LIVE. Idempotent: an already-live programme succeeds and writes nothing. */

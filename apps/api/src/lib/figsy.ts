@@ -1042,7 +1042,8 @@ async function sendSequenceEmailCore(
     const { readLeadState, windowRegionFor } = await import('./lead-state')
     const recipientRegion = windowRegionFor(recipientCountry, await readLeadState(lead.id))
     const verdict = await checkEnrollmentAuthority(enrollmentId, 'OUTREACH', lead.client_id ?? null,
-      { recipientCountry, recipientRegion })
+      // ⚑ 2 Oct (#2542) — a step after the first is a follow-up to someone already emailed.
+      { recipientCountry, recipientRegion, followUp: step > 1 })
     if (!verdict.allowed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
       return 'deferred'

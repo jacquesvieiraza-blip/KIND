@@ -95,6 +95,8 @@ export type AuthorityRefusal =
    *  local time — or no schedule is configured at all, which refuses (8 Sep). Temporary by
    *  nature: the same work is offered again on the next run inside the window. */
   | 'outside_send_window'
+  /** ⚑ 2 Oct (#2542 · R186 ③) — the founder has not approved this version of the wording. */
+  | 'founder_not_approved'
   /** ⚑ The enrolment is not pointed at the programme's canonical `figsy_sequences` row, so the
    *  words it would send are not the words the client approved (8 Sep). */
   | 'sequence_not_canonical'
@@ -430,6 +432,15 @@ async function outreachStillMatchesApproval(
   }
 
   const { preparationDrift } = await import('./preparation-snapshot')
+  // ⚑ 2 Oct (#2542 · R186 ③) — THE FOUNDER HAS APPROVED THIS VERSION. Asked only of a real
+  // send: campaign activation (`enforceSchedule: false`) touches nobody and is not gated here.
+  // Before the drift comparison so that comparison's allowing line stays the last word.
+  if (ctx?.enforceSchedule !== false) {
+    const { founderApprovalVerdict } = await import('./founder-approval')
+    const f = await founderApprovalVerdict(programme.id, ctx?.followUp === true)
+    if (!f.allowed) return { allowed: false, reason: 'founder_not_approved', programme, message: f.message }
+  }
+
   const drift = await preparationDrift(programme.id)
   if (drift.state === 'unchanged') return verdict
   // `not_approved` cannot happen behind an allowed OUTREACH verdict — `authorityFor` already
@@ -467,6 +478,12 @@ export interface OutreachContext {
    * Omitted means enforced, so a new sender that forgets this field is still governed.
    */
   enforceSchedule?: boolean
+  /**
+   * ⚑ 2 Oct (#2542) — this message is a FOLLOW-UP (step 2 or later) to someone already emailed.
+   * Batch 2: only the new people wait for the founder; follow-ups keep going when the wording is
+   * one he approved. Omitted means a first email, which is the safe reading.
+   */
+  followUp?: boolean
 }
 
 export async function checkProgrammeAuthority(

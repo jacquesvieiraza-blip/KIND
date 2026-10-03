@@ -7395,6 +7395,24 @@ ALTER TABLE public.leads
 COMMENT ON COLUMN public.leads.state IS
   'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2542 · R186 ③) — THE FOUNDER APPROVES THE WORDING ─────────────────────────
+    // One row per version he approved. EXPAND ONLY: one new table.
+    key: '20261002_founder_wording_approval',
+    title: 'founder_wording_approvals — the founder approves a programme\'s emails before they send (#2542)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.founder_wording_approvals (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id  uuid NOT NULL REFERENCES public.programmes(id) ON DELETE CASCADE,
+  snapshot_hash text NOT NULL,
+  wording_hash  text NOT NULL,
+  approved_by   text,
+  approved_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (programme_id, snapshot_hash)
+);
+CREATE INDEX IF NOT EXISTS founder_wording_approvals_programme_idx ON public.founder_wording_approvals (programme_id);
+ALTER TABLE public.founder_wording_approvals ENABLE ROW LEVEL SECURITY;
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

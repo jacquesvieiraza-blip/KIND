@@ -152,6 +152,15 @@ export default function ProgrammeOutcome({ p, summary, onPriceNext, onPaused }: 
   return (
     <div className="flex flex-col gap-4">
       {hero}
+      {/* ⚑ 3 Oct (#2561 · R191 ⑤ — "the client sees why in plain words") — A PAUSED LIVE PROGRAMME
+          SAYS WHY, HERE. Seen on the real screen: a live programme paused for a refund showed no
+          reason on its own Programme page — only the Pause button vanished — while Settings and
+          Performance carried the sentence. The same server sentence, the same banner. */}
+      {p.paused && p.pausedCopy && (
+        <div className="border border-amber-300 bg-amber-50/70 rounded-2xl px-4 py-3" data-testid="outcome-paused">
+          <p className="text-[13.5px] font-semibold text-amber-900">{p.pausedCopy}</p>
+        </div>
+      )}
       <div className="mv-section">
         <div className="mv-section-head">
           <b>Replies</b>

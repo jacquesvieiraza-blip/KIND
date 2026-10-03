@@ -45,7 +45,7 @@ export async function sendManualReply(
   replyId: string, clientId: string, replyBody: string,
 ): Promise<ManualReplyResult> {
   const { data: reply } = await db.from('figsy_replies')
-    .select('id, from_email, subject, lead_id, client_id')
+    .select('id, from_email, subject, lead_id, client_id, raw_payload')
     .eq('id', replyId).eq('client_id', clientId).maybeSingle()
   if (!reply) return { ok: false, status: 404, error: 'Reply not found' }
 
@@ -113,10 +113,15 @@ export async function sendManualReply(
   // gone with it: a throw here would have surfaced as a 500 on a button the operator just
   // pressed, with no indication of whether the mail left.
   const { sendAs } = await import('./mailer')
+  // ⚑ 2 Oct (#2550 · R187 ④) — in the prospect's own thread: In-Reply-To and References from
+  // their message id (kept in the stored payload). None on file → sent as before.
+  const { threadHeaders } = await import('./reply-threading')
+  const thread = threadHeaders((reply as { raw_payload?: unknown }).raw_payload)
   const sent = await sendAs(resolved.inbox, {
     to: reply.from_email,
     subject: reSubject,
     text: replyBody,
+    ...(thread ? { headers: thread } : {}),
   })
   if (!sent.ok) {
     const detail = sent.error instanceof Error ? sent.error.message : String(sent.error ?? 'unknown error')

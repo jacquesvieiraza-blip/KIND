@@ -100,6 +100,8 @@ vi.mock('./sending-inbox', () => ({
   refusalLabel: () => 'no mailbox',
   sendablePool: () => ({ ok: true, boxes: [] }),
   nextFromRotation: () => null,
+  // ⚑ 2 Oct (#2559) — the run now asks which mailbox first emailed each person.
+  pickForPerson: () => null,
 }))
 
 const run = async () => {

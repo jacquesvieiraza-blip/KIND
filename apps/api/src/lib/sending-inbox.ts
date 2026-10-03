@@ -123,6 +123,32 @@ export function nextFromRotation(boxes: RotationBox[]): string | null {
 }
 
 /**
+ * ⚑ 2 Oct (#2559 · R189 ②) — WHICH MAILBOX CARRIES THIS PERSON'S NEXT EMAIL?
+ *
+ * R189 ②: *"each person always gets every email from the same mailbox"*. Rotation chose the
+ * least-used box for every message, so a prospect's step 2 could come from a different mailbox
+ * than step 1 — a different sender in their inbox, and a reply landing somewhere else.
+ *
+ *   · never emailed → the least-used box (rotation, as before);
+ *   · emailed before, and that box is in this run's rotation → THAT box, and if it is at its
+ *     daily limit the email waits for tomorrow rather than leaving from another box;
+ *   · that box failed this run → wait (it is usually transient);
+ *   · that box is no longer the client's (released or switched) → the least-used box, because
+ *     the person can no longer be reached from the old one.
+ */
+export type StickyPick = { id: string } | { hold: 'first_mailbox_at_cap' | 'first_mailbox_failed' } | null
+
+export function pickForPerson(boxes: RotationBox[], firstInboxId: string | null, evictedIds: Set<string>): StickyPick {
+  if (firstInboxId) {
+    if (evictedIds.has(firstInboxId)) return { hold: 'first_mailbox_failed' }
+    const own = boxes.find(b => b.id === firstInboxId)
+    if (own) return own.dailyCap == null || own.sentThisBatch < own.dailyCap ? { id: own.id } : { hold: 'first_mailbox_at_cap' }
+  }
+  const id = nextFromRotation(boxes)
+  return id ? { id } : null
+}
+
+/**
  * Every box a client could send from right now, ranked the same way `pickSendingInbox` ranks.
  *
  * Returns the SAME refusal reasons as the single-box path, so a client with no mailbox, only a

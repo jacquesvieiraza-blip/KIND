@@ -169,7 +169,8 @@ describe('③ the screen decides nothing', () => {
 
   it('the route computes it from the status, the pause and a non-empty set', () => {
     // ⛓️ 2 Oct (#2542 · R186 ③ · 4c): and the founder has approved this version first.
-    expect(ROUTE).toContain("canApprove: founderApproved && p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0")
+    // ⛓️ 2 Oct (#2544 · R191 4b): or a live, paused programme's new version (after the founder).
+    expect(ROUTE).toContain("canApprove: founderApproved && ((p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0) || reapproval)")
   })
 
   it('a paused or not-ready programme is told why, never left with a dead button', () => {
@@ -271,10 +272,10 @@ describe('⑤ it appears where the client already is, and only when it should', 
     // ⛓️ 24 Sep (R145 step 5) — the same two states, now drawn as two places: the panel while it
     // can be approved, and its approved state after. Still silent at every other stage.
     // ⛓️ 3 Oct (#2542 · review S8): was `review.canApprove && !…approved_at` — the panel now also
-    // opens while the founder checks the emails, AT THE APPROVAL STAGE ONLY, so it still says
-    // nothing at any other stage.
-    expect(PAGE).toContain('review?.programme && !review.programme.approved_at')
-    expect(PAGE).toContain("&& (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (")
+    // opens while the founder checks the emails (approval stage only), and (#2544 · R191 4b) for a
+    // live programme's new version. Still silent at every other stage.
+    expect(PAGE).toContain("? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)")
+    expect(PAGE).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
     expect(PAGE).toContain('{review?.programme && review.programme.approved_at && (')
   })
 })

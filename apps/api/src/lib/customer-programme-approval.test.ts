@@ -738,11 +738,11 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
     // renders at every OTHER stage, and after approval, exactly as before.
     expect(programme).toContain('<ProgrammeWorkspace p={p} />')
     expect(programme).toContain('<ProgrammeApproval')
-    // ⛓️ 3 Oct (#2542 · review S8): was `review.canApprove && !review.programme.approved_at` — the
-    // panel also opens while the founder checks the emails (approval stage only); still the right
-    // side ALONE at approval, the workspace everywhere else.
-    expect(programme).toContain('review?.programme && !review.programme.approved_at')
-    expect(programme).toContain("(review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (")
+    // ⛓️ 3 Oct (#2542 · review S8): was `review.canApprove && !…approved_at` — the panel now also
+    // opens while the founder checks the emails (approval stage only), and (#2544 · R191 4b) for a
+    // live programme's new version. Still silent at every other stage.
+    expect(programme).toContain("? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)")
+    expect(programme).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
   })
 })
 

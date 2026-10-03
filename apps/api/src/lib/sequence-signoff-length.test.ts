@@ -30,7 +30,10 @@ describe('the sign-off is guaranteed', () => {
 
   it('🛑 the programme writer applies it to every body, with the signer or else the company', () => {
     const src = readFileSync(join(__dirname, 'programme-sequence-generation.ts'), 'utf8')
-    expect(src).toContain("const signOff = (client.signer_name ?? '').trim() || (client.company_name ?? '').trim()")
+    // ⛓️ 2 Oct (R189 ⑥) — House signs "The Milla & Vida Team"; everyone else as before.
+    expect(src).toContain("const signOff = house ? HOUSE_SIGN_OFF : ((client.signer_name ?? '').trim() || (client.company_name ?? '').trim())")
+    // And the founder's own 8 Sep House emails are signed the same way when they are put on.
+    expect(readFileSync(join(__dirname, 'house-sequence.ts'), 'utf8')).toContain('ensureSignOff(s.body, HOUSE_SIGN_OFF)')
     expect(src).toContain('body: ensureSignOff(detokenise(String(st?.body ?? \'\').trim(), sample), signOff),')
   })
 })

@@ -108,6 +108,13 @@ vi.mock('./figsy', () => ({
   getClientKnowledgeForOutreach: async () => 'We run outbound programmes and charge per qualified prospect.',
 }))
 vi.mock('./meeting-brief-deliver', () => ({ briefContextFor: async () => null }))
+// ⚑ 2 Oct (R189 ⑥) — House is decided by `isHouseClient`; every fixture here is NOT House unless a
+// test says so, so nothing below is satisfied by the House branch quietly doing the work.
+const houseState = { isHouse: false }
+vi.mock('./house-client', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  isHouseClient: async () => houseState.isHouse,
+}))
 
 function seedFreshProgramme(over: { leads?: Row[]; sequences?: Row[]; campaignId?: string | null } = {}) {
   state.programmes = [{ id: PROG, client_id: CLIENT, status: 'SOURCING' }]
@@ -135,6 +142,31 @@ beforeEach(() => {
 afterEach(() => {
   if (prevHouse === undefined) delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
   else process.env.HOUSE_LAUNCH_PROGRAMME_ID = prevHouse
+})
+
+describe('⚑ 2 Oct (R189 ⑥) — House signs "The Milla & Vida Team"', () => {
+  afterEach(() => { houseState.isHouse = false })
+
+  it('🛑 the writer is told to sign as the team, and every stored email ends with it — never a person\'s name', async () => {
+    houseState.isHouse = true
+    state.draft = {
+      step1: { subject: 'One question', body: 'Hi Priya,\n\nShort note about Halden & Co, and why the first ninety days of a new hire matter more than the hiring.\n\nWorth a chat?\n\nReply STOP to opt out.' },
+      step2: { subject: 'Following up', body: 'Hi Priya,\n\nOne more thought on onboarding at Halden & Co, then I will leave it with you.\n\nReply STOP to opt out.' },
+    }
+    const { generateProgrammeSequence } = await import('./programme-sequence-generation')
+    const r = await generateProgrammeSequence(PROG)
+    expect(r.ok, r.ok ? '' : r.reason).toBe(true)
+    expect(state.generatorCalls[0].signer).toBe('The Milla & Vida Team')
+    for (const step of state.sequences[0].steps as { body: string }[]) {
+      expect(step.body.trimEnd().endsWith('The Milla & Vida Team'), step.body).toBe(true)
+    }
+  })
+
+  it('positive control: any other client still signs with its own signer', async () => {
+    const { generateProgrammeSequence } = await import('./programme-sequence-generation')
+    await generateProgrammeSequence(PROG)
+    expect(state.generatorCalls[0].signer).toBe('Jacques')
+  })
 })
 
 describe('a fresh non-House programme writes its own outreach', () => {

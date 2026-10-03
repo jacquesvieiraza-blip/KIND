@@ -83,3 +83,16 @@ describe('6 — the live re-approval draws once, with its button', () => {
     expect(page).toContain('&& !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
   })
 })
+
+describe('6 — a live programme\'s new version never says "nothing has been sent"', () => {
+  // ⚑ 3 Oct (real screen): the re-approval card on a LIVE programme said "Nothing has been sent, and
+  // nothing will be sent until you approve it" — false for a programme that has been sending.
+  it('the re-approval header says the programme is paused and who resumes it', () => {
+    const c = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeApproval.tsx'), 'utf8')
+    const at = c.indexOf('<h2>Approve exactly what will go out.</h2>')
+    const head = c.slice(at, at + 900)
+    expect(head).toContain('data.reapproval === true')
+    expect(head).toContain('Your programme is paused while you check this new version, so nothing more is being sent.')
+    expect(head).toContain('Once you approve it, our team resumes it.')
+  })
+})

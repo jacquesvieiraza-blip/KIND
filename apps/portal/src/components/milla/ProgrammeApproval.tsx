@@ -350,11 +350,19 @@ export default function ProgrammeApproval({
       <div className="mv-hero-card">
         <div className="mv-eyebrow">Frozen package · {vLabel}</div>
         <h2>Approve exactly what will go out.</h2>
-        <p>
-          People, messages, cadence and sender are pinned to this version. Nothing has been sent,
-          and nothing will be sent until you approve it. If anything changes, we will ask you again
-          with a new version.
-        </p>
+        {/* ⚑ 3 Oct — a live programme's new version (4b) has been sending, so it never says "nothing has been sent". */}
+        {data.reapproval === true ? (
+          <p>
+            Your programme is paused while you check this new version, so nothing more is being sent.
+            People, messages, cadence and sender are pinned to it. Once you approve it, our team resumes it.
+          </p>
+        ) : (
+          <p>
+            People, messages, cadence and sender are pinned to this version. Nothing has been sent,
+            and nothing will be sent until you approve it. If anything changes, we will ask you again
+            with a new version.
+          </p>
+        )}
       </div>
 
       <div className="mv-section">

@@ -73,7 +73,7 @@ export default function FounderWordingApproval({ programmeId }: { programmeId: s
       </div>
       {w.approvals_unreadable && <p className="text-[12px] text-red-700 px-4 pt-2">Approvals could not be read: {w.approvals_unreadable}</p>}
       {!w.approved && w.version && (
-        <p className="text-[12px] text-[#6b5f8c] px-4 pt-3">Nothing is sent and the client does not see these until you approve them.</p>
+        <p className="text-[12px] text-[#6b5f8c] px-4 pt-3">Nothing new is sent and the client does not see these until you approve them. {/* ⚑ 3 Oct (R191 4c) — true now: */}People already approved keep receiving their emails while a new batch waits.</p>
       )}
       {/* ⚑ 3 Oct (review S11) — as they land: filled for one real prospect; the footer is added when sent. */}
       <p className="text-[12px] text-[#6b5f8c] px-4 pt-2">

@@ -27,7 +27,7 @@ export function sendRefusalTask(reason: ReportedRefusal, programmeId: string, cl
       `Client ${clientId} · programme ${programmeId}.`,
       detail,
       reason === 'sender_unsafe'
-        ? 'Every send for this client is refused until the mailbox is fixed in Vida → Engine (one mailbox, not shared with another client).'
+        ? 'Every send for this client is refused until the mailbox is fixed in Vida → Engine (every mailbox of this client must be theirs alone and pass Test connection).'
         : 'Every send for this client is refused until the change is undone or the client approves the new version.',
     ],
     dedupeKey: `send_refused:${reason}:${programmeId}`,

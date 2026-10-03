@@ -109,9 +109,12 @@ export async function recordFounderApproval(programmeId: string, version: string
 export async function founderWordingApproved(programmeId: string): Promise<boolean> {
   if (!founderGateOn()) return true
   const { db } = await import('@kind/db')
-  const { data: p, error: pErr } = await db.from('programmes').select('review_preparation_hash').eq('id', programmeId).maybeSingle()
+  const { data: p, error: pErr } = await db.from('programmes').select('client_id, review_preparation_hash').eq('id', programmeId).maybeSingle()
   const version = (p as { review_preparation_hash?: string | null } | null)?.review_preparation_hash
   if (pErr || !version) return false
+  // ⚑ 3 Oct (review S9) — the demo shows its emails and its Approve button, as it always did.
+  const clientId = (p as { client_id?: string | null } | null)?.client_id
+  if (clientId && await isDemoProgrammeClient(clientId)) return true
   const { data, error } = await db.from('founder_wording_approvals').select('snapshot_hash').eq('programme_id', programmeId).eq('snapshot_hash', version)
   return !error && (data ?? []).length > 0
 }

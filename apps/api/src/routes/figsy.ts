@@ -2375,8 +2375,12 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
     // Client's own signer name, if set.
     const { data: client } = await db.from('clients')
       .select('company_name, signer_name').eq('id', clientId).maybeSingle()
-    const signer = (client as { signer_name?: string } | null)?.signer_name
-      || (client as { company_name?: string } | null)?.company_name || ''
+    // ⚑ 2 Oct (R189 ⑥ · 12c) — House's replies are signed like its emails: "The Milla & Vida
+    // Team", never a person's name. Every other client signs as before.
+    const { isHouseClient, HOUSE_SIGN_OFF } = await import('../lib/house-client')
+    const signer = (await isHouseClient(clientId)) ? HOUSE_SIGN_OFF
+      : (client as { signer_name?: string } | null)?.signer_name
+        || (client as { company_name?: string } | null)?.company_name || ''
 
     const inbound = (reply.body_text || reply.body || '').slice(0, 2000)
     const senderName = reply.from_name || reply.from_email?.split('@')[0] || 'there'

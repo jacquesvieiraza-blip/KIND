@@ -304,9 +304,9 @@ async function insertClaim(clientId: string, sender: PooledSender): Promise<Inse
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ⚑ 2 Oct (#2560) — A POOLED MAILBOX GOES BACK TO THE POOL WHEN THE CLIENT IS DONE WITH IT.
 //
-// Nothing ever returned one: once the stock was used up, the next client was stuck. A pooled
-// mailbox is released when the client's programme completes or is refunded, and the client
-// has no other open programme. A branded mailbox is the client's own and is never touched;
+// Nothing ever returned one: once the stock was used up, the next client was stuck. ⛓️ 3 Oct:
+// ~~released when the programme completes or is refunded~~ — now 30 quiet days after the last
+// programme ended (`releaseQuietPooledSenders`, below), and never because of a refund. A branded mailbox is the client's own and is never touched;
 // House keeps its mailboxes.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
@@ -331,4 +331,49 @@ export async function releasePooledSenders(
   const released = ((data ?? []) as { email: string }[]).map(r => r.email)
   if (released.length) console.log(`[sender-claim] client ${clientId} (${why}) — released ${released.join(', ')} back to the pool.`)
   return { ok: true, released }
+}
+
+/** A client's pooled mailboxes stay theirs this long after their last programme ended and their last reply. */
+export const POOLED_RELEASE_QUIET_DAYS = 30
+
+/**
+ * ⚑ 3 Oct (review S17) — RELEASE AFTER A QUIET MONTH, NOT AT THE FINISH LINE.
+ *
+ * Prospects keep replying after a programme ends, and an answer must leave from the mailbox they
+ * wrote to (R187 ④). So a client's live pooled mailboxes go back to the pool only when every
+ * programme of theirs ended (COMPLETED or CANCELLED) at least 30 days ago AND no reply has
+ * reached them in 30 days. A refunded or disputed programme is not ended — it stays paused — so
+ * it releases nothing (releasing on a refund was never ruled). House and branded mailboxes are
+ * never touched (`releasePooledSenders`). Run daily; a failure is told, never silent.
+ */
+export async function releaseQuietPooledSenders(now = new Date()): Promise<{ released: Record<string, string[]>; failed: string[] }> {
+  const cutoff = new Date(now.getTime() - POOLED_RELEASE_QUIET_DAYS * 86_400_000).toISOString()
+  const out = { released: {} as Record<string, string[]>, failed: [] as string[] }
+  const { data: boxes, error } = await db.from('client_inboxes')
+    .select('client_id').eq('kind', 'pooled').in('status', LIVE_CLAIM_STATUSES as unknown as string[])
+  if (error) { out.failed.push(`pooled mailboxes could not be listed (${error.message})`); return out }
+  const clientIds = [...new Set(((boxes ?? []) as { client_id: string | null }[]).map(b => b.client_id).filter((v): v is string => !!v))]
+  for (const clientId of clientIds) {
+    const { data: progs, error: pErr } = await db.from('programmes').select('status, updated_at').eq('client_id', clientId)
+    if (pErr) { out.failed.push(`${clientId}: programmes could not be read (${pErr.message})`); continue }
+    const rows = (progs ?? []) as { status: string; updated_at: string | null }[]
+    if (rows.length === 0) continue                                   // never had a programme: not ours to judge
+    if (rows.some(r => !['COMPLETED', 'CANCELLED'].includes(r.status))) continue
+    if (rows.some(r => !r.updated_at || r.updated_at > cutoff)) continue
+    const { count, error: rErr } = await db.from('figsy_replies').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).gte('received_at', cutoff)
+    if (rErr) { out.failed.push(`${clientId}: replies could not be read (${rErr.message})`); continue }
+    if ((count ?? 0) > 0) continue
+    const r = await releasePooledSenders(clientId, 'completed')
+    if (!r.ok) out.failed.push(`${clientId}: ${r.detail}`)
+    else if (r.released.length) out.released[clientId] = r.released
+  }
+  if (out.failed.length) {
+    const { sendFounderAlert } = await import('./alerts')
+    void sendFounderAlert('sends_stalled', 'Finished clients\' pooled mailboxes could not all be checked for release', [
+      ...out.failed.slice(0, 10),
+      'Nothing was released for these. Release them by hand in Vida → Engine if they are no longer needed.',
+    ], { dedupeKey: `pooled_release_failed:${now.toISOString().slice(0, 10)}` }).catch(() => {})
+  }
+  return out
 }

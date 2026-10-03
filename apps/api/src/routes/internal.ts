@@ -1213,7 +1213,16 @@ internalRouter.post('/programmes/auto-batch', async (_req: Request, res: Respons
     const { runAutoBatches } = await import('../lib/programme-auto-batch')
     const out = await runAutoBatches()
     for (const r of out.rows) console.log(`[auto-batch] ${r.programme_id.slice(0, 8)} ${r.state} — ${r.refused ?? r.line}`)
-    res.json({ success: true, data: out })
+    // ⚑ 3 Oct (#2560 · 9c) — the same daily programme run returns finished clients' pooled
+    // mailboxes to the pool after a quiet month. Its own failure never fails the batch run.
+    let pooledReleased: Record<string, string[]> | null = null
+    try {
+      const { releaseQuietPooledSenders } = await import('../lib/sender-claim')
+      const rel = await releaseQuietPooledSenders()
+      pooledReleased = rel.released
+      for (const [c, emails] of Object.entries(rel.released)) console.log(`[auto-batch] released ${emails.join(', ')} from client ${c} after a quiet month`)
+    } catch (relErr) { console.error('[programmes/auto-batch] pooled release threw', relErr) }
+    res.json({ success: true, data: { ...out, pooled_released: pooledReleased } })
   } catch (err) {
     console.error('[programmes/auto-batch]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Auto-batch run failed' })

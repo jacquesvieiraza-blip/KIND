@@ -55,9 +55,13 @@ describe('9c — release', () => {
     expect(await releasePooledSenders('house', 'completed')).toEqual({ ok: true, released: [] })
     expect(updates).toHaveLength(0)
   })
-  it('completion and a refund both release; a dispute does not (it may be won)', () => {
+  // ⛓️ 3 Oct (review S17): this asserted that completion and a refund both release AT ONCE. A
+  // prospect replying after the finish then had no mailbox to be answered from, and releasing on
+  // a refund was never ruled. Now neither releases; the daily job does, after a quiet month
+  // (s9c2-quiet-release.test.ts).
+  it('completion and a refund release nothing at once', () => {
     const src = readFileSync(join(__dirname, 'programme.ts'), 'utf8')
-    expect(src).toMatch(/await setStatus\(programmeId, 'COMPLETED'\)[\s\S]{0,300}await releasePooledAfter\(p\.client_id, 'completed'\)/)
-    expect(src).toContain("if (kind === 'refund') await releasePooledAfter(p.client_id, 'refunded', programmeId)")
+    expect(src).not.toContain('releasePooledAfter(')
+    expect(src).not.toContain("releasePooledSenders(")
   })
 })

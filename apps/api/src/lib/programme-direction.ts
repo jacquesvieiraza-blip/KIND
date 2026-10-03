@@ -29,7 +29,24 @@ export const DIRECTION_FIELD_MAX = 400
 const KIND = 'programme_direction'
 const HISTORY_KEEP = 30
 
+/**
+ * ⚑ 3 Oct (sequencing piece 4 — the founder's blueprint view 5) — WHO THIS PROGRAMME IS FOR.
+ * A NARROWER SLICE of the client's own targeting (My ICP): only values already in it, plus extra
+ * exclusions. It is approved with the direction and applied to THIS programme's searches only —
+ * the saved targeting is never changed (`applyAudienceSlice`, used by `runIcpJob`).
+ */
+export type Audience = {
+  industries: string[]; company_sizes: string[]; job_titles: string[]
+  /** Extra "leave out" for this programme, added to the targeting's own exclusions. */
+  exclude: string
+  /** Why this slice fits the goal, in one sentence. */
+  reason: string
+}
+export type MasterTargeting = { industries: string[]; company_sizes: string[]; job_titles: string[] }
+
 export type Direction = Record<DirectionKey, string> & {
+  /** `undefined`/`null` on a direction drafted before piece 4 — no narrowing. */
+  audience?: Audience | null
   version: number
   status: 'draft' | 'approved'
   /** The programme it was paid for. `null` until the first payment. */
@@ -92,6 +109,59 @@ export function approveDirectionPure(
   return { ok: true, direction: { ...cur, status: 'approved', approved_at: at } }
 }
 
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()).map(x => x.trim()) : [])
+
+/** Keep only values already in the client's targeting (their casing). Empty → the whole list: never narrower than nothing. */
+function subsetOf(chosen: unknown, master: string[]): string[] {
+  const byLower = new Map(master.map(m => [m.toLowerCase(), m]))
+  const kept = [...new Set(list(chosen).map(c => byLower.get(c.toLowerCase())).filter((x): x is string => !!x))]
+  return kept.length ? kept : [...master]
+}
+
+/** The model's audience, made safe: only the client's own values, short free text. Pure. */
+export function cleanAudience(raw: unknown, master: MasterTargeting): Audience {
+  const o = (raw ?? {}) as Rec
+  return {
+    industries: subsetOf(o.industries, master.industries),
+    company_sizes: subsetOf(o.company_sizes, master.company_sizes),
+    job_titles: subsetOf(o.job_titles, master.job_titles),
+    exclude: s(o.exclude).slice(0, 300),
+    reason: s(o.reason).slice(0, 300),
+  }
+}
+
+/**
+ * THIS programme's search: the targeting narrowed to the slice. Pure; the saved row is never
+ * written from this. A list the slice would empty keeps the targeting's own (never widened, never
+ * emptied); the exclusions are added to, never replaced.
+ */
+export function applyAudienceSlice<T extends Rec>(icp: T, a: Audience): T {
+  const narrow = (own: unknown, slice: string[]): string[] => {
+    const mine = list(own)
+    if (!mine.length) return mine
+    const keep = new Set(slice.map(x => x.toLowerCase()))
+    const kept = mine.filter(x => keep.has(x.toLowerCase()))
+    return kept.length ? kept : mine
+  }
+  const own = s(icp.exclusions)
+  return {
+    ...icp,
+    industries: narrow(icp.industries, a.industries),
+    company_sizes: narrow(icp.company_sizes, a.company_sizes),
+    job_titles: narrow(icp.job_titles, a.job_titles),
+    exclusions: [own, s(a.exclude)].filter(Boolean).join('; ') || (icp.exclusions ?? null),
+  }
+}
+
+export function audienceLine(a: Audience): string {
+  return [
+    `industries ${a.industries.join(', ') || '(as targeted)'}`,
+    `company size ${a.company_sizes.join(', ') || '(as targeted)'}`,
+    `roles ${a.job_titles.join(', ') || '(as targeted)'}`,
+    a.exclude ? `leaving out ${a.exclude}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
 /** What the email writer is given — said as the client's approval, every part. */
 export function directionPromptBlock(d: Direction): string {
   return [
@@ -103,6 +173,7 @@ export function directionPromptBlock(d: Direction): string {
     `- Our answer: ${d.answer}`,
     `- Proof: ${d.proof}`,
     `- The ask: ${d.ask}`,
+    ...(d.audience ? [`- The audience for this programme: ${audienceLine(d.audience)}`] : []),
   ].join('\n')
 }
 
@@ -137,8 +208,19 @@ async function openUnpaid(clientId: string): Promise<{ id: string; paid: boolean
   return p ? { id: p.id, paid: firstPaid(p) || firstInternallyAuthorised(p) } : null
 }
 
+/** A real person Milla already found, shown against the audience (company and role only — no names). */
+export type AudienceExample = { company: string; role: string; industry: string; fits: boolean }
+
+/** Does this person fit the slice? Their role must match one of its roles. Pure. */
+export function fitsAudience(role: string, a: Audience): boolean {
+  const r = role.toLowerCase()
+  return a.job_titles.some(t => r.includes(t.toLowerCase()) || t.toLowerCase().includes(r))
+}
+
 export type DirectionView = {
   direction: Direction | null
+  /** Up to three of the people Milla already found, marked against the audience. */
+  examples: AudienceExample[]
   /** For a first programme: what they told Milla in the Brief. */
   suggestedGoal: string | null
   /** For a returning client: the last programme's goal, shown so they can say what is different. */
@@ -156,8 +238,50 @@ export async function readDirectionView(clientId: string): Promise<DirectionView
     if (error) throw new Error(error.message)
     suggestedGoal = s((data as { outcome_stated?: string | null } | null)?.outcome_stated) || null
   }
-  return { direction, suggestedGoal, lastGoal }
+  let examples: AudienceExample[] = []
+  if (direction?.audience) {
+    const { data: leads, error: lErr } = await db.from('leads')
+      .select('company, job_title, industry').eq('client_id', clientId).order('created_at', { ascending: false }).limit(40)
+    if (lErr) throw new Error(lErr.message)
+    const seen = new Set<string>()
+    for (const l of (leads ?? []) as { company?: string | null; job_title?: string | null; industry?: string | null }[]) {
+      const company = s(l.company); const role = s(l.job_title)
+      if (!company || !role || seen.has(company.toLowerCase())) continue
+      seen.add(company.toLowerCase())
+      examples.push({ company, role, industry: s(l.industry), fits: fitsAudience(role, direction.audience) })
+      if (examples.length === 3) break
+    }
+  }
+  return { direction, examples, suggestedGoal, lastGoal }
 }
+
+/** The client's own targeting lists (the active ICP in My ICP). A failed read THROWS. */
+export async function masterTargeting(clientId: string): Promise<MasterTargeting> {
+  const { data, error } = await db.from('icps')
+    .select('industries, company_sizes, job_titles').eq('client_id', clientId).eq('is_active', true)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (error) throw new Error(error.message)
+  const r = (data ?? {}) as Rec
+  return { industries: list(r.industries), company_sizes: list(r.company_sizes), job_titles: list(r.job_titles) }
+}
+
+async function askModel(prompt: string): Promise<string> {
+  const Anthropic = (await import('@anthropic-ai/sdk')).default
+  const { CONVERSATION_MODEL, AI_TURN_BOUND } = await import('./models')
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, ...AI_TURN_BOUND })
+  try {
+    const r = await anthropic.messages.create({ model: CONVERSATION_MODEL, max_tokens: 900, messages: [{ role: 'user', content: prompt }] })
+    return r.content.map(c => (c.type === 'text' ? c.text : '')).join('')
+  } catch (e) {
+    throw new DirectionError('model_unavailable', `Milla could not draft this just now (${e instanceof Error ? e.message : String(e)}).`)
+  }
+}
+
+const listsBlock = (m: MasterTargeting): string => [
+  `Industries they target: ${m.industries.join(' | ') || '(none set)'}`,
+  `Company sizes they target: ${m.company_sizes.join(' | ') || '(none set)'}`,
+  `Job titles they target: ${m.job_titles.join(' | ') || '(none set)'}`,
+].join('\n')
 
 /** Milla's draft from the goal and "Your business". The model writes five parts; the proof is ours. */
 export async function draftDirection(clientId: string, goalIn: string): Promise<Direction> {
@@ -165,6 +289,7 @@ export async function draftDirection(clientId: string, goalIn: string): Promise<
   if (goal.length < 8) throw new DirectionError('goal_too_short', 'Tell Milla in a sentence what you want from this programme.')
   const { readBusiness } = await import('./client-business')
   const b = await readBusiness(clientId)
+  const master = await masterTargeting(clientId)
   const facts = [
     `What they sell: ${b.facts.sells || '(not told)'}`,
     `Core market: ${b.market || '(not told)'}`,
@@ -187,19 +312,16 @@ Draft the direction for this programme:
 - impact: what that problem costs the audience, from what they told us. Plain, not dramatic.
 - answer: their answer to that problem, in one sentence.
 - ask: a small, specific meeting ask (for example "15 minutes to compare how they …").
+- industries, company_sizes, job_titles: the narrower slice of their targeting this programme is for — arrays chosen ONLY from the values listed below, copied exactly. Choose fewer when the goal is narrower; never add a value that is not listed.
+- exclude: anyone this programme should leave out that the goal implies (may be "").
+- reason: one sentence on why this audience fits the goal.
+
+Their targeting (choose only from these):
+${listsBlock(master)}
 
 Rules: use only the facts above. Never invent a result, number, percentage, customer or claim. Plain British English, one sentence each, no hype.
-Return ONLY a JSON object with string keys who, problem, impact, answer, ask.`
-  const Anthropic = (await import('@anthropic-ai/sdk')).default
-  const { CONVERSATION_MODEL, AI_TURN_BOUND } = await import('./models')
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, ...AI_TURN_BOUND })
-  let text = ''
-  try {
-    const r = await anthropic.messages.create({ model: CONVERSATION_MODEL, max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
-    text = r.content.map(c => (c.type === 'text' ? c.text : '')).join('')
-  } catch (e) {
-    throw new DirectionError('model_unavailable', `Milla could not draft the direction just now (${e instanceof Error ? e.message : String(e)}).`)
-  }
+Return ONLY a JSON object with string keys who, problem, impact, answer, ask, exclude, reason and array keys industries, company_sizes, job_titles.`
+  const text = await askModel(prompt)
   const parts = parseDirectionDraft(text)
   if (!parts) throw new DirectionError('draft_unreadable', 'Milla could not draft a complete direction just now.')
 
@@ -209,6 +331,7 @@ Return ONLY a JSON object with string keys who, problem, impact, answer, ask.`
   const at = new Date().toISOString()
   const next: Direction = {
     goal, ...parts, proof: proofLineFor({ result: b.facts.result, resultMayQuote: b.resultMayQuote }),
+    audience: cleanAudience(jsonOf(text), master),
     version, status: 'draft', programme_id: null, drafted_at: at, approved_at: null,
   }
   await writeDirectionStore(clientId, {
@@ -216,6 +339,51 @@ Return ONLY a JSON object with string keys who, problem, impact, answer, ask.`
     history: store.current ? [...store.history, store.current].slice(-HISTORY_KEEP) : store.history,
   })
   return next
+}
+
+function jsonOf(text: string): Rec | null {
+  const m = text.match(/\{[\s\S]*\}/)
+  if (!m) return null
+  try { return JSON.parse(m[0]) as Rec } catch { return null }
+}
+
+/**
+ * ⚑ Piece 4 — the client changes WHO this programme is for by telling Milla (R196: in the chat).
+ * Milla re-draws the slice from their words, only from their own targeting; a new version that
+ * waits for approval like any other change.
+ */
+export async function changeAudienceFor(
+  clientId: string, instruction: string, baseVersion: number,
+): Promise<{ ok: true; direction: Direction } | { ok: false; reason: 'stale' | 'none' }> {
+  const store = await readDirectionStore(clientId)
+  const cur = usableDirection(store.current, await openUnpaid(clientId))
+  if (!cur) return { ok: false, reason: 'none' }
+  if (cur.version !== baseVersion) return { ok: false, reason: 'stale' }
+  const master = await masterTargeting(clientId)
+  const now = cur.audience ?? cleanAudience(null, master)
+  const text = await askModel(`PROGRAMME_AUDIENCE_JSON — you are Milla, changing who ONE outreach programme is for.
+
+The programme's goal: "${cur.goal}"
+The audience now: ${audienceLine(now)}
+What the client asked: "${s(instruction).slice(0, 500)}"
+
+Their targeting (choose only from these):
+${listsBlock(master)}
+
+Return ONLY a JSON object with array keys industries, company_sizes, job_titles (chosen ONLY from the values listed, copied exactly) and string keys exclude and reason, applying what the client asked.`)
+  const o = jsonOf(text)
+  if (!o) throw new DirectionError('draft_unreadable', 'Milla could not change the audience just now.')
+  const at = new Date().toISOString()
+  const next: Direction = { ...cur, audience: cleanAudience(o, master), version: cur.version + 1, status: 'draft', approved_at: null, drafted_at: at }
+  await writeDirectionStore(clientId, { current: next, history: [...store.history, cur].slice(-HISTORY_KEEP) })
+  return { ok: true, direction: next }
+}
+
+/** THIS programme's approved audience, or `null` (none approved, or drafted before piece 4). A failed read THROWS. */
+export async function audienceSliceFor(programmeId: string, clientId: string): Promise<Audience | null> {
+  const store = await readDirectionStore(clientId)
+  const d = [store.current, ...[...store.history].reverse()].find(x => !!x && x.programme_id === programmeId && x.status === 'approved')
+  return d?.audience ?? null
 }
 
 export class DirectionError extends Error {

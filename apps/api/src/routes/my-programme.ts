@@ -191,6 +191,32 @@ myProgrammeRouter.post('/direction/change', async (req: AuthRequest, res) => {
   }
 })
 
+// ⚑ Piece 4 — WHO THIS PROGRAMME IS FOR, changed by telling Milla (R196). Milla re-draws the slice
+// from the client's words, only from their own targeting; it waits for approval like any change.
+myProgrammeRouter.post('/direction/audience', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const instruction = typeof b.instruction === 'string' ? b.instruction.trim() : ''
+    if (instruction.length < 3 || typeof b.base_version !== 'number') {
+      res.status(400).json({ success: false, error: 'Tell Milla who this programme should be for.' }); return
+    }
+    const { changeAudienceFor, DirectionError } = await import('../lib/programme-direction')
+    try {
+      const r = await changeAudienceFor(clientId, instruction, b.base_version)
+      if (!r.ok) { res.status(409).json({ success: false, error: r.reason, message: 'The direction changed since you opened it. Please check it and try again.' }); return }
+      res.json({ success: true, data: r.direction })
+    } catch (e) {
+      if (e instanceof DirectionError) { res.status(503).json({ success: false, error: e.code, message: e.message }); return }
+      throw e
+    }
+  } catch (err) {
+    console.error('[my/programme/direction/audience POST]', err)
+    res.status(503).json({ success: false, error: 'Milla could not change the audience just now. Please try again.' })
+  }
+})
+
 myProgrammeRouter.post('/direction/approve', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

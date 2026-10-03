@@ -210,10 +210,12 @@ export const DIRECTION_FIELDS = [
   ['impact', 'What it costs them'], ['answer', 'Your answer'], ['proof', 'Proof we use'], ['ask', 'The ask'],
 ] as const
 export type DirectionKey = typeof DIRECTION_FIELDS[number][0]
-type DirectionContext = `direction:${DirectionKey}`
+/** ⚑ Piece 4 — plus WHO this programme is for (the audience slice), also changed by telling Milla. */
+type DirectionTalkKey = DirectionKey | 'audience'
+type DirectionContext = `direction:${DirectionTalkKey}`
 const isDirectionContext = (c: ConversationContext): c is DirectionContext => typeof c === 'string' && c.startsWith('direction:')
-const directionLabel = (k: DirectionKey): string => DIRECTION_FIELDS.find(f => f[0] === k)?.[1] ?? k
-type DirectionBase = { key: DirectionKey; current: string; version: number }
+const directionLabel = (k: DirectionTalkKey): string => k === 'audience' ? 'Who this programme is for' : DIRECTION_FIELDS.find(f => f[0] === k)?.[1] ?? k
+type DirectionBase = { key: DirectionTalkKey; current: string; version: number }
 
 type MillaConversationApi = {
   /**
@@ -528,11 +530,13 @@ export function MillaConversationProvider(
         + (key === 'result' ? ' Only a real result, and you’ll tell me before you approve whether I may quote it.' : '') }])
     } else setBusinessBase(null)
     if (isDirectionContext(c)) {
-      const key = c.slice('direction:'.length) as DirectionKey
+      const key = c.slice('direction:'.length) as DirectionTalkKey
       setDirectionBase({ key, current: business?.current ?? '', version: business?.version ?? 0 })
       const now = (business?.current ?? '').trim()
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: key === 'goal'
         ? `What are you trying to achieve with this programme? A sentence is enough.${now ? ` (Last time: “${now}”. Tell me what’s different now, or say it again if it’s the same.)` : ''}`
+        : key === 'audience'
+        ? `Who should this programme be for? Right now: ${now}. Tell me in your own words — for example “only facilities and electrical firms, and leave out consultancies”. I only choose from your targeting in My ICP, and that stays exactly as it is.`
         : `What should “${directionLabel(key)}” say instead? Right now it says: “${now}”` }])
     } else setDirectionBase(null)
     // A frame, so the strip above the composer is on screen before the cursor lands in it.
@@ -638,7 +642,10 @@ export function MillaConversationProvider(
     const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
     try {
       const tok = await token()
-      if (base.key === 'goal') {
+      if (base.key === 'audience') {
+        await api.post('/my/programme/direction/audience', { instruction: msg, base_version: base.version }, tok, AI_TURN_TIMEOUT_MS)
+        say('Done — the audience for this programme is updated on the right. Your targeting in My ICP is unchanged. Approve the direction when it reads right.')
+      } else if (base.key === 'goal') {
         await api.post('/my/programme/direction/draft', { goal: msg }, tok, AI_TURN_TIMEOUT_MS)
         say('Here’s the direction I’d use for this programme — it’s on the right. Change any part with me, then press Approve direction. Nothing is paid for or written until you do.')
       } else {
@@ -1122,7 +1129,7 @@ export function MillaConversationProvider(
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) || (isDirectionContext(context) && context !== 'direction:goal') ? 'Tell Milla what it should say…' : context === 'direction:goal' ? 'What do you want from this programme?' : 'Ask Milla anything about your programme…'} />
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) || (isDirectionContext(context) && context !== 'direction:goal' && context !== 'direction:audience') ? 'Tell Milla what it should say…' : context === 'direction:goal' ? 'What do you want from this programme?' : context === 'direction:audience' ? 'Who should this programme be for?' : 'Ask Milla anything about your programme…'} />
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────

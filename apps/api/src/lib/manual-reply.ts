@@ -94,8 +94,9 @@ export async function sendManualReply(
 
   // #547 — WHOSE MAILBOX DOES THIS LEAVE FROM? Same resolve-or-refuse as the sequence path
   // (figsy.ts). No inbox = no send. There is deliberately nothing to fall back TO.
-  const { resolveSendingInbox, refusalLabel } = await import('./sending-inbox')
-  const resolved = await resolveSendingInbox(clientId)
+  // ⚑ 3 Oct (#2559 · R187 ④): from the mailbox this person was first emailed from.
+  const { resolveInboxForPerson, refusalLabel } = await import('./sending-inbox')
+  const resolved = await resolveInboxForPerson(clientId, reply.lead_id ?? null)
   if (!resolved.ok) {
     console.error(`[manual-reply] NOT sending to ${reply.from_email} for client ${clientId} — ${refusalLabel(resolved.reason)}. ${resolved.detail}`)
     // 409, not 500: every one of these is a state an operator can fix, and the message says

@@ -149,6 +149,52 @@ export function pickForPerson(boxes: RotationBox[], firstInboxId: string | null,
 }
 
 /**
+ * ⚑ 3 Oct (#2559 · R187 ④ · R189 ② · review S5) — AN ANSWER LEAVES FROM THE MAILBOX THE
+ * PROSPECT WROTE TO. A reply sent from Milla resolved the client's mailbox by rank, so with two
+ * mailboxes it could leave from the one this person never heard from — threaded into their
+ * conversation (#2550 12b) under a different From.
+ *
+ *   · never emailed from a mailbox on record → the usual pick (`pickSendingInbox`);
+ *   · emailed, and that mailbox can send → THAT mailbox;
+ *   · emailed, that mailbox is still the client's but cannot send now → refused, with the
+ *     reason (sending from the other one is exactly the defect);
+ *   · emailed, that mailbox is no longer the client's (released) → the usual pick.
+ */
+export function pickInboxForPerson(rows: InboxRow[], secretOk: boolean, firstInboxId: string | null): Resolution {
+  if (firstInboxId) {
+    const own = (rows ?? []).find(r => r && r.id === firstInboxId)
+    if (own && LIVE_STATUSES.has(String(own.status))) {
+      const r = pickSendingInbox([own], secretOk)
+      if (r.ok) return r
+      return { ok: false, reason: r.reason, detail: `This person was emailed from ${own.email}, so the answer must leave from it too, and it cannot send right now: ${r.detail}` }
+    }
+  }
+  return pickSendingInbox(rows, secretOk)
+}
+
+/** The DB half of `pickInboxForPerson`: the client's mailboxes, and the one that first emailed this lead. */
+export async function resolveInboxForPerson(clientId: string, leadId: string | null): Promise<Resolution> {
+  if (!leadId) return resolveSendingInbox(clientId)
+  const { secretState } = await import('./inbox-secret')
+  const { db } = await import('@kind/db')
+  const [boxes, first] = await Promise.all([
+    db.from('client_inboxes')
+      .select('id, email, kind, status, provider, daily_cap, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
+      .eq('client_id', clientId),
+    db.from('figsy_sent_emails').select('inbox_id').eq('lead_id', leadId)
+      .not('inbox_id', 'is', null).order('sent_at', { ascending: true }).limit(1),
+  ])
+  if (boxes.error || first.error) {
+    return {
+      ok: false, reason: 'lookup_failed',
+      detail: `Could not read ${boxes.error ? "this client's mailboxes" : 'which mailbox first emailed this person'} (${(boxes.error ?? first.error)?.message ?? 'database error'}) — refusing rather than answering from a different mailbox.`,
+    }
+  }
+  const firstId = ((first.data ?? []) as { inbox_id: string | null }[])[0]?.inbox_id ?? null
+  return pickInboxForPerson((boxes.data ?? []) as InboxRow[], secretState().ok, firstId)
+}
+
+/**
  * Every box a client could send from right now, ranked the same way `pickSendingInbox` ranks.
  *
  * Returns the SAME refusal reasons as the single-box path, so a client with no mailbox, only a

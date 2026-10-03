@@ -960,9 +960,17 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
       : rescheduled                   ? 'Rescheduled'
       : 'Booked'
 
+    // ⚑ 1 Oct (Coaching F1 · #2483) — the client's "How did it go?" answer, and whether to ask.
+    // An unreadable answer log asks nothing (never re-asks a question already answered).
+    const { latestOutcomes, needsAnswer } = await import('../lib/meeting-outcome')
+    const outcomes = await latestOutcomes(clientId, rows.map(r => r.id))
+
     const meetings = rows.map(r => {
       const l = byId.get(r.leadId ?? '') as Record<string, unknown> | undefined
+      const outcome = outcomes?.get(r.id) ?? null
       return {
+        outcome,
+        ask: outcomes !== null && needsAnswer(r, outcome !== null),
         id: r.id,
         // `meetings` stores no title by design — it holds no prospect identity at all. The
         // page's existing default is used rather than inventing one from the lead's name.
@@ -977,6 +985,34 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
     })
     res.json({ success: true, data: meetings })
   } catch (err) { console.error('[leads/meetings]', err); res.status(500).json({ success: false, error: 'Failed to load meetings' }) }
+})
+
+// ── ⚑ 1 Oct (Coaching F1 · #2483 · R180 Q4) — "HOW DID IT GO?" ─────────────────────────────
+// The client answers for one of THEIR meetings — scoped exactly as the list above is, so a
+// meeting from another client or an earlier programme cannot be answered. What an answer does
+// to meeting truth is decided in `lib/meeting-outcome.ts`, nowhere else.
+leadRouter.post('/meetings/:id/outcome', rateLimit({ limit: 30, windowMs: 60_000, key: 'meeting-outcome', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+    if (scope.mode === 'none') { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+    if (scope.mode === 'unreadable') { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Nothing changed." }); return }
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const rows = await meetingsForClient({ clientId, ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}), limit: 100 })
+    if (rows === null) { res.status(503).json({ success: false, error: "We couldn't check your meetings just now. Nothing changed." }); return }
+    const m = rows.find(r => r.id === req.params.id)
+    if (!m) { res.status(404).json({ success: false, error: 'No such meeting.' }); return }
+    const { recordMeetingOutcome } = await import('../lib/meeting-outcome')
+    const r = await recordMeetingOutcome({
+      clientId,
+      meeting: { id: m.id, scheduledAt: m.scheduledAt, state: m.state, programmeId: scope.mode === 'ids' ? scope.programmeId : null },
+      answer: req.body?.answer, note: req.body?.note, by: req.authEmail ?? req.userId!,
+    })
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.outcome })
+  } catch (err) { console.error('[leads/meetings/outcome]', err); res.status(500).json({ success: false, error: "We couldn't save that just now. Nothing changed." }) }
 })
 
 // ── CREATE ────────────────────────────────────────────────────────────────────

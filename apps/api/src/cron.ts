@@ -1,4 +1,5 @@
 import cron from 'node-cron'
+import http from 'node:http'
 import { db } from '@kind/db'
 import { sendFounderAlert } from './lib/alerts'
 import { cronsEnabled, slotFor, readClaimError, claimantId, type ClaimOutcome } from './lib/cron-guard'
@@ -6,6 +7,35 @@ import { cronsEnabled, slotFor, readClaimError, claimantId, type ClaimOutcome } 
 const PORT       = process.env.PORT || 4000
 const API_BASE   = `http://localhost:${PORT}`
 const ADMIN_KEY  = process.env.ADMIN_SECRET_KEY
+
+// ── ⚑ 2 Oct (R185 ⑥ · card #2545) — THE SCHEDULER WAITS FOR A JOB TO REALLY FINISH ──────────
+//
+// ~~`fetch(…)`~~ gave up after five minutes with no answer (its built-in headers timeout), so a
+// long send run was recorded as FAILED — dead-lettered, alerted — while it was still sending.
+// The call now waits up to this long: well past any real run, and short of the next 2-hourly
+// slot. Only a job that gives no answer at all in that time is recorded as failed.
+export const INTERNAL_CALL_TIMEOUT_MS = 110 * 60_000
+
+/** One internal call: the status and the raw body. Rejects only on a connection error or no answer in time. */
+export function postInternal(
+  url: string, method: 'GET' | 'POST', headers: Record<string, string>,
+  timeoutMs: number = INTERNAL_CALL_TIMEOUT_MS,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, { method, headers }, res => {
+      let body = ''
+      res.setEncoding('utf8')
+      res.on('data', chunk => { body += chunk })
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, body }))
+      res.on('error', reject)
+    })
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`no answer after ${Math.round(timeoutMs / 60_000)} minute(s)`))
+    })
+    req.on('error', reject)
+    req.end()
+  })
+}
 
 // #343 — CLAIM THE SLOT, OR STAND DOWN.
 //
@@ -228,12 +258,11 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
   let ok   = false
   let note = ''
   try {
-    const res  = await fetch(`${API_BASE}/internal${path}`, {
-      method,
-      headers: { 'x-admin-key': ADMIN_KEY, 'content-type': 'application/json' },
-    })
-    const data = await res.json() as Record<string, unknown>
-    ok   = res.ok && data?.success !== false
+    // ⚑ 2 Oct (R185 ⑥) — waits for the job's real answer (see `postInternal`), not five minutes.
+    const res  = await postInternal(`${API_BASE}/internal${path}`, method,
+      { 'x-admin-key': ADMIN_KEY, 'content-type': 'application/json' })
+    const data = JSON.parse(res.body) as Record<string, unknown>
+    ok   = res.status >= 200 && res.status < 300 && data?.success !== false
     note = `HTTP ${res.status} · ${JSON.stringify(data)}`
     console.log(`[cron] ${path} →`, JSON.stringify(data))
   } catch (err) {

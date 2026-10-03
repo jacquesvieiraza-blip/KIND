@@ -258,10 +258,12 @@ export default function ProgrammePage() {
           />
         </div>
       )}
-      {/* After approval the panel's approved state stays with the programme's status. */}
+      {/* After approval the panel's approved state stays with the programme's status — until it
+          goes live. ⛓️ 2 Oct (R187 ② · #2551): it used to stay for good, so a LIVE programme read
+          "Approved — nothing is sent until the programme goes Live" under "20 emails sent". */}
       {/* ⚑ 3 Oct (seen on the real screen) — NOT when the panel above already shows it (a live
           programme's new version), or the client got the same card twice. */}
-      {review?.programme && review.programme.approved_at
+      {review?.programme && review.programme.approved_at && !p.wentLiveAt
         && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (
         <ProgrammeApproval data={review} onApproved={onApproved} />
       )}

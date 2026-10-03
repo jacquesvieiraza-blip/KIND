@@ -777,7 +777,9 @@ export function MillaConversationProvider(
     ...(prog.stage === 'Recommendation' ? [CHIP_EXPLAIN_250] : []),
     // ⚑ 24 Sep (R145 step 5 · #78) — the redesign's Approval chips: questions for Milla. A change she
     // agrees makes a NEW version to approve; nothing here edits the frozen one.
-    ...(prog.stage === 'Approval' ? ['Show me the full sequence', 'Change the sending window'] : []),
+    // ⛓️ 2 Oct (R185 ①): ~~'Change the sending window'~~ — programmes send at any hour, in any
+    // zone, on weekdays; there is no window left for a client to change.
+    ...(prog.stage === 'Approval' ? ['Show me the full sequence'] : []),
     // ⚑ 24 Sep (R145 step 6) — the redesign's Results and Complete chips, as questions for Milla.
     // (Its "Who never got contacted?" is left out: D6 — no never-contacted count.)
     ...(prog.stage === 'Live' || prog.stage === 'Review' ? ['Show me my meetings'] : []),

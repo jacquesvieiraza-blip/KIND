@@ -8,6 +8,10 @@
 // conversation); Milla drafts who · one problem · impact · answer · proof · ask; the client changes
 // any part with Milla and presses "Approve direction". The price and the pay button appear only
 // then (`onApproved`), and the server refuses the first payment without it.
+//
+// 🛑 NO CHAT ON THE RIGHT (R196). Nothing here is typed into: every button opens or speaks in the
+// ONE Milla conversation in the middle column, which fills this panel in. The only press that is
+// not a conversation is "Approve direction" — an approval, like "Approve these emails".
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
@@ -50,13 +54,10 @@ export function ProgrammeDirection({ onApproved }: { onApproved: (approved: bool
   const d = v?.direction ?? null
   const askGoal = () => conversation.focus('direction:goal', { current: v?.lastGoal ?? d?.goal ?? '', version: d?.version ?? 0 })
 
-  async function useSuggested() {
-    if (!v?.suggestedGoal || busy) return
-    setBusy('draft'); setErr(null)
-    try { await api.post('/my/programme/direction/draft', { goal: v.suggestedGoal }, await token()); setNonce(n => n + 1) }
-    catch { setErr('Milla could not draft the direction just now. Please try again in a moment.') }
-    finally { setBusy(null) }
-  }
+  // ⚑ 3 Oct (R196) — the founder: *"there should be no chat sections on the right. you chat in the
+  // middle column with Milla. that fills out the right panels."* So "Use this goal" does not draft
+  // from here: it says the goal in the chat, as the client's message, and Milla drafts there.
+  const useSuggested = () => { if (v?.suggestedGoal) conversation.draftDirectionFrom(v.suggestedGoal) }
   async function approve() {
     if (!d || busy) return
     setBusy('approve'); setErr(null)
@@ -102,7 +103,7 @@ export function ProgrammeDirection({ onApproved }: { onApproved: (approved: bool
           <div className="mv-cta-row">
             {v.suggestedGoal && (
               <button disabled={!!busy} onClick={useSuggested} className="mv-btn primary disabled:opacity-50">
-                {busy === 'draft' ? 'Milla is drafting…' : 'Use this goal'}
+                Use this goal
               </button>
             )}
             <button disabled={!!busy} onClick={askGoal} className={`mv-btn ${v.suggestedGoal ? '' : 'primary'} disabled:opacity-50`}>

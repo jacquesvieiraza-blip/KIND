@@ -239,6 +239,11 @@ type MillaConversationApi = {
   /** Bumped whenever the programme direction is drafted or changed in the chat. */
   directionRevision: number
   /**
+   * ⚑ 3 Oct (R196) — "Use this goal": the goal is said IN THE CHAT, as the client's message, and
+   * Milla drafts from it there. The right panel never drafts, edits or chats on its own.
+   */
+  draftDirectionFrom: (goal: string) => void
+  /**
    * ── 🛑 ⚑ 24 Sep — ONE CHAT, FROM SIGN-UP TO COMPLETE ─────────────────────────────────────
    *
    * Founder, verbatim: *"we never leave one chat to go to another. not how it workss. evern the
@@ -301,7 +306,7 @@ export function useMillaConversation(): MillaConversationApi {
   return useContext(Ctx) ?? INERT
 }
 const INERT: MillaConversationApi = {
-  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0, businessRevision: 0, directionRevision: 0,
+  focus: () => {}, publishDeskSet: () => {}, icpRevision: 0, businessRevision: 0, directionRevision: 0, draftDirectionFrom: () => {},
   claimChatSlot: () => () => {}, chatSlot: null, announce: () => {}, refreshStage: () => {},
   setDeskActions: () => {}, announceOnce: () => {}, keepNotice: () => {}, ask: () => {},
 }
@@ -337,6 +342,7 @@ export function MillaConversationProvider(
   const [businessSaving, setBusinessSaving] = useState(false)
   const [directionBase, setDirectionBase] = useState<DirectionBase | null>(null)
   const [directionRevision, setDirectionRevision] = useState(0)
+  const directionTurnRef = useRef<((base: DirectionBase, msg: string) => Promise<void>) | null>(null)
   const [deskSet, setDeskSet] = useState<number | null>(null)
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -608,6 +614,7 @@ export function MillaConversationProvider(
    * The ordinary composer passes nothing and the server mints an id exactly as before.
    */
   sendRef.current = (t: string) => { void send(t) }
+  directionTurnRef.current = directionTurn
   // ⚑ 2 Oct (#2551 · 13b · R187 ②) — "show me the emails" is answered with THE EMAILS: the
   // programme's own frozen copy, read from the server, laid out one after another. Milla used to
   // describe the stages instead, because the chat model never sees the copy.
@@ -624,6 +631,36 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
   }
 
+  /** One direction turn in the ONE chat: the client's words, then Milla's draft or change. */
+  async function directionTurn(base: DirectionBase, msg: string) {
+    setInput(''); setSending(true)
+    setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+    const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+    try {
+      const tok = await token()
+      if (base.key === 'goal') {
+        await api.post('/my/programme/direction/draft', { goal: msg }, tok, AI_TURN_TIMEOUT_MS)
+        say('Here’s the direction I’d use for this programme — it’s on the right. Change any part with me, then press Approve direction. Nothing is paid for or written until you do.')
+      } else {
+        await api.post('/my/programme/direction/change', { key: base.key, value: msg, base_version: base.version }, tok)
+        say('Updated. Approve the direction on the right when it reads right.')
+      }
+      setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1)
+    } catch (e) {
+      const status = failureOf(e).status
+      setInput(prev => (prev.trim() ? prev : msg))
+      if (status === 409) { say('The direction changed since you opened it, so I haven’t saved that. Please check it on the right.'); setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1) }
+      else if (status === 400) say('Tell me in a sentence what you want from this programme — for example, the kind of meetings and with whom.')
+      else say('I couldn’t do that just now. Your words are still in the box — please send them again in a moment.')
+    } finally { setSending(false) }
+  }
+  // ⚑ 3 Oct (R196) — "Use this goal" on the right: said here, as the client's own message.
+  const draftDirectionFrom = useCallback((goal: string) => {
+    const g = goal.trim(); if (!g) return
+    setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: 'What are you trying to achieve with this programme? A sentence is enough.' }])
+    void directionTurnRef.current?.({ key: 'goal', current: '', version: 0 }, g)
+  }, [])
+
   async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
     if (prog?.hasProgramme && !opts?.handoffId && !isIcpContext(context) && !isBusinessContext(context) && !isDirectionContext(context) && asksForEmails(msg)) { void showEmails(msg); return }
@@ -632,29 +669,7 @@ export function MillaConversationProvider(
     // "Approve this change". Nothing goes to the server here.
     // ⚑ 3 Oct (R195 ②) — A DIRECTION TURN: the goal is drafted into a direction, a part is changed.
     // Both write a DRAFT only; approval happens on the Programme page.
-    if (isDirectionContext(context) && directionBase && !opts?.handoffId) {
-      setInput(''); setSending(true)
-      setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
-      const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
-      try {
-        const tok = await token()
-        if (directionBase.key === 'goal') {
-          await api.post('/my/programme/direction/draft', { goal: msg }, tok, AI_TURN_TIMEOUT_MS)
-          say('Here’s the direction I’d use for this programme — it’s on the right. Change any part with me, then press Approve direction. Nothing is paid for or written until you do.')
-        } else {
-          await api.post('/my/programme/direction/change', { key: directionBase.key, value: msg, base_version: directionBase.version }, tok)
-          say('Updated. Approve the direction on the right when it reads right.')
-        }
-        setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1)
-      } catch (e) {
-        const status = failureOf(e).status
-        setInput(prev => (prev.trim() ? prev : msg))
-        if (status === 409) { say('The direction changed since you opened it, so I haven’t saved that. Please check it on the right.'); setContext(null); setDirectionBase(null); setDirectionRevision(v => v + 1) }
-        else if (status === 400) say('Tell me in a sentence what you want from this programme — for example, the kind of meetings and with whom.')
-        else say('I couldn’t do that just now. Your words are still in the box — please send them again in a moment.')
-      } finally { setSending(false) }
-      return
-    }
+    if (isDirectionContext(context) && directionBase && !opts?.handoffId) { await directionTurn(directionBase, msg); return }
     if (isBusinessContext(context) && businessBase && !opts?.handoffId) {
       setInput('')
       setMessages(m => [...m,
@@ -957,8 +972,8 @@ export function MillaConversationProvider(
     ? <b key={i} className="text-[#4d22b6]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
   const value = useMemo<MillaConversationApi>(
-    () => ({ focus, publishDeskSet, icpRevision, businessRevision, directionRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
-    [focus, publishDeskSet, icpRevision, businessRevision, directionRevision, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
+    () => ({ focus, publishDeskSet, icpRevision, businessRevision, directionRevision, draftDirectionFrom, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask }),
+    [focus, publishDeskSet, icpRevision, businessRevision, directionRevision, draftDirectionFrom, claimChatSlot, chatSlot, announce, refreshStage, setDeskActions, announceOnce, keepNotice, ask])
 
   const draftChips = icpDraft ? [
     ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),

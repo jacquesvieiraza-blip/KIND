@@ -112,6 +112,19 @@ describe('🛑 nothing is paid for until the direction is approved', () => {
     expect((page.match(/directionApproved \? \(/g) ?? []).length).toBe(2)
     expect((page.match(/<ProgrammeDirection /g) ?? []).length).toBe(2)
   })
+  it('🛑 R196 — no chat on the right: the panels are filled by talking to Milla in the middle', () => {
+    const card = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeDirection.tsx'), 'utf8')
+    const icp = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/icp/page.tsx'), 'utf8')
+    const business = icp.slice(icp.indexOf('function YourBusiness'), icp.indexOf('export default function MillaIcpPage'))
+    for (const [name, src] of [['direction card', card], ['Your business', business]] as const) {
+      expect(src, `${name} has a typing box`).not.toMatch(/<(input|textarea|form|select)\b/)
+      expect(src, `${name} drafts or changes on its own`).not.toMatch(/\/(direction\/(draft|change)|business\/change)'/)
+    }
+    // "Use this goal" speaks in the chat; the one non-chat press on the card is the approval.
+    expect(card).toContain('conversation.draftDirectionFrom(v.suggestedGoal)')
+    expect((card.match(/api\.post\(/g) ?? []).length).toBe(1)
+    expect(card).toContain("api.post('/my/programme/direction/approve'")
+  })
   it('Milla drafts and changes it through the direction routes only', () => {
     expect(conv).toContain("'/my/programme/direction/draft'")
     expect(conv).toContain("'/my/programme/direction/change'")

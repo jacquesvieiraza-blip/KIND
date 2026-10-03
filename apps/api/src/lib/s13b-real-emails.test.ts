@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { asksForEmails, emailsMessage, WITH_OUR_TEAM_COPY } from '../../../portal/src/lib/emails-message'
+import { asksForEmails, emailsMessage, WITH_OUR_TEAM_COPY, readable } from '../../../portal/src/lib/emails-message'
 
 describe('13b — what counts as asking', () => {
   it('the chips and the ordinary ways of asking', () => {
@@ -31,7 +31,8 @@ describe('13b — the emails, laid out as they land', () => {
       { step: 1, subject: 'One question', body: 'Hi Sam,\nShort note.\nWorth a chat?', wait_days: 3 },
     ])
     expect(out).toBe(
-      'Here are your emails, exactly as they go out:\n\n' +
+      // ⛓️ 3 Oct: the heading was 'Here are your emails, exactly as they go out:' — over raw tags.
+      'Here are your emails. Each person gets them with their own name and company where the brackets are:\n\n' +
       'Email 1 of 2\nSubject: One question\n\nHi Sam,\n\nShort note.\n\nWorth a chat?' +
       '\n\n────────\n\n' +
       'Email 2 of 2 — 3 days after email 1\nSubject: Following up\n\nHi Sam,\n\nOne more thought.\n\nThe Milla & Vida Team')
@@ -55,5 +56,18 @@ describe('13b — wired in', () => {
     expect(conv).toContain("'/my/programme/review'")
     expect(conv).toContain("['Show me my emails']")
     expect(conv).toContain('{ awaitingFounder: r.data?.awaiting_founder === true }')
+  })
+})
+
+// ⚑ 3 Oct — seen on the real screen: the client was shown raw {{first_name}} / {{company}} tags.
+describe('13b — the client never sees a template tag', () => {
+  it('tags become plain words; nothing is left in braces', () => {
+    expect(readable('Hi {{first_name}} — firms {{company}}\'s size {{ Title }}')).toBe('Hi [their first name] — firms [their company]\'s size [their job title]')
+    expect(readable('{{unknown_tag}}x')).toBe('x')
+  })
+  it('the message carries no braces', () => {
+    const out = emailsMessage([{ step: 1, subject: '{{first_name}}, one question', body: 'Hi {{first_name}} at {{company}}', wait_days: 0 }])
+    expect(out).not.toMatch(/\{\{|\}\}/)
+    expect(out).toContain('Subject: [their first name], one question')
   })
 })

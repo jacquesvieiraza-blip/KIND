@@ -23,6 +23,18 @@ export function asksForEmails(text: string): boolean {
 }
 
 /** The emails as one Milla message, laid out as they land. */
+/**
+ * ⚑ 3 Oct — THE CLIENT NEVER SEES A TEMPLATE TAG. Prospects are masked in Milla (never a name), so
+ * the tags are not filled with a real person: they become plain words in brackets.
+ */
+export function readable(text: string): string {
+  const WORDS: Record<string, string> = {
+    first_name: '[their first name]', last_name: '[their last name]', name: '[their name]',
+    company: '[their company]', job_title: '[their job title]', title: '[their job title]', industry: '[their industry]',
+  }
+  return (text || '').replace(/\{\{\s*([\w]+)\s*\}\}/g, (_m, k: string) => WORDS[k.toLowerCase()] ?? '')
+}
+
 /** R189 ⑧, the ruled wording, while the founder has not yet approved this version. */
 export const WITH_OUR_TEAM_COPY = 'Your emails are with our team for a final check, usually within 1 working day. They will appear here as soon as that is done, and nothing is sent before you have approved them too.'
 
@@ -35,8 +47,9 @@ export function emailsMessage(emails: FrozenEmail[], opts?: { awaitingFounder?: 
   const sorted = [...emails].sort((a, b) => a.step - b.step)
   const parts = sorted.map((e, i) => {
     const head = `Email ${e.step} of ${sorted.length}${i === 0 ? '' : ` — ${sorted[i - 1].wait_days === 1 ? '1 day' : `${sorted[i - 1].wait_days} days`} after email ${sorted[i - 1].step}`}`
-    const body = e.body.replace(/\r\n?/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).join('\n\n')
-    return `${head}\nSubject: ${e.subject.trim()}\n\n${body}`
+    const body = readable(e.body).replace(/\r\n?/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).join('\n\n')
+    return `${head}\nSubject: ${readable(e.subject).trim()}\n\n${body}`
   })
-  return `Here are your emails, exactly as they go out:\n\n${parts.join('\n\n────────\n\n')}`
+  // ⛓️ 3 Oct (seen on the real screen): said "exactly as they go out" over raw {{first_name}} tags.
+  return `Here are your emails. Each person gets them with their own name and company where the brackets are:\n\n${parts.join('\n\n────────\n\n')}`
 }

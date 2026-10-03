@@ -188,7 +188,10 @@ export async function generateProgrammeSequence(
   let draft: Record<string, { subject?: string; body?: string }>
   try {
     draft = await generateSequence(
-      sample as never,
+      // ⚑ 2 Oct (R186 ①) — *"no job title is baked into a template"*. One sequence is written for
+      // one sample person and sent to everyone, so the model never sees that person's title or
+      // seniority: "as CEO" went to people who are not CEOs.
+      { ...sample, job_title: null, seniority: null } as never,
       client.company_name ?? '',
       client.industry ?? null,
       campaign.campaign_intent ?? undefined,

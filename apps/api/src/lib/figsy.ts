@@ -341,6 +341,10 @@ export function signOffRule(senderName: string | null | undefined, senderCompany
     : '- Sign off without a name. Do NOT sign with, invent or guess any person\'s name.'
 }
 
+// ⛓️ 2 Oct (R186 ①) — ~~"Subject lines: 4–6 words, lowercase"~~ in all three writers (this one,
+// `generateDay1Email`, `generateSequenceWithMemory`): subjects in sentence case, short paragraphs
+// with a blank line between them and before the sign-off. The founder: *"incorrect lower case
+// grammar. we professoinals here."*
 export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
@@ -418,7 +422,8 @@ Hard rules (violating any of these makes the email useless):
 - Don't mention you're an AI or automation
 - Don't make up facts about their company you don't know
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompanyName}.
-- Subject lines: 4–6 words, lowercase, no punctuation, no questions
+- Subject lines: 4–6 words in normal sentence case (a capital letter to start, and on names), no punctuation, no questions
+- Write in short paragraphs of one to three sentences, with a blank line between paragraphs and a blank line before the sign-off — never one block of text
 - End every email with: "Reply STOP to opt out."
 - Never put a double quote character inside a subject or a body. If you must quote something, use single quotes. A double quote breaks the JSON and the whole sequence is lost.
 ${signOffRule(senderName, senderCompanyName)}
@@ -1835,7 +1840,8 @@ Rules:
 - No em-dashes (—)
 - No buzzwords: no "synergy", "leverage", "touch base", "game-changer", "revolutionary", "Hope this finds you well", "I wanted to reach out"
 - Don't mention AI or automation
-- Subject: 4–6 words, lowercase, no punctuation
+- Subject: 4–6 words in normal sentence case (a capital letter to start, and on names), no punctuation
+- Write in short paragraphs of one to three sentences, with a blank line between paragraphs and a blank line before the sign-off — never one block of text
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name that fits the sender\'s region and industry'}
 - End with: "Reply STOP to opt out."
 
@@ -2324,7 +2330,8 @@ Hard rules:
 - No em-dashes (—)
 - Don't mention AI or automation
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above; if it's empty or silent on something, stay generic about the sender — never fabricate.
-- Subject: 4–6 words, lowercase, no punctuation
+- Subject: 4–6 words in normal sentence case (a capital letter to start, and on names), no punctuation
+- Write in short paragraphs of one to three sentences, with a blank line between paragraphs and a blank line before the sign-off — never one block of text
 - End every email: "Reply STOP to opt out."
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a real first name that fits the sender\'s region and industry'}
 

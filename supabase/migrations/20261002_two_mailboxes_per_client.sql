@@ -1,0 +1,11 @@
+-- ── TWO MAILBOXES PER CLIENT — 2 Oct 2026 (board #2559 · R189 ②) ─────────────────────────────
+--
+-- R189 ② (founder, 2 Oct): each client gets 2 mailboxes, set up before approval and approved
+-- together — 50 + 50 = 100 a day. `client_inboxes_one_live_per_kind` (20260725) allowed one live
+-- POOLED mailbox per client, so the second could never be assigned.
+--
+-- It is dropped, and nothing else changes:
+--   · `client_inboxes_one_live_per_email` still guarantees one address is live on one client;
+--   · the code assigns at most two (the Vida assign button refuses a third; the claim stops at two);
+--   · each person stays on the mailbox that first emailed them (send run, #2559 part 1).
+DROP INDEX IF EXISTS public.client_inboxes_one_live_per_kind;

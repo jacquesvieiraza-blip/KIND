@@ -7413,6 +7413,41 @@ CREATE TABLE IF NOT EXISTS public.founder_wording_approvals (
 CREATE INDEX IF NOT EXISTS founder_wording_approvals_programme_idx ON public.founder_wording_approvals (programme_id);
 ALTER TABLE public.founder_wording_approvals ENABLE ROW LEVEL SECURITY;
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2564 · R191) — THE CLIENT'S "REPLY RECEIVED" SWITCH ─────────────────────────
+    // The reply webhook obeys it, and a webhook cannot read a browser. EXPAND ONLY: one nullable
+    // boolean, no DEFAULT — NULL reads as ON, so applying it changes nobody's mail.
+    key: '20261002_reply_received_pref',
+    title: 'clients.reply_received_emails_enabled — the client\'s "Reply received" switch (#2564)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS reply_received_emails_enabled boolean;
+
+COMMENT ON COLUMN public.clients.reply_received_emails_enabled IS
+  'The client''s "Reply received" switch. NULL = never chose = on. false = no email or phone alert when a prospect sounds interested.';
+`,
+  },  {
+    // ── ⚑ 2 Oct (#2543 · R189 ⑥) — THE CLIENT'S REGISTERED OFFICE ─────────────────────────────
+    // Printed with their company name at the bottom of their emails; required before go-live.
+    // EXPAND ONLY: one nullable text column, no DEFAULT.
+    key: '20261002_client_registered_office',
+    title: 'clients.registered_office — the client\'s registered office for their email legal line (#2543)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS registered_office text;
+
+COMMENT ON COLUMN public.clients.registered_office IS
+  'The client''s registered office address, as they gave it. Printed with their company name at the bottom of their outreach emails (R189 ⑥); required before their programme goes live.';
+`,
+  },  {
+    // ── ⚑ 2 Oct (#2559 · R189 ②) — TWO MAILBOXES PER CLIENT ─────────────────────────────────
+    // Drops the one-live-pooled-box-per-client index so the second can be assigned. The
+    // one-address-one-client index stays; the code stops at two.
+    key: '20261002_two_mailboxes_per_client',
+    title: 'client_inboxes: a client may hold two live pooled mailboxes (R189 ②, #2559)',
+    sql: `
+DROP INDEX IF EXISTS public.client_inboxes_one_live_per_kind;
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

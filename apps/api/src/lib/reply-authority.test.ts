@@ -74,7 +74,9 @@ describe('A · the manual reply is genuinely human — decided, written and sent
     expect(MANUAL).toContain('isDemoClient(clientId)')
     expect(MANUAL).toContain("db.from('opt_out_blocklist')")
     expect(MANUAL).toContain('AUTO_OUTREACH_ENABLED')
-    expect(MANUAL).toContain('resolveSendingInbox(clientId)')
+    // ⛓️ 3 Oct (#2559 · R187 ④): was 'resolveSendingInbox(clientId)' — the reply now leaves from the
+    // mailbox this person was first emailed from; the same refuse-never-fall-back rules apply.
+    expect(MANUAL).toContain('resolveInboxForPerson(clientId, reply.lead_id ?? null)')
   })
 
   it('the freeze exception is therefore correct FOR THIS PATH — and only this one', () => {

@@ -174,6 +174,12 @@ const ALLOWED: Record<string, string> = {
   'live-reword.ts': 'CONTENT — #2544: the founder\'s approved 8 Sep House emails are put on House\'s live programme and never on another client\'s',
   // ⚑ 2 Oct (R189 ⑥) — the founder: *"for House. It is Milla and Vida and Our address"*.
   'figsy.ts': 'CONTENT — R189 ⑥: a House email carries House\'s legal line at the bottom; it changes no gate and no send decision',
+  // ⚑ 2 Oct (R187 ① · #2547) — Vida's Sending health puts House on its own line; it decides nothing.
+  'sending-health-lines.ts': 'OPERATIONS — R187 ①: House shows its sending numbers in Vida on its own line, never in the totals',
+  // ⚑ 2 Oct (#2543 · R189 ⑥): House carries its own legal line, so it is not asked for a registered office.
+  'client-legal-line.ts': 'CONTENT — R189 ⑥: House\'s emails carry House\'s own legal line, so Make Live does not ask it for a registered office; it changes no send decision',
+  // ⚑ 2 Oct (#2560): pooled mailboxes return to the pool when a client is done — never House's.
+  'sender-claim.ts': 'OPERATIONS — #2560: a finished client\'s pooled mailboxes are released back to the pool; House keeps its own mailboxes',
 }
 
 describe('② anything else that learns about House has to say why', () => {
@@ -304,14 +310,16 @@ describe('④ House sender readiness — multiple inboxes are fine, an unproved 
     expect(r.ok && r.inboxId, 'the unambiguous winner is the branded active box').toBe('hb-1')
   })
 
-  it('🛑 but two EQUALLY-RANKED House inboxes are still ambiguous, and still refused', async () => {
+  // ⛓️ 2 Oct (#2559 · R189 ②): two equal mailboxes are now every client's pair, so this no
+  // longer refuses — for House exactly as for a client. Was: "still ambiguous, and still refused".
+  // The point of the test is unchanged: House gets no answer a client would not get.
+  it('🛑 two EQUALLY-RANKED House inboxes get the same answer a client gets (R189 ② pair)', async () => {
     state.inboxes = [
       houseInbox({ verified_at: '2026-09-10' }),
       houseInbox({ id: 'hb-2', email: 'hello@meetandvibe.com', verified_at: '2026-09-10' }),
     ]
     const r = await programmeSenderSafety('house')
-    expect(r.ok, 'House got an arbitrary sender where a client would be refused').toBe(false)
-    expect(r.ok === false && r.reason).toBe('ambiguous_sender')
+    expect(r.ok).toBe(true)
   })
 })
 

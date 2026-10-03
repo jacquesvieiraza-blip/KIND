@@ -28,6 +28,27 @@ export const AI_TURN_TIMEOUT_MS = 45_000
  */
 export const PRESS_TIMEOUT_MS = 60_000
 
+/** A machine word such as `checkout_failed` — never something to show a person. */
+function isBareCode(v: unknown): v is string {
+  return typeof v === 'string' && /^[a-z][a-z0-9_]*$/.test(v)
+}
+
+/**
+ * ⚑ 3 Oct (review C1) — THE SENTENCE, NEVER THE CODE WORD. Many routes answer
+ * `{ error: 'checkout_failed', message: 'We can't take your payment just yet…' }`: a code for
+ * the program and a sentence for the person. Only `error` was read, so the client saw
+ * "checkout_failed" — on the Pay button, on Approve (`awaiting_founder`), on re-approval.
+ * When `error` is a bare code and a `message` exists, the message is what the screen shows; the
+ * code still travels on `err.code`. A prose `error` is unchanged.
+ */
+export function apiErrorText(data: { error?: unknown; message?: unknown } | null | undefined): string {
+  const e = data?.error
+  if (isBareCode(e) && typeof data?.message === 'string' && data.message.trim()) return data.message
+  return Array.isArray(e)
+    ? e.map((x: { message?: string }) => x.message ?? JSON.stringify(x)).join(', ')
+    : (typeof e === 'string' ? e : JSON.stringify(e)) || 'API request failed'
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string, timeoutMs = 15000): Promise<T> {
   // ⚑ 26 Aug — the timeout is now per-call. 15s is right for CRUD and was WRONG for the one
   // endpoint that waits on a model turn (`/icps/builder/chat`): the server allows Anthropic
@@ -66,9 +87,7 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string, 
     // ⚑ 2 Oct (#2548) — THE SERVER'S OWN SENTENCE, WHEN IT SENT ONE. ~~Only `error` was read~~,
     // and many routes put a machine code there ("not_paused", "unavailable", "wrong_state") and
     // the sentence for the client in `message` — so Milla showed the client the code.
-    const errMsg = typeof data.message === 'string' && data.message.trim() ? data.message : Array.isArray(data.error)
-      ? data.error.map((e: { message?: string }) => e.message ?? JSON.stringify(e)).join(', ')
-      : (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) || 'API request failed'
+    const errMsg = apiErrorText(data)
     const err = new Error(errMsg) as Error & { status: number; code?: string }
     err.status = res.status
     // ⚑ 10 Sep (C01) — THE MACHINE-READABLE CODE SURVIVES THE THROW.
@@ -83,6 +102,7 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string, 
     // ⚠️ THE PROSE IS STILL CARRIED, for logs and for callers that already show it. What is
     // new is that a caller can now tell WHICH refusal it was without matching on a sentence.
     if (typeof data.code === 'string' && data.code) err.code = data.code
+    else if (isBareCode(data.error)) err.code = data.error
     throw err
   }
   return data

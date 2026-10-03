@@ -463,7 +463,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   // day could put a box over its own cap… The fix is one column (#610)"~~. The column now
   // exists (`figsy_sent_emails.inbox_id`): each run's tally is SEEDED from today's real count,
   // and `sendSequenceEmail` re-checks the box's limit before every send on every path.
-  const { sendablePool, nextFromRotation } = await import('./sending-inbox')
+  const { sendablePool, pickForPerson } = await import('./sending-inbox')
   const { secretState } = await import('./inbox-secret')
   const secretOk = secretState().ok
   const rotationByClient = new Map<string, RotationSlot[]>()
@@ -495,6 +495,26 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
     return slots
   }
 
+  // ⚑ 2 Oct (#2559 · R189 ②) — THE MAILBOX THAT FIRST EMAILED EACH PERSON, read once per run.
+  // Keyed on the lead within its campaign: the day-one batch writes step 1 with no enrolment id.
+  // Unreadable → follow-ups are held this run rather than sent from a guessed mailbox.
+  const firstInboxByLead = new Map<string, string>()
+  let firstInboxUnreadable = false
+  {
+    const followUps = fairOrder.filter(e => (e.current_step ?? 0) >= 1)
+    const leadIds = [...new Set(followUps.map(e => (Array.isArray(e.leads) ? e.leads[0] : e.leads)?.id).filter((x): x is string => !!x))]
+    for (let i = 0; i < leadIds.length; i += 200) {
+      const { data, error } = await db.from('figsy_sent_emails')
+        .select('lead_id, campaign_id, inbox_id, sent_at').in('lead_id', leadIds.slice(i, i + 200))
+        .not('inbox_id', 'is', null).order('sent_at', { ascending: true })
+      if (error) { firstInboxUnreadable = true; console.warn(`[send-due] which mailbox first emailed each person could not be read (${error.message}) — follow-ups held this run.`); break }
+      for (const row of (data ?? []) as { lead_id: string; campaign_id: string | null; inbox_id: string }[]) {
+        const key = `${row.lead_id}|${row.campaign_id ?? ''}`
+        if (!firstInboxByLead.has(key)) firstInboxByLead.set(key, row.inbox_id)
+      }
+    }
+  }
+
   const { sendSequenceEmail, sendSequenceEmailOperatorRun, applyReplyBranching, enrollmentStep } = await import('./figsy')
   const send = mode.mode === 'operator_run' ? sendSequenceEmailOperatorRun : sendSequenceEmail
 
@@ -507,6 +527,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
   // attempt every due email only to have each refused one by one.
   const { isUkSendingDay } = await import('./send-schedule')
   const sendingDay = isUkSendingDay(new Date())
+  const evictedIdByEmail = new Map<string, string>()
 
   for (const enrollment of fairOrder) {
     // The founder's ceiling and the shared budget are the same test — `budget` already
@@ -551,7 +572,13 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
     // Which mailbox carries THIS message? Least-used first; a box at its own daily_cap drops
     // out; null means every box for this client is at its cap.
     const rotation = await rotationFor(clientId)
-    const pickedId = rotation.length > 0 ? nextFromRotation(rotation) : null
+    // ⚑ 2 Oct (#2559 · R189 ②) — a follow-up leaves from the mailbox that first emailed this person.
+    if (nextStep > 1 && firstInboxUnreadable) { r.skipped++; continue }
+    const firstInbox = nextStep > 1 ? (firstInboxByLead.get(`${lead.id}|${campId}`) ?? null) : null
+    const evictedIds = new Set([...evicted].map(addr => evictedIdByEmail.get(addr)).filter((x): x is string => !!x))
+    const pick = rotation.length > 0 ? pickForPerson(rotation, firstInbox, evictedIds) : null
+    if (pick && 'hold' in pick) { r.skipped++; continue }
+    const pickedId = pick ? pick.id : null
     if (!pickedId) {
       // Logged ONCE per client, not once per enrolment — a per-enrolment warning on a large
       // backlog is an error storm that buries the line that matters.
@@ -590,6 +617,7 @@ async function runSendDueAlone(mode: SendDueMode): Promise<SendDueResult> {
         const idx = rotation.findIndex(s => s.id === slot.id)
         if (idx >= 0) rotation.splice(idx, 1)
         evicted.add(String(slot.row.email))
+        evictedIdByEmail.set(String(slot.row.email), slot.id)
         console.warn(`[send-due] mailbox ${slot.row.email} failed to send — evicted from this run's rotation for client ${clientId}.`)
       } else if (outcome === 'deferred') r.deferred++
       else if (outcome === 'suppressed') r.suppressed++

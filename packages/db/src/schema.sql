@@ -721,6 +721,10 @@ alter table public.clients
   -- every historic row with a preference nobody made (#599).
   add column if not exists campaign_paused_emails_enabled   boolean,
   add column if not exists weekly_digest_enabled            boolean,
+  -- ⚑ 2 Oct (#2564) — mirrors 20261002_reply_received_pref: the "Reply received" switch.
+  add column if not exists reply_received_emails_enabled    boolean,
+  -- ⚑ 2 Oct (#2543 · R189 ⑥) — mirrors 20261002_client_registered_office.
+  add column if not exists registered_office                text,
   -- The automatic $45 referral bonus is retired (D2); referrals are handled by a human. This
   -- marks that one was RAISED, and is deliberately NOT referral_bonus_paid_at, which the
   -- refund claw-back reads to reverse money that was actually paid.

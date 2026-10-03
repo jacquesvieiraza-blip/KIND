@@ -71,7 +71,8 @@ describe('#34 #35 · P2 without a reload, and no "nothing to pay"', () => {
 describe('#78 · review the sequence, and ask to change the window', () => {
   it('🛑 "Review full sequence" opens the frozen words; the chat offers the window change', () => {
     expect(APPROVAL).toContain("{showAll ? 'Hide the full sequence' : 'Review full sequence'}")
-    expect(CHAT).toContain("prog.stage === 'Approval' ? ['Show me the full sequence', 'Change the sending window'] : []")
+    // ⛓️ 2 Oct (R185 ①): ~~'Change the sending window'~~ — the window was retired; see s13a.
+    expect(CHAT).toContain("prog.stage === 'Approval' ? ['Show me the full sequence'] : []")
   })
 
   it('🛑 back from the P2 payment, the same wait — no second pay button', () => {

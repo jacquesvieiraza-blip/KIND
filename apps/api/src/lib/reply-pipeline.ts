@@ -35,7 +35,7 @@ import { classifyReply, isRiskyReply, recomputeCampaignCounters } from './figsy'
 import { pushDealToCrm } from './crm'
 import { logOutcomeEvent } from './outcomes'
 import { syncFigsyInterestedToHubspot } from './hubspot'
-import { sendPushToClient } from './push'
+import { isInterestedReply, notifyClientOfInterestedReply } from './interested-reply-notice'
 import { emitSignal } from '../routes/signals'
 import {
   isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch,
@@ -577,6 +577,18 @@ export async function processInboundReply(
     ).catch(() => {})
   }
 
+  // ⚑ 2 Oct (#2564 · R191 — *"Only interested replies"*) — the CLIENT is told, by email and
+  // on their phone, when this prospect sounds interested. Only for a reply STORED here: a
+  // redelivery whose insert lost to the idempotency index has no row, so it alerts nobody twice.
+  // Fire-and-forget — the reply is already durable and an alert must never hold the webhook.
+  {
+    const storedReplyId = (reply as { id?: string } | null)?.id
+    if (storedReplyId && isInterestedReply(classification)) {
+      void notifyClientOfInterestedReply({ clientId: lead.client_id, leadId: lead.id, classification })
+        .catch(err => console.error('[reply-pipeline] interested-reply alert failed —', err))
+    }
+  }
+
   // THE DATA FLOOR (#17b) — append-only raw outcome log. Fire-and-forget.
   void logOutcomeEvent({
     client_id:     lead.client_id,
@@ -664,13 +676,10 @@ export async function processInboundReply(
       ])
     }
 
-    // Web push — alert the client instantly on a hot reply (no-op if VAPID unset)
-    sendPushToClient(lead.client_id, {
-      title: '🔥 Hot reply',
-      body: `${inbound.fromEmail} replied positively to your outreach.`,
-      url: '/dashboard/figsy',
-      tag: 'hot-reply',
-    }).catch(() => {})
+    // ⛓️ 2 Oct (#2564 · R191) — ~~a '🔥 Hot reply' push to `/dashboard/figsy` stood here~~.
+    // It pointed at the retired self-serve page and fired for `hot` only. The client's alert is
+    // now `notifyClientOfInterestedReply` above — email and phone, for every interested reply,
+    // linking to their Inbox — so this one would have been a second, older alert.
 
     // PR-C — the FOUNDER also needs to know. The client push above is a no-op without
     // VAPID + a subscribed device, and at n=1 clients a hot reply is the whole game.

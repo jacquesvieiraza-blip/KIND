@@ -278,8 +278,10 @@ describe('⑤ it appears where the client already is, and only when it should', 
     // live programme's new version. Still silent at every other stage.
     expect(PAGE).toContain("? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)")
     expect(PAGE).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
-    // ⛓️ 3 Oct: was '{review?.programme && review.programme.approved_at && (' — the lower panel now
-    // stays away while the upper one already shows a re-approval (it drew the card twice).
-    expect(PAGE).toContain('{review?.programme && review.programme.approved_at\n        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
+    // ⛓️ 2 Oct (R187 ② · #2551): ~~`approved_at && (`~~ — the approved state now goes once the
+    // programme is live; it read "nothing is sent until the programme goes Live" on a live one.
+    // ⛓️ 3 Oct: and the lower panel stays away while the upper one already shows a re-approval
+    // (it drew the card twice).
+    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && !p.wentLiveAt\n        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
   })
 })

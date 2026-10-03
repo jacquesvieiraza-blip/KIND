@@ -109,25 +109,23 @@ export async function programmeSenderSafety(clientId: string): Promise<SenderSaf
     return { ok: false, reason: 'unreadable', detail: `This client's mailboxes could not be re-read to check for an ambiguous sender (${error.message}), so nothing may be bound to them.` }
   }
 
-  // ── ① A TIE AT THE TOP IS AMBIGUOUS ──────────────────────────────────────────────────
+  // ── ① ⛓️ 2 Oct (#2559 · R189 ②) — ~~A TIE AT THE TOP IS AMBIGUOUS~~ ──────────────────
+  //
+  // Two equally-ranked boxes used to be refused as `ambiguous_sender`: which one sent was row
+  // order, not a decision. R189 ② makes two mailboxes per client the RULE — *"2 mailboxes, set
+  // up before approval and approved together"* — and the send run now keeps each person on the
+  // mailbox that first emailed them (#2559 part 1), so a tie decides nothing about anybody. The
+  // pair is frozen together in the approval (`preparation-snapshot.ts`). What every box must
+  // still prove, it proves below: not live on another client, and able to log in.
   const pool = sendablePool((rows ?? []) as Parameters<typeof sendablePool>[0], secretState().ok)
   if (!pool.ok) return { ok: false, reason: 'no_sender', detail: pool.detail }
   const boxes = pool.boxes
-  if (boxes.length > 1) {
-    const rankOf = (r: { status?: unknown; kind?: unknown }) =>
-      (String(r.status) === 'active' ? 0 : 1) * 10 + (String(r.kind) === 'branded' ? 0 : 1)
-    const top = rankOf(boxes[0])
-    const tied = boxes.filter(b => rankOf(b) === top)
-    if (tied.length > 1) {
-      return {
-        ok: false, reason: 'ambiguous_sender',
-        detail: `This client has ${tied.length} equally-ranked sending mailboxes (${tied.map(b => b.email ?? b.id).join(', ')}), so which one sends is decided by row order rather than by a decision. Retire or re-rank one before binding a programme to it — a frozen snapshot whose sender is arbitrary freezes nothing.`,
-      }
-    }
-  }
 
   // ── ② THE SAME ADDRESS LIVE ON ANOTHER CLIENT ────────────────────────────────────────
+  // ⚑ 2 Oct (#2559) — EVERY box that can carry a person's email is checked, not only the first.
   const email = chosen.inbox.email ?? null
+  for (const sendingBox of boxes.length ? boxes : [chosen.inbox]) {
+  const email = sendingBox.email ?? null   // shadows the outer one: this box's own address
   if (email) {
     const { data: shared, error: sharedErr } = await db.from('client_inboxes')
       .select('client_id, status').eq('email', email)
@@ -142,6 +140,7 @@ export async function programmeSenderSafety(clientId: string): Promise<SenderSaf
         detail: `${email} is also live on ${others.length} other client(s) (${others.map(o => o.client_id).join(', ')}). Two programmes sending as the same person share one reputation and cannot see each other's suppression — this must be resolved before either sends.`,
       }
     }
+  }
   }
 
   // ── ③ ⚑ 10 Sep (I2) — HAS ANYONE PROVED THIS MAILBOX CAN ACTUALLY LOG IN? ────────────
@@ -159,8 +158,10 @@ export async function programmeSenderSafety(clientId: string): Promise<SenderSaf
   // 🛑 FAIL CLOSED BEFORE THE MIGRATION RUNS, AND NAME IT. An unreadable verification state
   // is not permission to send — but the refusal has to say what to run, or it reads as a
   // broken mailbox and an operator goes looking for one.
+  for (const sendingBox of boxes.length ? boxes : [chosen.inbox]) {
+  const email = sendingBox.email ?? null
   const { data: vRows, error: vErr } = await db.from('client_inboxes')
-    .select('verified_at, verify_failed_at, verify_detail').eq('id', chosen.inbox.id).limit(1)
+    .select('verified_at, verify_failed_at, verify_detail').eq('id', sendingBox.id).limit(1)
   if (vErr) {
     return {
       ok: false, reason: 'unreadable',
@@ -180,6 +181,7 @@ export async function programmeSenderSafety(clientId: string): Promise<SenderSaf
           + 'it authenticates and sends nothing. Until it passes, a wrong password would only be discovered when a real '
           + 'prospect\'s first email failed on a warmed mailbox.',
     }
+  }
   }
 
   return {

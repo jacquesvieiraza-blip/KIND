@@ -5399,12 +5399,16 @@ operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
     // (migration 20260725_client_inboxes) is the backstop and it does hold — but a raw
     // constraint violation surfaces here as a 500 "Failed to assign inbox", which tells the
     // operator nothing and looks like a broken server rather than a second pooled box.
-    const { data: existingPooled } = await db.from('client_inboxes')
+    // ⛓️ 2 Oct (#2559 · R189 ②) — ~~one live pooled box per client~~: each client now gets TWO
+    // ("2 mailboxes … approved together"), and each person stays on the box that first emailed
+    // them. A THIRD is refused.
+    const { data: existingPooledRows } = await db.from('client_inboxes')
       .select('id, email').eq('client_id', client.id).eq('kind', 'pooled')
-      .in('status', ['assigned', 'warming', 'active']).maybeSingle()
-    if (existingPooled) {
+      .in('status', ['assigned', 'warming', 'active'])
+    const existingPooledList = (existingPooledRows ?? []) as { email?: string }[]
+    if (existingPooledList.length >= 2) {
       res.status(409).json({ success: false,
-        error: `This client already has a live pooled mailbox (${(existingPooled as { email?: string }).email ?? 'unknown'}). Release that one first, or record the client's own branded mailbox instead — a second pooled box would give them two senders and no rule for which one sends.` })
+        error: `This client already has two live pooled mailboxes (${existingPooledList.map(e => e.email ?? 'unknown').join(', ')}) — the R189 limit. Release one first.` })
       return
     }
 
@@ -7264,10 +7268,16 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
 
     const [today, last7] = await Promise.all([windowFor(startOfToday), windowFor(sevenDaysAgo)])
 
+    // ⚑ 2 Oct (R187 ① · #2547) — House, and every client with an open programme, on its OWN
+    // line beside these totals (which leave House and the demo out, R174 ⑧). The founder:
+    // *"house account needs to show the sending stats."* See `lib/sending-health-lines.ts`.
+    const { sendingLinesByClient } = await import('../lib/sending-health-lines')
+    const byClient = clientId ? [] : await sendingLinesByClient(now)
+
     res.json({
       success: true,
       data: {
-        today, last7,
+        today, last7, byClient,
         // Empty until failures are recorded at all — NOT an assertion that none happened.
         recentFailures: [],
         sendingExpected: expected.expected,

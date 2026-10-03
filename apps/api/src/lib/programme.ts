@@ -1736,6 +1736,15 @@ export async function raiseApprovalConcern(params: {
 export async function resumeProgramme(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
+  // ⚑ 2 Oct (#2561 · 14c · R191 — *"Refuse until it's settled"*): a programme whose payment
+  // was reversed asks Stripe first. Refunded → never; dispute open or lost → refused; won → ok.
+  if (p.disputed_at) {
+    const intents = [p.first_payment_intent_id, p.second_payment_intent_id].filter((x): x is string => !!x)
+    const { readPaymentReversals } = await import('./stripe')
+    const { reversalVerdict } = await import('./payment-reversal')
+    const v = reversalVerdict(intents.length ? await readPaymentReversals(intents) : null, intents.length > 0)
+    if (!v.mayResume) return { ok: false, reason: v.reason }
+  }
   // ⚑ 2 Oct (R185 ⑦ · #2548) — and Resume checks its save the same way Pause does.
   const { error } = await db.from('programmes').update({
     paused_at: null, pause_reason: null, updated_at: new Date().toISOString(),
@@ -1896,6 +1905,10 @@ export async function completeProgramme(programmeId: string): Promise<ProgrammeR
   const gate = mayComplete(p)
   if (!gate.allowed) return { ok: false, reason: gate.reason }
   await setStatus(programmeId, 'COMPLETED')
+  // ⛓️ 3 Oct (review S17): the client's pooled mailboxes were released HERE, the moment the
+  // programme completed — so a prospect replying a week later could not be answered from the
+  // mailbox they wrote to, which might already be sending for another client. They now go back
+  // 30 quiet days later, in the daily job (`releaseQuietPooledSenders`).
   return { ok: true }
 }
 
@@ -2217,6 +2230,10 @@ export async function recordDispute(
         ? `This payment also used ${applied} cents of wallet credit; it is returned to the client's wallet separately.`
         : `This payment also used ${applied} cents of wallet credit — not returned on a dispute; decide by hand.`)
     : ''
+
+  // ⛓️ 3 Oct (review S17): a refund released the client's pooled mailboxes here. Releasing on
+  // a refund was never ruled, and the client may still be answering replies, so nothing is
+  // released by a refund; see `releaseQuietPooledSenders`.
 
   const word = kind === 'refund' ? 'refunded' : 'disputed'
   void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [

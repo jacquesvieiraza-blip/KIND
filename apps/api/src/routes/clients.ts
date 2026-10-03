@@ -171,6 +171,8 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // time they changed their phone number.
       company_registration: z.string().optional(),
       vat_number:           z.string().optional(),
+      // ⚑ 2 Oct (#2543 · R189 ⑥) — printed with the company name at the bottom of their emails.
+      registered_office:    z.string().max(300).optional(),
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
       crm_api_key:       z.string().optional(),
       crm_sync_enabled:  z.boolean().optional(),
@@ -193,6 +195,9 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // in `internal.ts` via `mayNotify` (`lib/programme-notifications.ts`).
       campaign_paused_emails_enabled: z.boolean().optional(),
       weekly_digest_enabled:          z.boolean().optional(),
+      // ⚑ 2 Oct (#2564 · R191) — "Reply received": an email and a phone alert when a prospect
+      // sounds interested. Honoured in `lib/interested-reply-notice.ts`.
+      reply_received_emails_enabled:  z.boolean().optional(),
     }).parse(req.body)
     // ⚑ 29 Sep (R174 ② · 1e) — the browser never holds the saved key, so an EMPTY key field
     // means "keep the one on file", never "erase it". Switching the CRM off clears it.

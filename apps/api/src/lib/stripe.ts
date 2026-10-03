@@ -250,3 +250,39 @@ export async function resumeStripeSubscription(subscriptionId: string | null | u
     return false
   }
 }
+
+/**
+ * ⚑ 2 Oct (#2561 · 14d) — every PAID programme checkout created since `sinceUnix`, for the
+ * daily reconciliation. `null` = Stripe not configured or unreadable (never "nothing paid").
+ * Bounded at 1,000 sessions a run; a busier day than that is reported, not silently cut.
+ */
+export async function listPaidProgrammeCheckouts(sinceUnix: number): Promise<{
+  rows: { sessionId: string; programmeId: string; clientId: string | null; stage: 'first' | 'second'; amountTotal: number | null; currency: string | null; paymentIntentId: string | null; created: number }[]
+  truncated: boolean
+} | null> {
+  if (!stripe) return null
+  try {
+    const rows: NonNullable<Awaited<ReturnType<typeof listPaidProgrammeCheckouts>>>['rows'] = []
+    let seen = 0
+    let truncated = false
+    for await (const s of stripe.checkout.sessions.list({ created: { gte: sinceUnix }, limit: 100 }) as AsyncIterable<any>) {
+      if (++seen > 1000) { truncated = true; break }
+      const type = s?.metadata?.type
+      if (s?.payment_status !== 'paid' || (type !== 'programme_first' && type !== 'programme_second') || !s?.metadata?.programmeId) continue
+      rows.push({
+        sessionId: String(s.id),
+        programmeId: String(s.metadata.programmeId),
+        clientId: s.metadata.clientId ? String(s.metadata.clientId) : null,
+        stage: type === 'programme_first' ? 'first' : 'second',
+        amountTotal: s.amount_total != null ? Number(s.amount_total) : null,
+        currency: s.currency ? String(s.currency) : null,
+        paymentIntentId: typeof s.payment_intent === 'string' ? s.payment_intent : (s.payment_intent?.id ?? null),
+        created: Number(s.created ?? 0),
+      })
+    }
+    return { rows, truncated }
+  } catch (err) {
+    console.error('[stripe] paid programme checkouts could not be listed —', err instanceof Error ? err.message : err)
+    return null
+  }
+}

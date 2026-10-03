@@ -179,6 +179,34 @@ stripeRouter.post('/subscribe', requireAuth, (_req: AuthRequest, res: Response) 
   res.status(410).json({ success: false, error: 'retired', message: SUBSCRIBE_RETIRED_MESSAGE })
 })
 
+// ⚑ 2 Oct (#2561 · 14b · R191 — *"Alert me, I refund by hand"*) — a client paid a stage twice.
+// The founder is told (critical task on top of Vida + email); nothing is refunded by code.
+// Returns whether anyone was told: if not, the webhook answers 500 so Stripe redelivers and the
+// alert is tried again (its dedupe key keeps that to one task).
+async function alertDoublePayment(
+  stage: 'first' | 'second',
+  session: { id: string },
+  meta: { clientId?: string; programmeId?: string },
+  intentId: string | null,
+  livemode: boolean,
+): Promise<boolean> {
+  const { doublePaymentAlert } = await import('../lib/double-payment')
+  let companyName: string | null = null
+  if (meta.clientId) {
+    const { data } = await db.from('clients').select('company_name').eq('id', meta.clientId).maybeSingle()
+    companyName = (data as { company_name?: string | null } | null)?.company_name ?? null
+  }
+  const paid = session as unknown as { amount_total?: number | null; currency?: string | null }
+  const a = doublePaymentAlert({
+    companyName, clientId: meta.clientId ?? null, programmeId: meta.programmeId ?? 'unknown', stage,
+    sessionId: session.id, paymentIntentId: intentId, amountCents: paid.amount_total, currency: paid.currency, livemode,
+  })
+  console.error(`[Stripe] programme ${meta.programmeId}: a SECOND ${stage} payment arrived (session ${session.id}) — not recorded; the founder is told to refund it.`)
+  const d = await sendFounderAlert('payment_failed', a.subject, a.lines,
+    { clientId: meta.clientId ?? null, programmeId: meta.programmeId ?? null, dedupeKey: a.dedupeKey })
+  return d.delivered
+}
+
 // ── POST /stripe/webhook — raw body, public endpoint ─────────────────────────
 stripeRouter.post('/webhook', async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature']
@@ -252,6 +280,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
             programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId,
             walletCreditCents: Number.isFinite(walletCreditCents) ? walletCreditCents : 0,
           })
+          if (!r.ok && r.duplicate) {
+            const told = await alertDoublePayment('first', session, meta, intentId, event.livemode === true)
+            if (told) res.sendStatus(200); else res.status(500).json({ error: 'double payment alert not delivered — retry' })
+            return
+          }
           if (!r.ok) {
             // The money arrived and we could not record it. 500 so Stripe retries — the
             // ref-based idempotency makes the retry safe.
@@ -294,6 +327,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         }
 
         const r = await recordSecondPayment({ programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId })
+        if (!r.ok && r.duplicate) {
+          const told = await alertDoublePayment('second', session, meta, intentId, event.livemode === true)
+          if (told) res.sendStatus(200); else res.status(500).json({ error: 'double payment alert not delivered — retry' })
+          return
+        }
         if (!r.ok) {
           console.error(`[Stripe] programme second payment could not be recorded — 500 for retry. ${r.reason}`)
           void sendFounderAlert('payment_failed', 'Programme SECOND payment could not be recorded', [

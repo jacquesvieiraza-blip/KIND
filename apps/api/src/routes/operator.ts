@@ -5563,20 +5563,14 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
       }
     }
     const { data: c } = await db.from('clients')
-      .select('company_name, signer_name, industry, calendar_booking_enabled, booking_url').eq('id', client.id).maybeSingle()
+      .select('company_name, signer_name, industry, calendar_booking_enabled, google_calendar_refresh_token').eq('id', client.id).maybeSingle()
 
-    // ⚑ flow v2 (step 8): "no calendar → suggest times the prospect is available." With no
-    // calendar connected the only close available was a booking link the client doesn't
-    // have, so the thread stalled on logistics after the prospect had already said yes.
-    // Three concrete times in THEIR working day instead. Unknown country → no suggestion,
-    // because a 3am proposal is worse than none.
-    const hasCalendar = c?.calendar_booking_enabled === true || !!c?.booking_url
-    let timeHint = ''
-    if (!hasCalendar) {
-      const { suggestSlots, suggestionSentence } = await import('../lib/suggest-times')
-      const sentence = suggestionSentence(suggestSlots(new Date(), leadCountry))
-      if (sentence) timeHint = `\n\nThey have no booking link, so CLOSE ON CONCRETE TIMES. Use exactly these, verbatim: "${sentence}"`
-    }
+    // ⛓️ 2 Oct (R189 ⑤ · 11c) — ~~a static booking link counted as "has calendar"~~: a time picked
+    // there is booked nowhere we can see. The draft now closes with the prospect's OWN booking
+    // link (it books into the client's connected Google calendar and records the meeting), or,
+    // with no connected calendar, three concrete times in their working day (flow v2, step 8).
+    const { replyBookingClose } = await import('../lib/reply-booking')
+    const timeHint = await replyBookingClose({ client: c as never, clientId: client.id, leadId: reply.lead_id ?? null, leadCountry })
 
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })

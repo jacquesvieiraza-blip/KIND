@@ -2374,7 +2374,7 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
 
     // Client's own signer name, if set.
     const { data: client } = await db.from('clients')
-      .select('company_name, signer_name').eq('id', clientId).maybeSingle()
+      .select('company_name, signer_name, calendar_booking_enabled, google_calendar_refresh_token').eq('id', clientId).maybeSingle()
     const signer = (client as { signer_name?: string } | null)?.signer_name
       || (client as { company_name?: string } | null)?.company_name || ''
 
@@ -2391,6 +2391,15 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
       signer ? `Sign off as: ${signer}.` : 'End with a simple sign-off (no placeholder brackets).',
       'Return ONLY the email body — no subject line, no preamble.',
     ].join(' ')
+    // ⚑ 2 Oct (R189 ⑤ · 11c) — close with the prospect's OWN booking link (books into the client's
+    // connected Google calendar and records the meeting), or concrete times without one.
+    let leadCountry: string | null = null
+    if (reply.lead_id) {
+      const { data: lc } = await db.from('leads').select('country').eq('id', reply.lead_id).maybeSingle()
+      leadCountry = (lc as { country?: string | null } | null)?.country ?? null
+    }
+    const { replyBookingClose } = await import('../lib/reply-booking')
+    const bookingClose = await replyBookingClose({ client: client as never, clientId, leadId: reply.lead_id ?? null, leadCountry })
 
     const userPrompt = [
       `The prospect (${senderName}) replied:`,
@@ -2398,7 +2407,7 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
       leadCtx ? `Prospect context: ${leadCtx}.` : '',
       reply.classification ? `Their reply was classified as: ${reply.classification}.` : '',
       'Write the best reply to move this forward.',
-    ].filter(Boolean).join('\n')
+    ].filter(Boolean).join('\n') + bookingClose
 
     const response = await anthropic.messages.create({
       model: BACKGROUND_MODEL,

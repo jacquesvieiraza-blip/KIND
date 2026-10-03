@@ -20,7 +20,9 @@ describe('4b — the panel', () => {
     expect(panel).toContain('paragraphs(e.body).map(')
   })
   it('is on the Programme tab with no stage condition, so any change on a live programme comes back', () => {
-    const at = page.indexOf('<FounderWordingApproval programmeId={prog.programme.id} />')
+    // ⛓️ 3 Oct (#2650): was '<FounderWordingApproval programmeId={prog.programme.id} />' — the id now
+    // comes from Vida's one programme gate (vida-programme-isolation). Still no stage condition.
+    const at = page.indexOf('<FounderWordingApproval key={id} programmeId={id} />')
     expect(at).toBeGreaterThan(-1)
     const line = page.slice(page.lastIndexOf('\n', at), at)
     expect(line).not.toMatch(/&&/)

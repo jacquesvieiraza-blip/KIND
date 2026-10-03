@@ -20,7 +20,7 @@
 
 import { db } from '@kind/db'
 import {
-  millaStage, type MillaStage, STAGE_QUICK_ACTION, pausedCopyFor, MILLA_PAYMENT_REVERSED_COPY,
+  millaStage, type MillaStage, STAGE_QUICK_ACTION, pausedCopyForProgramme,
   type EngineProgrammeStatus,
 } from '@kind/shared'
 
@@ -461,9 +461,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     paused: Boolean(p.paused_at),
     // ⚑ 29 Sep (R174 · 2d) — the reason, in plain words; no reason keeps the locked sentence.
     // ⚑ 2 Oct (#2561 · 14c) — a refunded or disputed payment says so, not "checking quality".
-    pausedCopy: p.paused_at
-      ? (p.disputed_at ? MILLA_PAYMENT_REVERSED_COPY : pausedCopyFor(p.pause_reason as string | null))
-      : null,
+    pausedCopy: pausedCopyForProgramme(p as { paused_at: string | null; pause_reason: string | null; disputed_at: string | null }),
     reviewOpen,
     // Option C: only a meetings programme exists in the engine today. A non-meeting outcome
     // is captured in conversation and routed to a human — it never reaches this row, so a

@@ -166,6 +166,7 @@ export type OperatorAction =
   | 'suppression_change'    // added/removed a suppression/opt-out
   | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
   | 'qualify_reply'         // #494 — operator marked a reply as a qualified conversation (no spend)
+  | 'record_meeting'        // ⚑ 2 Oct (R189 ⑤) — operator recorded a meeting agreed by email, at the agreed time
   | 'booking_no_show'       // #499 — operator marked a booking a no-show (state only; $3 stays kept)
   | 'booking_rebook'        // #499m — operator gave the client a goodwill rebook (no new charge; max 2)
   | 'source_run'            // #498b — operator kicked a pool-first sourcing run (spends OUR PDL budget, fenced)

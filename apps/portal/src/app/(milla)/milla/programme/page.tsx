@@ -38,6 +38,7 @@ import OfferCard from '@/components/milla/OfferCard'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
 import SendingPanel from '@/components/milla/SendingPanel'
+import PastProgrammes from '@/components/milla/PastProgrammes'
 import { acceptanceGate } from '@/lib/programme-acceptance'
 import { useProgrammeSync } from '@/components/milla/useProgrammeSync'
 
@@ -244,6 +245,8 @@ export default function ProgrammePage() {
       {/* ⚑ 2 Oct (#2551 · R187 ②) — every client's sending panel, once their programme is live. */}
       {p.hasProgramme && (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') && <SendingPanel />}
       {p.hasProgramme && (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') && <MeetingChallenges />}
+      {/* ⚑ 3 Oct (piece 7 — blueprint view 9) — past programmes and what changed; hidden until there is any. */}
+      <PastProgrammes />
       {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
           `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`
           ("Pay the first half and start"). They are ONE panel above now, with ONE button that

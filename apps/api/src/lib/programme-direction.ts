@@ -47,6 +47,8 @@ export type MasterTargeting = { industries: string[]; company_sizes: string[]; j
 export type Direction = Record<DirectionKey, string> & {
   /** `undefined`/`null` on a direction drafted before piece 4 — no narrowing. */
   audience?: Audience | null
+  /** ⚑ Piece 7 — the "Your business" version it was approved against (absent before piece 7). */
+  business_version?: number
   version: number
   status: 'draft' | 'approved'
   /** The programme it was paid for. `null` until the first payment. */
@@ -410,8 +412,12 @@ export async function approveDirectionFor(
   if (!cur) return { ok: false, reason: 'none' }
   const r = approveDirectionPure(cur, baseVersion, new Date().toISOString())
   if (!r.ok) return r
-  await writeDirectionStore(clientId, { ...store, current: r.direction })
-  return { ok: true, direction: r.direction }
+  // ⚑ Piece 7 — remember which "Your business" version this was approved against, so a later
+  // programme can say "your profile unchanged" or "changed since" (blueprint view 9).
+  const { readBusiness } = await import('./client-business')
+  const approved: Direction = { ...r.direction, business_version: (await readBusiness(clientId)).version }
+  await writeDirectionStore(clientId, { ...store, current: approved })
+  return { ok: true, direction: approved }
 }
 
 /**

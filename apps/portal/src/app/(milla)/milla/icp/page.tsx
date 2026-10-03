@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useMillaConversation } from '@/components/milla/MillaConversation'
+import { BUSINESS_FIELDS, type BusinessKey } from '@/components/milla/MillaConversation'
 
 // #512 — the client reviews their targeting and, when a newer version exists, asks to SEE
 // who it finds. FIGSY sources against the ACTIVE ICP only.
@@ -59,6 +60,92 @@ function fmt(iso: string | null): string {
 // "Set up with Milla" keeps the wizard, because a client with NO targeting genuinely is
 // onboarding — that is the founder's 7-Sep decision, and it is the only push left here.
 
+// ── ⚑ 3 Oct (R195 ④ · sequencing piece 2, the founder's blueprint view 2) — "YOUR BUSINESS" ──
+// What Milla holds about the client's business, kept ONCE and used for every programme. Read
+// from the same store the email writer reads (`/my/programme/business`). This screen never saves:
+// "Change" opens the fact in the one conversation, and only "Approve this change" there writes.
+type Business = {
+  facts: Record<BusinessKey, string>; resultMayQuote: boolean
+  market: string; buyers: string; version: number; approvedAt: string | null
+}
+
+function YourBusiness() {
+  const conversation = useMillaConversation()
+  const [b, setB] = useState<Business | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    ;(async () => {
+      try {
+        const r = await api.get<{ data: Business }>('/my/programme/business', await token())
+        if (live) { setB(r.data); setErr(null) }
+      } catch {
+        // 🛑 A FAILED READ IS SAID, never shown as "nothing held".
+        if (live) setErr('Your business details could not be loaded just now. Please refresh in a moment.')
+      }
+    })()
+    return () => { live = false }
+  }, [conversation.businessRevision])
+
+  const change = (key: BusinessKey) => b && conversation.focus(`business:${key}`, { current: b.facts[key], version: b.version })
+  const Row = ({ label, value, onChange, hint }: { label: string; value: string; onChange: () => void; hint?: string }) => (
+    <div className="flex gap-3 py-2.5 border-t border-[#f3eefb] first:border-t-0">
+      <div className="flex-1 min-w-0">
+        <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">{label}</div>
+        <div className={`text-[13.5px] mt-0.5 break-words ${value ? 'text-[#1f1235]' : 'text-[#9b8ec4] italic'}`}>{value || 'Not told yet'}</div>
+        {hint && <div className="text-[11px] text-[#9b8ec4] mt-0.5">{hint}</div>}
+      </div>
+      <button onClick={onChange} className="self-start text-[12px] font-bold text-[#7C3AED] hover:underline shrink-0">{value ? 'Change' : 'Add'}</button>
+    </div>
+  )
+
+  return (
+    <div data-testid="your-business" className="mb-7">
+      <div className="bg-white border-[1.5px] border-[#e4d4fb] rounded-2xl p-5">
+        <div className="flex items-start gap-2 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#7C3AED]">Your business · kept once</div>
+            <h2 className="text-[19px] font-bold text-[#1f1235] mt-0.5">What stays true about your business</h2>
+            <p className="text-[12.5px] text-[#7c6f9b] mt-0.5">Every programme is written from this. A programme can pick from it, but never changes it on its own.</p>
+          </div>
+          {b && b.version > 0 && (
+            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-1 uppercase">
+              Approved · version {b.version}{b.approvedAt ? ` · ${fmt(b.approvedAt)}` : ''}
+            </span>
+          )}
+        </div>
+        {err && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{err}</div>}
+        {!b && !err && <p className="text-sm text-[#9b8ec4] mt-3">Loading…</p>}
+        {b && (
+          <div className="mt-3">
+            <Row label="What you sell" value={b.facts.sells} onChange={() => change('sells')} />
+            <Row label="Core market" value={b.market} onChange={() => conversation.focus('icp')} hint="From your targeting below." />
+            <Row label="Who buys" value={b.buyers} onChange={() => conversation.focus('icp')} hint="From your targeting below." />
+            {BUSINESS_FIELDS.filter(([k]) => k !== 'sells').map(([k, label]) => (
+              <Row key={k} label={label} value={b.facts[k]} onChange={() => change(k)}
+                hint={k === 'result' ? (b.facts.result ? (b.resultMayQuote ? 'You said we may quote this.' : 'Not quoted in emails — you haven’t said we may.') : 'We never invent one.') : undefined} />
+            ))}
+          </div>
+        )}
+        <p className="text-[11.5px] text-[#9b8ec4] mt-3">Press Change and tell Milla what it should say. Nothing changes until you approve it, and emails you’ve already approved keep their wording.</p>
+      </div>
+      <div className="mt-3 bg-white border border-[#eee7f7] rounded-2xl p-5">
+        <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">What a programme may change</div>
+        {([
+          ['Focus on a narrower audience', 'For example, one industry for this programme only.', true],
+          ['Pick one problem to lead with', 'From the problems above — it doesn’t rewrite them.', true],
+          ['Rewrite these facts on its own', 'No. Milla proposes a change here, and you approve it.', false],
+        ] as const).map(([t, d, ok]) => (
+          <div key={t} className="flex items-center gap-3 py-2.5 border-t border-[#f3eefb] first:border-t-0">
+            <div className="flex-1"><b className="text-[13px]">{t}</b><span className="block text-[11.5px] text-[#9b8ec4]">{d}</span></div>
+            <span className={`text-[10px] font-extrabold rounded-full px-2.5 py-1 ${ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>{ok ? 'YES' : 'NO'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function MillaIcpPage() {
   const router = useRouter()
   const [icps, setIcps] = useState<Icp[] | null>(null) // oldest-first (v1 … vN)
@@ -111,6 +198,7 @@ export default function MillaIcpPage() {
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-2xl">
+        <YourBusiness />
         <h1 className="text-2xl font-bold text-[#1f1235]">Your targeting (ICP)</h1>
         <p className="text-sm text-[#7c6f9b] mt-0.5">This is exactly who we search for. Nothing is sourced until an ICP is approved and active.</p>
 

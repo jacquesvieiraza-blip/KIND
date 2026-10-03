@@ -2090,7 +2090,6 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
       figsyInterestedRes,
       figsyOptOutsRes,
       activeCampaignsRes,
-      creditPurchasesRes,
       lowCreditClientsRes,
       expiredSubsRes,
     ] = await Promise.allSettled([
@@ -2103,7 +2102,6 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).in('classification', ['hot', 'interested']).gte('received_at', ago24h),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'opt_out').gte('received_at', ago24h),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      db.from('credit_transactions').select('client_id, amount').eq('type', 'purchase').gte('created_at', ago24h),
       db.from('clients').select('id, company_name, credit_balance').lt('credit_balance', 5).not('first_icp_run_at', 'is', null),
       db.from('subscriptions').select('id, client_id, product, clients(company_name)').eq('status', 'lapsed').gte('updated_at', ago24h),
     ])
@@ -2120,20 +2118,63 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
     const figsyInterested  = val(figsyInterestedRes, { count: 0 } as any).count ?? 0
     const figsyOptOuts     = val(figsyOptOutsRes,  { count: 0 } as any).count ?? 0
     const activeCampaigns  = val(activeCampaignsRes, { count: 0 } as any).count ?? 0
-    const purchaseTxns     = val(creditPurchasesRes, { data: [] } as any).data ?? []
     const lowCreditClients = val(lowCreditClientsRes, { data: [] } as any).data ?? []
     const expiredSubs      = val(expiredSubsRes, { data: [] } as any).data ?? []
 
     // Revenue-honesty: "Revenue (last 24h)" counts only real paying clients — drop
     // purchases from demo + house (founder testing) accounts.
     const digestExclusions = await getClientExclusions()
-    const revenueToday = (purchaseTxns as { client_id: string; amount: number }[])
-      .filter((t) => !digestExclusions.excludedClientIds.has(t.client_id))
-      .reduce((s, t) => s + (t.amount ?? 0), 0)
+    // ⛓️ 2 Oct (#2547 · 7e) — ~~revenue summed `credit_transactions` purchases (the retired wallet,
+    // printed as "R…")~~, so the day a client paid for a programme the brief said R0. Revenue is now
+    // programme payments recorded in the last 24h, in USD, from the payment fields.
+    const { programmeRevenueCents, formatUsd, liveProgrammeLine } = await import('../lib/founder-brief-programmes')
+    const { data: paidProgs } = await db.from('programmes')
+      .select('client_id, first_paid_at, first_payment_cents, wallet_applied_cents, second_paid_at, second_payment_cents')
+      .or(`first_paid_at.gte.${ago24h},second_paid_at.gte.${ago24h}`)
+    const revenue = programmeRevenueCents((paidProgs ?? []) as never, ago24h, digestExclusions.excludedClientIds)
+    const revenueToday = revenue.cents
+
+    // ⚑ 2 Oct (#2547 · 7e) — ONE LINE PER LIVE PROGRAMME: sent and replies (24h), meetings, blocker.
+    const { data: livePs } = await db.from('programmes')
+      .select('client_id, paused_at, run_at, meeting_target, clients(company_name, is_demo)')
+      .eq('status', 'LIVE')
+    // ⚑ 3 Oct — HOUSE IS LISTED. It is excluded from REVENUE (its money is ours), not from "is it
+    // sending?" — and it is the live programme the founder most needs to see. Only the demo is left out.
+    type LiveP = { client_id: string; paused_at: string | null; run_at: string | null; meeting_target: number | null; clients: { company_name: string | null; is_demo?: boolean | null } | { company_name: string | null; is_demo?: boolean | null }[] | null }
+    const live = ((livePs ?? []) as LiveP[])
+      .filter(p => { const c = Array.isArray(p.clients) ? p.clients[0] : p.clients; return c?.is_demo !== true })
+    const { checkProgrammeAuthority } = await import('../lib/programme-authority')
+    const { gateRefusalWords } = await import('../lib/founder-brief-programmes')
+    const { clientMeetingCounts } = await import('../lib/meeting-truth')
+    const meetingsBy = (await clientMeetingCounts(live.map(p => p.client_id))) ?? {}
+    const liveLines: string[] = []
+    for (const p of live) {
+      const camp = await clientCampaignFilter(p.client_id)
+      const [sentR, repR] = await Promise.all([
+        db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', camp).gte('sent_at', ago24h),
+        db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', p.client_id).gte('received_at', ago24h),
+      ])
+      const c = Array.isArray(p.clients) ? p.clients[0] : p.clients
+      let gate: { allowed: boolean; reason?: string } | null = null
+      try { gate = await checkProgrammeAuthority(p.client_id, 'OUTREACH') as { allowed: boolean; reason?: string } } catch { gate = null }
+      liveLines.push(liveProgrammeLine({
+        companyName: c?.company_name ?? null, paused: !!p.paused_at, run: !!p.run_at, refusal: gateRefusalWords(gate),
+        sent24h: sentR.count ?? 0, replies24h: repR.count ?? 0,
+        meetings: meetingsBy[p.client_id] ?? 0, targetMeetings: p.meeting_target ?? null,
+      }))
+    }
+    const liveSection = liveLines.length
+      ? liveLines.map(l => `<p style="margin:0 0 8px;color:#e2e8f0;font-size:0.85rem;line-height:1.5">${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>`).join('')
+      : `<p style="color:#64748b;font-size:0.85rem;margin:0">No live programmes.</p>`
     const replyRatePct = figsySent > 0 ? ((figsyReplies / figsySent) * 100).toFixed(1) : '—'
 
     // ── Low-credit clients list ──────────────────────────────────────────────
+    // ⛓️ 2 Oct (#2547 · 7e) — a programme client has no credits; it is never listed here as
+    // "0 credits". An unreadable programme answer lists nobody (`null` → fenced).
+    const { programmeClientIds } = await import('../lib/programme-notifications')
+    const fencedFromCredits = await programmeClientIds((lowCreditClients as { id: string }[]).map(c => c.id))
     const lowCreditRows = (lowCreditClients as { id: string; company_name: string | null; credit_balance: number }[])
+      .filter(c => fencedFromCredits !== null && !fencedFromCredits.has(c.id))
       .map(c => `
         <tr>
           <td style="padding:7px 14px;border-bottom:1px solid #1e2030;color:#e2e8f0;font-size:0.85rem">${c.company_name ?? '—'}</td>
@@ -2234,8 +2275,16 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
     <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:20px 32px">
       <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">💰 Revenue (last 24h)</p>
       <div style="background:#161b27;border-radius:10px;padding:18px 22px;display:flex;align-items:center">
-        <p style="margin:0;font-size:1.8rem;font-weight:800;color:${revenueToday > 0 ? '#34d399' : '#64748b'}">${revenueToday > 0 ? `R${revenueToday.toLocaleString()}` : 'R0'}</p>
-        <p style="margin:0 0 0 14px;font-size:0.8rem;color:#64748b">credits purchased today<br/>${purchaseTxns.length} transaction${purchaseTxns.length !== 1 ? 's' : ''}</p>
+        <p style="margin:0;font-size:1.8rem;font-weight:800;color:${revenueToday > 0 ? '#34d399' : '#64748b'}">${formatUsd(revenueToday)}</p>
+        <p style="margin:0 0 0 14px;font-size:0.8rem;color:#64748b">programme payments received<br/>${revenue.payments} payment${revenue.payments !== 1 ? 's' : ''}</p>
+      </div>
+    </div>
+
+    <!-- Live programmes -->
+    <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:20px 32px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">🚀 Live programmes</p>
+      <div style="background:#161b27;border-radius:10px;padding:16px 20px">
+        ${liveSection}
       </div>
     </div>
 
@@ -2277,7 +2326,9 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
       figsy_interested_24h: figsyInterested,
       figsy_opt_outs_24h:   figsyOptOuts,
       active_campaigns:  activeCampaigns,
-      revenue_today:     revenueToday,
+      revenue_today_cents: revenueToday,   // ⛓️ 2 Oct (#2547): programme payments, USD cents (was: credit purchases)
+      programme_payments_24h: revenue.payments,
+      live_programmes:   liveLines,
       low_credit_clients: (lowCreditClients as any[]).length,
       expired_subs_24h:  (expiredSubs as any[]).length,
     }

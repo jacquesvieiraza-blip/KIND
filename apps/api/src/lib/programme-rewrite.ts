@@ -43,7 +43,15 @@ type LeadRow = { id: string; first_name: string | null; last_name: string | null
 
 const PAGE = 500
 
-export async function rewriteProgrammeMessages(programmeId: string): Promise<RewriteResult> {
+export async function rewriteProgrammeMessages(
+  programmeId: string,
+  /**
+   * ⚑ 3 Oct (R195 ③ · piece 6) — the client's own change, made with Milla: the SAME door (same
+   * preconditions, every prepared person updated, re-frozen as a new version), with the new words
+   * written by `writer` instead of a fresh draft. Absent = Vida's "Rewrite messages", unchanged.
+   */
+  opts?: { writer?: () => Promise<{ ok: true; name: string } | { ok: false; reason: string }> },
+): Promise<RewriteResult> {
   const id = typeof programmeId === 'string' ? programmeId.trim() : ''
   if (!id) return { ok: false, code: 'not_found', reason: 'A programme id is required. Nothing was changed.' }
 
@@ -90,7 +98,7 @@ export async function rewriteProgrammeMessages(programmeId: string): Promise<Rew
 
   // ── 1 · NEW WORDS, THROUGH THE ONE GENERATOR ───────────────────────────────────────────
   const { generateProgrammeSequence } = await import('./programme-sequence-generation')
-  const gen = await generateProgrammeSequence(id, { replaceExisting: true })
+  const gen = opts?.writer ? await opts.writer() : await generateProgrammeSequence(id, { replaceExisting: true })
   if (!gen.ok) return { ok: false, code: 'generation_refused', reason: `${gen.reason}` }
 
   const after = await resolveProgrammeChain(id)

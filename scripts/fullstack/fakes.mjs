@@ -325,6 +325,17 @@ const anthropicHandler = async (req, body, res, state) => {
   // ── ⚑ 3 Oct (R195 ② · sequencing piece 3) — A SCRIPTED SHAPE: THE PROGRAMME DIRECTION ──────
   // Milla drafts five parts as one JSON object; without this the walks could never approve a
   // direction, and so could never pay. The words are the harness's and prove nothing about writing.
+  // ⚑ Piece 6 — the client asks Milla to change ONE email; she rewrites it (tokens and opt-out kept).
+  if (prompt.includes('PROGRAMME_EMAIL_REWRITE_JSON')) {
+    return json(res, 200, {
+      id: 'msg_fake_email_rewrite', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({
+        subject: 'A gentler question about bookings',
+        body: 'Hi {{first_name}},\n\nRewritten as the client asked, for {{company}}. Worth a short conversation?\n\nIf not, just reply "stop" and I will leave you alone.',
+      }) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
   // ⚑ Piece 4 — the client changes who the programme is for; Milla re-draws the slice.
   if (prompt.includes('PROGRAMME_AUDIENCE_JSON')) {
     return json(res, 200, {

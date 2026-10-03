@@ -88,7 +88,8 @@ describe('the ONE conversation knows fresh from refine', () => {
     // ~~/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*null/~~
     // ⛓️ 3 Oct (R195 ②): and a part of the programme direction (piece 3).
     // ~~/…'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*null/~~
-    expect(CONV_CODE).toMatch(/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*DirectionContext\s*\|\s*null/)
+    // ⛓️ 3 Oct (R195 ③ · piece 6): and one email being changed with Milla.
+    expect(CONV_CODE).toMatch(/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*DirectionContext\s*\|\s*EmailContext\s*\|\s*null/)
   })
 
   it('a fresh save goes to /icps/fresh, and a refine still goes to /icps/revise', () => {

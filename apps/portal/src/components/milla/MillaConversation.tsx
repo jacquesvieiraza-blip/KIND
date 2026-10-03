@@ -9,7 +9,7 @@ import { loadError, millaNoticeLines, type MillaNoticeKind } from '@kind/shared'
 // J3-C5 — the one rule for what an unrestored thread is allowed to claim.
 import { restoreView } from '@/lib/conversation-restore'
 import { PAUSE_CONFIRM, pauseMyProgramme } from '@/lib/pause-programme'
-import { useLiveRefresh } from '@/lib/use-live-refresh'
+import { useLiveRefresh, announceProgrammeChanged } from '@/lib/use-live-refresh'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -176,7 +176,7 @@ const MILLA_GREETING =
  * the live one exactly as it is. Same conversation, same composer, same proposal endpoint —
  * only the destination of the explicit Save differs.
  */
-type ConversationContext = 'icp' | 'icp-fresh' | BusinessContext | DirectionContext | null
+type ConversationContext = 'icp' | 'icp-fresh' | BusinessContext | DirectionContext | EmailContext | null
 
 /** Both ICP contexts share the proposal builder; only the save destination differs. */
 const isIcpContext = (c: ConversationContext): boolean => c === 'icp' || c === 'icp-fresh'
@@ -217,6 +217,13 @@ const isDirectionContext = (c: ConversationContext): c is DirectionContext => ty
 const directionLabel = (k: DirectionTalkKey): string => k === 'audience' ? 'Who this programme is for' : DIRECTION_FIELDS.find(f => f[0] === k)?.[1] ?? k
 type DirectionBase = { key: DirectionTalkKey; current: string; version: number }
 
+// ── ⚑ 3 Oct (R195 ③ · piece 6 — the founder's blueprint view 7) — CHANGE ONE EMAIL WITH MILLA ──
+// The client says what should change; Milla rewrites that one email (`/my/programme/emails/change`)
+// and it becomes a new version that goes to the founder FIRST, then back to the client to approve.
+type EmailContext = `email:${number}`
+const isEmailContext = (c: ConversationContext): c is EmailContext => typeof c === 'string' && c.startsWith('email:')
+type EmailBase = { step: number; job: string; version: string }
+
 type MillaConversationApi = {
   /**
    * Put the ONE conversation into a context and focus its composer.
@@ -224,7 +231,7 @@ type MillaConversationApi = {
    * ⚠️ THIS IS NOT "OPEN A CHAT". There is only ever one, and it is already on screen; this
    * says what it is talking about and puts the cursor in it.
    */
-  focus: (context?: ConversationContext, business?: { current: string; version: number }) => void
+  focus: (context?: ConversationContext, business?: { current: string; version: number; hash?: string }) => void
   /**
    * A route that has already fetched the calibration set publishes its size here, so the chip
    * row uses the SAME fact the list beside it was built from.
@@ -345,6 +352,7 @@ export function MillaConversationProvider(
   const [directionBase, setDirectionBase] = useState<DirectionBase | null>(null)
   const [directionRevision, setDirectionRevision] = useState(0)
   const directionTurnRef = useRef<((base: DirectionBase, msg: string) => Promise<void>) | null>(null)
+  const [emailBase, setEmailBase] = useState<EmailBase | null>(null)
   const [deskSet, setDeskSet] = useState<number | null>(null)
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -517,7 +525,7 @@ export function MillaConversationProvider(
   // Scroll the CHAT container only — never the page.
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
-  const focus = useCallback((c: ConversationContext = null, business?: { current: string; version: number }) => {
+  const focus = useCallback((c: ConversationContext = null, business?: { current: string; version: number; hash?: string }) => {
     setContext(c)
     setBusinessDraft(null)
     if (isBusinessContext(c)) {
@@ -539,6 +547,13 @@ export function MillaConversationProvider(
         ? `Who should this programme be for? Right now: ${now}. Tell me in your own words — for example “only facilities and electrical firms, and leave out consultancies”. I only choose from your targeting in My ICP, and that stays exactly as it is.`
         : `What should “${directionLabel(key)}” say instead? Right now it says: “${now}”` }])
     } else setDirectionBase(null)
+    if (isEmailContext(c)) {
+      const step = Number(c.slice('email:'.length))
+      const job = (business?.current ?? '').trim()
+      setEmailBase({ step, job, version: business?.hash ?? '' })
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content:
+        `What should change in email ${step}${job ? ` (${job})` : ''}? Tell me in your own words — for example “softer, less dramatic”. I’ll rewrite it, our team checks it first, then it comes back to you to approve. Nothing is sent until you do.` }])
+    } else setEmailBase(null)
     // A frame, so the strip above the composer is on screen before the cursor lands in it.
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
@@ -677,6 +692,24 @@ export function MillaConversationProvider(
     // ⚑ 3 Oct (R195 ②) — A DIRECTION TURN: the goal is drafted into a direction, a part is changed.
     // Both write a DRAFT only; approval happens on the Programme page.
     if (isDirectionContext(context) && directionBase && !opts?.handoffId) { await directionTurn(directionBase, msg); return }
+    // ⚑ 3 Oct (R195 ③) — an email change: rewritten by Milla, then to the founder first.
+    if (isEmailContext(context) && emailBase && !opts?.handoffId) {
+      setInput(''); setSending(true)
+      setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+      const say = (content: string) => setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+      try {
+        await api.post('/my/programme/emails/change', { step: emailBase.step, instruction: msg, version: emailBase.version }, await token(), AI_TURN_TIMEOUT_MS)
+        say(`Done — I’ve rewritten email ${emailBase.step} as you asked. It’s with our team for a quick check first, then it comes back to you on the right to approve. Nothing is sent until you do.`)
+        setContext(null); setEmailBase(null); announceProgrammeChanged()
+      } catch (e) {
+        const status = failureOf(e).status
+        setInput(prev => (prev.trim() ? prev : msg))
+        if (status === 409) { say('Your emails changed since you opened them, so I haven’t changed anything. Please look again on the right.'); setContext(null); setEmailBase(null); announceProgrammeChanged() }
+        else if (status === 422) say('My rewrite didn’t pass the writing rules every email must pass, so nothing changed. Try telling me differently what you’d like.')
+        else say('I couldn’t change that just now. Your words are still in the box — please send them again in a moment.')
+      } finally { setSending(false) }
+      return
+    }
     if (isBusinessContext(context) && businessBase && !opts?.handoffId) {
       setInput('')
       setMessages(m => [...m,
@@ -1113,7 +1146,7 @@ export function MillaConversationProvider(
               pause my programme", "How is my ROI looking?" — and in ICP context the composer
               is talking to `/icps/chat-build`. Sending one of them there would put a
               programme question into a targeting conversation. */}
-          {context !== 'icp' && !isBusinessContext(context) && !isDirectionContext(context) && chips.length > 0 && (
+          {context !== 'icp' && !isBusinessContext(context) && !isDirectionContext(context) && !isEmailContext(context) && chips.length > 0 && (
             <div className="mv-quickbar">
               {chips.map(c => <button key={c} onClick={() => {
                 if (c === CHIP_ANOTHER && deskActions?.anotherSample) { deskActions.anotherSample(); return }
@@ -1129,7 +1162,7 @@ export function MillaConversationProvider(
             {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
                 comes back as a raw validation error instead of a reply. */}
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
-              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) || (isDirectionContext(context) && context !== 'direction:goal' && context !== 'direction:audience') ? 'Tell Milla what it should say…' : context === 'direction:goal' ? 'What do you want from this programme?' : context === 'direction:audience' ? 'Who should this programme be for?' : 'Ask Milla anything about your programme…'} />
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : isBusinessContext(context) || (isDirectionContext(context) && context !== 'direction:goal' && context !== 'direction:audience') ? 'Tell Milla what it should say…' : context === 'direction:goal' ? 'What do you want from this programme?' : context === 'direction:audience' ? 'Who should this programme be for?' : isEmailContext(context) ? 'What should change in this email?' : 'Ask Milla anything about your programme…'} />
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="mv-send accent !w-auto px-3.5 disabled:opacity-50">Send</button>
           </form>
         {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────

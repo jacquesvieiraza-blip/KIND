@@ -186,7 +186,7 @@ export default function ProgrammeApproval({
   const [data, setData] = useState(given)
   useEffect(() => { setData(given) }, [given])
   // ⚑ 24 Sep (R145 step 5) — Milla opens the stage in the one chat, as the redesign does.
-  const { announceOnce, keepNotice } = useMillaConversation()
+  const { announceOnce, keepNotice, focus } = useMillaConversation()
 
   // ── ⚑ 25 Sep (R160) — A NEW VERSION REACHES THE CLIENT WITHOUT A REFRESH ────────────────────
   // While the package waits for their approval, the screen re-reads it every PACKAGE_CHECK_MS and
@@ -460,6 +460,15 @@ export default function ProgrammeApproval({
                     <span className="mv-muted-note shrink-0">{whenLabel(frozen.messages, i)}</span>
                   </button>
                   {open === i && <p className="px-3 pb-2.5 text-[10.5px] text-[color:var(--mv-muted)] whitespace-pre-wrap">{m.body}</p>}
+                  {/* ⚑ 3 Oct (R195 ③ · R196 · piece 6) — changed by TALKING TO MILLA, never typed here.
+                      Milla rewrites it; it goes to the founder first, then back here to approve. */}
+                  {open === i && canApproveNow && !data.programme?.approved_at && (
+                    <div className="px-3 pb-2.5">
+                      <button type="button" data-testid="change-email-with-milla"
+                        onClick={() => focus(`email:${m.step}`, { current: m.job ?? '', version: 0, hash: frozen.version ?? '' })}
+                        className="text-[10.5px] font-bold text-[#7C3AED] hover:underline">Change this email with Milla</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

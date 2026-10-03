@@ -7395,6 +7395,19 @@ ALTER TABLE public.leads
 COMMENT ON COLUMN public.leads.state IS
   'The prospect''s state or region as the provider returned it (e.g. "New York"). Read by the send window so each prospect is emailed in their own time zone.';
 `,
+  },  {
+    // ── ⚑ 2 Oct (#2543 · R189 ⑥) — THE CLIENT'S REGISTERED OFFICE ─────────────────────────────
+    // Printed with their company name at the bottom of their emails; required before go-live.
+    // EXPAND ONLY: one nullable text column, no DEFAULT.
+    key: '20261002_client_registered_office',
+    title: 'clients.registered_office — the client\'s registered office for their email legal line (#2543)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS registered_office text;
+
+COMMENT ON COLUMN public.clients.registered_office IS
+  'The client''s registered office address, as they gave it. Printed with their company name at the bottom of their outreach emails (R189 ⑥); required before their programme goes live.';
+`,
   },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.

@@ -500,6 +500,7 @@ interface ClientData {
   phone: string
   company_registration: string
   vat_number: string
+  registered_office?: string | null
   crm_type: string
   crm_api_key: string
   crm_sync_enabled: boolean
@@ -520,7 +521,7 @@ export default function MillaSettingsPage() {
   // merely hidden from the markup. A field left in state is a field the next edit re-renders,
   // and this PATCHes `/clients/me`: keeping them here would mean every profile save still sent
   // K.I.N.D's internal sourcing volume back from a customer's browser.
-  const [form, setForm] = useState({ company_name: '', industry: '', country: '', website: '', phone: '', company_registration: '', vat_number: '' })
+  const [form, setForm] = useState({ company_name: '', industry: '', country: '', website: '', phone: '', company_registration: '', vat_number: '', registered_office: '' })
   const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false, crm_dedup_enabled: false })
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
@@ -579,7 +580,7 @@ export default function MillaSettingsPage() {
       try {
         const res = await api.get<{ data: ClientData & { id: string } }>('/clients/me', session.access_token)
         const c = res.data
-        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || '', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
+        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || '', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', registered_office: c.registered_office || '' })
         // ⚑ 29 Sep (R174 ② · 1e) — the saved key never reaches the browser; only whether one exists.
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         setCrmKeySaved((c as { crm_api_key_set?: boolean }).crm_api_key_set === true)
@@ -660,8 +661,13 @@ export default function MillaSettingsPage() {
     if (!session) { setSaving(false); return }
     try {
       // An empty country is not sent: saving the rest of the profile must never blank it.
-      const { country, ...rest } = form
-      await api.patch('/clients/me', country ? form : rest, session.access_token)
+      // ⚑ 2 Oct (#2543) — nor an empty registered office, for the same reason.
+      const { country, registered_office, ...rest } = form
+      await api.patch('/clients/me', {
+        ...rest,
+        ...(country ? { country } : {}),
+        ...(registered_office.trim() ? { registered_office: registered_office.trim() } : {}),
+      }, session.access_token)
       setSaved(true)
       setUnsavedProfile(false)
       setTimeout(() => setSaved(false), 3000)
@@ -836,6 +842,15 @@ export default function MillaSettingsPage() {
                 placeholder="e.g. 4123456789"
                 className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
+          </div>
+          {/* ⚑ 2 Oct (#2543 · R189 ⑥) — printed with the company name at the bottom of every email
+              we send for them, and needed before their programme goes live. */}
+          <div>
+            <label htmlFor="registered-office" className="block text-sm font-medium text-gray-700 mb-1">Registered office address</label>
+            <input id="registered-office" type="text" value={form.registered_office} onChange={(e) => setForm({ ...form, registered_office: e.target.value })}
+              placeholder="e.g. 10 High Street, London, EC1A 1BB, United Kingdom"
+              className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
+            <p className="text-xs text-[#9B8EC4] mt-1">Your company name and this address go at the bottom of every email we send for you. We need it before your programme goes live.</p>
           </div>
           {saved && <p className="text-green-600 text-sm">Saved!</p>}
           {saveError && <p className="text-red-600 text-sm">{saveError}</p>}

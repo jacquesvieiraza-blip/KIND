@@ -171,6 +171,8 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // time they changed their phone number.
       company_registration: z.string().optional(),
       vat_number:           z.string().optional(),
+      // ⚑ 2 Oct (#2543 · R189 ⑥) — printed with the company name at the bottom of their emails.
+      registered_office:    z.string().max(300).optional(),
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
       crm_api_key:       z.string().optional(),
       crm_sync_enabled:  z.boolean().optional(),

@@ -4563,8 +4563,10 @@ export default function VidaConsolePage() {
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
 
-                      {/* ⚑ 2 Oct (#2542 · R186 ③) — the founder approves the emails, at every stage. */}
-                      <FounderWordingApproval programmeId={prog.programme.id} />
+                      {/* ⚑ 2 Oct (#2542 · R186 ③) — the founder approves the emails, at every stage. The id
+                          comes from the page's one gate, so the panel only ever shows (and approves)
+                          the programme of the client on screen; keyed so a switch starts it fresh. */}
+                      {(() => { const id = programmeActionId(); return id ? <FounderWordingApproval key={id} programmeId={id} /> : null })()}
 
                       {/* ── ⚑ 9 Sep · SENDING, AND THE RUN THAT IS THE ONLY WAY IT HAPPENS ────────
                           🛑 THE LOCKED WORDING. Kill-switch ON means sending is BLOCKED; OFF

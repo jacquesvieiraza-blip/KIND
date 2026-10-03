@@ -689,8 +689,10 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     }
     // Thirteen call sites, and no fourteenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle);
     // 9 → 10 on 24 Sep (rewrite messages); 10 → 12 on 25 Sep (resolve review, raise limit);
-    // 12 → 13 on 29 Sep (resume).
-    expect(code.split('programmeActionId()').length - 1).toBe(13)
+    // 12 → 13 on 29 Sep (resume); 13 → 14 on 3 Oct (#2542 · R186 ③ — the founder's approval panel
+    // takes its programme id from this gate, so it only ever approves the client on screen).
+    expect(code.split('programmeActionId()').length - 1).toBe(14)
+    expect(code).toContain('const id = programmeActionId(); return id ? <FounderWordingApproval key={id} programmeId={id} /> : null')
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {

@@ -44,6 +44,12 @@ export { HOUSE_ACCOUNT_EMAIL }
 export const HOUSE_CLIENT_NAME = 'K.I.N.D (house — Client Zero)'
 
 /**
+ * ⚑ 2 Oct (R189 ⑥, amends R156) — HOW HOUSE'S EMAILS ARE SIGNED. The founder: *"our house account
+ * needs to end with the Milla & Vida Team"*. Never a person's name (R156 still holds that part).
+ */
+export const HOUSE_SIGN_OFF = 'The Milla & Vida Team'
+
+/**
  * ⚠️ THE ONE INSTRUCTION THAT MUST TRAVEL WITH THE CLIENT ID.
  *
  * `HOUSE_CLIENT_ID` looks exactly like the variable you set once you have a house client id

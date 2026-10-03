@@ -173,6 +173,13 @@ export async function generateProgrammeSequence(
   // approved brief still gets a sequence — a worse-grounded one, which the linter then judges
   // on its merits. Losing the whole programme because an optional context read failed would
   // trade a real outcome for a nicety.
+  // ⚑ 2 Oct (R189 ⑥, amends R156) — House signs "The Milla & Vida Team": the founder, *"our
+  // house account needs to end with the Milla & Vida Team"*. Every other client signs as before.
+  const { isHouseClient } = await import('./house-client')
+  const { HOUSE_SIGN_OFF } = await import('./house-client')
+  const house = await isHouseClient(clientId)
+  const signerName = house ? HOUSE_SIGN_OFF : (client.signer_name ?? null)
+
   const { generateSequence, getClientKnowledgeForOutreach } = await import('./figsy')
   const knowledge = await getClientKnowledgeForOutreach(clientId).catch(() => undefined)
   const briefContext = await import('./meeting-brief-deliver')
@@ -189,7 +196,7 @@ export async function generateProgrammeSequence(
       // 21 Aug: the calendar link enters only AFTER positive intent. Passing it is what turns
       // that instruction on inside the prompt; it never reaches a step.
       client.booking_url ?? null,
-      client.signer_name ?? null,
+      signerName,
       knowledge as never,
       // ⚑ 24 Sep (R159) — the programme's emails are written by the conversational model, a named
       // exception to R122a. One call per programme (or per Rewrite), never per person; every
@@ -212,7 +219,7 @@ export async function generateProgrammeSequence(
   const { detokenise, ensureSignOff } = await import('./sequence-tokens')
   // ⚑ 24 Sep — the sign-off is guaranteed by code, not left to the model. House's
   // version 3 came back with no sign-off at all; R156 says House signs "K.I.N.D".
-  const signOff = (client.signer_name ?? '').trim() || (client.company_name ?? '').trim()
+  const signOff = house ? HOUSE_SIGN_OFF : ((client.signer_name ?? '').trim() || (client.company_name ?? '').trim())
   const steps: ProgrammeSequenceStep[] = Array.from({ length: plan.depth }, (_, i) => i + 1)
     .map(n => {
       const st = draft[`step${n}`]

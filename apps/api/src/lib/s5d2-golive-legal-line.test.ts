@@ -39,7 +39,7 @@ describe('5d·2 — the line and the rule', () => {
   it('the refusal names exactly what is missing and where the client adds it', () => {
     expect(legalLineProblem('Acme Ltd', null)).toMatch(/registered office address is not on file/)
     expect(legalLineProblem('', '')).toMatch(/company name and registered office address are not on file/)
-    expect(legalLineProblem('Acme Ltd', null)).toMatch(/Milla → Settings → Company/)
+    expect(legalLineProblem('Acme Ltd', null)).toMatch(/Milla → Settings → Business Profile/)
     expect(legalLineProblem('Acme Ltd', '10 High Street')).toBeNull()
   })
 })

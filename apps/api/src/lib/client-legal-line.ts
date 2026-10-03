@@ -23,7 +23,7 @@ export function legalLineProblem(companyName: string | null | undefined, registe
     registeredOffice?.trim() ? null : 'registered office address',
   ].filter(Boolean)
   if (missing.length === 0) return null
-  return `Not taken live: the client's ${missing.join(' and ')} ${missing.length > 1 ? 'are' : 'is'} not on file, and every email we send for them must end with their company name and registered office (R189 ⑥). Ask them to add it in Milla → Settings → Company, then press Make live again.`
+  return `Not taken live: the client's ${missing.join(' and ')} ${missing.length > 1 ? 'are' : 'is'} not on file, and every email we send for them must end with their company name and registered office (R189 ⑥). Ask them to add it in Milla → Settings → Business Profile, then press Make live again.`
 }
 
 /**

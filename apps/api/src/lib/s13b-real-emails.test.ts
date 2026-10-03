@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { asksForEmails, emailsMessage } from '../../../portal/src/lib/emails-message'
+import { asksForEmails, emailsMessage, WITH_OUR_TEAM_COPY } from '../../../portal/src/lib/emails-message'
 
 describe('13b — what counts as asking', () => {
   it('the chips and the ordinary ways of asking', () => {
@@ -14,6 +14,12 @@ describe('13b — what counts as asking', () => {
   })
   it('not every mention of email', () => {
     for (const t of ['How many emails have gone out?', 'Show me my meetings', 'Please pause my programme'])
+      expect(asksForEmails(t), t).toBe(false)
+  })
+  // ⚑ 3 Oct (review S10) — an ordinary sentence that MENTIONS reading or seeing emails is a chat
+  // turn, not a request for the list.
+  it('a sentence that only mentions them is answered, not hijacked', () => {
+    for (const t of ['I read your email about the target, can we change it?', 'can you see why my messages bounced?', 'We saw a reply in the sequence yesterday'])
       expect(asksForEmails(t), t).toBe(false)
   })
 })
@@ -33,6 +39,10 @@ describe('13b — the emails, laid out as they land', () => {
   it('no emails yet → says so, and that nothing is sent before approval', () => {
     expect(emailsMessage([])).toMatch(/not written yet/)
   })
+  it('held for the founder\'s check → R189 ⑧\'s words, never "not written yet"', () => {
+    expect(emailsMessage([], { awaitingFounder: true })).toBe(WITH_OUR_TEAM_COPY)
+    expect(WITH_OUR_TEAM_COPY).toContain('with our team for a final check, usually within 1 working day')
+  })
 })
 
 describe('13b — wired in', () => {
@@ -44,5 +54,6 @@ describe('13b — wired in', () => {
     expect(gate - send).toBeLessThan(400)
     expect(conv).toContain("'/my/programme/review'")
     expect(conv).toContain("['Show me my emails']")
+    expect(conv).toContain('{ awaitingFounder: r.data?.awaiting_founder === true }')
   })
 })

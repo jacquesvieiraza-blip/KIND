@@ -554,8 +554,8 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: asked }])
     let content: string
     try {
-      const r = await api.get<{ data: { frozen?: { messages?: FrozenEmail[] } | null } }>('/my/programme/review', await token())
-      content = emailsMessage(r.data?.frozen?.messages ?? [])
+      const r = await api.get<{ data: { frozen?: { messages?: FrozenEmail[] } | null; awaiting_founder?: boolean } }>('/my/programme/review', await token())
+      content = emailsMessage(r.data?.frozen?.messages ?? [], { awaitingFounder: r.data?.awaiting_founder === true })
     } catch {
       content = 'I could not load your emails just now. Please try again in a minute.'
     }

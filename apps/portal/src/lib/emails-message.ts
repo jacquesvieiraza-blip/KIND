@@ -8,15 +8,27 @@
 
 export type FrozenEmail = { step: number; subject: string; body: string; wait_days: number }
 
-/** Did the client ask to see the emails? ("show me my emails", "can I see the sequence") */
-export const SHOW_EMAILS_RE = /\b(show|see|view|read)\b[^.?!]*\b(e-?mails?|sequence|messages?)\b/i
+/**
+ * Did the client ask to see the emails? ("show me my emails", "can I see the sequence")
+ *
+ * ⛓️ 3 Oct (review S10): was `/\b(show|see|view|read)\b[^.?!]*\b(e-?mails?|sequence|messages?)\b/`
+ * anywhere in the message, so "I read your email about the target" or "can you see why my
+ * messages bounced" were answered with the email list instead of an answer. Now only a REQUEST
+ * that opens the message counts.
+ */
+export const SHOW_EMAILS_RE = /^\s*(please\s+)?((can|could|may|let)\s+(i|you|me)\s+)?(show|see|view|read)(\s+me)?\s+(the\s+|my\s+|our\s+|all\s+)*(full\s+|whole\s+)?(e-?mails?|sequence|messages?)\b/i
 
 export function asksForEmails(text: string): boolean {
   return SHOW_EMAILS_RE.test(text)
 }
 
 /** The emails as one Milla message, laid out as they land. */
-export function emailsMessage(emails: FrozenEmail[]): string {
+/** R189 ⑧, the ruled wording, while the founder has not yet approved this version. */
+export const WITH_OUR_TEAM_COPY = 'Your emails are with our team for a final check, usually within 1 working day. They will appear here as soon as that is done, and nothing is sent before you have approved them too.'
+
+export function emailsMessage(emails: FrozenEmail[], opts?: { awaitingFounder?: boolean }): string {
+  // ⚑ 3 Oct (review S10) — withheld for the founder's check is not "not written yet".
+  if (opts?.awaitingFounder) return WITH_OUR_TEAM_COPY
   if (emails.length === 0) {
     return 'Your emails are not written yet. They appear here as soon as your programme is prepared, and nothing is sent before you approve them.'
   }

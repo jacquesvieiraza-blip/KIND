@@ -31,6 +31,7 @@ import {
 } from '@/lib/vida-programme-isolation'
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
+import FounderWordingApproval from '@/components/vida/FounderWordingApproval'   // ⚑ 2 Oct (#2542 · R186 ③)
 import MeetingQualifyPanel from '@/components/vida/MeetingQualifyPanel'   // ⚑ 25 Sep (R141 · P5a)
 import ClientSizePanel from '@/components/vida/ClientSizePanel'   // ⚑ 25 Sep (R166 ② · P7)
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
@@ -4561,6 +4562,9 @@ export default function VidaConsolePage() {
                         )}
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+
+                      {/* ⚑ 2 Oct (#2542 · R186 ③) — the founder approves the emails, at every stage. */}
+                      <FounderWordingApproval programmeId={prog.programme.id} />
 
                       {/* ── ⚑ 9 Sep · SENDING, AND THE RUN THAT IS THE ONLY WAY IT HAPPENS ────────
                           🛑 THE LOCKED WORDING. Kill-switch ON means sending is BLOCKED; OFF

@@ -1101,6 +1101,19 @@ async function sendSequenceEmailCore(
       return 'deferred'
     }
     programmeApprovedSend = verdict.mode === 'programme'
+    // ⚑ 3 Oct (founder: "they need to match") — WHAT IS SENT IS WHAT WAS APPROVED. A programme
+    // email is built from the approved version now, filled in for this person, never from their
+    // stored copy (a rewrite can miss someone). Unreadable or not approved → wait, never the old copy.
+    if (verdict.mode === 'programme') {
+      const { approvedProgrammeStep } = await import('./approved-step')
+      const approved = await approvedProgrammeStep(enrollmentId, step, lead)
+      if (!approved.ok) {
+        console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — the approved wording could not be used (${approved.reason})`)
+        return 'deferred'
+      }
+      subject = approved.subject
+      body = approved.body
+    }
     // ⚑ 3 Oct (#2543 · 5d part 3 · review S15) — A PROGRAMME CLIENT'S EMAIL WAITS FOR ITS OWN
     // LEGAL LINE. It used to fall back to K.I.N.D's line whenever the client's could not be read,
     // so a database blip sent another company's email naming K.I.N.D Technologies Ltd as the

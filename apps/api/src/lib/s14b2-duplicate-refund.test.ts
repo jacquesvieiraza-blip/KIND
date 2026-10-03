@@ -37,16 +37,18 @@ describe('14b2 — which payment was reversed', () => {
 describe('14b2 — the webhook asks BEFORE anything is stopped', () => {
   const start = STRIPE.indexOf("event.type === 'charge.refunded' || event.type === 'charge.dispute.created'")
   const block = STRIPE.slice(start, STRIPE.indexOf("event.type === 'charge.dispute.closed'", start))
-  it('the duplicate check comes before the claw-back, recordDispute and the campaign pause', () => {
-    const guard = block.indexOf('reversalTarget(')
+  const helper = STRIPE.slice(STRIPE.indexOf('async function answeredAsDuplicateReversal('), STRIPE.indexOf('// ── POST /stripe/webhook'))
+  it('the duplicate check comes before the claw-back, recordDispute and the campaign pause, and returns', () => {
+    const guard = block.indexOf('if (await answeredAsDuplicateReversal(event.type, obj, meta, res)) return')
     expect(guard).toBeGreaterThan(0)
     expect(guard).toBeLessThan(block.indexOf("from('credit_transactions')"))
     expect(guard).toBeLessThan(block.indexOf('recordDispute('))
     expect(guard).toBeLessThan(block.indexOf(".update({ status: 'paused' })"))
   })
-  it('a duplicate returns before any of them', () => {
-    const dupBranch = block.slice(block.indexOf("if (target === 'duplicate')"), block.indexOf('const credits ='))
-    expect(dupBranch).toContain('return')
-    expect(dupBranch).not.toContain('recordDispute')
+  it('the helper decides by the recorded payment and touches nothing for a duplicate', () => {
+    expect(helper).toContain('reversalTarget(obj.payment_intent, recorded as never)')
+    expect(helper).toContain("if (target !== 'duplicate') return false")
+    expect(helper).not.toContain('recordDispute')
+    expect(helper).not.toContain("update({ status: 'paused' })")
   })
 })

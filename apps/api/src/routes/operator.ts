@@ -5388,6 +5388,13 @@ operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     if (!email || !email.includes('@')) { res.status(400).json({ success: false, error: 'A pooled inbox email is required' }); return }
 
+    // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
+    {
+      const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'assign' })
+      if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
+    }
+
     // ⚠️ A22 — CHECK FIRST, DO NOT LEAN ON THE INDEX. `client_inboxes_one_live_per_kind`
     // (migration 20260725_client_inboxes) is the backstop and it does hold — but a raw
     // constraint violation surfaces here as a 500 "Failed to assign inbox", which tells the
@@ -5458,6 +5465,12 @@ operatorRouter.post('/inboxes/:id/status', async (req: Request, res: Response) =
     }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
+    {
+      const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'status', to: String(status) })
+      if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
+    }
 
     const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
     if (status === 'released' || status === 'retired') patch.released_at = new Date().toISOString()
@@ -7551,6 +7564,12 @@ operatorRouter.post('/inboxes', async (req: Request, res: Response) => {
     const parsed = parseMailboxInput(b)
     if (!parsed.ok) { res.status(400).json({ success: false, error: parsed.errors.join(' ') }); return }
     const v = parsed.value
+    // ⚑ 2 Oct (#2559 · R189 ②) — an approved programme's mailboxes do not change under it.
+    {
+      const { mailboxChangeRefusal } = await import('../lib/mailbox-freeze')
+      const frozen = await mailboxChangeRefusal(client.id, { kind: 'add', status: String(v.status) })
+      if (frozen) { res.status(409).json({ success: false, error: frozen }); return }
+    }
 
     // ⚠️ FAIL CLOSED ON THE KEY, BEFORE ANY ROW IS WRITTEN. Without INBOX_SECRET_KEY the
     // password cannot be encrypted, and the one thing that must never happen is storing it

@@ -170,6 +170,8 @@ const ALLOWED: Record<string, string> = {
   'real-clients-logic.ts': 'OPERATIONS — the same, as a pure rule',
   'system-probes.ts': 'OPERATIONS — health checks name the account they probe',
   'house-audit.ts': 'OPERATIONS — an audit OF House',
+  // ⚑ 2 Oct (#2560): pooled mailboxes return to the pool when a client is done — never House's.
+  'sender-claim.ts': 'OPERATIONS — #2560: a finished client\'s pooled mailboxes are released back to the pool; House keeps its own mailboxes',
 }
 
 describe('② anything else that learns about House has to say why', () => {

@@ -300,3 +300,35 @@ async function insertClaim(clientId: string, sender: PooledSender): Promise<Inse
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 2 Oct (#2560) — A POOLED MAILBOX GOES BACK TO THE POOL WHEN THE CLIENT IS DONE WITH IT.
+//
+// Nothing ever returned one: once the stock was used up, the next client was stuck. A pooled
+// mailbox is released when the client's programme completes or is refunded, and the client
+// has no other open programme. A branded mailbox is the client's own and is never touched;
+// House keeps its mailboxes.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export async function releasePooledSenders(
+  clientId: string, why: 'completed' | 'refunded', exceptProgrammeId?: string,
+): Promise<{ ok: true; released: string[] } | { ok: false; detail: string }> {
+  const { isHouseClient } = await import('./house-client')
+  if (await isHouseClient(clientId)) return { ok: true, released: [] }
+  const { TERMINAL_STATUSES } = await import('./programme')
+  const { data: open, error: openErr } = await db.from('programmes')
+    .select('id').eq('client_id', clientId).not('status', 'in', `(${TERMINAL_STATUSES.join(',')})`)
+  if (openErr) return { ok: false, detail: `open programmes could not be read (${openErr.message})` }
+  const stillOpen = ((open ?? []) as { id: string }[]).filter(p => p.id !== exceptProgrammeId)
+  if (stillOpen.length > 0) return { ok: true, released: [] }   // another programme still uses them
+  const now = new Date().toISOString()
+  const { data, error } = await db.from('client_inboxes')
+    .update({ status: 'released', released_at: now, updated_at: now })
+    .eq('client_id', clientId).eq('kind', 'pooled')
+    .in('status', LIVE_CLAIM_STATUSES as unknown as string[])
+    .select('email')
+  if (error) return { ok: false, detail: `the pooled mailboxes could not be released (${error.message})` }
+  const released = ((data ?? []) as { email: string }[]).map(r => r.email)
+  if (released.length) console.log(`[sender-claim] client ${clientId} (${why}) — released ${released.join(', ')} back to the pool.`)
+  return { ok: true, released }
+}

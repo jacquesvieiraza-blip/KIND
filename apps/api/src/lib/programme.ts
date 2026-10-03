@@ -1882,7 +1882,25 @@ export async function completeProgramme(programmeId: string): Promise<ProgrammeR
   const gate = mayComplete(p)
   if (!gate.allowed) return { ok: false, reason: gate.reason }
   await setStatus(programmeId, 'COMPLETED')
+  // ⚑ 2 Oct (#2560) — the client's pooled mailboxes go back to the pool (unless another
+  // programme of theirs is still open). A failure is told, never blocks the completion.
+  await releasePooledAfter(p.client_id, 'completed')
   return { ok: true }
+}
+
+async function releasePooledAfter(clientId: string, why: 'completed' | 'refunded', exceptProgrammeId?: string) {
+  try {
+    const { releasePooledSenders } = await import('./sender-claim')
+    const r = await releasePooledSenders(clientId, why, exceptProgrammeId)
+    if (!r.ok) {
+      void sendFounderAlert('sends_stalled', 'A finished client\'s pooled mailboxes were not returned to the pool', [
+        `Client ${clientId} (${why}). ${r.detail}`,
+        'Release them by hand in Vida → Engine, or the next client may find no mailbox free.',
+      ], { clientId, dedupeKey: `pooled_release_failed:${clientId}` }).catch(() => {})
+    }
+  } catch (err) {
+    console.error('[programme] pooled mailbox release threw', err)
+  }
 }
 
 /**
@@ -2203,6 +2221,10 @@ export async function recordDispute(
         ? `This payment also used ${applied} cents of wallet credit; it is returned to the client's wallet separately.`
         : `This payment also used ${applied} cents of wallet credit — not returned on a dispute; decide by hand.`)
     : ''
+
+  // ⚑ 2 Oct (#2560) — a refunded programme never resumes (R191), so its pooled mailboxes go
+  // back to the pool. A dispute may still be won, so they stay.
+  if (kind === 'refund') await releasePooledAfter(p.client_id, 'refunded', programmeId)
 
   const word = kind === 'refund' ? 'refunded' : 'disputed'
   void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [

@@ -65,6 +65,26 @@ export const MILLA_PAUSE_COPY = {
   icp_change: "We've paused while your targeting is updated. Nothing is being sent in the meantime and your programme is kept exactly as it was. We'll be in touch.",
 } as const
 
+/**
+ * ⚑ 2 Oct (#2561 · 14c · R191 — *"Refuse until it's settled"*) — the client's payment was
+ * refunded or disputed with their bank. Before this the screen said "We've paused sending while
+ * we check quality", which was not why. Resume is refused until it is settled (Vida says why).
+ */
+export const MILLA_PAYMENT_REVERSED_COPY =
+  "Your payment for this programme was refunded or disputed with your bank, so we've paused it. Nothing is being sent and nobody new is being found. Our team will be in touch." as const
+
+/**
+ * ⚑ 3 Oct (#2561 · 14c) — WHICH PAUSE IS THIS? The reversal sentence only while the pause is the
+ * one the refund or dispute caused (that pause began at or before `disputed_at`). `disputed_at`
+ * is kept forever as evidence, so after a WON dispute is resumed, a later pause — the client
+ * pressing Pause, say — is not about the money and must not say it is.
+ */
+export function pausedCopyForProgramme(p: { paused_at?: string | null; pause_reason?: string | null; disputed_at?: string | null }): string | null {
+  if (!p.paused_at) return null
+  if (p.disputed_at && Date.parse(p.paused_at) <= Date.parse(p.disputed_at)) return MILLA_PAYMENT_REVERSED_COPY
+  return pausedCopyFor(p.pause_reason)
+}
+
 export function pausedCopyFor(reason: string | null | undefined): string {
   return (MILLA_PAUSE_COPY as Record<string, string>)[reason ?? ''] ?? MILLA_FAILURE_COPY.sourcingPaused
 }

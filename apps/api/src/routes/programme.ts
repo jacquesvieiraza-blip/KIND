@@ -629,6 +629,11 @@ programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) =
       }
     }
   }
+  // ⚑ 2 Oct (#2543 · R189 ⑥) — checked before go-live: the client's emails must be able to end
+  // with their company name and registered office. Refused here, before anything is prepared.
+  const { goLiveLegalLineProblem } = await import('../lib/client-legal-line')
+  const legal = await goLiveLegalLineProblem(req.params.id)
+  if (legal) { res.status(400).json({ success: false, error: legal }); return }
   const r = await goLiveProgramme(req.params.id, pressedBy(req))
   // ⚠️ NO AUDIT ROW FOR A NO-OP. An already-live programme did not transition, and recording
   // a second "went live" would put an event in the log that never happened.

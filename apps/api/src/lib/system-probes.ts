@@ -714,6 +714,12 @@ async function clients(): Promise<Section> {
         return broken(name, `COLD — ${cold.daysIdle} days since their last approval. ${facts}`,
           'A paying client this quiet is suspended by #538. Contact them.')
       }
+      // ⚑ 2 Oct (#2547 · 7e) — the send gate's own question, so "Can send" here means the gate agrees.
+      const { screenSendVerdict } = await import('./programme-sender')
+      const gate = await screenSendVerdict(c.id)
+      if (!gate.canSend) {
+        return broken(name, `${via === 'real' ? 'PAID' : 'FUNDED'} BUT CANNOT SEND — ${gate.label}. ${facts}`, gate.detail)
+      }
       return ok(name, `Can send from ${send.inbox.email}. ${facts}`)
     }))
   }

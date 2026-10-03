@@ -4889,10 +4889,24 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     // positive verdict is now stated out loud, and `needs_inbox` is DERIVED from the same
     // list rather than computed a second time, so the two can never disagree.
     const { readinessTone, nextStepFor } = await import('../lib/house-client')
-    const readiness = migrationPending ? [] : (clients.data ?? [])
+    // ⚑ 2 Oct (#2547 · 7e) — A MAILBOX THE PICKER ACCEPTS IS THEN ASKED THE SEND GATE'S OWN
+    // QUESTION (`programmeSenderSafety`): a tie or a mailbox shared with another client said
+    // "Can send" here while every send was refused. One verdict, on every screen.
+    const { screenSendVerdict } = await import('../lib/programme-sender')
+    const readiness = migrationPending ? [] : await Promise.all((clients.data ?? [])
       .filter((c: { id: string }) => !excluded.has(c.id))
-      .map((c: { id: string; company_name: string | null }) => {
+      .map(async (c: { id: string; company_name: string | null }) => {
         const decision = pickSendingInbox(byClient.get(c.id) ?? [], secretOk)
+        if (decision.ok) {
+          const gate = await screenSendVerdict(c.id)
+          if (!gate.canSend) {
+            return {
+              client_id: c.id, company_name: c.company_name,
+              can_send: false, reason: gate.reason, why: gate.label, detail: gate.detail,
+              tone: readinessTone(false, gate.reason), next_step: gate.detail,
+            }
+          }
+        }
         const reason = decision.ok ? null : decision.reason
         return {
           client_id: c.id, company_name: c.company_name,
@@ -4903,7 +4917,7 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
           tone: readinessTone(decision.ok, reason),
           next_step: nextStepFor(reason),
         }
-      })
+      }))
     const needsInbox = readiness.filter(r => !r.can_send)
 
     const sent = sent7.count ?? 0

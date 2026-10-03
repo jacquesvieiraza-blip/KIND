@@ -56,6 +56,31 @@ export const INBOX_VERIFICATION_MIGRATION = '20260910_inbox_verification'
  * the one rulebook for warming, credentials and the secret key, and a second copy here is how
  * a console and a sender start disagreeing about the same mailbox.
  */
+/**
+ * ⚑ 2 Oct (#2547 · 7e) — the words every screen uses for a sender-safety refusal, so Vida, the
+ * System check and the send gate give ONE answer. Before this the board and the System check
+ * asked only `pickSendingInbox` and said "can send" for a mailbox the gate refuses (a tie, or a
+ * mailbox shared live with another client).
+ */
+export function senderSafetyLabel(reason: Exclude<SenderSafety, { ok: true }>['reason']): string {
+  switch (reason) {
+    case 'ambiguous_sender':  return 'Two mailboxes tie — which one sends is not decided'
+    case 'shared_sender':     return 'This mailbox is live on another client too'
+    case 'unverified_sender': return 'The mailbox has not been verified'
+    case 'no_sender':         return 'No mailbox can send'
+    case 'unreadable':        return 'The mailboxes could not be read'
+  }
+}
+
+/** The send gate's own answer for one client, in the shape the screens show. */
+export async function screenSendVerdict(
+  clientId: string,
+  safety: (clientId: string) => Promise<SenderSafety> = programmeSenderSafety,
+): Promise<{ canSend: true } | { canSend: false; reason: string; label: string; detail: string }> {
+  const s = await safety(clientId)
+  return s.ok ? { canSend: true } : { canSend: false, reason: s.reason, label: senderSafetyLabel(s.reason), detail: s.detail }
+}
+
 export async function programmeSenderSafety(clientId: string): Promise<SenderSafety> {
   const { resolveSendingInbox, sendablePool } = await import('./sending-inbox')
   const { secretState } = await import('./inbox-secret')

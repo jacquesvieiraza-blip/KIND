@@ -169,7 +169,8 @@ describe('③ the screen decides nothing', () => {
 
   it('the route computes it from the status, the pause and a non-empty set', () => {
     // ⛓️ 2 Oct (#2542 · R186 ③ · 4c): and the founder has approved this version first.
-    expect(ROUTE).toContain("canApprove: founderApproved && p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0")
+    // ⛓️ 2 Oct (#2544 · R191 4b): or a live, paused programme's new version (after the founder).
+    expect(ROUTE).toContain("canApprove: founderApproved && ((p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0) || reapproval)")
   })
 
   it('a paused or not-ready programme is told why, never left with a dead button', () => {
@@ -185,7 +186,9 @@ describe('③ the screen decides nothing', () => {
     expect(c).toContain('{APPROVED_COPY}')
     expect(APPROVAL).toContain(
       "export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
-    const at = c.indexOf('if (p.approved_at) {')
+    // ⛓️ 3 Oct: was 'if (p.approved_at) {' — a live programme's NEW version (reapproval) is
+    // approved again on this panel, so the approved card is for every OTHER approved programme.
+    const at = c.indexOf('if (p.approved_at && data.reapproval !== true) {')
     expect(at).toBeGreaterThan(-1)
     const approvedBranch = c.slice(at, c.indexOf('return (', at) + 900)
     for (const action of ['APPROVE_LABEL', 'onClick={approve}', 'data-testid="approve-programme"']) {
@@ -271,10 +274,12 @@ describe('⑤ it appears where the client already is, and only when it should', 
     // ⛓️ 24 Sep (R145 step 5) — the same two states, now drawn as two places: the panel while it
     // can be approved, and its approved state after. Still silent at every other stage.
     // ⛓️ 3 Oct (#2542 · review S8): was `review.canApprove && !…approved_at` — the panel now also
-    // opens while the founder checks the emails, AT THE APPROVAL STAGE ONLY, so it still says
-    // nothing at any other stage.
-    expect(PAGE).toContain('review?.programme && !review.programme.approved_at')
-    expect(PAGE).toContain("&& (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (")
-    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && (')
+    // opens while the founder checks the emails (approval stage only), and (#2544 · R191 4b) for a
+    // live programme's new version. Still silent at every other stage.
+    expect(PAGE).toContain("? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)")
+    expect(PAGE).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
+    // ⛓️ 3 Oct: was '{review?.programme && review.programme.approved_at && (' — the lower panel now
+    // stays away while the upper one already shows a re-approval (it drew the card twice).
+    expect(PAGE).toContain('{review?.programme && review.programme.approved_at\n        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
   })
 })

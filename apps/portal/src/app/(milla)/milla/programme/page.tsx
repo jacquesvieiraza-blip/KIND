@@ -192,11 +192,15 @@ export default function ProgrammePage() {
           internalBilling={p.money.internalBilling === true}
           onChosen={() => { void load() }}
           onWiden={widen} />
-      ) : review?.programme && !review.programme.approved_at
+      ) : review?.programme && (
           // ⚑ 3 Oct (review S8) — WAS `review.canApprove` alone, and canApprove is false until the
           // founder approves, so a client waiting on him saw no panel at all — not even "with our
           // team for a final check". The panel (which shows that notice) now opens for them too.
-          && (review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')) ? (
+          // ⚑ 2 Oct (#2544 item 6) — and for a live programme's new version (`reapproval`).
+          review.programme.approved_at
+            ? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)
+            : review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')
+        ) ? (
         /* ⚑ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE RIGHT SIDE IS THE APPROVAL PANEL, ALONE. */
         <ProgrammeApproval
           data={review}
@@ -255,7 +259,10 @@ export default function ProgrammePage() {
         </div>
       )}
       {/* After approval the panel's approved state stays with the programme's status. */}
-      {review?.programme && review.programme.approved_at && (
+      {/* ⚑ 3 Oct (seen on the real screen) — NOT when the panel above already shows it (a live
+          programme's new version), or the client got the same card twice. */}
+      {review?.programme && review.programme.approved_at
+        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (
         <ProgrammeApproval data={review} onApproved={onApproved} />
       )}
     </div>

@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K.I.N.D. Founder-Operator OS — Post-26 Launch Preview</title>
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#121722;
+    --panel2:#171d2a;
+    --ink:#f5f7fb;
+    --muted:#aeb8ca;
+    --line:#2a3345;
+    --accent:#9ee7c3;
+    --accent2:#bca8ff;
+    --warn:#ffd48a;
+    --danger:#ff9c9c;
+    --blue:#98c7ff;
+    --shadow:0 18px 55px rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(188,168,255,.12), transparent 28%),
+      radial-gradient(circle at 85% 10%, rgba(158,231,195,.11), transparent 28%),
+      var(--bg);
+    line-height:1.45;
+  }
+  .wrap{max-width:1400px;margin:auto;padding:40px 24px 70px}
+  .eyebrow{
+    text-transform:uppercase;letter-spacing:.18em;font-size:12px;
+    color:var(--accent);font-weight:800;margin-bottom:10px
+  }
+  h1{font-size:clamp(34px,5vw,68px);line-height:.98;margin:0 0 18px;letter-spacing:-.045em}
+  .sub{max-width:900px;color:var(--muted);font-size:18px;margin-bottom:28px}
+  .hero-note{
+    display:inline-flex;align-items:center;gap:10px;padding:10px 14px;
+    border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03);
+    color:#dfe6f2;font-weight:700
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 5px rgba(158,231,195,.09)}
+  section{margin-top:54px}
+  .section-title{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:18px}
+  h2{margin:0;font-size:26px;letter-spacing:-.02em}
+  .kicker{color:var(--muted);font-size:14px}
+  .flow{
+    border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
+    border-radius:24px;padding:24px;box-shadow:var(--shadow);overflow:hidden
+  }
+  .node{
+    border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:18px;
+  }
+  .node strong{display:block;font-size:16px;margin-bottom:5px}
+  .node small{display:block;color:var(--muted);font-size:13px}
+  .node.founder{
+    width:min(560px,100%);margin:auto;text-align:center;border-color:rgba(158,231,195,.35);
+    background:linear-gradient(180deg,rgba(158,231,195,.12),rgba(158,231,195,.035));
+  }
+  .node.screen{
+    width:min(900px,100%);margin:auto;text-align:center;border-color:rgba(188,168,255,.38);
+    background:linear-gradient(180deg,rgba(188,168,255,.12),rgba(188,168,255,.035));
+  }
+  .arrow{height:50px;display:flex;align-items:center;justify-content:center;color:#71809a;font-size:26px}
+  .systems{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .system-card{
+    min-height:155px;border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--panel2)
+  }
+  .system-card .label{font-size:12px;color:var(--accent);font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+  .system-card h3{font-size:17px;margin:8px 0 8px}
+  .system-card p{font-size:13px;color:var(--muted);margin:0}
+  .exec-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .exec{
+    text-align:center;border:1px dashed #37425a;border-radius:14px;padding:13px;background:rgba(255,255,255,.02)
+  }
+  .exec b{display:block;font-size:14px}.exec span{font-size:12px;color:var(--muted)}
+  .automation{
+    margin-top:18px;padding:15px;border-radius:14px;border:1px solid rgba(152,199,255,.28);
+    background:rgba(152,199,255,.065);text-align:center
+  }
+  .exception{
+    margin-top:18px;border-radius:14px;padding:16px;border:1px solid rgba(255,212,138,.32);
+    background:rgba(255,212,138,.07);text-align:center
+  }
+  .loop{
+    margin-top:14px;text-align:center;color:var(--warn);font-weight:800;font-size:14px
+  }
+  .grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  .card{
+    border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:22px;box-shadow:var(--shadow)
+  }
+  .card h3{margin:0 0 12px;font-size:18px}
+  .card p{color:var(--muted);margin:0 0 12px}
+  .roles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .role{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+  .role b{display:block;margin-bottom:4px}.role span{font-size:13px;color:var(--muted)}
+  .ladder{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px
+  }
+  .step{position:relative;padding:18px 14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);min-height:94px}
+  .step .n{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .step b{display:block;margin-top:7px}
+  .step:not(:last-child)::after{
+    content:"→";position:absolute;right:-15px;top:33px;color:#65738e;z-index:2;font-size:20px
+  }
+  .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .rule{padding:16px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .rule b{display:block;margin-bottom:5px}.rule span{font-size:13px;color:var(--muted)}
+  .cadence{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .cad{padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
+  .cad .when{font-size:12px;color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+  .cad h3{margin:8px 0 7px;font-size:17px}.cad p{font-size:13px;color:var(--muted);margin:0}
+  .metric{
+    border:1px solid rgba(158,231,195,.3);background:linear-gradient(90deg,rgba(158,231,195,.1),rgba(188,168,255,.08));
+    border-radius:20px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:20px
+  }
+  .metric strong{font-size:26px;letter-spacing:-.02em}.metric span{color:var(--muted)}
+  .metric .big{font-size:clamp(28px,4vw,50px);font-weight:900;color:var(--accent);white-space:nowrap}
+  .footer{
+    margin-top:48px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap
+  }
+  .pill{display:inline-block;padding:5px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:#dce4f0;margin:3px 4px 3px 0}
+  @media(max-width:1050px){
+    .systems{grid-template-columns:repeat(2,1fr)}
+    .exec-grid{grid-template-columns:repeat(3,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .rules{grid-template-columns:1fr}
+  }
+  @media(max-width:700px){
+    .wrap{padding:28px 15px 50px}
+    .systems,.exec-grid,.roles,.cadence,.ladder{grid-template-columns:1fr}
+    .step:not(:last-child)::after{content:"↓";right:50%;top:auto;bottom:-22px}
+    .metric{flex-direction:column;align-items:flex-start}
+  }
+  @media print{
+    body{background:#fff;color:#111}
+    .wrap{max-width:none}
+    .card,.flow,.node,.system-card,.exec,.step,.rule,.cad,.metric{box-shadow:none;background:#fff;color:#111}
+    .sub,.kicker,.node small,.system-card p,.exec span,.role span,.card p,.rule span,.cad p,.metric span,.footer{color:#444}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">K.I.N.D. · Post-26 Launch Operating Model · Preview</div>
+  <h1>Founder-Operator OS</h1>
+  <div class="sub">
+    A model for keeping K.I.N.D. founder-led while scaling through systems, AI, contractors and controlled technical execution.
+    The founder remains the brain and owner — not the hands for every function.
+  </div>
+  <div class="hero-note"><span class="dot"></span> One founder. Many operating systems. Exceptions come back to the founder.</div>
+
+  <section>
+    <div class="section-title">
+      <h2>01 · The company flow</h2>
+      <div class="kicker">Direction flows down. Exceptions flow back up.</div>
+    </div>
+
+    <div class="flow">
+      <div class="node founder">
+        <strong>YOU · Founder / Product Owner / Revenue Owner</strong>
+        <small>Direction · important sales · customer truth · final decisions</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>FOUNDER CONTROL SCREEN</strong>
+        <small>Revenue · cash · pipeline · customers · onboarding · support · product incidents · critical work</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="systems">
+        <div class="system-card">
+          <div class="label">Revenue system</div>
+          <h3>CRM</h3>
+          <p>Leads, replies, meetings, opportunities, customers, follow-up and commercial state.</p>
+        </div>
+        <div class="system-card">
+          <div class="label">Customer system</div>
+          <h3>Onboarding + Support</h3>
+          <p>Onboarding state, requests, success checks, routine service and escalation.</p>
+        </div>
+        <div class="system-card">
+          <div class="label">Product system</div>
+          <h3>GitHub</h3>
+          <p>Code, Issues, Projects, PRs, tests, releases, technical rules and technical documentation.</p>
+        </div>
+        <div class="system-card">
+          <div class="label">Money system</div>
+          <h3>Billing + Accounting</h3>
+          <p>Invoices, subscriptions, commissions, expenses, tax records and cash position.</p>
+        </div>
+        <div class="system-card">
+          <div class="label">Company brain</div>
+          <h3>Notion</h3>
+          <p>Strategy, research, playbooks, ideas, meetings, hiring, future products and company knowledge.</p>
+        </div>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="exec-grid">
+        <div class="exec"><b>AI / Opus</b><span>bounded acceleration</span></div>
+        <div class="exec"><b>Virtual Assistant</b><span>repeatable operations</span></div>
+        <div class="exec"><b>Commission Sales</b><span>prospecting + selling</span></div>
+        <div class="exec"><b>Customer Success</b><span>routine client care</span></div>
+        <div class="exec"><b>Junior Developer</b><span>bounded technical execution</span></div>
+        <div class="exec"><b>Specialists</b><span>legal · accounting · expert help</span></div>
+      </div>
+
+      <div class="automation">
+        <strong>AUTOMATION + CHECKS</strong><br>
+        <span style="color:var(--muted);font-size:13px">Normal work should complete, record itself and prove itself without founder intervention.</span>
+      </div>
+
+      <div class="exception">
+        <strong>EXCEPTION LAYER</strong><br>
+        <span style="color:var(--muted);font-size:13px">Broken process · angry customer · refund · legal risk · major product decision · production incident · commercial exception</span>
+      </div>
+
+      <div class="loop">↑ Only the exception comes back to YOU ↑</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>02 · Role architecture</h2>
+      <div class="kicker">Use expensive judgement only where judgement is actually needed.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Founder owns the irreducible work</h3>
+        <div class="roles">
+          <div class="role"><b>Direction</b><span>What K.I.N.D. is, priorities, pricing, positioning and where the company goes.</span></div>
+          <div class="role"><b>Revenue</b><span>Important sales conversations, relationships, partnerships and major closes.</span></div>
+          <div class="role"><b>Customer truth</b><span>Understand what clients actually experience, value and struggle with.</span></div>
+          <div class="role"><b>Final decisions</b><span>Product, money, people, risk and material releases.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Technical support model</h3>
+        <p><span class="pill">Fable · heavy judgement</span><span class="pill">Junior · bounded execution</span><span class="pill">Opus · accelerator</span><span class="pill">Second eyes · review</span></p>
+        <p><b>Fable</b> handles architecture, difficult debugging, compliance-sensitive paths, production/db discrepancies and expensive reasoning.</p>
+        <p><b>Junior developer</b> handles small features, tests, UI, bug fixes, scripts and bounded PR work.</p>
+        <p><b>Opus</b> accelerates approved work but does not redefine the task.</p>
+        <p><b>Second eyes</b> reviews independently and reports findings without becoming the builder.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>03 · The scaling ladder</h2>
+      <div class="kicker">Do not automate what you do not yet understand.</div>
+    </div>
+
+    <div class="card">
+      <div class="ladder">
+        <div class="step"><div class="n">Stage 1</div><b>Manual</b><span style="color:var(--muted);font-size:13px">Founder learns the process.</span></div>
+        <div class="step"><div class="n">Stage 2</div><b>Repeatable</b><span style="color:var(--muted);font-size:13px">Inputs, outputs and rules become clear.</span></div>
+        <div class="step"><div class="n">Stage 3</div><b>Delegated</b><span style="color:var(--muted);font-size:13px">VA, contractor or junior owns the routine.</span></div>
+        <div class="step"><div class="n">Stage 4</div><b>Automated</b><span style="color:var(--muted);font-size:13px">Software handles the normal case.</span></div>
+        <div class="step"><div class="n">Stage 5</div><b>Exception-only</b><span style="color:var(--muted);font-size:13px">Founder sees only what needs judgement.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>04 · System-of-record rules</h2>
+      <div class="kicker">Every kind of truth has one owner.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>GitHub changes the product.</b><span>Work state, code, PRs, tests, releases and technical truth stay close to engineering.</span></div>
+      <div class="rule"><b>Notion explains the company.</b><span>Research, strategy, playbooks, hiring, ideas and broader knowledge live outside technical state.</span></div>
+      <div class="rule"><b>Production proves reality.</b><span>A merged PR is not proof that the live customer path works.</span></div>
+      <div class="rule"><b>CRM owns commercial state.</b><span>Do not reconstruct pipeline from inboxes, chats or memory.</span></div>
+      <div class="rule"><b>Money system owns financial truth.</b><span>Dashboards may summarize; they do not become a second ledger.</span></div>
+      <div class="rule"><b>Founder dashboard summarizes — it does not duplicate.</b><span>One morning view, fed by underlying systems, with attention flags and exceptions.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>05 · Contractor operating rule</h2>
+      <div class="kicker">Nobody receives vague ownership of “helping run the business.”</div>
+    </div>
+
+    <div class="card">
+      <h3>Every delegated role gets the same four-part contract</h3>
+      <div class="ladder" style="grid-template-columns:repeat(4,1fr)">
+        <div class="step"><div class="n">1</div><b>Trigger</b><span style="color:var(--muted);font-size:13px">What starts the work?</span></div>
+        <div class="step"><div class="n">2</div><b>Procedure</b><span style="color:var(--muted);font-size:13px">What is the approved normal process?</span></div>
+        <div class="step"><div class="n">3</div><b>Expected output</b><span style="color:var(--muted);font-size:13px">What proves completion?</span></div>
+        <div class="step"><div class="n">4</div><b>Escalation</b><span style="color:var(--muted);font-size:13px">When must it come back to the founder?</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>06 · Founder cadence</h2>
+      <div class="kicker">A scalable company should become boring to operate.</div>
+    </div>
+
+    <div class="cadence">
+      <div class="cad">
+        <div class="when">Every morning</div>
+        <h3>Control check</h3>
+        <p>What broke? What needs me? What affects revenue? What affects customers? What is blocked?</p>
+      </div>
+      <div class="cad">
+        <div class="when">Every week</div>
+        <h3>Company review</h3>
+        <p>Revenue, pipeline, customers, product health, cash, marketing, open risks and next priorities.</p>
+      </div>
+      <div class="cad">
+        <div class="when">Every month</div>
+        <h3>CEO review</h3>
+        <p>What stops? What automates? What consumes founder time? What recurs? What gets outsourced next?</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>07 · The metric that protects founder scale</h2>
+      <div class="kicker">Reduce founder touch, not customer care.</div>
+    </div>
+
+    <div class="metric">
+      <div>
+        <strong>Founder interventions per customer</strong><br>
+        <span>Drive each repeatable process from founder-heavy → exception-only.</span>
+      </div>
+      <div class="big">17 → 8 → 3 → 1 → exception</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>08 · The operating philosophy</h2>
+      <div class="kicker">Post-26 design principle</div>
+    </div>
+
+    <div class="card" style="text-align:center;padding:34px">
+      <div style="font-size:clamp(24px,4vw,42px);font-weight:900;letter-spacing:-.03em;max-width:1000px;margin:auto">
+        “Why does this require a human at all — and if it does, does that human need to be me?”
+      </div>
+      <p style="margin:16px auto 0;max-width:820px">
+        Keep the company founder-led by removing routine founder labour, not by removing founder control.
+      </p>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>09 · Founder absence mode</h2>
+      <div class="kicker">The company must remain founder-led without becoming founder-dependent.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Continuity principle</h3>
+        <p style="font-size:18px;color:var(--ink);font-weight:800">
+          When the founder is unavailable, the objective changes from improvement to continuity.
+        </p>
+        <p>
+          Keep customers served. Keep money moving. Keep production stable. Record exceptions.
+          Defer non-essential change until the founder returns.
+        </p>
+        <div style="margin-top:16px">
+          <span class="pill">No speculative builds</span>
+          <span class="pill">No architecture changes</span>
+          <span class="pill">No pricing changes</span>
+          <span class="pill">No non-essential migrations</span>
+          <span class="pill">No new product promises</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Absence-safe company</h3>
+        <p><b>Founder-led</b> → strategic authority remains with you.</p>
+        <p><b>System-operated</b> → routine work continues through defined systems.</p>
+        <p><b>Human-supported</b> → deputies and contractors own bounded operating processes.</p>
+        <p><b>Exception-escalated</b> → only material problems rise upward.</p>
+        <p><b>Absence-safe</b> → short-term continuity does not depend on your immediate availability.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Backup roles during founder absence</h3>
+      <div class="roles">
+        <div class="role"><b>Deputy Operator</b><span>Runs inbox, CRM, onboarding, routine customer operations, contractor coordination and the daily control check.</span></div>
+        <div class="role"><b>Customer Success Backup</b><span>Keeps active customers supported, follows approved playbooks and escalates genuine problems.</span></div>
+        <div class="role"><b>Sales Contractors</b><span>Continue approved offers, pricing and follow-up. No new discounts, promises or bespoke commitments.</span></div>
+        <div class="role"><b>Technical Guardian</b><span>Emergency incidents only: diagnose, restore, rollback or stabilise. No roadmap development during absence mode.</span></div>
+        <div class="role"><b>Accountant / Bookkeeper</b><span>Keeps billing, routine financial admin, records and supplier obligations current.</span></div>
+        <div class="role"><b>AI + Automation</b><span>Continue approved repetitive workflows, monitoring and reporting. No autonomous expansion of scope.</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Authority matrix</h3>
+      <div class="rules">
+        <div class="rule">
+          <b>Deputy may</b>
+          <span>Reply to customers, reschedule onboarding, chase invoices, allocate routine work, use approved playbooks, and pause risky activity when something looks wrong.</span>
+        </div>
+        <div class="rule">
+          <b>Deputy may not</b>
+          <span>Change pricing, make new product promises, approve legal changes, deploy code, approve migrations, or make material commercial exceptions.</span>
+        </div>
+        <div class="rule">
+          <b>Technical Guardian may</b>
+          <span>Investigate incidents, restore service, rollback to a known-good release and use emergency access under the documented runbook.</span>
+        </div>
+        <div class="rule">
+          <b>Technical Guardian may not</b>
+          <span>Introduce features, refactor architecture, change product behaviour, or use an outage as permission to redesign the system.</span>
+        </div>
+        <div class="rule">
+          <b>Sales may</b>
+          <span>Sell the approved offer, use approved commercial terms and continue existing prospect follow-up.</span>
+        </div>
+        <div class="rule">
+          <b>Sales may not</b>
+          <span>Create new discounts, unusual contract promises, implementation commitments or unsupported product claims.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Three operating modes</h3>
+      <div class="cadence">
+        <div class="cad">
+          <div class="when">Mode A · 1–2 days</div>
+          <h3>Founder temporarily offline</h3>
+          <p>Business runs normally. Routine decisions continue. Non-urgent exceptions queue for your return.</p>
+        </div>
+        <div class="cad">
+          <div class="when">Mode B · 1–2 weeks</div>
+          <h3>Founder away</h3>
+          <p>Development slows or freezes. Customers, sales and billing continue. Deputy runs the control check and only serious exceptions escalate.</p>
+        </div>
+        <div class="cad">
+          <div class="when">Mode C · unexpected</div>
+          <h3>Founder unavailable</h3>
+          <p>Continuity runbook activates. Customer care, money, outreach controls and emergency technical support continue under strict boundaries.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>The continuity runbook must answer immediately</h3>
+      <div class="roles">
+        <div class="role"><b>Customers</b><span>Who is active, what has been promised, what is due, and who needs attention?</span></div>
+        <div class="role"><b>Sales</b><span>What offers, pricing, promises and commitments are currently approved?</span></div>
+        <div class="role"><b>Money</b><span>Where billing lives, what must be paid, and who owns routine financial administration?</span></div>
+        <div class="role"><b>Outreach</b><span>How is outreach paused safely if risk appears?</span></div>
+        <div class="role"><b>Technical emergency</b><span>Who can diagnose, rollback and restore service, and where is the runbook?</span></div>
+        <div class="role"><b>Credentials + recovery</b><span>Where secure emergency access and account recovery procedures are stored.</span></div>
+      </div>
+      <p style="margin-top:16px">
+        Critical credentials should remain in a secure password or secrets manager with appropriate emergency-access arrangements,
+        not in ordinary docs, chats or hand-written notes.
+      </p>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>10 · The $100M enterprise layer</h2>
+      <div class="kicker">The operating system keeps the company stable. These engines make it scale.</div>
+    </div>
+
+    <div class="card">
+      <h3>Four engines sit underneath Founder Control</h3>
+      <div class="rules">
+        <div class="rule">
+          <b>ENGINE 1 · GROW</b>
+          <span>Market → positioning → marketing → distribution → sales → revenue.</span>
+        </div>
+        <div class="rule">
+          <b>ENGINE 2 · DELIVER</b>
+          <span>Onboarding → product → customer value → support → retention → expansion.</span>
+        </div>
+        <div class="rule">
+          <b>ENGINE 3 · OPERATE</b>
+          <span>GitHub → Notion → CRM → finance → AI → VA → contractors → automation.</span>
+        </div>
+        <div class="rule">
+          <b>ENGINE 4 · PROTECT</b>
+          <span>Security → compliance → financial controls → governance → continuity → technical resilience.</span>
+        </div>
+        <div class="rule">
+          <b>FOUNDER CONTROL</b>
+          <span>Direction · capital allocation · major sales · customer truth · exceptions.</span>
+        </div>
+        <div class="rule">
+          <b>OPERATING PRINCIPLE</b>
+          <span>Minimum permanent organisational complexity per £1 of enterprise value.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>11 · Market + category system</h2>
+      <div class="kicker">Growth starts before marketing.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>The commercial wedge</h3>
+        <p>The company must be able to answer clearly:</p>
+        <div class="roles">
+          <div class="role"><b>Who?</b><span>Exactly which customer is K.I.N.D. built for first?</span></div>
+          <div class="role"><b>Problem</b><span>What expensive problem are they paying to remove?</span></div>
+          <div class="role"><b>Why now?</b><span>What makes the problem urgent enough to act today?</span></div>
+          <div class="role"><b>Why K.I.N.D.?</b><span>What differentiated mechanism makes the outcome credible?</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Positioning formula</h3>
+        <p style="font-size:20px;color:var(--ink);font-weight:800">
+          For X customer, K.I.N.D. produces Y outcome through Z differentiated mechanism.
+        </p>
+        <p>The product may broaden over time. The entry wedge should remain easy to understand, buy and prove.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>12 · GTM operating system</h2>
+      <div class="kicker">Turn go-to-market into an operating machine, not a founder hustle.</div>
+    </div>
+
+    <div class="flow">
+      <div class="node screen">
+        <strong>MARKET</strong>
+        <small>Category · ICP · target account universe</small>
+      </div>
+      <div class="arrow">↓</div>
+
+      <div class="ladder" style="grid-template-columns:repeat(6,1fr)">
+        <div class="step"><div class="n">1</div><b>Acquire</b><span style="color:var(--muted);font-size:13px">Outbound · content · partners · referrals</span></div>
+        <div class="step"><div class="n">2</div><b>Qualify</b><span style="color:var(--muted);font-size:13px">Fit · pain · timing · authority</span></div>
+        <div class="step"><div class="n">3</div><b>Convert</b><span style="color:var(--muted);font-size:13px">Meeting · proposal · close</span></div>
+        <div class="step"><div class="n">4</div><b>Onboard</b><span style="color:var(--muted);font-size:13px">Fast path to first value</span></div>
+        <div class="step"><div class="n">5</div><b>Retain</b><span style="color:var(--muted);font-size:13px">Prove value · intervene early</span></div>
+        <div class="step"><div class="n">6</div><b>Expand</b><span style="color:var(--muted);font-size:13px">Upsell · referral · case study</span></div>
+      </div>
+
+      <div class="arrow">↓</div>
+      <div class="exception">
+        <strong>GTM LOOP</strong><br>
+        <span style="color:var(--muted);font-size:13px">Customer outcome → proof → lower-friction acquisition → more customers → more learning → better outcome.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>13 · Marketing engine</h2>
+      <div class="kicker">Marketing is a portfolio of jobs, not one channel.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Category marketing</b><span>Explain why the problem matters and why the old way is no longer enough.</span></div>
+      <div class="rule"><b>Demand generation</b><span>Put K.I.N.D. in front of likely buyers through outbound, content and targeted campaigns.</span></div>
+      <div class="rule"><b>Founder brand</b><span>Use the founder as the early trust layer, without making the company permanently dependent on the founder identity.</span></div>
+      <div class="rule"><b>Product marketing</b><span>Translate capabilities into buyer outcomes, reasons to believe and clear use cases.</span></div>
+      <div class="rule"><b>Proof marketing</b><span>Turn results into demonstrations, numbers, customer stories and case studies.</span></div>
+      <div class="rule"><b>Lifecycle marketing</b><span>Educate prospects who are not ready today and keep demand warm over time.</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Early-stage priority</h3>
+      <p style="font-size:18px;color:var(--ink);font-weight:800">
+        Founder voice + direct outbound + strong product demonstrations + customer evidence.
+      </p>
+      <p>Do not try to build every channel at once. Prove messages and offers before amplifying them.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>14 · Distribution system</h2>
+      <div class="kicker">Build routes to market that do not require recreating demand every month.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Direct outbound</b><span>Founder-led initially; increasingly systemised.</span></div>
+        <div class="role"><b>Customer referrals</b><span>Happy customers become a repeatable acquisition channel.</span></div>
+        <div class="role"><b>Commission sales</b><span>Approved offer, approved commercial boundaries, measurable economics.</span></div>
+        <div class="role"><b>Affiliates / partners</b><span>Third parties with trusted customer relationships bring demand.</span></div>
+        <div class="role"><b>Integrations</b><span>Technology ecosystems become distribution surfaces.</span></div>
+        <div class="role"><b>Resellers / advisers</b><span>Consultants and service firms can carry K.I.N.D. into existing accounts.</span></div>
+      </div>
+      <p style="margin-top:16px;font-weight:800;color:var(--ink)">
+        Strategic aim: the company should not depend on the founder personally creating every new opportunity.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>15 · Offer + pricing architecture</h2>
+      <div class="kicker">A commercial system, not just a price page.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Offer ladder</h3>
+        <div class="roles">
+          <div class="role"><b>Entry offer</b><span>Low-friction way to start.</span></div>
+          <div class="role"><b>Core offer</b><span>Primary product and normal customer economics.</span></div>
+          <div class="role"><b>Premium / enterprise</b><span>Higher service, control, volume or risk requirements.</span></div>
+          <div class="role"><b>Expansion</b><span>Usage, seats, volume, add-ons, annual or enterprise commitments.</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Commercial control</h3>
+        <p>Define pricing, discount authority, trial/demo rules, commission economics and approval boundaries.</p>
+        <p style="font-weight:800;color:var(--ink)">Key question: how does revenue per customer grow as the customer succeeds?</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>16 · Customer value engine</h2>
+      <div class="kicker">Acquisition matters only if value becomes visible and repeatable.</div>
+    </div>
+
+    <div class="ladder">
+      <div class="step"><div class="n">Stage 1</div><b>Time to first value</b><span style="color:var(--muted);font-size:13px">How fast does a new customer experience the thing they bought?</span></div>
+      <div class="step"><div class="n">Stage 2</div><b>Value achieved</b><span style="color:var(--muted);font-size:13px">Did K.I.N.D. actually create the expected business outcome?</span></div>
+      <div class="step"><div class="n">Stage 3</div><b>Value demonstrated</b><span style="color:var(--muted);font-size:13px">Can the customer clearly see and explain the result?</span></div>
+      <div class="step"><div class="n">Stage 4</div><b>Retention</b><span style="color:var(--muted);font-size:13px">Does value create a reason to stay?</span></div>
+      <div class="step"><div class="n">Stage 5</div><b>Expansion</b><span style="color:var(--muted);font-size:13px">Does success create a reason to buy more?</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Customer-facing proof should show outcomes, not activity</h3>
+      <p>
+        Prefer meaningful business measures such as qualified conversations, meetings generated, pipeline influenced,
+        time saved or other approved customer outcomes — not merely raw action counts.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>17 · Retention + expansion engine</h2>
+      <div class="kicker">A $100M company cannot rely on endlessly refilling a leaky bucket.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Churn intelligence</b><span>Why do customers leave, and what signals appear before they leave?</span></div>
+        <div class="role"><b>Usage health</b><span>Which behaviours correlate with retention and success?</span></div>
+        <div class="role"><b>Human intervention</b><span>What conditions should trigger CS or founder attention?</span></div>
+        <div class="role"><b>Expansion triggers</b><span>What success or usage level creates a natural upsell?</span></div>
+        <div class="role"><b>Advocacy</b><span>When does a successful customer become a referral, testimonial or case study?</span></div>
+        <div class="role"><b>Revenue quality</b><span>Optimise for retained and expanded revenue, not only new logos.</span></div>
+      </div>
+      <div class="exception" style="margin-top:18px">
+        <strong>Acquire → Deliver value → Retain → Expand → Advocate → Acquire</strong>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>18 · Economics OS</h2>
+      <div class="kicker">Automation and AI only create leverage if the economics are healthy.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Revenue</b><span>ARR · MRR · revenue per customer · expansion revenue.</span></div>
+      <div class="rule"><b>Acquisition</b><span>CAC · conversion · CAC payback · channel efficiency.</span></div>
+      <div class="rule"><b>Retention</b><span>Logo churn · revenue churn · NRR · renewal rate.</span></div>
+      <div class="rule"><b>Margin</b><span>Gross margin · contribution margin · cost to serve.</span></div>
+      <div class="rule"><b>AI + data cost</b><span>Model, enrichment, messaging, infrastructure and workflow cost per customer.</span></div>
+      <div class="rule"><b>Support cost</b><span>Human service burden and founder interventions per customer.</span></div>
+    </div>
+
+    <div class="metric" style="margin-top:18px">
+      <div>
+        <strong>Founder screen must connect growth to economics</strong><br>
+        <span>High revenue is not enough if retention, gross margin or payback are weak.</span>
+      </div>
+      <div class="big">GROW + KEEP + MARGIN</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>19 · Product moat system</h2>
+      <div class="kicker">Why does K.I.N.D. become harder to replace as it gets better?</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Customer knowledge</b><span>Accumulated context and workflows that improve outcomes.</span></div>
+        <div class="role"><b>Performance data</b><span>Historical learning that improves future decisions.</span></div>
+        <div class="role"><b>ICP intelligence</b><span>Learned patterns about who responds, converts and retains.</span></div>
+        <div class="role"><b>Integrations</b><span>Deeper embedded workflows increase practical value.</span></div>
+        <div class="role"><b>Playbooks</b><span>Customer-specific knowledge and repeatable decision logic.</span></div>
+        <div class="role"><b>Trust + brand</b><span>Reliability, proof and reputation compound alongside product capability.</span></div>
+      </div>
+      <p style="margin-top:16px">
+        The moat should come from accumulated customer value, learning, workflow integration and trust — not artificial lock-in.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>20 · Intelligence OS</h2>
+      <div class="kicker">The founder dashboard should become a decision system, not a reporting graveyard.</div>
+    </div>
+
+    <div class="flow">
+      <div class="systems">
+        <div class="system-card"><div class="label">Input</div><h3>CRM</h3><p>Pipeline, meetings, customers and commercial state.</p></div>
+        <div class="system-card"><div class="label">Input</div><h3>Billing</h3><p>Revenue, collections, subscriptions and cash.</p></div>
+        <div class="system-card"><div class="label">Input</div><h3>Product</h3><p>Usage, delivery, incidents and releases.</p></div>
+        <div class="system-card"><div class="label">Input</div><h3>Customer</h3><p>Onboarding, support, health, retention and expansion signals.</p></div>
+        <div class="system-card"><div class="label">Input</div><h3>Marketing</h3><p>Channel demand, message performance and acquisition source.</p></div>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>FOUNDER INTELLIGENCE LAYER</strong>
+        <small>What changed? · Why? · What needs attention? · What is likely next? · What decision is required?</small>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>21 · Trust OS</h2>
+      <div class="kicker">At enterprise scale, trust becomes part of the product and the sale.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Security</b><span>Access control, secrets, secure development, account recovery and monitoring.</span></div>
+      <div class="rule"><b>Privacy + compliance</b><span>Data roles, notices, lawful handling, contracts, retention and evidence.</span></div>
+      <div class="rule"><b>Incident response</b><span>Known process for containment, communication, recovery and learning.</span></div>
+      <div class="rule"><b>Business continuity</b><span>Founder absence, backups, recovery and operational fallback.</span></div>
+      <div class="rule"><b>Vendor risk</b><span>Know which external providers can affect delivery, data or customer commitments.</span></div>
+      <div class="rule"><b>Audit evidence</b><span>Be able to prove what happened, what controls exist and who approved material decisions.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>22 · Brand system</h2>
+      <div class="kicker">The company must eventually carry trust independently of the founder.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Brand must answer</h3>
+        <p>What does K.I.N.D. stand for?</p>
+        <p>How does it speak?</p>
+        <p>What will it never do?</p>
+        <p>What does the market associate it with?</p>
+        <p>Why should a buyer trust it?</p>
+      </div>
+
+      <div class="card">
+        <h3>Transition</h3>
+        <p style="font-size:24px;color:var(--ink);font-weight:900">
+          Founder reputation → K.I.N.D. reputation
+        </p>
+        <p>Use the founder as the early trust layer, then deliberately transfer that trust to the company, product and customer evidence.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>23 · Capital allocation system</h2>
+      <div class="kicker">As the company grows, founder work shifts from tasks to allocation.</div>
+    </div>
+
+    <div class="card">
+      <h3>The CEO question becomes: where should the next £1 go?</h3>
+      <div class="roles">
+        <div class="role"><b>Product</b><span>Capability, reliability and customer value.</span></div>
+        <div class="role"><b>Distribution</b><span>Channels, partnerships and sales leverage.</span></div>
+        <div class="role"><b>Marketing</b><span>Demand, proof, category and brand.</span></div>
+        <div class="role"><b>Data + AI</b><span>Model, enrichment and intelligence infrastructure.</span></div>
+        <div class="role"><b>Customer success</b><span>Retention, expansion and advocacy.</span></div>
+        <div class="role"><b>Protection</b><span>Security, compliance, legal, resilience and cash reserves.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>24 · Specialist network</h2>
+      <div class="kicker">Build a bench of capabilities, not a large payroll by default.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Senior engineer</b><span>Architecture, incidents and difficult technical judgement.</span></div>
+        <div class="role"><b>Junior developer</b><span>Bounded execution, testing, UI and maintenance.</span></div>
+        <div class="role"><b>Legal adviser</b><span>Contracts, compliance, data protection and company risk.</span></div>
+        <div class="role"><b>Accountant / CFO adviser</b><span>Tax, controls, cash, forecasting and financial structure.</span></div>
+        <div class="role"><b>Security specialist</b><span>Periodic review, incident support and enterprise readiness.</span></div>
+        <div class="role"><b>Growth specialists</b><span>Paid media, SEO, design, copy or other expertise when evidence supports the spend.</span></div>
+      </div>
+      <p style="margin-top:16px">
+        Most capabilities can remain fractional or project-based until the economics justify permanent headcount.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>25 · Governance layer</h2>
+      <div class="kicker">Predictable authority is what lets a lean company become safe at scale.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Decision rights</b><span>Who can decide product, commercial, legal, financial and technical matters?</span></div>
+      <div class="rule"><b>Contract authority</b><span>Who can sign, discount, refund, commit or bind the company?</span></div>
+      <div class="rule"><b>Access levels</b><span>Who can see or change code, production, money, data and secrets?</span></div>
+      <div class="rule"><b>IP ownership</b><span>Contractor and developer work belongs to the company under appropriate agreements.</span></div>
+      <div class="rule"><b>Emergency authority</b><span>Who can act when the founder is unavailable?</span></div>
+      <div class="rule"><b>Corporate hygiene</b><span>Insurance, tax, records, shareholder/board obligations and statutory requirements stay current.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>26 · The growth flywheel</h2>
+      <div class="kicker">Each customer should improve the machine that wins and serves the next customer.</div>
+    </div>
+
+    <div class="flow">
+      <div class="ladder" style="grid-template-columns:repeat(6,1fr)">
+        <div class="step"><div class="n">1</div><b>Better outcome</b><span style="color:var(--muted);font-size:13px">Product creates measurable value.</span></div>
+        <div class="step"><div class="n">2</div><b>Happier customer</b><span style="color:var(--muted);font-size:13px">Value creates retention and trust.</span></div>
+        <div class="step"><div class="n">3</div><b>Proof</b><span style="color:var(--muted);font-size:13px">Case study · data · referral.</span></div>
+        <div class="step"><div class="n">4</div><b>Lower-friction acquisition</b><span style="color:var(--muted);font-size:13px">Trust reduces the cost of the next sale.</span></div>
+        <div class="step"><div class="n">5</div><b>More customers</b><span style="color:var(--muted);font-size:13px">More opportunities to learn.</span></div>
+        <div class="step"><div class="n">6</div><b>Better product</b><span style="color:var(--muted);font-size:13px">Learning compounds into better outcomes.</span></div>
+      </div>
+
+      <div class="loop" style="font-size:20px;margin-top:28px">
+        ↻ REPEAT: BETTER OUTCOME → STRONGER GROWTH → MORE LEARNING → BETTER OUTCOME
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>27 · End-state design principle</h2>
+      <div class="kicker">The goal is leverage, not a headcount stunt.</div>
+    </div>
+
+    <div class="card" style="text-align:center;padding:36px">
+      <div style="font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-.03em;max-width:1050px;margin:auto">
+        Build a company that can become extremely valuable while preserving founder control, high leverage, strong margins, speed and simplicity.
+      </div>
+      <p style="margin:18px auto 0;max-width:900px">
+        Do not optimise for “one employee” at all costs. Optimise for the smallest permanent organisation that can safely support the value, risk and customer base of the business.
+      </p>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>28 · Enterprise resilience OS</h2>
+      <div class="kicker">At scale, the company must continuously know what can hurt it, stop it or kill it.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Living risk register</h3>
+        <p>Every material enterprise risk should have a simple operating record:</p>
+        <div class="roles">
+          <div class="role"><b>Probability</b><span>How likely is this risk?</span></div>
+          <div class="role"><b>Impact</b><span>What happens if it occurs?</span></div>
+          <div class="role"><b>Owner</b><span>Who is accountable for watching it?</span></div>
+          <div class="role"><b>Early warning</b><span>What signal tells us the risk is getting closer?</span></div>
+          <div class="role"><b>Preventative control</b><span>What reduces the chance or impact?</span></div>
+          <div class="role"><b>Recovery plan</b><span>What do we do if it happens anyway?</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Questions the risk system must answer</h3>
+        <p>What can stop growth?</p>
+        <p>Where are we over-dependent?</p>
+        <p>What happens if a major provider disappears?</p>
+        <p>What happens if a large customer leaves?</p>
+        <p>What happens if regulation changes?</p>
+        <p>What happens if AI/data costs rise sharply?</p>
+        <p>What happens if the founder is unavailable for months?</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>29 · Quality OS</h2>
+      <div class="kicker">Quality is broader than “tests passed.”</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Availability</b><span>Is the product reachable and usable when customers need it?</span></div>
+      <div class="rule"><b>Latency</b><span>Are important customer actions completing within an acceptable range?</span></div>
+      <div class="rule"><b>Delivery success</b><span>Are core workflows actually completing end-to-end?</span></div>
+      <div class="rule"><b>Data accuracy</b><span>Can customers trust the information K.I.N.D. presents and acts on?</span></div>
+      <div class="rule"><b>Integration reliability</b><span>Are external dependencies behaving normally?</span></div>
+      <div class="rule"><b>Recovery</b><span>Do backups work, and can service be restored inside the expected window?</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Target operating behaviour</h3>
+      <p style="font-size:18px;color:var(--ink);font-weight:800">
+        The founder should not discover a product failure because a customer happens to message first.
+      </p>
+      <p>The system should detect deviations, surface impact and route the exception automatically.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>30 · Experimentation OS</h2>
+      <div class="kicker">Turn learning into a repeatable company process.</div>
+    </div>
+
+    <div class="ladder">
+      <div class="step"><div class="n">1</div><b>Hypothesis</b><span style="color:var(--muted);font-size:13px">What do we believe and why?</span></div>
+      <div class="step"><div class="n">2</div><b>Experiment</b><span style="color:var(--muted);font-size:13px">What is the smallest safe test?</span></div>
+      <div class="step"><div class="n">3</div><b>Result</b><span style="color:var(--muted);font-size:13px">What actually happened?</span></div>
+      <div class="step"><div class="n">4</div><b>Decision</b><span style="color:var(--muted);font-size:13px">Adopt, reject, iterate or stop?</span></div>
+      <div class="step"><div class="n">5</div><b>Institutional learning</b><span style="color:var(--muted);font-size:13px">What should the company remember?</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Experimentable surfaces</h3>
+      <p>
+        Positioning · pricing · outreach · onboarding · activation · product workflows · retention · upsell · marketing channels.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>31 · Metrics architecture</h2>
+      <div class="kicker">Every important metric needs one definition, one calculation and one canonical data source.</div>
+    </div>
+
+    <div class="card">
+      <h3>Metric dictionary</h3>
+      <div class="roles">
+        <div class="role"><b>Customer</b><span>What exactly qualifies as a customer?</span></div>
+        <div class="role"><b>Meeting</b><span>Booked, attended, qualified or completed?</span></div>
+        <div class="role"><b>Pipeline</b><span>What qualifies and how is value calculated?</span></div>
+        <div class="role"><b>ARR / MRR</b><span>What is included, excluded or normalized?</span></div>
+        <div class="role"><b>Churn</b><span>Logo, revenue, contracted or realized?</span></div>
+        <div class="role"><b>Active</b><span>What behaviour counts as actual product usage?</span></div>
+      </div>
+      <p style="margin-top:16px">
+        The dashboard can summarize these metrics, but it should never redefine them.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>32 · Concentration-risk system</h2>
+      <div class="kicker">Lean can be efficient and still secretly fragile.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Customer concentration</b><span>What percentage of revenue depends on the top 1, 5 and 10 customers?</span></div>
+      <div class="rule"><b>Channel concentration</b><span>How dependent is acquisition on one channel?</span></div>
+      <div class="rule"><b>Provider concentration</b><span>How exposed are we to one model, host, database or data provider?</span></div>
+      <div class="rule"><b>People concentration</b><span>Which capabilities depend on one contractor or specialist?</span></div>
+      <div class="rule"><b>Geography concentration</b><span>Where does revenue and regulatory exposure sit?</span></div>
+      <div class="rule"><b>Product concentration</b><span>What single capability would materially increase churn if it failed?</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>33 · Vendor + dependency OS</h2>
+      <div class="kicker">Critical suppliers are part of the product architecture.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Provider</b><span>Who supplies the dependency?</span></div>
+        <div class="role"><b>Purpose</b><span>What business capability depends on it?</span></div>
+        <div class="role"><b>Data access</b><span>What customer/company data can it see?</span></div>
+        <div class="role"><b>Criticality</b><span>Critical · Important · Replaceable.</span></div>
+        <div class="role"><b>Substitute</b><span>What is the fallback if it disappears?</span></div>
+        <div class="role"><b>Recovery</b><span>How does the company continue if it fails?</span></div>
+      </div>
+      <p style="margin-top:16px">
+        Critical vendors should have either a fallback path or an explicit accepted-risk decision.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>34 · Treasury OS</h2>
+      <div class="kicker">Cash management becomes a system, not a bank-balance check.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Operating cash</b><span>Cash required to run the company normally.</span></div>
+      <div class="rule"><b>Tax reserves</b><span>Cash ring-fenced for tax and statutory obligations.</span></div>
+      <div class="rule"><b>Runway</b><span>How long can the company operate under current commitments?</span></div>
+      <div class="rule"><b>Receivables</b><span>What is owed, overdue and at risk?</span></div>
+      <div class="rule"><b>Liabilities</b><span>Supplier, commission and contractual commitments.</span></div>
+      <div class="rule"><b>Emergency liquidity</b><span>What cash is available if something significant goes wrong?</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>35 · Corporate structure OS</h2>
+      <div class="kicker">Enterprise value depends on clean ownership and provable corporate hygiene.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>IP ownership</b><span>Code, brand, designs, datasets and contractor work are properly assigned.</span></div>
+      <div class="rule"><b>Contracts</b><span>Customer, supplier, contractor and employment terms are organized and current.</span></div>
+      <div class="rule"><b>Cap table + records</b><span>Ownership, board/shareholder records and statutory information remain clean.</span></div>
+      <div class="rule"><b>Brand assets</b><span>Trademarks, domains and key commercial assets are controlled by the company.</span></div>
+      <div class="rule"><b>Insurance</b><span>Appropriate business, cyber and professional protections scale with exposure.</span></div>
+      <div class="rule"><b>Due-diligence readiness</b><span>Material company facts can be proven without reconstructing history from memory.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>36 · Enterprise sales OS</h2>
+      <div class="kicker">Large contracts introduce a second sales operating model.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Procurement</b><span>Vendor onboarding and commercial requirements.</span></div>
+        <div class="role"><b>Security review</b><span>Questionnaires, controls, architecture and evidence.</span></div>
+        <div class="role"><b>Legal</b><span>MSA, DPA, liability, redlines and negotiated terms.</span></div>
+        <div class="role"><b>SLA</b><span>Service commitments, support and incident expectations.</span></div>
+        <div class="role"><b>Implementation</b><span>Scope, dependencies, ownership and rollout.</span></div>
+        <div class="role"><b>Deal room</b><span>Reusable evidence so each enterprise deal does not restart from zero.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>37 · Internationalisation OS</h2>
+      <div class="kicker">Global expansion should be gated, not accidental.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Expansion dimensions</h3>
+        <p>Currencies · tax · privacy · local commercial rules · language · data residency · payments · support expectations.</p>
+      </div>
+      <div class="card">
+        <h3>Market-entry gate</h3>
+        <p style="font-size:18px;color:var(--ink);font-weight:800">
+          Enter a market only after product, legal, commercial and operational readiness are known.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>38 · Reputation + crisis OS</h2>
+      <div class="kicker">How the company responds can matter as much as the original incident.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Security incident</b><span>Contain, establish facts, communicate, recover, learn.</span></div>
+      <div class="rule"><b>Service outage</b><span>Know who speaks, what is promised and what customers need.</span></div>
+      <div class="rule"><b>Customer complaint</b><span>Separate service recovery from legal or public escalation.</span></div>
+      <div class="rule"><b>Public criticism</b><span>Do not improvise facts or promises under pressure.</span></div>
+      <div class="rule"><b>Legal allegation</b><span>Escalate to qualified counsel before public or contractual commitments.</span></div>
+      <div class="rule"><b>Press enquiry</b><span>Use one controlled source of facts and an agreed spokesperson.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>39 · Founder decision OS</h2>
+      <div class="kicker">Founder attention becomes the scarcest resource.</div>
+    </div>
+
+    <div class="ladder">
+      <div class="step"><div class="n">Level 0</div><b>Automatic</b><span style="color:var(--muted);font-size:13px">The system handles it.</span></div>
+      <div class="step"><div class="n">Level 1</div><b>Delegated</b><span style="color:var(--muted);font-size:13px">A trusted operator decides within policy.</span></div>
+      <div class="step"><div class="n">Level 2</div><b>Founder review</b><span style="color:var(--muted);font-size:13px">Material, but not urgent.</span></div>
+      <div class="step"><div class="n">Level 3</div><b>Founder decision</b><span style="color:var(--muted);font-size:13px">Pricing, strategy, major spend or customer commitment.</span></div>
+      <div class="step"><div class="n">Level 4</div><b>Founder + specialist</b><span style="color:var(--muted);font-size:13px">Legal, security, finance structure, architecture or serious incident.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>40 · Founder energy OS</h2>
+      <div class="kicker">If the founder is the central strategic asset, the company must protect founder capacity.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Deep work</b><span>Protect uninterrupted time for strategy, product thinking and high-value decisions.</span></div>
+      <div class="rule"><b>Decision load</b><span>Route low-level decisions away from the founder.</span></div>
+      <div class="rule"><b>Sales energy</b><span>Preserve founder presence for conversations where it materially improves outcomes.</span></div>
+      <div class="rule"><b>Recovery</b><span>Design holidays, launch recovery and downtime into the operating model.</span></div>
+      <div class="rule"><b>Health</b><span>Founder wellbeing is operational resilience, not a side issue.</span></div>
+      <div class="rule"><b>Boundaries</b><span>Prevent the company from consuming every available hour simply because it can.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>41 · Succession OS</h2>
+      <div class="kicker">Even a founder who never plans to leave needs an answer to prolonged incapacity.</div>
+    </div>
+
+    <div class="card">
+      <div class="roles">
+        <div class="role"><b>Corporate authority</b><span>Who can legally act if the founder cannot?</span></div>
+        <div class="role"><b>Banking</b><span>Who can keep essential financial obligations moving?</span></div>
+        <div class="role"><b>Contracts</b><span>Who can preserve customer and supplier relationships?</span></div>
+        <div class="role"><b>Technical authority</b><span>Who can preserve and recover production safely?</span></div>
+        <div class="role"><b>Legal representation</b><span>Who can engage advisers and respond to material issues?</span></div>
+        <div class="role"><b>Continuity</b><span>What minimum operating state preserves enterprise value?</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>42 · Strategy OS</h2>
+      <div class="kicker">Do not let the backlog become the strategy.</div>
+    </div>
+
+    <div class="cadence">
+      <div class="cad">
+        <div class="when">Quarterly</div>
+        <h3>Strategic allocation</h3>
+        <p>Markets, products, channels, risks, experiments and where capital should move next.</p>
+      </div>
+      <div class="cad">
+        <div class="when">Annual</div>
+        <h3>Enterprise design</h3>
+        <p>What should K.I.N.D. look like 12–36 months from now?</p>
+      </div>
+      <div class="cad">
+        <div class="when">Always</div>
+        <h3>Strategy guard</h3>
+        <p>Urgent work may change priorities; it does not silently rewrite company direction.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>43 · Portfolio OS</h2>
+      <div class="kicker">Not every good idea deserves current resources.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>CORE</b><span>Protect and improve the current revenue engine.</span></div>
+      <div class="rule"><b>GROWTH</b><span>Adjacent opportunities with evidence and a defined commercial thesis.</span></div>
+      <div class="rule"><b>OPTIONS</b><span>Experiments and future bets that preserve upside without consuming the core.</span></div>
+      <div class="rule"><b>PARKED</b><span>Interesting, documented, but receiving no current capital or operating attention.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>44 · Enterprise Value OS</h2>
+      <div class="kicker">Design for value, not just activity or revenue.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Growth</b><span>Is revenue compounding?</span></div>
+      <div class="rule"><b>Quality</b><span>Does revenue retain and expand?</span></div>
+      <div class="rule"><b>Economics</b><span>Are margins, acquisition costs and payback healthy?</span></div>
+      <div class="rule"><b>Defensibility</b><span>Why does the product become harder to replace?</span></div>
+      <div class="rule"><b>Transferability</b><span>Can the company operate without depending entirely on the founder?</span></div>
+      <div class="rule"><b>Proof</b><span>Can every material enterprise claim be evidenced quickly?</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>45 · The five executive views</h2>
+      <div class="kicker">Stop adding systems. Compress the company into five decision surfaces.</div>
+    </div>
+
+    <div class="flow">
+      <div class="systems">
+        <div class="system-card">
+          <div class="label">View 1</div>
+          <h3>GROW</h3>
+          <p>Are we acquiring customers efficiently and building repeatable demand?</p>
+        </div>
+        <div class="system-card">
+          <div class="label">View 2</div>
+          <h3>DELIVER</h3>
+          <p>Are customers receiving, seeing and renewing meaningful value?</p>
+        </div>
+        <div class="system-card">
+          <div class="label">View 3</div>
+          <h3>ECONOMICS</h3>
+          <p>Are margins, retention, cash and acquisition economics healthy?</p>
+        </div>
+        <div class="system-card">
+          <div class="label">View 4</div>
+          <h3>RISK</h3>
+          <p>Is anything capable of materially hurting customers, growth or enterprise value?</p>
+        </div>
+        <div class="system-card">
+          <div class="label">View 5</div>
+          <h3>FOUNDER</h3>
+          <p>What decisions actually require founder judgement right now?</p>
+        </div>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>$100M LEAN-ENTERPRISE CONTROL MODEL</strong>
+        <small>A company understandable from five screens while thousands of underlying actions happen without the founder.</small>
+      </div>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>46 · Constraint OS</h2>
+      <div class="kicker">Do not improve everything at once. Find the constraint, remove it, then find the next one.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>The operating question</h3>
+        <p style="font-size:clamp(24px,3vw,38px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+          WHAT IS THE CURRENT CONSTRAINT?
+        </p>
+        <p>
+          At any point, one bottleneck is likely limiting the company more than everything else.
+          The founder's job is to identify it, concentrate resources, remove it, measure the effect, then repeat.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Constraint loop</h3>
+        <div class="ladder" style="grid-template-columns:repeat(5,1fr)">
+          <div class="step"><div class="n">1</div><b>Find it</b><span style="color:var(--muted);font-size:13px">What is actually limiting growth or delivery?</span></div>
+          <div class="step"><div class="n">2</div><b>Focus</b><span style="color:var(--muted);font-size:13px">Concentrate attention, capital and people.</span></div>
+          <div class="step"><div class="n">3</div><b>Remove it</b><span style="color:var(--muted);font-size:13px">Solve the bottleneck, not the symptoms.</span></div>
+          <div class="step"><div class="n">4</div><b>Measure</b><span style="color:var(--muted);font-size:13px">Did the constraint really move?</span></div>
+          <div class="step"><div class="n">5</div><b>Repeat</b><span style="color:var(--muted);font-size:13px">The next constraint becomes visible.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Typical constraint sequence</h3>
+      <div class="rules">
+        <div class="rule"><b>No customers</b><span>Constraint = acquisition. Solve demand and outreach.</span></div>
+        <div class="rule"><b>Leads do not buy</b><span>Constraint = offer or sales conversion.</span></div>
+        <div class="rule"><b>Onboarding breaks</b><span>Constraint = fulfilment and customer operations.</span></div>
+        <div class="rule"><b>Customers churn</b><span>Constraint = value, product fit or retention.</span></div>
+        <div class="rule"><b>Founder is overwhelmed</b><span>Constraint = delegation, systems and decision routing.</span></div>
+        <div class="rule"><b>Growth stalls</b><span>Constraint = distribution, market size, economics or product expansion.</span></div>
+      </div>
+    </div>
+
+    <div class="metric" style="margin-top:18px">
+      <div>
+        <strong>Constraint rule</strong><br>
+        <span>The five executive views tell you where to look. Constraint OS tells you what to attack first.</span>
+      </div>
+      <div class="big">ONE BOTTLENECK</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>47 · Founder-to-enterprise vision</h2>
+      <div class="kicker">The long-range path: from founder doing the work to founder allocating capital and attention.</div>
+    </div>
+
+    <div class="flow">
+      <div class="node founder">
+        <strong>STAGE 1 · YOU DO IT</strong>
+        <small>Sell K.I.N.D. yourself · onboard customers · watch what breaks · learn why they buy · learn why they stay</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 2 · MAKE IT REPEATABLE</strong>
+        <small>One offer · one ICP · one onboarding path · one sales process · one fulfilment process</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 3 · TURN KNOWLEDGE INTO SYSTEM</strong>
+        <small>Playbooks · K.I.N.D. software · CRM · automations · scripts · decision rules · dashboards</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 4 · REMOVE YOURSELF FROM NORMAL CASES</strong>
+        <small>VA runs process · CS runs process · sales runs process · developer runs bounded work · AI runs approved repetitive work · founder handles exceptions</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 5 · BUILD DISTRIBUTION</strong>
+        <small>Founder brand · outbound · content · referrals · partners · affiliates · salespeople</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 6 · EXPAND CUSTOMER ECONOMICS</strong>
+        <small>More usage · higher tiers · enterprise · adjacent capabilities · renewal · expansion</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>STAGE 7 · FOUNDER BECOMES CAPITAL ALLOCATOR</strong>
+        <small>Where does the next £1 and the next hour create the greatest return?</small>
+      </div>
+
+      <div class="exception" style="margin-top:22px">
+        <strong>VISION</strong><br>
+        <span style="color:var(--muted);font-size:13px">
+          Build the architecture for the $100M company now — then reach it by solving one constraint at a time.
+        </span>
+      </div>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>48 · Stage-Gate Operating Model</h2>
+      <div class="kicker">Move stages only when evidence proves the current stage has done its job.</div>
+    </div>
+
+    <div class="card">
+      <h3>Core rule</h3>
+      <p style="font-size:clamp(22px,3vw,34px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+        You do not move stages because time passed or because you feel busy.
+        You move when objective evidence proves the current stage has done its job.
+      </p>
+      <p>
+        The stage tells you where dominant founder attention belongs. The gate tells you when it is safe to shift that attention.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>49 · The seven stage gates</h2>
+      <div class="kicker">Each stage has an entry condition, a proof marker and an exit trigger.</div>
+    </div>
+
+    <div class="flow">
+      <div class="node founder">
+        <strong>STAGE 1 · YOU DO IT</strong>
+        <small>Enter: real customers begin using K.I.N.D. · Marker: you can explain who buys, why, what they expect, where they struggle and what creates value · Exit: repeated customer journeys reveal stable patterns rather than guesses</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 2 · MAKE IT REPEATABLE</strong>
+        <small>Enter: patterns are visible · Marker: one ICP, one main offer, one sales path, one onboarding path and one fulfilment path handle most normal cases · Exit: another competent person can follow the process without you inventing it again</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 3 · TURN KNOWLEDGE INTO SYSTEM</strong>
+        <small>Enter: repeatable work still depends on founder memory or coordination · Marker: CRM, GitHub, customer systems, playbooks, automations and dashboards carry the process · Exit: the system knows what should happen next without founder routing</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 4 · REMOVE YOURSELF FROM NORMAL CASES</strong>
+        <small>Enter: the systems exist but founder execution is still too high · Marker: VA, CS, sales, junior dev and AI handle normal cases · Exit: the company operates normally for at least one working week without founder routine intervention</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 5 · BUILD DISTRIBUTION</strong>
+        <small>Enter: delivery works and customers receive repeatable value · Marker: more than one acquisition source creates qualified opportunities · Exit: growth is no longer primarily limited by founder-led prospecting and selling</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node">
+        <strong>STAGE 6 · EXPAND CUSTOMER ECONOMICS</strong>
+        <small>Enter: acquisition and basic retention are functioning · Marker: customers renew, expand, use more, move tiers or refer · Exit: existing customers become a meaningful source of growth</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>STAGE 7 · FOUNDER BECOMES CAPITAL ALLOCATOR</strong>
+        <small>Enter: people and systems can operate and grow the company without routine founder execution · Marker: most founder time goes to direction, allocation, major customers, product, partnerships and strategic decisions · Exit: none — defend this operating position</small>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>50 · Gate evidence</h2>
+      <div class="kicker">Do not confuse activity with proof.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule">
+        <b>Stage 1 gate · Customer truth</b>
+        <span>Know who buys, why they buy, what they expect, time to first value, where they struggle, why they stay and why they leave. Use roughly 5–10 real customer journeys as an early evidence base, not as a magic statistical threshold.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 2 gate · Operational repeatability</b>
+        <span>Another competent person can follow the process. Target roughly 80% of normal cases flowing through the defined path, with the remaining exceptions known and explicit.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 3 gate · System ownership</b>
+        <span>Leads, onboarding, support, code changes, billing events and other normal work move because systems trigger them, not because the founder remembers them.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 4 gate · Founder removal</b>
+        <span>Run a controlled five-working-day founder-absence test. Customers, leads, onboarding, invoices and incidents continue under defined authority without uncontrolled decisions.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 5 gate · Distribution independence</b>
+        <span>At least one non-founder acquisition source reliably produces qualified opportunities, then build toward a second. Track pipeline, customers, CAC and conversion by source.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 6 gate · Economic compounding</b>
+        <span>Retention, revenue per customer, expansion, referrals and margins improve. Existing customers contribute growth rather than every month starting from zero.</span>
+      </div>
+      <div class="rule">
+        <b>Stage 7 gate · Founder leverage</b>
+        <span>Founder calendar is dominated by high-leverage work rather than routine operations. A useful target is around 80% high-leverage attention and 20% or less operational exceptions.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>51 · Current Operating State</h2>
+      <div class="kicker">This is the anti-busy dashboard.</div>
+    </div>
+
+    <div class="flow">
+      <div class="node screen">
+        <strong>CURRENT OPERATING STATE</strong>
+        <small>The founder should be able to answer these fields at any time.</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="rules">
+        <div class="rule"><b>Current Stage</b><span>Which of the seven stages are we actually operating in?</span></div>
+        <div class="rule"><b>Current Constraint</b><span>What single bottleneck is limiting progress most?</span></div>
+        <div class="rule"><b>Constraint Metric</b><span>What number or observable behaviour proves the constraint is moving?</span></div>
+        <div class="rule"><b>Current Score</b><span>Where are we now against that metric?</span></div>
+        <div class="rule"><b>Exit Marker</b><span>What evidence must become true before we move focus?</span></div>
+        <div class="rule"><b>Next Stage</b><span>Where does founder attention shift once the gate is passed?</span></div>
+        <div class="rule"><b>Do-Not-Distract List</b><span>Good ideas that do not move the current constraint are parked, not pursued.</span></div>
+      </div>
+
+      <div class="exception" style="margin-top:18px">
+        <strong>WEEKLY FOUNDER QUESTION</strong><br>
+        <span style="color:var(--muted);font-size:13px">Did what I worked on this week move the current constraint?</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>52 · Anti-busy filter</h2>
+      <div class="kicker">Every idea must earn attention against the current gate.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Do now</h3>
+        <p style="font-size:18px;color:var(--ink);font-weight:800">
+          Work that directly moves the current constraint metric or is required to protect customers, cash, compliance or production.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Park</h3>
+        <p style="font-size:18px;color:var(--ink);font-weight:800">
+          Good ideas that do not move the current exit marker go to the portfolio, backlog or parked list.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Decision test</h3>
+      <div class="roles">
+        <div class="role"><b>New marketing idea?</b><span>Does it move the current gate? If not, park it.</span></div>
+        <div class="role"><b>Dashboard redesign?</b><span>Does it remove the current bottleneck? If not, park it.</span></div>
+        <div class="role"><b>New product feature?</b><span>Does it solve the current constraint or protect the core? If not, park it.</span></div>
+        <div class="role"><b>Process improvement?</b><span>If it directly lowers founder intervention or failure at the current gate, do it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>53 · Gate stability rule</h2>
+      <div class="kicker">Never advance because of one lucky customer, one huge sale or one unusually quiet week.</div>
+    </div>
+
+    <div class="card">
+      <p style="font-size:clamp(22px,3vw,34px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+        A stage gate is passed only when the exit marker remains true across several customer journeys, a meaningful cohort, or multiple weeks — whichever fits the metric.
+      </p>
+      <p>
+        Stage changes should reflect a durable operating condition, not a temporary spike.
+      </p>
+    </div>
+
+    <div class="metric" style="margin-top:18px">
+      <div>
+        <strong>The progression loop</strong><br>
+        <span>The company advances through evidence, not activity.</span>
+      </div>
+      <div class="big">STAGE → CONSTRAINT → METRIC → WORK → EVIDENCE → GATE → NEXT STAGE</div>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>54 · Revenue → Capacity → People OS</h2>
+      <div class="kicker">Revenue gives permission to hire. Capacity tells you when to hire.</div>
+    </div>
+    <div class="card">
+      <h3>The missing people layer</h3>
+      <p style="font-size:clamp(22px,3vw,34px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+        Do not add humans because an org chart says a business of your size “should” have them.
+        Add capacity when a measurable system reaches its safe limit.
+      </p>
+      <p>
+        AI, VA, commission sales, customer success, junior development and specialists carry execution.
+        The question is not whether humans appear; it is <b>when each function has earned dedicated human capacity.</b>
+      </p>
+    </div>
+    <div class="metric" style="margin-top:18px">
+      <div><strong>Hiring philosophy</strong><br><span>Revenue funds capacity. Constraint reveals the bottleneck. Hiring or automation increases capacity. Then growth resumes.</span></div>
+      <div class="big">REVENUE → CAPACITY → CONSTRAINT → HIRE / AUTOMATE → GROW</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>55 · Revenue-to-client planning bands</h2>
+      <div class="kicker">Planning bands, not automatic hiring rules.</div>
+    </div>
+    <div class="card" style="overflow:auto">
+      <h3>Working revenue assumption</h3>
+      <p>
+        Using the current planning assumption of <b>400 accepted leads per client per month × $4 = $1,600 monthly lead revenue per active client</b>,
+        one active client represents approximately <b>$19,200 annual lead revenue</b>.
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin-top:18px;min-width:900px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:12px;border-bottom:1px solid var(--line);color:var(--accent)">Annual lead revenue</th>
+            <th style="text-align:left;padding:12px;border-bottom:1px solid var(--line);color:var(--accent)">Approx. active clients</th>
+            <th style="text-align:left;padding:12px;border-bottom:1px solid var(--line);color:var(--accent)">Likely organisation shape</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$0–$500k</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">0–26</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Founder + commission salesperson + VA / contract help</td></tr>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$500k–$1.5M</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">26–78</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Add dedicated CS / operations capacity</td></tr>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$1.5M–$5M</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">78–260</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Deputy/operator + roughly 2 CS + multiple salespeople + junior dev + fractional senior technical support</td></tr>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$5M–$15M</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">260–781</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Sales lead, CS lead, RevOps/ops, product/engineering owner, finance support</td></tr>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$15M–$40M</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">781–2,083</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Proper Grow + Deliver + Operate teams; management begins appearing below the founder</td></tr>
+          <tr><td style="padding:12px;border-bottom:1px solid var(--line)"><b>$40M–$100M</b></td><td style="padding:12px;border-bottom:1px solid var(--line)">2,083–5,209</td><td style="padding:12px;border-bottom:1px solid var(--line);color:var(--muted)">Four engines have accountable leaders and real teams; founder primarily allocates capital, direction and major decisions</td></tr>
+          <tr><td style="padding:12px"><b>$100M</b></td><td style="padding:12px"><b>~5,209</b></td><td style="padding:12px;color:var(--muted)">Enterprise operating model rather than founder + contractors</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:16px"><b>These are planning bands, not automatic hiring triggers.</b> Revenue gives permission to add capacity; the actual bottleneck decides whether you should.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>56 · Capacity gates by function</h2>
+      <div class="kicker">Hire because a measurable system has hit capacity.</div>
+    </div>
+    <div class="rules">
+      <div class="rule"><b>Sales gate</b><span>Trigger when qualified pipeline exceeds the current team's ability to work it properly: slow follow-up, untouched opportunities or falling quality.</span></div>
+      <div class="rule"><b>Customer Success gate</b><span>Trigger when customer wait times rise, activation falls, health checks are missed or safe account capacity is exceeded.</span></div>
+      <div class="rule"><b>Implementation gate</b><span>Trigger when client volume slows time-to-first-value, makes onboarding inconsistent or increases founder intervention.</span></div>
+      <div class="rule"><b>Operations / deputy gate</b><span>Trigger when routine exceptions, coordination and people management begin flowing back to the founder.</span></div>
+      <div class="rule"><b>Engineering gate</b><span>Trigger when reliability, incidents or product backlog begin constraining revenue, retention or customer trust.</span></div>
+      <div class="rule"><b>Finance gate</b><span>Trigger when billing, collections, commissions, forecasting or reporting become too complex or risky for fractional support alone.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>57 · Commission-sales scaling advantage</h2>
+      <div class="kicker">Sales capacity can scale earlier than fixed payroll — but delivery must absorb what sales creates.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Why sales can scale differently</h3>
+        <p>
+          Under the current planning model, commission salespeople receive <b>25% of eligible lead revenue</b>.
+          If a salesperson sells nothing, direct commission cost is essentially zero. If they sell $1M of eligible lead revenue,
+          $250k goes to commission and $750k remains before delivery and operating costs.
+        </p>
+      </div>
+      <div class="card">
+        <h3>The likely bottleneck shift</h3>
+        <p>
+          Sales can scale ahead of some fixed headcount only if onboarding, delivery, support and product capacity can safely absorb the customers being sold.
+          The dangerous bottleneck may become <b>delivery capacity rather than sales payroll.</b>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>58 · When the organisation shape changes</h2>
+      <div class="kicker">Founder + contractors eventually stops being the safest structure.</div>
+    </div>
+    <div class="rules">
+      <div class="rule"><b>~$1M</b><span>The lean founder + systems + contractors model can still work extremely well.</span></div>
+      <div class="rule"><b>~$5M</b><span>Still plausible, but dedicated operations, CS and technical capacity should appear wherever constraints justify it.</span></div>
+      <div class="rule"><b>~$10M</b><span>Founder directly coordinating a loose collection of individual contractors begins becoming a structural risk.</span></div>
+      <div class="rule"><b>~$25M</b><span>Clear functional ownership should be emerging below the founder.</span></div>
+      <div class="rule"><b>$40M–$100M</b><span>The organisation should mirror the four engines, with accountable leaders and teams beneath them.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>59 · End-state people architecture</h2>
+      <div class="kicker">The organisation eventually mirrors the four engines already inside the Operating OS.</div>
+    </div>
+    <div class="flow">
+      <div class="node founder">
+        <strong>YOU · Founder / Capital Allocator</strong>
+        <small>Direction · capital · major customers · market choices · product vision · strategic exceptions</small>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="systems" style="grid-template-columns:repeat(4,1fr)">
+        <div class="system-card"><div class="label">GROW</div><h3>Growth / Revenue Leader</h3><p>Sales · partnerships · marketing · RevOps · channel economics</p></div>
+        <div class="system-card"><div class="label">DELIVER</div><h3>Customer / Delivery Leader</h3><p>Implementation · customer success · support · retention · expansion</p></div>
+        <div class="system-card"><div class="label">OPERATE</div><h3>Operations / Finance Leader</h3><p>Finance · people ops · systems · vendors · business operations</p></div>
+        <div class="system-card"><div class="label">PRODUCT + TECH</div><h3>Product / Technical Leader</h3><p>Engineering · product · reliability · AI/data · technical delivery</p></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node screen">
+        <strong>PROTECTION CAPABILITY</strong>
+        <small>Security · legal · compliance · risk — some or all can remain fractional/specialist for a long time</small>
+      </div>
+      <div class="exception" style="margin-top:20px">
+        <strong>IMPORTANT</strong><br>
+        <span style="color:var(--muted);font-size:13px">These do not have to start as expensive executives. Strong operators can grow into functional owners as capacity, risk and economics justify it.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>60 · Hiring gate card</h2>
+      <div class="kicker">Use the same stage-gate discipline for people decisions.</div>
+    </div>
+    <div class="flow">
+      <div class="rules">
+        <div class="rule"><b>Function</b><span>Which system is hitting capacity?</span></div>
+        <div class="rule"><b>Capacity metric</b><span>What measurable limit is being breached?</span></div>
+        <div class="rule"><b>Current load</b><span>What is the system carrying today?</span></div>
+        <div class="rule"><b>Safe capacity</b><span>What is the acceptable maximum before quality or risk degrades?</span></div>
+        <div class="rule"><b>Constraint evidence</b><span>What proves this role — rather than a process fix — is the bottleneck?</span></div>
+        <div class="rule"><b>Best intervention</b><span>Automate, simplify, contract, fractional support or permanent hire?</span></div>
+        <div class="rule"><b>Hire trigger</b><span>What exact condition makes human capacity necessary?</span></div>
+        <div class="rule"><b>Success marker</b><span>What should improve after adding the role?</span></div>
+      </div>
+      <div class="metric" style="margin-top:18px">
+        <div><strong>People rule</strong><br><span>Never hire to make the org chart look like a $100M company.</span></div>
+        <div class="big">HIRE WHEN THE NEXT REVENUE BAND CANNOT SAFELY PASS THROUGH THE CURRENT SYSTEM</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>61 · Founder-bottleneck test</h2>
+      <div class="kicker">Headcount only works if it actually removes founder dependency.</div>
+    </div>
+    <div class="card">
+      <p style="font-size:clamp(22px,3vw,34px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+        Adding people without adding functional ownership simply recreates the founder bottleneck at a larger scale.
+      </p>
+      <p>
+        At Stage 7, the target remains that most founder attention is high-leverage work rather than coordinating individual workers.
+        A practical marker is roughly <b>80% high-leverage founder attention and 20% or less operational exceptions</b>.
+      </p>
+    </div>
+    <div class="exception" style="margin-top:18px">
+      <strong>FINAL PEOPLE PRINCIPLE</strong><br>
+      <span style="color:var(--muted);font-size:13px">
+        Build the smallest permanent organisation that can safely support the value, risk and customer base of K.I.N.D. — then let measurable capacity constraints decide what gets added next.
+      </span>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-title">
+      <h2>62 · Role-Specific Work Planes</h2>
+      <div class="kicker">One company truth. Multiple role-specific views.</div>
+    </div>
+
+    <div class="card">
+      <h3>Core operating principle</h3>
+      <p style="font-size:clamp(22px,3vw,34px);color:var(--ink);font-weight:900;letter-spacing:-.025em">
+        Vida remains the Founder Control Plane. Workers should not receive company-wide visibility merely because they need to perform one company function.
+      </p>
+      <p>
+        Each operator should work through a restricted surface built for their job, backed by the same underlying company data and permission system.
+        The goal is <b>one truth, different windows</b> — not separate copies of the business.
+      </p>
+    </div>
+
+    <div class="flow" style="margin-top:18px">
+      <div class="node founder">
+        <strong>YOU · FOUNDER</strong>
+        <small>Full company visibility · direction · approvals · strategic exceptions</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="node screen">
+        <strong>VIDA · FOUNDER CONTROL PLANE</strong>
+        <small>Revenue · cash · pipeline · system · compliance · operations · product health · customer state · risk</small>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="systems" style="grid-template-columns:repeat(4,1fr)">
+        <div class="system-card">
+          <div class="label">ROLE PLANE</div>
+          <h3>CS Workspace</h3>
+          <p>Assigned clients · onboarding · inbox · bookings · health · tasks · reports · escalations</p>
+        </div>
+        <div class="system-card">
+          <div class="label">ROLE PLANE</div>
+          <h3>Sales Workspace</h3>
+          <p>Assigned accounts · pipeline · meetings · approved offer · follow-up · deal state</p>
+        </div>
+        <div class="system-card">
+          <div class="label">ROLE PLANE</div>
+          <h3>Finance Workspace</h3>
+          <p>Billing · collections · commissions · reconciliations · finance tasks</p>
+        </div>
+        <div class="system-card">
+          <div class="label">ROLE PLANE</div>
+          <h3>Technical Workspace</h3>
+          <p>Incidents · approved technical tasks · logs/evidence · bounded operational controls</p>
+        </div>
+      </div>
+
+      <div class="exception" style="margin-top:20px">
+        <strong>SECURITY PRINCIPLE</strong><br>
+        <span style="color:var(--muted);font-size:13px">
+          Role-specific operators see the minimum company data and controls required to perform their job safely.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>63 · Vida CS Operator Workspace</h2>
+      <div class="kicker">Customer Success should have a purpose-built work surface, not a reduced founder dashboard.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>CS should see</h3>
+        <div class="roles">
+          <div class="role"><b>My Clients</b><span>Only clients assigned to that operator or team.</span></div>
+          <div class="role"><b>Onboarding</b><span>Current steps, blockers, deadlines and client actions.</span></div>
+          <div class="role"><b>Client Inbox</b><span>Customer conversations and assigned follow-up.</span></div>
+          <div class="role"><b>Bookings</b><span>Relevant customer meetings and scheduling state.</span></div>
+          <div class="role"><b>Client Health</b><span>Approved usage, service and risk indicators.</span></div>
+          <div class="role"><b>Tasks + Escalations</b><span>What needs action, what is blocked and what requires higher authority.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>CS should not see by default</h3>
+        <div class="roles">
+          <div class="role"><b>Company Revenue</b><span>MRR, cash, margins, company-wide revenue and commercial intelligence.</span></div>
+          <div class="role"><b>Other Clients</b><span>Unassigned client records, conversations and internal data.</span></div>
+          <div class="role"><b>Founder Intelligence</b><span>Founder notes, strategy, risk views and private operating information.</span></div>
+          <div class="role"><b>Global Suppression / Lead Pool</b><span>Company-wide sensitive or cross-client operational datasets.</span></div>
+          <div class="role"><b>System Controls</b><span>Sending, engine, global limits, compliance rules and infrastructure settings.</span></div>
+          <div class="role"><b>Secrets / Production Access</b><span>GitHub, Railway, Supabase admin, API secrets and raw database access.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>64 · Observe → Act → Request → Approve</h2>
+      <div class="kicker">Separate visibility from authority.</div>
+    </div>
+
+    <div class="ladder" style="grid-template-columns:repeat(4,1fr)">
+      <div class="step">
+        <div class="n">1</div>
+        <b>Observe</b>
+        <span style="color:var(--muted);font-size:13px">Operator sees only the information needed for the task.</span>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <b>Act</b>
+        <span style="color:var(--muted);font-size:13px">Operator performs actions explicitly allowed by role.</span>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <b>Request</b>
+        <span style="color:var(--muted);font-size:13px">Higher-risk changes become requests, not direct controls.</span>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <b>Approve</b>
+        <span style="color:var(--muted);font-size:13px">Founder or authorised senior role approves material actions.</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Examples</h3>
+      <div class="rules">
+        <div class="rule"><b>Suppression</b><span>CS may request or perform suppression for a specific contact; no need for access to the global suppression system.</span></div>
+        <div class="rule"><b>Plan adjustment</b><span>CS submits a request rather than editing account limits or pricing directly.</span></div>
+        <div class="rule"><b>Refund</b><span>Operator may act within an approved threshold; above it becomes an approval request.</span></div>
+        <div class="rule"><b>Technical issue</b><span>CS records evidence and escalates; they do not enter production systems to debug it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>65 · Role & Permission Architecture</h2>
+      <div class="kicker">Permissions belong to roles, not individual memory.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>Founder</b><span>Full company control and strategic visibility.</span></div>
+      <div class="rule"><b>CS Agent</b><span>Assigned clients + approved customer-success actions.</span></div>
+      <div class="rule"><b>CS Lead / Deputy</b><span>Broader client operations, team visibility and bounded escalation authority.</span></div>
+      <div class="rule"><b>Sales</b><span>Assigned prospects/accounts, approved pricing, deal flow and sales tools.</span></div>
+      <div class="rule"><b>Finance</b><span>Billing, collections, commissions and financial operations appropriate to role.</span></div>
+      <div class="rule"><b>Technical Guardian</b><span>Approved technical systems and emergency controls required for resilience.</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Least-privilege rule</h3>
+      <p style="font-size:18px;color:var(--ink);font-weight:800">
+        Access should be granted by role + assignment + action scope.
+      </p>
+      <p>
+        Example: a CS agent may read customer-success data for clients A, C and F, but cannot read every client simply because they are logged into Vida.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>66 · Security must exist behind the UI</h2>
+      <div class="kicker">Hiding a menu item is not an access-control system.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Unsafe pattern</h3>
+        <p style="font-size:20px;color:var(--danger);font-weight:900">
+          “If role = CS, hide Revenue.”
+        </p>
+        <p>
+          A hidden screen does not prove the underlying API or database cannot still be called.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Required pattern</h3>
+        <p style="font-size:20px;color:var(--accent);font-weight:900">
+          Authorise at the data and API layer.
+        </p>
+        <p>
+          Use authentication, role claims, assignment records and database/API policies so unauthorised data cannot be returned even if someone bypasses the UI.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Conceptual assignment model</h3>
+      <p><b>operator_client_assignments</b></p>
+      <p style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)">
+        operator_id → client_id → role → allowed scope
+      </p>
+      <p>
+        The permission system should answer both <b>which records</b> a person can access and <b>which actions</b> they can perform.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>67 · Operator Tool Stack</h2>
+      <div class="kicker">Do not rebuild every generic business function inside Vida.</div>
+    </div>
+
+    <div class="systems" style="grid-template-columns:repeat(4,1fr)">
+      <div class="system-card">
+        <div class="label">CONTROL</div>
+        <h3>Vida</h3>
+        <p>Founder control plane + role-specific operational surfaces.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">CUSTOMER COMMS</div>
+        <h3>Shared Inbox Platform</h3>
+        <p>Customer email, assignment, templates, internal comments and response workflow.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">KNOWLEDGE</div>
+        <h3>Notion</h3>
+        <p>Restricted CS playbooks, SOPs, scripts, training and escalation policy.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">COMMERCIAL</div>
+        <h3>CRM</h3>
+        <p>Prospect, customer and commercial relationship state.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">PRODUCT TRUTH</div>
+        <h3>GitHub</h3>
+        <p>Code, Issues, PRs, tests, releases and technical truth.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">DATA + AUTH</div>
+        <h3>Supabase</h3>
+        <p>Company data, identity, assignments and permission enforcement.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">RUNTIME</div>
+        <h3>Railway</h3>
+        <p>Production runtime and deployment infrastructure.</p>
+      </div>
+      <div class="system-card">
+        <div class="label">LEDGER</div>
+        <h3>Accounting</h3>
+        <p>Financial ledger, tax records, reconciliation and formal financial truth.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Customer communication choice</h3>
+      <p>
+        Use one dedicated shared-inbox/support platform rather than giving operators personal mailbox access.
+        For an email-led CS model, a shared inbox such as Front is a natural fit.
+        If K.I.N.D. later needs richer in-app support, chat, ticketing and help-centre workflows, Intercom becomes the stronger alternative.
+      </p>
+      <p><b>Do not operate Front and Intercom as overlapping sources of customer-support truth unless there is a very specific reason.</b></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>68 · Operator Knowledge Boundary</h2>
+      <div class="kicker">Notion explains how to do the job. It does not become the live company-state system.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>CS knowledge should include</h3>
+        <p>Role overview · onboarding procedure · communication policy · support playbook · common problems · escalation rules · refund boundaries · approved promises · bug-report process · absence procedure · emergency contacts.</p>
+      </div>
+      <div class="card">
+        <h3>CS knowledge should exclude by default</h3>
+        <p>Company financial intelligence · unrestricted strategy archive · secrets · founder-private notes · live technical-state declarations · sensitive product or compliance material unrelated to their role.</p>
+      </div>
+    </div>
+
+    <div class="exception" style="margin-top:18px">
+      <strong>KNOWLEDGE RULE</strong><br>
+      <span style="color:var(--muted);font-size:13px">
+        Notion explains how to do the work. Vida tells the operator what work actually exists.
+      </span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>69 · Infrastructure Boundary</h2>
+      <div class="kicker">Customer-success staff should not need production infrastructure access.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><b>No GitHub by default</b><span>CS reports product issues through an approved escalation path.</span></div>
+      <div class="rule"><b>No Railway</b><span>CS does not deploy or alter production runtime.</span></div>
+      <div class="rule"><b>No Supabase Admin</b><span>CS should use Vida workflows, not raw database access.</span></div>
+      <div class="rule"><b>No Secrets</b><span>API keys, service credentials and developer tokens stay outside operator access.</span></div>
+      <div class="rule"><b>No DNS / Domains</b><span>Infrastructure and company-control assets remain restricted.</span></div>
+      <div class="rule"><b>Escalate evidence</b><span>Operator captures the customer problem, reproduction details and impact, then routes it to technical support.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>70 · Disposable Access & Offboarding</h2>
+      <div class="kicker">Every operator identity should be individually revocable.</div>
+    </div>
+
+    <div class="ladder" style="grid-template-columns:repeat(5,1fr)">
+      <div class="step"><div class="n">1</div><b>Individual identity</b><span style="color:var(--muted);font-size:13px">No shared operator accounts.</span></div>
+      <div class="step"><div class="n">2</div><b>MFA</b><span style="color:var(--muted);font-size:13px">Strong authentication for every operator.</span></div>
+      <div class="step"><div class="n">3</div><b>Role assignment</b><span style="color:var(--muted);font-size:13px">Access comes from role and client assignment.</span></div>
+      <div class="step"><div class="n">4</div><b>Audit</b><span style="color:var(--muted);font-size:13px">Material operator actions are attributable to a person.</span></div>
+      <div class="step"><div class="n">5</div><b>Revoke</b><span style="color:var(--muted);font-size:13px">Disable identity, revoke sessions and remove assignments immediately.</span></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <p style="font-size:18px;color:var(--ink);font-weight:800">
+        Replacing an operator should not require remembering which 38 systems or permissions were manually granted.
+      </p>
+      <p>
+        Access should disappear centrally when the role or identity is removed. Any necessary vendor credentials should be granted through a secure business password/secrets manager at the narrowest useful scope.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>71 · Operator Access Gate</h2>
+      <div class="kicker">Human access should progress through evidence just like every other stage gate.</div>
+    </div>
+
+    <div class="ladder">
+      <div class="step"><div class="n">Level 1</div><b>Observe</b><span style="color:var(--muted);font-size:13px">Read assigned work and learn the process.</span></div>
+      <div class="step"><div class="n">Level 2</div><b>Bounded action</b><span style="color:var(--muted);font-size:13px">Perform safe routine actions under policy.</span></div>
+      <div class="step"><div class="n">Level 3</div><b>Expanded scope</b><span style="color:var(--muted);font-size:13px">Broader client set or higher action limits after proven reliability.</span></div>
+      <div class="step"><div class="n">Level 4</div><b>Lead / Deputy</b><span style="color:var(--muted);font-size:13px">Team-level visibility, escalation handling and bounded approvals.</span></div>
+      <div class="step"><div class="n">Level 5</div><b>Privileged specialist</b><span style="color:var(--muted);font-size:13px">Only where the role genuinely requires sensitive company systems.</span></div>
+    </div>
+
+    <div class="metric" style="margin-top:18px">
+      <div>
+        <strong>Access principle</strong><br>
+        <span>Trust can increase. Blast radius should remain deliberately bounded.</span>
+      </div>
+      <div class="big">MINIMUM DATA · MINIMUM ACTION · MAXIMUM TRACEABILITY</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>72 · Final Operator-System Principle</h2>
+      <div class="kicker">Scale people without scaling unnecessary visibility.</div>
+    </div>
+
+    <div class="card" style="text-align:center;padding:36px">
+      <div style="font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-.03em;max-width:1080px;margin:auto">
+        One company truth. Multiple role-specific views.
+      </div>
+      <p style="margin:18px auto 0;max-width:920px">
+        Vida remains the founder command centre. Customer Success, Sales, Finance and Technical operators receive purpose-built work planes exposing only the clients, information and actions required for their role.
+      </p>
+      <p style="margin:12px auto 0;max-width:920px;color:var(--accent);font-weight:800">
+        Nobody gets company-wide visibility merely because they need to perform one company function.
+      </p>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div>K.I.N.D. · Founder-Operator OS · Post-26 Launch Preview</div>
+    <div>Preview artifact · operating model only · not an implementation plan</div>
+  </div>
+
+</div>
+</body>
+</html>

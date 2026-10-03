@@ -250,3 +250,29 @@ export async function resumeStripeSubscription(subscriptionId: string | null | u
     return false
   }
 }
+
+/**
+ * ⚑ 2 Oct (#2561 · 14c · R191) — every refund and dispute Stripe holds for these payments.
+ * Read at RESUME time because Stripe is the record of the money: a dispute can be won or lost
+ * days after `disputed_at` was stamped. `null` = Stripe is not configured or could not be read,
+ * which the caller must treat as "cannot confirm it is settled", never as "nothing there".
+ */
+export async function readPaymentReversals(
+  paymentIntentIds: string[],
+): Promise<{ refunds: { status: string | null }[]; disputes: { status: string }[] } | null> {
+  if (!stripe) return null
+  try {
+    const refunds: { status: string | null }[] = []
+    const disputes: { status: string }[] = []
+    for (const id of paymentIntentIds) {
+      const r = await stripe.refunds.list({ payment_intent: id, limit: 100 })
+      for (const x of r.data) refunds.push({ status: x.status ?? null })
+      const d = await stripe.disputes.list({ payment_intent: id, limit: 100 })
+      for (const x of d.data) disputes.push({ status: x.status })
+    }
+    return { refunds, disputes }
+  } catch (err) {
+    console.error('[stripe] refunds/disputes could not be read —', err instanceof Error ? err.message : err)
+    return null
+  }
+}

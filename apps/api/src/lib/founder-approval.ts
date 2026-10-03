@@ -50,7 +50,9 @@ export function founderVerdict(a: {
     allowed: false,
     message: a.approvals.length === 0
       ? 'The founder has not approved these emails yet (R186). Nothing is sent until he approves them in Vida → the client → Programme.'
-      : 'This version (new wording or new people) has not been approved by the founder yet (R186). Follow-ups to people already emailed continue; nothing new is sent until he approves it in Vida.',
+      // ⛓️ 3 Oct (review S7): said "Follow-ups to people already emailed continue" — not true
+      // while the client-approval check still stops every send on a new batch (R191 4c builds it).
+      : 'This version (new wording or new people) has not been approved by the founder yet (R186). Nothing in it is sent until he approves it in Vida → the client → Programme.',
   }
 }
 
@@ -59,9 +61,12 @@ export async function founderApprovalVerdict(programmeId: string, followUp: bool
   if (!founderGateOn()) return { allowed: true }
   const { db } = await import('@kind/db')
   const { data: p, error: pErr } = await db.from('programmes')
-    .select('review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+    .select('client_id, review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
   if (pErr) return { allowed: false, message: `The programme's prepared version could not be read (${pErr.message}), so nothing may be sent.` }
-  const row = p as { review_preparation_hash?: string | null; review_preparation_snapshot?: { steps?: unknown } | null } | null
+  const row = p as { client_id?: string | null; review_preparation_hash?: string | null; review_preparation_snapshot?: { steps?: unknown } | null } | null
+  // ⚑ 3 Oct (review S9) — the Northwind demo never sends to anyone and is rebuilt on every stage
+  // press; it is not wording the founder needs to approve, and gating it broke the demo.
+  if (row?.client_id && await isDemoProgrammeClient(row.client_id)) return { allowed: true }
   const { data: approvals, error } = await db.from('founder_wording_approvals')
     .select('snapshot_hash, wording_hash').eq('programme_id', programmeId)
   if (error) {
@@ -74,6 +79,11 @@ export async function founderApprovalVerdict(programmeId: string, followUp: bool
     approvals: (approvals ?? []) as FounderApprovalRow[],
     followUp,
   })
+}
+
+/** The demo's emails reach nobody; an unreadable answer is NOT the demo (so it stays gated). */
+export async function isDemoProgrammeClient(clientId: string): Promise<boolean> {
+  try { const { isDemoClient } = await import('./demo'); return await isDemoClient(clientId) } catch { return false }
 }
 
 /** Record the founder's approval of the version he is looking at. Refuses a stale version. */

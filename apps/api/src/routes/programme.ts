@@ -551,10 +551,30 @@ programmeRouter.get('/:id/wording', guard(async (req: Request, res: Response) =>
     .select('snapshot_hash, wording_hash, approved_at, approved_by').eq('programme_id', req.params.id).order('approved_at', { ascending: false })
   const { founderGateOn, FOUNDER_APPROVAL_MIGRATION } = await import('../lib/founder-approval')
   const steps = Array.isArray(row.review_preparation_snapshot?.steps) ? row.review_preparation_snapshot!.steps as Record<string, unknown>[] : []
+  // ⚑ 3 Oct (review S11) — AS THEY LAND: the {{first_name}} / {{company}} placeholders are filled
+  // with a real prospect from this version, by the same `applyTokens` the sender uses. Unreadable
+  // → the raw wording, and the panel says so. The opt-out and legal lines are added at send time.
+  const { applyTokens } = await import('../lib/sequence-apply')
+  type Sample = { first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; industry: string | null }
+  let sample = null as Sample | null
+  let senderCompany: string | null = null
+  const firstLead = ((row.review_preparation_snapshot as { enrolled_lead_ids?: string[] } | null)?.enrolled_lead_ids ?? [])[0]
+  if (firstLead) {
+    const [{ data: l }, { data: pc }] = await Promise.all([
+      db.from('leads').select('first_name, last_name, company, job_title, industry').eq('id', firstLead).maybeSingle(),
+      db.from('programmes').select('clients(company_name)').eq('id', req.params.id).maybeSingle(),
+    ])
+    sample = (l as Sample | null) ?? null
+    const c = (pc as { clients?: { company_name?: string | null } | { company_name?: string | null }[] | null } | null)?.clients
+    senderCompany = (Array.isArray(c) ? c[0]?.company_name : c?.company_name) ?? null
+  }
+  const who = sample as Sample | null
+  const fill = (t: string) => (who ? applyTokens(t, who, senderCompany) : t)
   res.json({ success: true, data: {
     gate_on: founderGateOn(),
     version: row.review_preparation_hash, version_number: row.review_preparation_version,
-    emails: steps.map((st, i) => ({ step: i + 1, subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 0) })),
+    sample: who ? { name: [who.first_name, who.last_name].filter(Boolean).join(' ') || null, company: who.company ?? null } : null,
+    emails: steps.map((st, i) => ({ step: i + 1, subject: fill(String(st.subject ?? '')), body: fill(String(st.body ?? '')), wait_days: Number(st.wait_days ?? 0) })),
     approved: !aErr && ((approvals ?? []) as { snapshot_hash: string }[]).some(a => a.snapshot_hash === row.review_preparation_hash),
     approvals: aErr ? null : approvals,
     approvals_unreadable: aErr ? `${aErr.message} — run migration ${FOUNDER_APPROVAL_MIGRATION}` : null,

@@ -61,3 +61,24 @@ describe('4a — wired into the one send door, and recorded in Vida', () => {
     expect(read('pending-migrations.ts')).toContain("key: '20261002_founder_wording_approval'")
   })
 })
+
+// ⚑ 3 Oct — the round review's findings on 4a (S7 · S9 · S11).
+describe('4a — review fixes', () => {
+  const FA = readFileSync(join(__dirname, 'founder-approval.ts'), 'utf8')
+  const ROUTE = readFileSync(join(__dirname, '../routes/programme.ts'), 'utf8')
+  const PANEL = readFileSync(join(__dirname, '../../../admin/src/components/vida/FounderWordingApproval.tsx'), 'utf8')
+  it('S7 — no sentence claims follow-ups continue (not true until R191 4c is built)', () => {
+    const refused = founderVerdict({ gateOn: true, version: 'v2', wording: 'other', approvals: [{ snapshot_hash: 'v1', wording_hash: W }], followUp: false })
+    expect(!refused.allowed && refused.message).not.toMatch(/continue/)
+    expect(PANEL).not.toMatch(/Follow-ups to people already emailed continue/)
+  })
+  it('S9 — the demo is not gated (it reaches nobody and is rebuilt on every press)', () => {
+    expect(FA).toContain('if (row?.client_id && await isDemoProgrammeClient(row.client_id)) return { allowed: true }')
+  })
+  it('S11 — the founder reads them filled for a real prospect, by the sender\'s own token filler', () => {
+    const route = ROUTE.slice(ROUTE.indexOf("programmeRouter.get('/:id/wording'"))
+    expect(route).toContain("const { applyTokens } = await import('../lib/sequence-apply')")
+    expect(route).toContain("subject: fill(String(st.subject ?? '')), body: fill(String(st.body ?? ''))")
+    expect(PANEL).toContain('Each email also ends with the opt-out line and the client&apos;s legal line, added when it is sent.')
+  })
+})

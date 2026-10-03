@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 type Email = { step: number; subject: string; body: string; wait_days: number }
 type Wording = {
   gate_on: boolean; version: string | null; version_number: number | null
+  sample?: { name: string | null; company: string | null } | null
   emails: Email[]; approved: boolean
   approvals: { snapshot_hash: string; approved_at: string; approved_by: string | null }[] | null
   approvals_unreadable: string | null
@@ -72,8 +73,15 @@ export default function FounderWordingApproval({ programmeId }: { programmeId: s
       </div>
       {w.approvals_unreadable && <p className="text-[12px] text-red-700 px-4 pt-2">Approvals could not be read: {w.approvals_unreadable}</p>}
       {!w.approved && w.version && (
-        <p className="text-[12px] text-[#6b5f8c] px-4 pt-3">Nothing is sent and the client does not see these until you approve them. Follow-ups to people already emailed continue if their wording was approved before.</p>
+        <p className="text-[12px] text-[#6b5f8c] px-4 pt-3">Nothing is sent and the client does not see these until you approve them.</p>
       )}
+      {/* ⚑ 3 Oct (review S11) — as they land: filled for one real prospect; the footer is added when sent. */}
+      <p className="text-[12px] text-[#6b5f8c] px-4 pt-2">
+        {w.sample
+          ? <>Shown as {w.sample.name ?? 'a prospect'}{w.sample.company ? ` at ${w.sample.company}` : ''} will receive them. </>
+          : <>Shown with the placeholders unfilled — no prospect could be read. </>}
+        Each email also ends with the opt-out line and the client&apos;s legal line, added when it is sent.
+      </p>
       <div className="px-4 py-3 flex flex-col gap-3">
         {w.emails.map((e, i) => (
           <div key={e.step} className="rounded-lg border border-[#f0eafa] bg-[#fdfcff] px-3.5 py-3">

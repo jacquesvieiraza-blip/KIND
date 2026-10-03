@@ -538,6 +538,24 @@ programmeRouter.post('/:id/authorise/second', guard(async (req: Request, res: Re
 
 /** THE EXPLICIT GO LIVE. Idempotent: an already-live programme succeeds and writes nothing. */
 programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) => {
+  // ⚑ 2 Oct (R189 ⑤ · 11c) — "the client must connect their calendar before going live":
+  // prospects book into it from their own link. Checked before anything is prepared.
+  // ⛓️ 3 Oct (review N1): an unreadable programme skipped the check and went live, and an
+  // already-live programme (whose press is an idempotent success) was refused. Now the read
+  // must succeed, and only a programme that is not yet live is asked for its calendar.
+  {
+    const { data: prog, error: progErr } = await db.from('programmes').select('client_id, status').eq('id', req.params.id).maybeSingle()
+    if (progErr) { res.status(400).json({ success: false, error: `Not taken live: the programme could not be read (${progErr.message}).` }); return }
+    const clientId = (prog as { client_id?: string; status?: string } | null)?.client_id
+    if (clientId && (prog as { status?: string }).status !== 'LIVE') {
+      const { data: c, error: cErr } = await db.from('clients')
+        .select('calendar_booking_enabled, google_calendar_refresh_token').eq('id', clientId).maybeSingle()
+      const { calendarConnected, CALENDAR_REQUIRED_COPY } = await import('../lib/reply-booking')
+      if (cErr || !calendarConnected(c as never)) {
+        res.status(400).json({ success: false, error: cErr ? `Not taken live: the client's calendar could not be checked (${cErr.message}).` : CALENDAR_REQUIRED_COPY }); return
+      }
+    }
+  }
   const r = await goLiveProgramme(req.params.id, pressedBy(req))
   // ⚠️ NO AUDIT ROW FOR A NO-OP. An already-live programme did not transition, and recording
   // a second "went live" would put an event in the log that never happened.

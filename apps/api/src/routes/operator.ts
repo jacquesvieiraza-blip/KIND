@@ -4953,6 +4953,12 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       },
       inboxes: rows,
       needs_inbox: needsInbox,
+      // ⚑ 2 Oct (#2560 · R189 ②) — the pooled stock every new client's two mailboxes come from.
+      pooled_stock: await (async () => {
+        const { pooledSenderStock } = await import('../lib/sender-claim')
+        const st = await pooledSenderStock()
+        return st.ok ? { total: st.total, free: st.free } : null
+      })(),
       // Every client's verdict, pass or fail. `needs_inbox` above is this list filtered.
       readiness,
       migration_pending: migrationPending,

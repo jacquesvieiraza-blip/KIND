@@ -137,6 +137,8 @@ export type ApprovalPayload = {
   complete: boolean
   frozen: FrozenWork | null
   canApprove: boolean
+  /** ⚑ 2 Oct (#2542 · 4c) — the founder has not approved this version yet; the emails are withheld. */
+  awaiting_founder?: boolean
 }
 
 /** "Weekdays, 08:30–17:00" — the schedule in words, or nothing when it is not a schedule. */
@@ -234,6 +236,19 @@ export default function ProgrammeApproval({
 
   const p = data.programme
   if (!p) return null
+
+  // ⚑ 2 Oct (#2542 · R186 ③ · 4c) — FOUNDER FIRST. Until our team has approved the emails, the
+  // client is told so plainly; there is nothing for them to read or approve yet.
+  if (data.awaiting_founder) {
+    return (
+      <div className="mv-section" data-testid="awaiting-founder">
+        <div className="mv-section-head"><b>Your emails</b></div>
+        <div className="mv-section-body">
+          <p className="text-[13.5px]">Our team is checking your emails before you see them. They will appear here for you to read and approve. Nothing is sent until you have approved them too.</p>
+        </div>
+      </div>
+    )
+  }
 
   const frozen = data.frozen
   // ⚠️ THE FROZEN COUNT IS THE ONE BEING APPROVED. The live list is what we can show; the

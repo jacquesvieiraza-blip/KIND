@@ -1041,6 +1041,7 @@ async function sendSequenceEmailCore(
   //
   // ⚠️ THE FOUNDER'S OWN PREVIEW IS EXEMPT — a 1:1 test to their own inbox is not programme
   // delivery to a prospect, the same exemption the kill-switch and demo backstop already make.
+  let programmeFooterLine: string | null = null
   if (!opts?.isPreview && enrollmentId) {
     const { checkEnrollmentAuthority } = await import('./programme-authority')
     // ⚑ 8 Sep — THE RECIPIENT'S COUNTRY TRAVELS WITH THE QUESTION. The send window is judged
@@ -1058,6 +1059,21 @@ async function sendSequenceEmailCore(
     if (!verdict.allowed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
       return 'deferred'
+    }
+    // ⚑ 3 Oct (#2543 · 5d part 3 · review S15) — A PROGRAMME CLIENT'S EMAIL WAITS FOR ITS OWN
+    // LEGAL LINE. It used to fall back to K.I.N.D's line whenever the client's could not be read,
+    // so a database blip sent another company's email naming K.I.N.D Technologies Ltd as the
+    // sender (R189 ⑥ fails open). Decided here, before anything is claimed, so a deferral leaves
+    // the enrolment exactly as it was and the next run tries again. House keeps its own line.
+    if (verdict.mode === 'programme' && lead.client_id) {
+      const { isHouseClient } = await import('./house-client')
+      if (!(await isHouseClient(lead.client_id))) {
+        programmeFooterLine = await clientFooterLine(lead.client_id)
+        if (!programmeFooterLine) {
+          console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — the client's company name and registered office could not be read or are not on file (R189 ⑥)`)
+          return 'deferred'
+        }
+      }
     }
   }
 
@@ -1335,11 +1351,13 @@ async function sendSequenceEmailCore(
     // other client's carry THEIR company name and registered office, given in Milla Settings and
     // checked before go-live (part 2). Only a client with neither on file (impossible once part 2
     // gates Make Live) falls back to K.I.N.D's line rather than sending with no address at all.
+    // ⛓️ 3 Oct: that fallback is now for LEGACY clients only — a programme client's line was
+    // decided (or the send deferred) at the authority check above.
     const { isHouseClient } = await import('./house-client')
     const { HOUSE_POSTAL_FOOTER_LINE, POSTAL_FOOTER_LINE } = await import('@kind/shared')
-    const footerLine = lead.client_id && await isHouseClient(lead.client_id)
+    const footerLine = programmeFooterLine ?? (lead.client_id && await isHouseClient(lead.client_id)
       ? HOUSE_POSTAL_FOOTER_LINE
-      : (lead.client_id ? await clientFooterLine(lead.client_id) : null) ?? POSTAL_FOOTER_LINE
+      : (lead.client_id ? await clientFooterLine(lead.client_id) : null) ?? POSTAL_FOOTER_LINE)
     try {
       const { sendAs } = await import('./mailer')
       checked = await sendAs(sendingInbox, {

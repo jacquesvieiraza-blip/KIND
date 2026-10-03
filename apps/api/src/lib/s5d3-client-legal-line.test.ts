@@ -30,3 +30,21 @@ describe('5d·3 — the client\'s legal line', () => {
     expect(src).toContain(': (lead.client_id ? await clientFooterLine(lead.client_id) : null) ?? POSTAL_FOOTER_LINE')
   })
 })
+
+// ⚑ 3 Oct (review S15) — K.I.N.D's line is the fallback for LEGACY clients only. A programme
+// client's email waits for its own line; it never goes out naming K.I.N.D as the sender.
+describe('5d·3 — a programme client\'s email waits for its own line', () => {
+  const src = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
+  const fn = src.slice(src.indexOf('let programmeFooterLine: string | null = null'))
+  it('decided at the authority check, before anything is claimed, and deferred when missing', () => {
+    const decide = fn.indexOf("if (verdict.mode === 'programme' && lead.client_id) {")
+    expect(decide).toBeGreaterThan(0)
+    const block = fn.slice(decide, decide + 900)
+    expect(block).toContain('programmeFooterLine = await clientFooterLine(lead.client_id)')
+    expect(block).toContain("return 'deferred'")
+    expect(decide).toBeLessThan(fn.indexOf('const footerLine = '))
+  })
+  it('the send uses the decided line first', () => {
+    expect(fn).toContain('const footerLine = programmeFooterLine ?? (')
+  })
+})

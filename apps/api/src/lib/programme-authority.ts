@@ -440,11 +440,12 @@ async function outreachStillMatchesApproval(
   // Before the drift comparison so that comparison's allowing line stays the last word.
   if (ctx?.enforceSchedule !== false) {
     const { founderApprovalVerdict } = await import('./founder-approval')
-    const f = await founderApprovalVerdict(programme.id, ctx?.followUp === true)
+    const f = await founderApprovalVerdict(programme.id, ctx?.followUp === true, ctx?.leadId ?? null)
     if (!f.allowed) return { allowed: false, reason: 'founder_not_approved', programme, message: f.message }
   }
 
-  const drift = await preparationDrift(programme.id)
+  // ⚑ 3 Oct (R191 4c) — asked about THIS person, so a new batch does not stop the approved ones.
+  const drift = await preparationDrift(programme.id, ctx?.leadId ?? null)
   if (drift.state === 'unchanged') return verdict
   // `not_approved` cannot happen behind an allowed OUTREACH verdict — `authorityFor` already
   // required `approved_at` — but a positive answer is never inferred from that reasoning.
@@ -490,6 +491,12 @@ export interface OutreachContext {
    * one he approved. Omitted means a first email, which is the safe reading.
    */
   followUp?: boolean
+  /**
+   * ⚑ 3 Oct (R191 4c) — WHO this message is for. With it, a new batch waiting for approval stops
+   * only its own new people; everyone already approved keeps receiving their emails. Omitted
+   * means the whole programme is judged, as before — the strict reading.
+   */
+  leadId?: string | null
 }
 
 export async function checkProgrammeAuthority(

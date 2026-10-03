@@ -88,7 +88,10 @@ describe('① there are exactly two doors to OUTREACH authority, and both compar
     // bare `return verdict` on the line BETWEEN them: the comparison still ran, its answer was
     // simply unreachable. What has to be true is that nothing at all sits in the gap.
     expect(gate, 'something returns the allowing verdict between the comparison and its result')
-      .toContain("const drift = await preparationDrift(programme.id)\n  if (drift.state === 'unchanged') return verdict")
+      // ⛓️ 3 Oct (#2542 · R191 4c): was `preparationDrift(programme.id)` — the comparison is now asked
+      // about the person being emailed, so a new batch does not stop the approved ones. The
+      // adjacency this guards is unchanged: nothing sits between the comparison and its result.
+      .toContain("const drift = await preparationDrift(programme.id, ctx?.leadId ?? null)\n  if (drift.state === 'unchanged') return verdict")
   })
 
   it('🛑 it fails CLOSED when the comparison cannot be made', () => {

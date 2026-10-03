@@ -1319,6 +1319,11 @@ async function sendSequenceEmailCore(
     // 26 Jul), not from our shared Resend domain. `sendAs` returns the same verdict shape as
     // `interpretSend` and never throws, so the rollback below is unchanged.
     let checked: ReturnType<typeof interpretSend>
+    // ⚑ 2 Oct (R189 ⑥) — House's emails carry House's legal line; every other client's carry
+    // K.I.N.D's until their own registered office address is held.
+    const { isHouseClient } = await import('./house-client')
+    const { HOUSE_POSTAL_FOOTER_LINE, POSTAL_FOOTER_LINE } = await import('@kind/shared')
+    const footerLine = lead.client_id && await isHouseClient(lead.client_id) ? HOUSE_POSTAL_FOOTER_LINE : POSTAL_FOOTER_LINE
     try {
       const { sendAs } = await import('./mailer')
       checked = await sendAs(sendingInbox, {
@@ -1329,8 +1334,8 @@ async function sendSequenceEmailCore(
         // CAN-SPAM §7704(a)(5)(A)(iii) — the postal address rides on BOTH parts. `text` is what
         // a plain-text client renders, so a footer in the HTML alone would be missing for
         // exactly the readers most likely to be running a strict client.
-        text:     coldEmailText(body),
-        html:     coldEmailHtml(body, emailId),
+        text:     coldEmailText(body, footerLine),
+        html:     coldEmailHtml(body, emailId, footerLine),
       })
     } catch (thrown) {
       checked = { ok: false, id: null, error: thrown, errorName: null }

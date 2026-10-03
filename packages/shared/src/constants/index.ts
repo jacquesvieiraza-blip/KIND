@@ -307,6 +307,12 @@ export const LEGAL_ENTITY_NAME = 'K.I.N.D Technologies Ltd'
 export const POSTAL_FOOTER_LINE = `${LEGAL_ENTITY_NAME}, ${POSTAL_ADDRESS}`
 
 /**
+ * ⚑ 2 Oct (R189 ⑥) — HOUSE'S LEGAL LINE, IN THE FOUNDER'S WORDS: *"for House. It is Milla and
+ * Vida and Our address"*. Interpolated from the same entity and address, never typed twice.
+ */
+export const HOUSE_POSTAL_FOOTER_LINE = `Milla & Vida · ${POSTAL_FOOTER_LINE}`
+
+/**
  * The most email steps a sequence may contain — how many times one person can be emailed.
  * ⛓️ 25 Sep (R166 ⑥): 7 → **5**. Founder-locked 6 Aug (R3) at 7; the founder set *"5"* on 25 Sep
  * as part of the barriers on how often we contact anyone (*"the barriers need to be there"*).

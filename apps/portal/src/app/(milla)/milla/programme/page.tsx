@@ -256,7 +256,10 @@ export default function ProgrammePage() {
         </div>
       )}
       {/* After approval the panel's approved state stays with the programme's status. */}
-      {review?.programme && review.programme.approved_at && (
+      {/* ⚑ 3 Oct (seen on the real screen) — NOT when the panel above already shows it (a live
+          programme's new version), or the client got the same card twice. */}
+      {review?.programme && review.programme.approved_at
+        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (
         <ProgrammeApproval data={review} onApproved={onApproved} />
       )}
     </div>

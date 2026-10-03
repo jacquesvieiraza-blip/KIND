@@ -18,6 +18,8 @@ type Wording = {
   emails: Email[]; approved: boolean
   approvals: { snapshot_hash: string; approved_at: string; approved_by: string | null }[] | null
   approvals_unreadable: string | null
+  /** ⚑ 3 Oct — people whose stored copy differs from this version; null = could not be counted. */
+  copies_differ?: number | null
 }
 
 function paragraphs(body: string): string[] {
@@ -72,6 +74,16 @@ export default function FounderWordingApproval({ programmeId }: { programmeId: s
             : <span className="ml-auto text-[12px] text-[#6b5f8c]">Nothing prepared yet</span>}
       </div>
       {w.approvals_unreadable && <p className="text-[12px] text-red-700 px-4 pt-2">Approvals could not be read: {w.approvals_unreadable}</p>}
+      {/* ⚑ 3 Oct — what is sent is this version, built for each person as it goes out; this says whether any stored copy still differs. */}
+      {w.copies_differ !== undefined && (
+        <p className={`text-[12px] px-4 pt-2 ${w.copies_differ === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+          {w.copies_differ === null
+            ? 'Could not count whether every person\'s stored emails match this version. Each email is still built from this version when it is sent.'
+            : w.copies_differ === 0
+              ? 'Every person\'s stored emails match this version.'
+              : `${w.copies_differ} ${w.copies_differ === 1 ? 'person\'s' : 'people\'s'} stored emails differ from this version. They still get this version: each email is built from it when it is sent.`}
+        </p>
+      )}
       {!w.approved && w.version && (
         <p className="text-[12px] text-[#6b5f8c] px-4 pt-3">Nothing new is sent and the client does not see these until you approve them. {/* ⚑ 3 Oct (R191 4c) — true now: */}People already approved keep receiving their emails while a new batch waits.</p>
       )}

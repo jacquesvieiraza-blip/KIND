@@ -578,6 +578,8 @@ programmeRouter.get('/:id/wording', guard(async (req: Request, res: Response) =>
     approved: !aErr && ((approvals ?? []) as { snapshot_hash: string }[]).some(a => a.snapshot_hash === row.review_preparation_hash),
     approvals: aErr ? null : approvals,
     approvals_unreadable: aErr ? `${aErr.message} — run migration ${FOUNDER_APPROVAL_MIGRATION}` : null,
+    // ⚑ 3 Oct — how many people's stored copies differ from this version (a send uses this version either way).
+    copies_differ: await (await import('../lib/approved-step')).countDifferingCopies(req.params.id),
   } })
 }))
 

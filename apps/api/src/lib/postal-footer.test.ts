@@ -68,7 +68,10 @@ describe('the plain-text body carries it — the part a strict client actually r
   it('separates it from the sign-off rather than running it on', () => {
     // A postal address welded to the last sentence reads as a typo, and a reader who cannot
     // tell it apart from the message has not really been given it.
-    expect(coldEmailText(CLEAN_BODY)).toContain('\n\n' + POSTAL_FOOTER_LINE)
+    // ⛓️ 2 Oct (R186 ①) — ~~`'\n\n' + POSTAL_FOOTER_LINE`~~: the opt-out line now sits WITH the
+    // address at the bottom ("the opt-out line and postal address small at the bottom"), so the
+    // blank line that separates the footer from the message comes before the pair.
+    expect(coldEmailText(CLEAN_BODY)).toContain('\n\nReply STOP to opt out.\n' + POSTAL_FOOTER_LINE)
   })
 
   it('survives a body with no trailing newline and one with several', () => {

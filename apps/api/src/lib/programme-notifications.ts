@@ -54,6 +54,16 @@ export function isRetiredWalletNotification(kind: ClientNotification): boolean {
 }
 
 /**
+ * Old self-serve emails a programme customer is never sent (#2562). The Monday digest reports
+ * leads and campaigns a programme client never manages, and the pause email reports an
+ * automatic campaign pause R185 removed.
+ *
+ * ⛓️ FOUNDER-RULED 2 Oct (R191, chains R87 — which had kept the digest): *"Stop both"*.
+ * A legacy client keeps both, and their switch still works.
+ */
+export const RETIRED_FOR_PROGRAMME_NOTIFICATIONS: ClientNotification[] = ['weekly_digest', 'campaign_paused']
+
+/**
  * Is a stored preference an opt-OUT?
  *
  * ⚠️ ONLY AN EXPLICIT `false` TURNS ANYTHING OFF. The columns are added nullable with no
@@ -76,13 +86,13 @@ export function mayNotify(
   kind: ClientNotification,
   { onProgramme, pref }: { onProgramme: boolean | null; pref?: boolean | null },
 ): boolean {
-  if (isRetiredWalletNotification(kind)) {
+  if (isRetiredWalletNotification(kind) || RETIRED_FOR_PROGRAMME_NOTIFICATIONS.includes(kind)) {
     // ⚠️ UNREADABLE FAILS CLOSED, AND THAT IS A DELIBERATE ASYMMETRY. Everywhere else in this
     // codebase `null` means "we could not read it" and we refuse to assert anything. Here the
     // two mistakes are not equal: sending a programme customer a "top up your credits" email
     // is a retired product contradicting their own billing page in their inbox, and it cannot
     // be taken back. Not sending a legacy client a warning delays a nudge. So a failed read
-    // withholds the email.
+    // withholds the email. The same holds for the two old self-serve emails (#2562).
     if (onProgramme !== false) return false
   }
   return notificationEnabled(pref)

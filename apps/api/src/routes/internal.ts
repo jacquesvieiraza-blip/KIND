@@ -184,6 +184,9 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
 
     let sent = 0
     let failed = 0
+    // ⛓️ #2562 (R191, 2 Oct — *"Stop both"*): a programme client is never sent this digest.
+    // `null` (read failed) is passed through and withholds, never collapsed to "not programme".
+    const digestProgrammes = await programmeClientIds((clients ?? []).map((c: { id: string }) => c.id))
 
     for (const client of clients ?? []) {
       try {
@@ -191,7 +194,7 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
         // An opted-out client should cost us nothing and, more to the point, a gate placed
         // after the send is not a gate.
         if (!mayNotify('weekly_digest', {
-          onProgramme: null,   // irrelevant: the digest is not a retired-wallet notification
+          onProgramme: onProgramme(digestProgrammes, client.id),
           pref: (client as { weekly_digest_enabled?: boolean | null }).weekly_digest_enabled,
         })) continue
 
@@ -931,7 +934,9 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
           // client their whole engagement had stopped because one campaign underperformed.
           const paused_pref = (client as { campaign_paused_emails_enabled?: boolean | null } | null)
             ?.campaign_paused_emails_enabled
-          if (client?.user_id && mayNotify('campaign_paused', { onProgramme: null, pref: paused_pref })) {
+          // ⛓️ #2562 (R191, 2 Oct — *"Stop both"*): never to a programme client.
+          const pausedProgrammes = await programmeClientIds([campaign.client_id])
+          if (client?.user_id && mayNotify('campaign_paused', { onProgramme: onProgramme(pausedProgrammes, campaign.client_id), pref: paused_pref })) {
             const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
             if (user?.email) {
               await sendCampaignPausedEmail(user.email, client.company_name ?? '', campaign.name, replyRate)

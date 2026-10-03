@@ -281,39 +281,18 @@ function FigsyOutreachSettings() {
         </div>
       </div>
       <p className="text-sm text-[#9B8EC4] mb-4">Control how we send emails on your behalf.</p>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-            Approve emails before sending
-            <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">Available</span>
-          </p>
-          {/* #326 made this honest when the gate genuinely did not exist — the toggle wrote
-              localStorage and the send path never read it. ⚠️ #628 — THE COPY OUTLIVED THE
-              PROBLEM AND BECAME THE OPPOSITE LIE. The hold is REAL now: when a campaign has
-              `settings.review_required`, `sendSequenceEmail` enqueues the draft into
-              figsy_approval_queue and PAUSES the enrollment instead of sending — verified in
-              figsy.ts, with the release queue built in Vida. Telling a client "FIGSY sends
-              autonomously; there is no approval hold" understates our own safety control, in
-              the one direction that costs trust.
-              THE TOGGLE STAYS UNWIRED HERE ON PURPOSE: the hold is PER CAMPAIGN
-              (PATCH /figsy/campaigns/:id takes review_required) and this switch is global, so
-              wiring it would mean inventing fan-out semantics across a client's campaigns —
-              on the send path, unasked. Tracked as its own item rather than half-built.
-              ⚑ 31 Aug (4A-2D) — RE-VERIFIED AND KEPT. The founder confirmed this is a genuine
-              outreach approval preference, NOT the retired paid per-lead approval model. */}
-          <p className="text-xs text-[#9B8EC4]">
-            Available — every email can be held for your approval before it goes out, instead of going out automatically. It is set per campaign: ask us to switch yours to co-pilot and nothing sends without your yes.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled
-          aria-label="Approve before send (coming soon)"
-          title="Approve before send is coming soon"
-          className="relative inline-flex h-5 w-9 shrink-0 rounded-full bg-gray-100 cursor-not-allowed"
-        >
-          <span className="inline-block h-4 w-4 rounded-full bg-gray-300 shadow transform mt-0.5 translate-x-0.5" />
-        </button>
+      {/* ⛓️ 3 Oct (R137 · R189 ①): was an "Available — co-pilot on request" line, beside a
+          disabled switch that read as "off". Every account is on the programme: its emails are
+          approved by our team and then by the client before anything sends, and each email goes out
+          exactly as approved (#2680). There is nothing to switch on. */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+          Approve emails before sending
+          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">Built in</span>
+        </p>
+        <p className="text-xs text-[#9B8EC4]">
+          Every email is approved before anything is sent: our team checks the wording first, then you approve it on your Programme page. Each email then goes out exactly as approved. If anything changes, it comes back to you for approval again.
+        </p>
       </div>
     </div>
   )
@@ -1084,7 +1063,9 @@ export default function MillaSettingsPage() {
         {/* Booking link — for clients who don't use Google Calendar (Calendly, etc.) */}
         <div className="mt-5 pt-5 border-t border-gray-100">
           <label className="block text-sm font-medium text-gray-900 mb-1">Or paste a booking link</label>
-          <p className="text-xs text-[#9B8EC4] mb-2.5">Using Calendly, Cal.com, or another scheduler? Paste it here and we will share this link instead.</p>
+          {/* ⛓️ 3 Oct (R189 ⑤ · 11c): was "Paste it here and we will share this link instead" — replies use
+              the connected Google Calendar only, so every booking is recorded as a meeting. */}
+          <p className="text-xs text-[#9B8EC4] mb-2.5">Replies to your prospects always use your connected Google Calendar, so every booking is recorded as a meeting. A link you paste here (Calendly, Cal.com…) is kept on your account but isn&apos;t sent to prospects.</p>
           <div className="flex gap-2">
             <input
               type="url"

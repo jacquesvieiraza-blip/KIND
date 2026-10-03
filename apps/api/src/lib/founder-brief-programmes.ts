@@ -45,12 +45,34 @@ export type LiveProgrammeFacts = {
   replies24h: number
   meetings: number
   targetMeetings: number | null
+  /**
+   * ⚑ 3 Oct (review S13) — what the SEND GATE says, in a few words: `null` = it allows sends.
+   * Before, only a pause or a missing Run could block, so a programme whose every send was
+   * refused (the founder's approval, a changed preparation, an unsafe mailbox) read
+   * "nothing blocking" — against R185 ⑥, alerts and logs tell the truth.
+   */
+  refusal?: string | null
+}
+
+/** The gate's refusal, in the founder's words. Outside the sending hours is not a block. */
+export function gateRefusalWords(v: { allowed: boolean; reason?: string } | null): string | null {
+  if (v === null) return 'could not be checked'
+  if (v.allowed) return null
+  switch (v.reason) {
+    case 'outside_send_window': case 'programme_paused': case 'programme_not_run': return null // said elsewhere
+    case 'founder_not_approved': return 'waiting for your approval of the emails in Vida'
+    case 'preparation_changed': return 'the approved work changed — it needs approving again'
+    case 'sender_unsafe': return 'the sending mailbox is not safe to send from'
+    case 'review_required': return 'held for review'
+    default: return (v.reason ?? 'refused').replace(/_/g, ' ')
+  }
 }
 
 /** What stops it, in a few words — or null when nothing does. */
-export function liveProgrammeBlocker(f: Pick<LiveProgrammeFacts, 'paused' | 'run'>): string | null {
+export function liveProgrammeBlocker(f: Pick<LiveProgrammeFacts, 'paused' | 'run' | 'refusal'>): string | null {
   if (f.paused) return 'Paused'
   if (!f.run) return 'Live but not started — press Run in Vida'
+  if (f.refusal) return f.refusal
   return null
 }
 

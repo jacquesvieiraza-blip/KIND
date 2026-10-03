@@ -2095,10 +2095,15 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
 
     // ⚑ 2 Oct (#2547 · 7e) — ONE LINE PER LIVE PROGRAMME: sent and replies (24h), meetings, blocker.
     const { data: livePs } = await db.from('programmes')
-      .select('client_id, paused_at, run_at, meeting_target, clients(company_name)')
+      .select('client_id, paused_at, run_at, meeting_target, clients(company_name, is_demo)')
       .eq('status', 'LIVE')
-    const live = ((livePs ?? []) as { client_id: string; paused_at: string | null; run_at: string | null; meeting_target: number | null; clients: { company_name: string | null } | { company_name: string | null }[] | null }[])
-      .filter(p => !digestExclusions.excludedClientIds.has(p.client_id))
+    // ⚑ 3 Oct — HOUSE IS LISTED. It is excluded from REVENUE (its money is ours), not from "is it
+    // sending?" — and it is the live programme the founder most needs to see. Only the demo is left out.
+    type LiveP = { client_id: string; paused_at: string | null; run_at: string | null; meeting_target: number | null; clients: { company_name: string | null; is_demo?: boolean | null } | { company_name: string | null; is_demo?: boolean | null }[] | null }
+    const live = ((livePs ?? []) as LiveP[])
+      .filter(p => { const c = Array.isArray(p.clients) ? p.clients[0] : p.clients; return c?.is_demo !== true })
+    const { checkProgrammeAuthority } = await import('../lib/programme-authority')
+    const { gateRefusalWords } = await import('../lib/founder-brief-programmes')
     const { clientMeetingCounts } = await import('../lib/meeting-truth')
     const meetingsBy = (await clientMeetingCounts(live.map(p => p.client_id))) ?? {}
     const liveLines: string[] = []
@@ -2109,8 +2114,10 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
         db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', p.client_id).gte('received_at', ago24h),
       ])
       const c = Array.isArray(p.clients) ? p.clients[0] : p.clients
+      let gate: { allowed: boolean; reason?: string } | null = null
+      try { gate = await checkProgrammeAuthority(p.client_id, 'OUTREACH') as { allowed: boolean; reason?: string } } catch { gate = null }
       liveLines.push(liveProgrammeLine({
-        companyName: c?.company_name ?? null, paused: !!p.paused_at, run: !!p.run_at,
+        companyName: c?.company_name ?? null, paused: !!p.paused_at, run: !!p.run_at, refusal: gateRefusalWords(gate),
         sent24h: sentR.count ?? 0, replies24h: repR.count ?? 0,
         meetings: meetingsBy[p.client_id] ?? 0, targetMeetings: p.meeting_target ?? null,
       }))

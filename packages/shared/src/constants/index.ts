@@ -318,3 +318,11 @@ export const HOUSE_POSTAL_FOOTER_LINE = `Milla & Vida · ${POSTAL_FOOTER_LINE}`
  * as part of the barriers on how often we contact anyone (*"the barriers need to be there"*).
  */
 export const MAX_SEQUENCE_STEPS = 5
+
+/**
+ * ⚑ 2 Oct (R185 ⑥ · #2547) — the daily limit a mailbox is held to when its own limit is left
+ * blank. ~~Vida showed "no cap" and the Add Mailbox form said "blank = no cap"~~ while the sender
+ * held that mailbox to this number (`apps/api/src/lib/mailbox-daily-cap.ts`). One home, so the
+ * screen and the sender can never disagree again.
+ */
+export const DEFAULT_MAILBOX_DAILY_CAP = 30

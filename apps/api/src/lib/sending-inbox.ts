@@ -240,6 +240,26 @@ export function fromHeader(inbox: InboxRow): string {
  * Also the NaN guard. An empty port box gives `Number('')` → 0 and `Number(undefined)` →
  * NaN, and either one reaching the transport is a connection attempt to nowhere.
  */
+/**
+ * ⚑ 2 Oct (#2547 · 7e) — DID A SAVE CHANGE HOW THIS MAILBOX CONNECTS?
+ *
+ * `verified_at` says "this mailbox logged in and sent". It was only cleared by a FAILED check, so
+ * an operator who changed the host, username, port or password kept the old green mark — and the
+ * send gate trusted a login nobody had tried. Any of those changing means the mark no longer
+ * describes this mailbox. (A new From name does not change how it connects.)
+ */
+export function connectionChanged(
+  before: { smtp_host: string | null; smtp_port: number | null; smtp_user: string | null } | null,
+  after: { smtp_host: string; smtp_port: number; smtp_user: string },
+  passwordSet: boolean,
+): boolean {
+  if (passwordSet) return true
+  if (!before) return true
+  return (before.smtp_host ?? '').trim().toLowerCase() !== after.smtp_host.trim().toLowerCase()
+    || (before.smtp_user ?? '').trim().toLowerCase() !== after.smtp_user.trim().toLowerCase()
+    || Number(before.smtp_port) !== after.smtp_port
+}
+
 export function normalisePort(port: unknown, secure?: unknown): { port: number; secure: boolean } {
   const n = Number(port)
   const p = Number.isFinite(n) && n > 0 && n <= 65535 ? Math.floor(n) : 587

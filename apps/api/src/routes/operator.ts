@@ -4983,6 +4983,19 @@ operatorRouter.post('/inboxes/:id/credentials', async (req: Request, res: Respon
       patch.smtp_pass_enc = encryptSecret(smtp_pass)
     }
 
+    // ⚑ 2 Oct (#2547 · 7e) — a changed host, username, port or password un-verifies the mailbox:
+    // the old "verified" mark described a login that no longer exists. Unreadable → cleared too.
+    {
+      const { connectionChanged } = await import('../lib/sending-inbox')
+      const { data: before, error: beforeErr } = await db.from('client_inboxes')
+        .select('smtp_host, smtp_port, smtp_user').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+      const passwordSet = typeof smtp_pass === 'string' && smtp_pass.length > 0
+      if (beforeErr || connectionChanged(before as never, { smtp_host: host, smtp_port: port, smtp_user: user }, passwordSet)) {
+        patch.verified_at = null
+        patch.verify_detail = 'The connection details changed — check this mailbox again before it sends.'
+      }
+    }
+
     const { data, error } = await db.from('client_inboxes').update(patch)
       .eq('id', req.params.id).eq('client_id', client.id)
       .select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, from_name').maybeSingle()

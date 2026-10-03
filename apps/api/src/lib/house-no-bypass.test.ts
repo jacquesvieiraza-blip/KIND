@@ -178,6 +178,8 @@ const ALLOWED: Record<string, string> = {
   'sending-health-lines.ts': 'OPERATIONS — R187 ①: House shows its sending numbers in Vida on its own line, never in the totals',
   // ⚑ 2 Oct (#2543 · R189 ⑥): House carries its own legal line, so it is not asked for a registered office.
   'client-legal-line.ts': 'CONTENT — R189 ⑥: House\'s emails carry House\'s own legal line, so Make Live does not ask it for a registered office; it changes no send decision',
+  // ⚑ 2 Oct (#2560): pooled mailboxes return to the pool when a client is done — never House's.
+  'sender-claim.ts': 'OPERATIONS — #2560: a finished client\'s pooled mailboxes are released back to the pool; House keeps its own mailboxes',
 }
 
 describe('② anything else that learns about House has to say why', () => {

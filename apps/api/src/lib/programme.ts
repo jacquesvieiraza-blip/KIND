@@ -1905,6 +1905,10 @@ export async function completeProgramme(programmeId: string): Promise<ProgrammeR
   const gate = mayComplete(p)
   if (!gate.allowed) return { ok: false, reason: gate.reason }
   await setStatus(programmeId, 'COMPLETED')
+  // ⛓️ 3 Oct (review S17): the client's pooled mailboxes were released HERE, the moment the
+  // programme completed — so a prospect replying a week later could not be answered from the
+  // mailbox they wrote to, which might already be sending for another client. They now go back
+  // 30 quiet days later, in the daily job (`releaseQuietPooledSenders`).
   return { ok: true }
 }
 
@@ -2226,6 +2230,10 @@ export async function recordDispute(
         ? `This payment also used ${applied} cents of wallet credit; it is returned to the client's wallet separately.`
         : `This payment also used ${applied} cents of wallet credit — not returned on a dispute; decide by hand.`)
     : ''
+
+  // ⛓️ 3 Oct (review S17): a refund released the client's pooled mailboxes here. Releasing on
+  // a refund was never ruled, and the client may still be answering replies, so nothing is
+  // released by a refund; see `releaseQuietPooledSenders`.
 
   const word = kind === 'refund' ? 'refunded' : 'disputed'
   void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [

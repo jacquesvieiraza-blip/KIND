@@ -426,6 +426,9 @@ async function outreachStillMatchesApproval(
   const { programmeSenderSafety } = await import('./programme-sender')
   const senderSafe = await programmeSenderSafety(programme.client_id)
   if (!senderSafe.ok) {
+    // ⚑ 2 Oct (#2547 · 7e) — the founder is told, once per programme (was: a log line only).
+    void import('./send-refusal-alert').then(m => m.reportSendRefusal('sender_unsafe', programme.id, programme.client_id, senderSafe.detail))
+      .catch(err => console.error('[programme-authority] sender_unsafe alert failed', err))
     return { allowed: false, reason: 'sender_unsafe', programme, message: senderSafe.detail }
   }
 
@@ -440,6 +443,9 @@ async function outreachStillMatchesApproval(
       message: 'This programme has no approval recorded, so nothing may be sent.',
     }
   }
+  // ⚑ 2 Oct (#2547 · 7e) — the founder is told, once per programme (was: a log line only).
+  void import('./send-refusal-alert').then(m => m.reportSendRefusal('preparation_changed', programme.id, programme.client_id, drift.detail))
+    .catch(err => console.error('[programme-authority] preparation_changed alert failed', err))
   return {
     allowed: false, reason: 'preparation_changed', programme,
     message: drift.state === 'changed' ? drift.detail : drift.detail,

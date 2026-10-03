@@ -69,6 +69,8 @@ vi.mock('./demo', () => ({ isDemoClient: async () => state.isDemo }))
 vi.mock('./figsy', () => ({ outreachEnabled: () => state.killSwitch === 'true' }))
 vi.mock('./sending-inbox', () => ({
   resolveSendingInbox: async () => state.resolution,
+  // ⚑ 3 Oct (#2559 · R187 ④): the reply now asks for THIS PERSON's mailbox; same answer here.
+  resolveInboxForPerson: async () => state.resolution,
   refusalLabel: (r: string) => `LABEL:${r}`,
 }))
 vi.mock('./mailer', () => ({

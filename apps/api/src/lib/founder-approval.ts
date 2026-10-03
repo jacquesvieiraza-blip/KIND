@@ -94,3 +94,14 @@ export async function recordFounderApproval(programmeId: string, version: string
   if (error) return { ok: false, status: 503, error: `Your approval could not be saved (${error.message}). If the table is missing, run migration ${FOUNDER_APPROVAL_MIGRATION}.` }
   return { ok: true }
 }
+
+/** ⚑ 4c — has the founder approved the programme's CURRENT version? Gate off → yes; unreadable → no. */
+export async function founderWordingApproved(programmeId: string): Promise<boolean> {
+  if (!founderGateOn()) return true
+  const { db } = await import('@kind/db')
+  const { data: p, error: pErr } = await db.from('programmes').select('review_preparation_hash').eq('id', programmeId).maybeSingle()
+  const version = (p as { review_preparation_hash?: string | null } | null)?.review_preparation_hash
+  if (pErr || !version) return false
+  const { data, error } = await db.from('founder_wording_approvals').select('snapshot_hash').eq('programme_id', programmeId).eq('snapshot_hash', version)
+  return !error && (data ?? []).length > 0
+}

@@ -168,7 +168,8 @@ describe('③ the screen decides nothing', () => {
   })
 
   it('the route computes it from the status, the pause and a non-empty set', () => {
-    expect(ROUTE).toContain("canApprove: p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0")
+    // ⛓️ 2 Oct (#2542 · R186 ③ · 4c): and the founder has approved this version first.
+    expect(ROUTE).toContain("canApprove: founderApproved && p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0")
   })
 
   it('a paused or not-ready programme is told why, never left with a dead button', () => {

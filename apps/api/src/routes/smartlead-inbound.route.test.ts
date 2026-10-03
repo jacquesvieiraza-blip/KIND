@@ -257,10 +257,16 @@ describe('a reply that cannot be attributed is never silently dropped', () => {
     state.inboxOwner = 'client-A'
     const res = await post(reply({ to_email: 'ada@acme-client.com' }))
     await settle()
-    expect(res.payload).toMatchObject({ received: true })
+    expect(res.payload).toMatchObject({ received: true, dropped: 'no_lead_matches' })
     expect(state.replyInserts).toHaveLength(0)
-    // With zero matches the pipeline returns before the inbox alert (nobody holds this person
-    // as a lead at all) — the guarantee is that nothing was written and nothing 500'd.
+    // ⛓️ 2 Oct (#2564): ~~"with zero matches the pipeline returns before the inbox alert"~~ —
+    // and that silence was the defect. The reply is now kept in full and the founder is told,
+    // with both addresses (never its words — R132); it is still written into nobody's inbox.
+    const alert = state.alerts.find(a => a.subject.includes('not one of our leads'))
+    expect(alert).toBeDefined()
+    expect(alert!.lines.join(' ')).toContain('ada@acme-client.com')
+    expect(alert!.lines.join(' ')).toContain('thandi@prospect.co')
+    expect(alert!.lines.join(' ')).not.toContain('happy to chat next week')
     expect(res.code).toBe(200)
   })
 

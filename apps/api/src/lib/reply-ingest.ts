@@ -566,6 +566,7 @@ export function unmatchedAtKnownInboxLines(a: {
     a.excludedCount > 0
       ? `${a.excludedCount} other client(s) DO have this person as a lead — deliberately NOT routed there, because a reply to this client's mailbox is this client's mail.`
       : 'No client has this person as a lead at all.',
-    'It has not been dropped: this alert is the record. Most likely a forwarded thread, a colleague replying, or someone they emailed outside the product.',
+    // ⛓️ 2 Oct (#2564): ~~"this alert is the record"~~ — the reply itself is now kept in full.
+    'It has not been dropped. Most likely a forwarded thread, a colleague replying, or someone they emailed outside the product.',
   ]
 }

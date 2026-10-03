@@ -36,6 +36,15 @@ describe('11c — wired in', () => {
     const ask = route.indexOf('CALENDAR_REQUIRED_COPY')
     expect(ask).toBeGreaterThan(-1)
     expect(ask).toBeLessThan(route.indexOf('goLiveProgramme(req.params.id'))
-    expect(CALENDAR_REQUIRED_COPY).toMatch(/Milla → Settings → Calendar/)
+    // ⛓️ 3 Oct (review): was /Milla → Settings → Calendar/ — the section is headed "Google Calendar".
+    expect(CALENDAR_REQUIRED_COPY).toMatch(/Milla → Settings → Google Calendar/)
+  })
+  // ⚑ 3 Oct (review N1) — an unreadable programme refuses (it used to skip the check and go live),
+  // and an already-live programme's press stays the idempotent success it always was.
+  it('an unreadable programme refuses; a live one is not asked again', () => {
+    const r = read('../routes/programme.ts')
+    const route = r.slice(r.indexOf("programmeRouter.post('/:id/go-live'"), r.indexOf('goLiveProgramme(req.params.id'))
+    expect(route).toContain("if (progErr) { res.status(400).json({ success: false, error: `Not taken live: the programme could not be read")
+    expect(route).toContain("if (clientId && (prog as { status?: string }).status !== 'LIVE') {")
   })
 })

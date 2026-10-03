@@ -34,4 +34,4 @@ export async function replyBookingClose(args: {
 
 /** Make Live's sentence when the client's calendar is not connected, or null. */
 export const CALENDAR_REQUIRED_COPY =
-  "Not taken live: the client's Google calendar is not connected. Prospects book into it from their own booking link (R189). Ask the client to connect it in Milla → Settings → Calendar, then press Make live again."
+  "Not taken live: the client's Google calendar is not connected. Prospects book into it from their own booking link (R189). Ask the client to connect it in Milla → Settings → Google Calendar, then press Make live again."

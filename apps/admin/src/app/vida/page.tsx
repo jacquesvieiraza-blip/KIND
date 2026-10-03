@@ -3419,7 +3419,7 @@ export default function VidaConsolePage() {
                   {myAlerts.map((a, i) => (
                     <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
                       <button
-                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'meetings_to_qualify' ? 'Programme' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
                         className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
                         {a.label} &rarr;
                       </button>

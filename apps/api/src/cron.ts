@@ -309,6 +309,10 @@ async function watchStuckClients(): Promise<void> {
     const res = await runStuckClientWatchdog({ nowMs: Date.now() })
     if (!res.ok) console.error(`[cron] stuck-client watchdog could not read: ${res.error ?? 'unknown'}`)
     else if (res.found > 0) console.log(`[cron] stuck-client watchdog — ${res.found} stuck, ${res.told} newly told, ${res.alreadyOpen} already open${res.unmailed ? `, ${res.unmailed} NOT EMAILED (check RESEND_API_KEY / FOUNDER_EMAIL)` : ''}`)
+    // ⚑ 2 Oct (#2542 · R189 ⑧) — a client waiting over a working day on the founder's approval.
+    const { alertFounderApprovalWaits } = await import('./lib/founder-approval')
+    const waits = await alertFounderApprovalWaits(new Date())
+    if (!waits.ok) console.error('[cron] founder-approval wait check could not read the programmes')
   } catch (err) {
     console.error('[cron] stuck-client watchdog threw', err)
   }

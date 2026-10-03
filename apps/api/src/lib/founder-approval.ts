@@ -118,3 +118,47 @@ export async function founderWordingApproved(programmeId: string): Promise<boole
   const { data, error } = await db.from('founder_wording_approvals').select('snapshot_hash').eq('programme_id', programmeId).eq('snapshot_hash', version)
   return !error && (data ?? []).length > 0
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 2 Oct (#2542 · R189 ⑧ · 4d) — A CLIENT WAITING ON THE FOUNDER'S APPROVAL IS NOT LEFT WAITING.
+//
+// R189 ⑧: pay first, with a one-working-day founder check and an alert. A client who has paid
+// and whose emails are prepared is waiting on the founder; past one working day he is told, once
+// per version (one Needs-you task, and an email only when that task is new).
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** `from` plus one working day (Mon–Fri), in UTC. */
+export function oneWorkingDayAfter(from: Date): Date {
+  const d = new Date(from.getTime() + 86_400_000)
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setTime(d.getTime() + 86_400_000)
+  return d
+}
+
+export async function alertFounderApprovalWaits(now: Date): Promise<{ ok: boolean; waiting: number }> {
+  if (!founderGateOn()) return { ok: true, waiting: 0 }
+  const { db } = await import('@kind/db')
+  const { TERMINAL_STATUSES } = await import('./programme')
+  const { data: progs, error } = await db.from('programmes')
+    .select('id, client_id, review_preparation_hash, review_preparation_at')
+    .not('review_preparation_hash', 'is', null)
+    .not('status', 'in', `(${TERMINAL_STATUSES.join(',')})`)
+  if (error) return { ok: false, waiting: 0 }
+  let waiting = 0
+  for (const p of (progs ?? []) as { id: string; client_id: string; review_preparation_hash: string; review_preparation_at: string | null }[]) {
+    if (!p.review_preparation_at || oneWorkingDayAfter(new Date(p.review_preparation_at)) > now) continue
+    if (await founderWordingApproved(p.id)) continue
+    waiting++
+    const key = `founder_approval_wait:${p.id}:${p.review_preparation_hash}`
+    const title = 'A client has waited over a working day for your approval of their emails'
+    const lines = [
+      `Client ${p.client_id} · programme ${p.id}. Prepared ${p.review_preparation_at}.`,
+      'Nothing is sent and the client cannot see their emails until you approve them in Vida → the client → Programme.',
+    ]
+    const { raiseOperatorTask } = await import('./operator-tasks')
+    const t = await raiseOperatorTask({ kind: 'support_escalation', severity: 'warn', title, detail: lines.join('\n'), clientId: p.client_id, programmeId: p.id, dedupeKey: key })
+    if (t.ok && t.alreadyOpen) continue
+    const { sendFounderAlert } = await import('./alerts')
+    await sendFounderAlert('support_escalation', title, lines, { clientId: p.client_id, programmeId: p.id, dedupeKey: key })
+  }
+  return { ok: true, waiting }
+}

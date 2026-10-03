@@ -191,7 +191,7 @@ export default function ProgrammePage() {
           internalBilling={p.money.internalBilling === true}
           onChosen={() => { void load() }}
           onWiden={widen} />
-      ) : review?.programme && review.canApprove && !review.programme.approved_at ? (
+      ) : review?.programme && review.canApprove && (!review.programme.approved_at || review.reapproval) ? (
         /* ⚑ 24 Sep (R145 step 5 · #60) — AT APPROVAL THE RIGHT SIDE IS THE APPROVAL PANEL, ALONE. */
         <ProgrammeApproval
           data={review}

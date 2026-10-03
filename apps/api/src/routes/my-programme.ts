@@ -324,6 +324,8 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
 
     const { founderWordingApproved } = await import('../lib/founder-approval')
     const founderApproved = await founderWordingApproved(p.id)
+    const { needsReapproval } = await import('../lib/live-reword')
+    const reapproval = needsReapproval(p as never)
     res.json({
       success: true,
       data: {
@@ -370,7 +372,10 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         complete,
         // ⚠️ THE BUTTON'S ENABLED-NESS IS DECIDED SERVER-SIDE, and re-decided by the POST. This
         // is what the UI renders from; it is NOT what authorises anything.
-        canApprove: founderApproved && p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,
+        canApprove: founderApproved && ((p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0) || reapproval),
+        // ⚑ 2 Oct (#2544 · R191 4b) — a LIVE, paused programme whose words changed, waiting for the
+        // client to approve the new version (after the founder has).
+        reapproval,
       },
     })
   } catch (err) {
@@ -887,6 +892,15 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
       const { founderWordingApproved } = await import('../lib/founder-approval')
       if (!(await founderWordingApproved(p.id))) {
         res.status(409).json({ success: false, error: 'awaiting_founder', message: 'Our team is still checking your emails. You can approve them as soon as they appear here.' }); return
+      }
+    }
+    // ⚑ 2 Oct (#2544 · R191 4b) — a live programme's new version is re-approved, never re-run.
+    {
+      const { needsReapproval, reapproveLive } = await import('../lib/live-reword')
+      if (needsReapproval(p as never)) {
+        const rr = await reapproveLive(clientId, p.id, version || null)
+        if (!rr.ok) { res.status(rr.status).json({ success: false, error: 'reapproval_refused', message: rr.reason }); return }
+        res.json({ success: true, data: { approved_at: (p as { approved_at?: string | null }).approved_at ?? null, reapproved: true }, message: rr.detail }); return
       }
     }
     const { approveProgrammeAsCustomer } = await import('../lib/programme')

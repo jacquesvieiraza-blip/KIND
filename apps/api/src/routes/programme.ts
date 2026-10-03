@@ -571,6 +571,24 @@ programmeRouter.post('/:id/wording/approve', guard(async (req: Request, res: Res
   res.json({ success: true })
 }))
 
+// ── ⚑ 2 Oct (#2544 · item 6 · R191 4b) — CHANGING THE WORDS OF A LIVE PROGRAMME ──────────────
+// Both only on a LIVE, PAUSED programme. The new version then goes founder → client → resume.
+programmeRouter.post('/:id/refreeze-live', guard(async (req: Request, res: Response) => {
+  const { refreezeLive } = await import('../lib/live-reword')
+  const r = await refreezeLive(req.params.id)
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, { action: 'refreeze_live', ok: r.ok, detail: r.ok ? r.detail : r.reason, by: pressedBy(req) })
+  if (!r.ok) { res.status(r.status).json({ success: false, error: r.reason }); return }
+  res.json({ success: true, message: r.detail })
+}))
+
+programmeRouter.post('/:id/house-approved-emails', guard(async (req: Request, res: Response) => {
+  const { applyHouseApprovedEmails } = await import('../lib/live-reword')
+  const r = await applyHouseApprovedEmails(req.params.id)
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, { action: 'house_approved_emails', ok: r.ok, detail: r.ok ? r.detail : r.reason, by: pressedBy(req) })
+  if (!r.ok) { res.status(r.status).json({ success: false, error: r.reason }); return }
+  res.json({ success: true, message: r.detail })
+}))
+
 /** THE EXPLICIT GO LIVE. Idempotent: an already-live programme succeeds and writes nothing. */
 programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) => {
   const r = await goLiveProgramme(req.params.id, pressedBy(req))

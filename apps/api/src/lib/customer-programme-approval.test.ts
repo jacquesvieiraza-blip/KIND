@@ -738,7 +738,7 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
     // renders at every OTHER stage, and after approval, exactly as before.
     expect(programme).toContain('<ProgrammeWorkspace p={p} />')
     expect(programme).toContain('<ProgrammeApproval')
-    expect(programme).toContain('review?.programme && review.canApprove && !review.programme.approved_at ? (')
+    expect(programme).toContain('review?.programme && review.canApprove && (!review.programme.approved_at || review.reapproval) ? (' /* ⛓️ 2 Oct (#2544 · R191 4b): or a live programme's new version */)
   })
 })
 

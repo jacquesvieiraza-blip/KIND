@@ -139,6 +139,8 @@ export type ApprovalPayload = {
   canApprove: boolean
   /** ⚑ 2 Oct (#2542 · 4c) — the founder has not approved this version yet; the emails are withheld. */
   awaiting_founder?: boolean
+  /** ⚑ 2 Oct (#2544 · R191 4b) — a live programme's changed emails, waiting for the client again. */
+  reapproval?: boolean
 }
 
 /** "Weekdays, 08:30–17:00" — the schedule in words, or nothing when it is not a schedule. */
@@ -189,7 +191,7 @@ export default function ProgrammeApproval({
   // whenever they come back to the tab. A different frozen version replaces what is on screen and
   // Milla says so in the chat, once per version. A failed check is simply tried again; the server
   // still refuses an approval of a version the client was not shown.
-  const watching = data.canApprove && !data.programme?.approved_at
+  const watching = data.canApprove && (!data.programme?.approved_at || data.reapproval === true)
   const shownVersion = data.frozen?.version ?? null
   useEffect(() => {
     if (!watching) return
@@ -218,7 +220,7 @@ export default function ProgrammeApproval({
       window.removeEventListener('focus', onReturn)
     }
   }, [watching, shownVersion, keepNotice])
-  const canApproveNow = data.canApprove && !data.programme?.approved_at
+  const canApproveNow = data.canApprove && (!data.programme?.approved_at || data.reapproval === true)
   useEffect(() => {
     if (!canApproveNow) return
     announceOnce('approval-intro', [

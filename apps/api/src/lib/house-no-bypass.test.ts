@@ -300,14 +300,16 @@ describe('④ House sender readiness — multiple inboxes are fine, an unproved 
     expect(r.ok && r.inboxId, 'the unambiguous winner is the branded active box').toBe('hb-1')
   })
 
-  it('🛑 but two EQUALLY-RANKED House inboxes are still ambiguous, and still refused', async () => {
+  // ⛓️ 2 Oct (#2559 · R189 ②): two equal mailboxes are now every client's pair, so this no
+  // longer refuses — for House exactly as for a client. Was: "still ambiguous, and still refused".
+  // The point of the test is unchanged: House gets no answer a client would not get.
+  it('🛑 two EQUALLY-RANKED House inboxes get the same answer a client gets (R189 ② pair)', async () => {
     state.inboxes = [
       houseInbox({ verified_at: '2026-09-10' }),
       houseInbox({ id: 'hb-2', email: 'hello@meetandvibe.com', verified_at: '2026-09-10' }),
     ]
     const r = await programmeSenderSafety('house')
-    expect(r.ok, 'House got an arbitrary sender where a client would be refused').toBe(false)
-    expect(r.ok === false && r.reason).toBe('ambiguous_sender')
+    expect(r.ok).toBe(true)
   })
 })
 

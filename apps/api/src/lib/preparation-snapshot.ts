@@ -156,6 +156,19 @@ export function preparationHash(snapshot: PreparationSnapshot): string {
  * dangerous thing this module could do. Every failure returns `ok: false` and the caller must
  * treat it as "cannot tell", which for an authority gate means refuse.
  */
+/**
+ * ⚑ 2 Oct (#2559 · R189 ②) — the frozen identity of an EQUAL pair (or more) of sending boxes,
+ * sorted so row order cannot change it; `null` when one box leads (the old single-sender form).
+ */
+export function frozenSenderSet(boxes: { id: unknown; email?: unknown; status?: unknown; kind?: unknown }[]): string | null {
+  if (boxes.length < 2) return null
+  const rank = (b: { status?: unknown; kind?: unknown }) => (String(b.status) === 'active' ? 0 : 1) * 10 + (String(b.kind) === 'branded' ? 0 : 1)
+  const top = Math.min(...boxes.map(rank))
+  const tied = boxes.filter(b => rank(b) === top)
+  if (tied.length < 2) return null
+  return tied.map(b => `${String(b.id)}|${String(b.email ?? '')}`).sort().join(',')
+}
+
 export async function buildPreparationSnapshot(programmeId: string): Promise<SnapshotResult> {
   const chainRes = await resolveProgrammeChain(programmeId)
   if (!chainRes.ok) return { ok: false, degraded: chainRes.degraded }
@@ -198,6 +211,17 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
     const { resolveSendingInbox } = await import('./sending-inbox')
     const r = await resolveSendingInbox(chain.clientId)
     if (r.ok) sender = `${r.inbox.id}|${r.inbox.email ?? ''}`
+    // ⚑ 2 Oct (#2559 · R189 ②) — AN EQUAL PAIR IS FROZEN AS A PAIR: "2 mailboxes … approved
+    // together". Only when two or more boxes tie at the top — a state the sender gate refused
+    // until today, so no approved programme holds it — is the frozen sender the sorted set.
+    // Every existing setup (one box, or a branded box with a pooled one behind it) freezes
+    // exactly what it froze before, so no approval already given changes under anybody.
+    if (r.ok) try {
+      const { liveSenderIdentities } = await import('./sending-inbox')
+      const ids = await liveSenderIdentities(chain.clientId)
+      const set = ids ? frozenSenderSet(ids) : null
+      if (set) sender = set
+    } catch { /* the single sender above stands — the pair is an addition, never a failure */ }
   } catch (err) {
     return { ok: false, degraded: `The sending mailbox for this client could not be checked (${err instanceof Error ? err.message : String(err)}).` }
   }

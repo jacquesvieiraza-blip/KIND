@@ -95,14 +95,13 @@ describe('① one clear mailbox is safe', () => {
 // ── ② 20 · AMBIGUITY ─────────────────────────────────────────────────────────────────
 
 describe('② an unbroken tie is arbitrary, and arbitrary is not a decision', () => {
-  it('🛑 20 · two equally-ranked sendable boxes REFUSE, and name them', async () => {
-    // Same status, same kind ⇒ identical rank ⇒ the winner is whatever order the database
-    // returned. A frozen snapshot whose sender is a coin toss freezes nothing.
+  // ⛓️ SUPERSEDED 2 Oct (#2559 · R189 ②): two mailboxes per client is now the rule, "approved
+  // together", and each person stays on the mailbox that first emailed them, so a tie decides
+  // nothing about anybody. Was: two equally-ranked boxes REFUSE as \`ambiguous_sender\`.
+  it('20 · two equally-ranked sendable boxes are the R189 ② pair — accepted', async () => {
     state.inboxes = [box(), box({ id: 'inbox-2', email: 'team@meetandvibe.com' })]
     const r = await programmeSenderSafety('house')
-    expect(r.ok, 'an arbitrary sender was accepted').toBe(false)
-    expect(r.ok === false && r.reason).toBe('ambiguous_sender')
-    expect(r.ok === false && r.detail).toContain('team@meetandvibe.com')
+    expect(r.ok).toBe(true)
   })
 
   it('🛑 BUT A SECOND BOX AT A LOWER RANK IS FINE — #610 rotation is not undone', async () => {

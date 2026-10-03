@@ -1010,17 +1010,24 @@ myProgrammeRouter.post('/pause', async (req: AuthRequest, res) => {
     if (p.paused_at) { res.json({ success: true, data: { paused: true, already: true } }); return }
     const { pauseProgramme } = await import('../lib/programme')
     const r = await pauseProgramme(p.id, 'client')
-    if (!r.ok) { res.status(409).json({ success: false, error: 'not_paused', message: `${r.reason} Nothing was changed.` }); return }
-    const { isDemoClient } = await import('../lib/demo')
-    if (!(await isDemoClient(clientId))) {
+    if (!r.ok) {
+      res.status(409).json({ success: false, error: 'not_paused', message: /nothing (was )?changed/i.test(r.reason ?? '') ? r.reason : `${r.reason} Nothing was changed.` })
+      return
+    }
+    // ⚑ 2 Oct (R185 ⑦ · #2548) — THE CLIENT IS ANSWERED THE MOMENT THE PAUSE IS SAVED. ~~The
+    // founder alert was awaited first~~: on 2 Oct the founder pressed Pause, the email took longer
+    // than the screen's 15 seconds, and Milla said "Request timed out" over a pause that had worked.
+    res.json({ success: true, data: { paused: true } })
+    void (async () => {
+      const { isDemoClient } = await import('../lib/demo')
+      if (await isDemoClient(clientId)) return
       const { data: c } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
       const { sendFounderAlert } = await import('../lib/alerts')
       await sendFounderAlert('support_escalation', `Pause requested — ${(c as { company_name?: string } | null)?.company_name ?? 'a client'}`, [
         'The client pressed Pause in Milla. Their programme is PAUSED NOW: nothing new is sourced or sent.',
         'Talk to them, then resume it in Vida → the client → Programme → Resume.',
-      ]).catch(err => console.error('[my-programme/pause] the pause landed but the alert failed:', err))
-    }
-    res.json({ success: true, data: { paused: true } })
+      ])
+    })().catch(err => console.error('[my-programme/pause] the pause landed but the alert failed:', err))
   } catch (err) {
     console.error('[my-programme/pause]', err)
     res.status(503).json({ success: false, error: 'unavailable', message: 'We could not pause just now. Nothing was changed — please try again.' })

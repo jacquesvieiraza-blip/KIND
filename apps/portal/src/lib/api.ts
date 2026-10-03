@@ -63,7 +63,10 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string, 
 
   const data = await res.json()
   if (!res.ok) {
-    const errMsg = Array.isArray(data.error)
+    // ⚑ 2 Oct (#2548) — THE SERVER'S OWN SENTENCE, WHEN IT SENT ONE. ~~Only `error` was read~~,
+    // and many routes put a machine code there ("not_paused", "unavailable", "wrong_state") and
+    // the sentence for the client in `message` — so Milla showed the client the code.
+    const errMsg = typeof data.message === 'string' && data.message.trim() ? data.message : Array.isArray(data.error)
       ? data.error.map((e: { message?: string }) => e.message ?? JSON.stringify(e)).join(', ')
       : (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) || 'API request failed'
     const err = new Error(errMsg) as Error & { status: number; code?: string }

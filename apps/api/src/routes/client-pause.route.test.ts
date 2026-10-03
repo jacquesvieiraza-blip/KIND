@@ -63,7 +63,9 @@ describe('① the press pauses at once', () => {
     const r = await press()
     expect(r.status).toBe(200)
     expect(st.paused).toEqual([{ id: 'p1', reason: 'client' }])
-    expect(st.alerts).toHaveLength(1)
+    // ⛓️ 2 Oct (R185 ⑦ · #2548) — the alert now goes just AFTER the client is answered (it used
+    // to hold the answer past the screen's 15s), so it is waited for here; it must still arrive.
+    await vi.waitFor(() => expect(st.alerts).toHaveLength(1))
     expect(st.alerts[0].kind).toBe('support_escalation')
     expect(st.alerts[0].title).toBe('Pause requested — Acme')
     expect(readFileSync(join(process.cwd(), 'apps/api/src/lib/alerts.ts'), 'utf8'))

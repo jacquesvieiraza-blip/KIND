@@ -560,6 +560,8 @@ interface BranchableEnrollment {
   /** ⚑ 8 Sep — how long this enrolment's OWN sequence is. See `sequenceTotalFor`. */
   steps?: unknown
   total_steps?: number | null
+  /** ⚑ 2 Oct (#2558) — a programme enrolment stops on any human reply. */
+  programme_id?: string | null
 }
 
 /**
@@ -620,6 +622,35 @@ export async function applyReplyBranching(
     return 'skip'
   }
   if (!count) return 'send'
+
+  // ── ⚑ 2 Oct (card #2558 · S3) — A PROGRAMME ENROLMENT STOPS ON ANY HUMAN REPLY ─────────────
+  //
+  // Whatever the campaign's per-step settings say — and a programme campaign has none, so this
+  // used to fall to the legacy "continue" below and send step 2 to somebody who had answered.
+  // Only out-of-office replies let the next step go; a reply nobody could classify counts as
+  // human. The reply pipeline stops the sequence when the reply arrives; this is the second door,
+  // so a write missed on arrival still cannot send the next step. A failed read HOLDS (#1527).
+  if (enrollment.programme_id) {
+    const { data: replyRows, error: rowsErr } = await db.from('figsy_replies')
+      .select('classification')
+      .eq('enrollment_id', enrollment.id)
+      .gt('received_at', since)
+    if (rowsErr) {
+      console.error(`[figsy] applyReplyBranching: the replies could not be read for programme enrollment ${enrollment.id} (${rowsErr.message}) — step ${enrollment.current_step + 1} HELD rather than sent to somebody who may have replied.`)
+      return 'skip'
+    }
+    const stampedAt = new Date().toISOString()
+    const human = (replyRows ?? []).some(r => (r as { classification?: string | null }).classification !== 'out_of_office')
+    if (!human) {
+      await updateEnrollmentState(enrollment.id, { reply_branch_handled_at: stampedAt },
+        'an out-of-office was handled but not stamped — it will be read again next run')
+      return 'send'
+    }
+    await updateEnrollmentState(enrollment.id,
+      { status: 'replied', next_send_at: null, reply_branch_handled_at: stampedAt },
+      'a prospect REPLIED and the sequence was not stopped — they stay due and may receive the next step after replying')
+    return 'skip'
+  }
 
   // Resolve the campaign's configured steps (cached per run).
   let steps = stepsCache.get(enrollment.campaign_id)

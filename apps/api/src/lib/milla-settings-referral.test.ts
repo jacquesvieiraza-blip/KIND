@@ -178,9 +178,13 @@ describe('D1 — the two switches that lied are now real, switchable and persist
     expect(SETTINGS).not.toMatch(/Programme paused/)
   })
 
-  it('Reply received stays "Soon", because it genuinely is', () => {
-    expect(SETTINGS).toMatch(/label: 'Reply received',[\s\S]{0,160}live: false/)
-    // Vacuity: prove the Soon badge still exists to be shown.
+  // ⛓️ SUPERSEDED 2 Oct (#2564 · R191 — *"Only interested replies"*, chains R87). This test
+  // pinned "Reply received" as "Soon" because no client alert existed. The alert is built now
+  // (`lib/interested-reply-notice.ts`), so the switch is live and saved on the server.
+  it('Reply received is live and saved on the server (was: stays "Soon", 31 Aug)', () => {
+    expect(SETTINGS).toMatch(/label: 'Reply received',[\s\S]{0,160}live: true/)
+    expect(SETTINGS).toMatch(/reply_received:\s*'reply_received_emails_enabled'/)
+    // The Soon badge code is kept for any future row; it simply has nothing to show today.
     expect(SETTINGS).toMatch(/Soon</)
   })
 

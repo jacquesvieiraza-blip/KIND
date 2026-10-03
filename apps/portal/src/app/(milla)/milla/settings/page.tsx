@@ -41,16 +41,17 @@ import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 // migration ships, so a legacy client still gets those warnings from the old portal. What
 // changed is that the MILLA PROGRAMME EXPERIENCE no longer contains the control or the email.
 const NOTIF_STORAGE_KEY = 'kind_notification_prefs_v1'
-const DEFAULT_NOTIF_PREFS = {
-  reply_received: true,
-}
+// ⛓️ 2 Oct (#2564 · R191): `reply_received` moved to the server like the others — the reply
+// webhook has to obey it — so the browser store holds no switch any more.
+const DEFAULT_NOTIF_PREFS: Record<string, boolean> = {}
 type NotifPrefs = typeof DEFAULT_NOTIF_PREFS
 
-/** The three switches the SERVER owns. A cron cannot read localStorage — see below. */
+/** The switches the SERVER owns. A cron or a webhook cannot read localStorage — see below. */
 type ServerNotifPrefs = {
   daily_brief: boolean | null
   campaign_paused: boolean | null
   weekly_digest: boolean | null
+  reply_received: boolean | null
 }
 
 function NotificationPreferences({ server, onServerToggle }: {
@@ -64,7 +65,7 @@ function NotificationPreferences({ server, onServerToggle }: {
     try {
       const raw = localStorage.getItem(NOTIF_STORAGE_KEY)
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<NotifPrefs>
+        const parsed = JSON.parse(raw) as NotifPrefs
         setPrefs(prev => ({ ...prev, ...parsed }))
       }
     } catch { /* ignore */ }
@@ -97,14 +98,14 @@ function NotificationPreferences({ server, onServerToggle }: {
     // ⛓️ #2562 (R191, 2 Oct — *"Stop both"*): "Campaign paused" and "Weekly digest" are no
     // longer offered here. Both are old self-serve emails and a programme client is never sent
     // either (`mayNotify` refuses them), so a switch for them would control nothing.
-    // The one row where "Soon" is still TRUE — verified: `reply_received` exists only as an
-    // internal signal in `lib/reply-pipeline.ts`. No client notification is built, so there is
-    // nothing here to switch on and nothing arriving in their inbox.
-    { key: 'reply_received',  label: 'Reply received',  desc: 'When a lead replies to your outreach.',                              live: false },
+    // ⛓️ 2 Oct (#2564 · R191 — *"Only interested replies"*, chains R87, which kept this row
+    // "Soon"): ~~"Soon", because no client notification was built~~. It is built now — an email
+    // and a phone alert when a prospect sounds interested — and this switch stops both.
+    { key: 'reply_received',  label: 'Reply received',  desc: 'When someone replies and sounds interested — by email and on your phone.', live: true },
   ]
 
   const isServerKey = (k: string): k is keyof ServerNotifPrefs =>
-    k === 'daily_brief' || k === 'campaign_paused' || k === 'weekly_digest'
+    k === 'daily_brief' || k === 'campaign_paused' || k === 'weekly_digest' || k === 'reply_received'
 
   // ⚠️ `null` FROM THE SERVER MEANS "NEVER CHOSE", WHICH IS ON. The columns are nullable with
   // no DEFAULT (the #599 precedent: a DEFAULT stamps historic rows with a claim nobody made),
@@ -545,7 +546,7 @@ export default function MillaSettingsPage() {
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
   const [clientId, setClientId]                     = useState<string | null>(null)
   const [userRole, setUserRole]                     = useState<string>('owner')
-  const [notif, setNotif] = useState<ServerNotifPrefs>({ daily_brief: null, campaign_paused: null, weekly_digest: null })
+  const [notif, setNotif] = useState<ServerNotifPrefs>({ daily_brief: null, campaign_paused: null, weekly_digest: null, reply_received: null })
   // D3 — the programme, read once, rendered by the Lead Delivery section.
   const [programme, setProgramme]     = useState<CustomerProgramme | null>(null)
   const [programmeFailed, setProgFail] = useState(false)
@@ -589,6 +590,7 @@ export default function MillaSettingsPage() {
           daily_brief:     row.daily_brief_enabled ?? null,
           campaign_paused: row.campaign_paused_emails_enabled ?? null,
           weekly_digest:   row.weekly_digest_enabled ?? null,
+          reply_received:  row.reply_received_emails_enabled ?? null,
         })
         if (c.id) {
           setClientId(c.id)
@@ -717,6 +719,7 @@ export default function MillaSettingsPage() {
     daily_brief:     'daily_brief_enabled',
     campaign_paused: 'campaign_paused_emails_enabled',
     weekly_digest:   'weekly_digest_enabled',
+    reply_received:  'reply_received_emails_enabled',
   }
   async function handleNotifToggle(key: keyof ServerNotifPrefs, next: boolean) {
     const prev = notif[key]

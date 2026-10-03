@@ -76,7 +76,8 @@ describe('J14-C3 · the kind of the frozen sender is read, never assumed', () =>
   })
 
   it('it rides on the frozen block, beside the address it qualifies', () => {
-    expect(ROUTE).toContain('frozen: frozen ? { ...frozen, sender_kind: senderKind } : null')
+    // ⛓️ 2 Oct (#2542 · 4c): the block also withholds the emails until the founder approves them.
+    expect(ROUTE).toContain('frozen: frozen ? { ...frozen, sender_kind: senderKind, messages: founderApproved ? frozen.messages : [] } : null')
   })
 
   it('🛑 AND THE FREEZE IS UNTOUCHED — the package still pins which sender', () => {

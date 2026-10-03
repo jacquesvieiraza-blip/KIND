@@ -1427,6 +1427,10 @@ async function sendSequenceEmailCore(
   }, `step ${step} WAS SENT but the enrollment was not advanced — the same email will be sent to this prospect again on the next cron run`)
   // ONE WALLET: last step sent moves no money — the $4 was final at approve.
 
+  // ⚑ 2 Oct (R185 ⑥ · #2547) — ONE LOG LINE PER EMAIL SENT. The founder looked in the logs for
+  // House's 1 Oct sends and found nothing: only the run summary was logged.
+  console.log(`[send] ✓ sent · client ${lead.client_id ?? '—'} · enrolment ${enrollmentId} · step ${step}/${totalSteps} · from ${sendingInbox?.email ?? '—'} · to ${lead.email}${opts?.isPreview ? ' (preview)' : ''}`)
+
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
   void logOutcomeEvent({
     client_id:     lead.client_id,

@@ -41,29 +41,32 @@ export function founderVerdict(a: {
   wording: string | null
   approvals: FounderApprovalRow[]
   followUp: boolean
+  /** ⚑ 3 Oct (R191 4c) — this person was in the version already approved (founder, then client). */
+  personApproved?: boolean
 }): { allowed: true } | { allowed: false; message: string } {
   if (!a.gateOn) return { allowed: true }
   if (!a.version) return { allowed: false, message: 'Nothing has been prepared for the founder to approve yet, so nothing may be sent.' }
   if (a.approvals.some(r => r.snapshot_hash === a.version)) return { allowed: true }
-  if (a.followUp && a.wording && a.approvals.some(r => r.wording_hash === a.wording)) return { allowed: true }
+  if ((a.followUp || a.personApproved === true) && a.wording && a.approvals.some(r => r.wording_hash === a.wording)) return { allowed: true }
   return {
     allowed: false,
     message: a.approvals.length === 0
       ? 'The founder has not approved these emails yet (R186). Nothing is sent until he approves them in Vida → the client → Programme.'
       // ⛓️ 3 Oct (review S7): said "Follow-ups to people already emailed continue" — not true
       // while the client-approval check still stops every send on a new batch (R191 4c builds it).
-      : 'This version (new wording or new people) has not been approved by the founder yet (R186). Nothing in it is sent until he approves it in Vida → the client → Programme.',
+      // ⚑ 3 Oct (R191 4c) — now true: people already approved keep receiving their emails.
+      : 'This version (new wording or new people) has not been approved by the founder yet (R186). People already approved keep receiving their emails; nothing new is sent until he approves it in Vida → the client → Programme.',
   }
 }
 
 /** Read and decide for one programme. */
-export async function founderApprovalVerdict(programmeId: string, followUp: boolean): Promise<{ allowed: true } | { allowed: false; message: string }> {
+export async function founderApprovalVerdict(programmeId: string, followUp: boolean, leadId: string | null = null): Promise<{ allowed: true } | { allowed: false; message: string }> {
   if (!founderGateOn()) return { allowed: true }
   const { db } = await import('@kind/db')
   const { data: p, error: pErr } = await db.from('programmes')
-    .select('client_id, review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+    .select('client_id, review_preparation_hash, review_preparation_snapshot, approved_preparation_snapshot').eq('id', programmeId).maybeSingle()
   if (pErr) return { allowed: false, message: `The programme's prepared version could not be read (${pErr.message}), so nothing may be sent.` }
-  const row = p as { client_id?: string | null; review_preparation_hash?: string | null; review_preparation_snapshot?: { steps?: unknown } | null } | null
+  const row = p as { client_id?: string | null; review_preparation_hash?: string | null; review_preparation_snapshot?: { steps?: unknown } | null; approved_preparation_snapshot?: { enrolled_lead_ids?: string[] } | null } | null
   // ⚑ 3 Oct (review S9) — the Northwind demo never sends to anyone and is rebuilt on every stage
   // press; it is not wording the founder needs to approve, and gating it broke the demo.
   if (row?.client_id && await isDemoProgrammeClient(row.client_id)) return { allowed: true }
@@ -78,6 +81,7 @@ export async function founderApprovalVerdict(programmeId: string, followUp: bool
     wording: row?.review_preparation_snapshot ? wordingHash(row.review_preparation_snapshot.steps) : null,
     approvals: (approvals ?? []) as FounderApprovalRow[],
     followUp,
+    personApproved: !!leadId && (row?.approved_preparation_snapshot?.enrolled_lead_ids ?? []).includes(leadId),
   })
 }
 

@@ -291,12 +291,37 @@ export type PreparationDrift =
  * approved before this existed, or the write did not land — either way nobody can say the work
  * still matches, and "we have no record" must never resolve to "yes, it matches".
  */
-export async function preparationDrift(programmeId: string): Promise<PreparationDrift> {
+/**
+ * ⚑ 3 Oct (#2542 · R191 ① 4c — *"each new batch is approved on its own (follow-ups to people
+ * already emailed continue)"*) — WHAT A NEW BATCH CHANGES, AND FOR WHOM.
+ *
+ * The snapshot holds the latest batch and every enrolment, so adding batch 2 changed the hash and
+ * every send stopped — batch 1's follow-ups included — until the whole programme was approved
+ * again. A new batch changes nothing for the people already approved: same campaign, sequence,
+ * words, waits, window, sender and target, and they are still in the audience. So when the ONLY
+ * difference is people added, the approved people's work is unchanged FOR THEM; the new people
+ * wait for their batch's approval.
+ *
+ * ⚠️ PURE AND STRICT. Any other difference — one word, one wait, the sender — is a change for
+ * everybody, exactly as before. A person removed from the audience is a change too.
+ */
+export function onlyPeopleAdded(approved: PreparationSnapshot, current: PreparationSnapshot): boolean {
+  const PEOPLE = new Set(['batch_id', 'batch_lead_ids', 'enrolled_lead_ids', 'sendable_count'])
+  const keys = new Set([...Object.keys(approved), ...Object.keys(current)])
+  for (const k of keys) {
+    if (PEOPLE.has(k)) continue
+    if (canonicalJson((approved as unknown as Record<string, unknown>)[k]) !== canonicalJson((current as unknown as Record<string, unknown>)[k])) return false
+  }
+  const now = new Set(current.enrolled_lead_ids ?? [])
+  return (approved.enrolled_lead_ids ?? []).every(id => now.has(id))
+}
+
+export async function preparationDrift(programmeId: string, leadId: string | null = null): Promise<PreparationDrift> {
   const { data: prog, error } = await db.from('programmes')
-    .select('id, approved_at, approved_preparation_hash').eq('id', programmeId).maybeSingle()
+    .select('id, approved_at, approved_preparation_hash, approved_preparation_snapshot').eq('id', programmeId).maybeSingle()
   if (error) return { state: 'unreadable', detail: `The programme could not be read (${error.message}).` }
   if (!prog) return { state: 'unreadable', detail: 'There is no programme with that id.' }
-  const p = prog as { approved_at: string | null; approved_preparation_hash: string | null }
+  const p = prog as { approved_at: string | null; approved_preparation_hash: string | null; approved_preparation_snapshot?: PreparationSnapshot | null }
 
   if (!p.approved_at) return { state: 'not_approved' }
   if (!p.approved_preparation_hash) {
@@ -309,6 +334,15 @@ export async function preparationDrift(programmeId: string): Promise<Preparation
   const now = await buildPreparationSnapshot(programmeId)
   if (!now.ok) return { state: 'unreadable', detail: now.degraded }
   if (now.hash === p.approved_preparation_hash) return { state: 'unchanged', hash: now.hash }
+  // ⚑ 3 Oct (R191 4c) — asked about ONE person: a new batch changes nothing for the approved people.
+  const approvedSnap = p.approved_preparation_snapshot ?? null
+  if (leadId && approvedSnap && onlyPeopleAdded(approvedSnap, now.snapshot)) {
+    if ((approvedSnap.enrolled_lead_ids ?? []).includes(leadId)) return { state: 'unchanged', hash: p.approved_preparation_hash }
+    return {
+      state: 'changed', approved: p.approved_preparation_hash, current: now.hash,
+      detail: 'This person is in a new batch that has not been approved yet (R191). Everyone already approved keeps receiving their emails; this person waits until the new batch is approved.',
+    }
+  }
   return {
     state: 'changed',
     approved: p.approved_preparation_hash,

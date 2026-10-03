@@ -94,13 +94,9 @@ function NotificationPreferences({ server, onServerToggle }: {
     live: boolean
   }[] = [
     { key: 'daily_brief',     label: 'Daily brief',     desc: 'Morning update on active campaigns and replies.',                    live: true },
-    // ⚠️ NOT RENAMED TO "PROGRAMME PAUSED", AND THAT IS A FACTUAL DECISION RATHER THAN A
-    // STYLISTIC ONE. This fires when ONE `figsy_campaigns` row crosses the <1% reply-rate
-    // floor. A programme pause is `programmes.paused_at` — a different row with its own locked
-    // copy. Calling this a programme pause would tell a client their whole engagement had
-    // stopped because a single campaign underperformed.
-    { key: 'campaign_paused', label: 'Campaign paused', desc: 'When a campaign is auto-paused because replies dropped away.',       live: true },
-    { key: 'weekly_digest',   label: 'Weekly digest',   desc: 'Summary of your outreach results every Monday.',                     live: true },
+    // ⛓️ #2562 (R191, 2 Oct — *"Stop both"*): "Campaign paused" and "Weekly digest" are no
+    // longer offered here. Both are old self-serve emails and a programme client is never sent
+    // either (`mayNotify` refuses them), so a switch for them would control nothing.
     // The one row where "Soon" is still TRUE — verified: `reply_received` exists only as an
     // internal signal in `lib/reply-pipeline.ts`. No client notification is built, so there is
     // nothing here to switch on and nothing arriving in their inbox.

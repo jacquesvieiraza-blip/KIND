@@ -117,22 +117,26 @@ describe('D1 — the two switches that lied are now real, switchable and persist
     expect(notificationEnabled(false)).toBe(false)
   })
 
+  // ⛓️ 2 Oct (#2562, R191 — *"Stop both"*): these two are now refused for a programme
+  // client and on an unreadable answer, so the preference is proven on a LEGACY client
+  // (`onProgramme: false`). The switch still genuinely stops the send for them.
   it('the weekly digest is genuinely STOPPED by the preference, not merely aware of it', () => {
-    expect(mayNotify('weekly_digest', { onProgramme: null, pref: false })).toBe(false)
-    expect(mayNotify('weekly_digest', { onProgramme: null, pref: true  })).toBe(true)
-    expect(mayNotify('weekly_digest', { onProgramme: null, pref: null  })).toBe(true)
+    expect(mayNotify('weekly_digest', { onProgramme: false, pref: false })).toBe(false)
+    expect(mayNotify('weekly_digest', { onProgramme: false, pref: true  })).toBe(true)
+    expect(mayNotify('weekly_digest', { onProgramme: false, pref: null  })).toBe(true)
   })
 
   it('and so is the campaign-paused email', () => {
-    expect(mayNotify('campaign_paused', { onProgramme: null, pref: false })).toBe(false)
-    expect(mayNotify('campaign_paused', { onProgramme: null, pref: true  })).toBe(true)
+    expect(mayNotify('campaign_paused', { onProgramme: false, pref: false })).toBe(false)
+    expect(mayNotify('campaign_paused', { onProgramme: false, pref: true  })).toBe(true)
   })
 
-  it('a programme customer is NOT fenced out of these two — they are not wallet notifications', () => {
-    // The D1 removal was scoped to the retired credit emails. Silently dropping the digest for
-    // programme customers would be exactly the over-removal the brand rule forbids.
-    expect(mayNotify('weekly_digest',   { onProgramme: true })).toBe(true)
-    expect(mayNotify('campaign_paused', { onProgramme: true })).toBe(true)
+  // ⛓️ SUPERSEDED 2 Oct (#2562, R191 — *"Stop both"*, chains R87). This test used to assert a
+  // programme customer DID get these two (31 Aug). The founder has since ruled both off for
+  // programme clients; `s2562-old-emails-off.test.ts` owns the new behaviour.
+  it('a programme customer is now fenced out of these two (was: not fenced, 31 Aug)', () => {
+    expect(mayNotify('weekly_digest',   { onProgramme: true })).toBe(false)
+    expect(mayNotify('campaign_paused', { onProgramme: true })).toBe(false)
   })
 
   it('the send paths read the columns and gate BEFORE sending', () => {
@@ -162,18 +166,15 @@ describe('D1 — the two switches that lied are now real, switchable and persist
     expect(localStore).not.toMatch(/campaign_paused|weekly_digest|daily_brief/)
   })
 
-  it('neither live switch is rendered disabled or badged Soon', () => {
-    // RED-proof anchor: the badge is driven by `live`, and these three are live:true.
-    expect(SETTINGS).toMatch(/label: 'Campaign paused',[\s\S]{0,160}live: true/)
-    expect(SETTINGS).toMatch(/label: 'Weekly digest',[\s\S]{0,160}live: true/)
+  // ⛓️ 2 Oct (#2562, R191): "Campaign paused" and "Weekly digest" left the Milla panel — a
+  // programme client is never sent either, so a switch for them would control nothing.
+  it('the daily brief switch is not rendered disabled or badged Soon', () => {
+    // RED-proof anchor: the badge is driven by `live`.
     expect(SETTINGS).toMatch(/label: 'Daily brief',[\s\S]{0,160}live: true/)
   })
 
-  it('"Campaign paused" is NOT renamed to "Programme paused" — it is not a programme event', () => {
-    // Founder-explicit. The event is one `figsy_campaigns` row crossing the reply-rate floor;
-    // a programme pause is `programmes.paused_at`. Renaming would tell a client their whole
-    // engagement stopped because one campaign underperformed.
-    expect(SETTINGS).toMatch(/Campaign paused/)
+  it('nothing is relabelled "Programme paused" — a campaign pause is not a programme event', () => {
+    // Founder-explicit (31 Aug). The row is gone (2 Oct); the mislabel must not come back.
     expect(SETTINGS).not.toMatch(/Programme paused/)
   })
 
@@ -188,10 +189,11 @@ describe('D1 — the two switches that lied are now real, switchable and persist
     expect(INTERNAL).toMatch(/daily_brief_enabled/)
   })
 
-  it('the panel itself survives — four rows, no empty gap where Low credits stood', () => {
+  // ⛓️ 2 Oct (#2562, R191): four rows → two (Daily brief, Reply received).
+  it('the panel itself survives — two rows, no empty gap where the removed ones stood', () => {
     expect(SETTINGS).toMatch(/Notification Preferences/)
     const rows = SETTINGS.match(/label: '(Daily brief|Campaign paused|Weekly digest|Reply received)'/g) ?? []
-    expect(rows).toHaveLength(4)
+    expect(rows).toHaveLength(2)
   })
 })
 

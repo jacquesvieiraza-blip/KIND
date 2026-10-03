@@ -949,6 +949,20 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
 // ⚠️ NOTHING OPERATOR-ONLY LEAVES. Who qualified it, the evidence reply and the audit trail stay
 // in Vida; the client sees whether it is qualified, their own challenge, and our answer.
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 2 Oct (#2551 · R187 ②) — the client's sending panel. A number that could not be read is
+// `null` (shown as "—"), never 0.
+myProgrammeRouter.get('/sending', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { clientSendingPanel } = await import('../lib/client-sending-panel')
+    res.json({ success: true, data: await clientSendingPanel(clientId) })
+  } catch (err) {
+    console.error('[programme/me/sending]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
 myProgrammeRouter.get('/meetings', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

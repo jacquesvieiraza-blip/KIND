@@ -1,5 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// WHEN OUTBOUND MAY LEAVE — in the recipient's ACTUAL local time, or not at all.
+// ⛓️ 2 Oct (R185 ① · card #2545) — PROGRAMME EMAILS GO AT ANY HOUR, TO ANY ZONE, MONDAY TO
+// FRIDAY (UK DAYS). The founder: *"we need to send no matter the time of day or zone. when the
+// campaign is hit go. we go. simple. we dont align in time zones."* · *"Only on weekdays."*
+//
+// What the window below cost (House, 30 Sep – 2 Oct): a US lead with no state needed all seven
+// US zones open at once, so one 2-hourly run a day (18:30–21:00 UTC) could send; a South African
+// lead had no zone at all and could never send; follow-ups waited the same way. `maySendNow` now
+// asks one question — is it Monday to Friday in London? — and the recipient-local window, the
+// resolution hierarchy and the zone tables below no longer decide anything. They are kept
+// unchanged as history and because `resolveRecipientZones` still answers "which zone is this
+// person in". *History below unchanged.*
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ~~WHEN OUTBOUND MAY LEAVE — in the recipient's ACTUAL local time, or not at all.~~
 //
 // 🛑 THERE WAS NO SCHEDULE ANYWHERE. `getDay`, `getHours`, "business hours" and "send window"
 // appear nowhere in the send path, so the product was ready to cold-email founders at 03:00 on
@@ -67,7 +79,8 @@ export interface RecipientLocation {
 }
 
 export type ScheduleVerdict =
-  | { allowed: true; zones: string[]; precision: 'exact' | 'region' | 'country_set' }
+  // ⚑ 2 Oct (R185 ①) — `uk_day`: judged on the UK day alone, as every programme send now is.
+  | { allowed: true; zones: string[]; precision: 'exact' | 'region' | 'country_set' | 'uk_day' }
   | {
       allowed: false
       reason: 'no_schedule' | 'wrong_day' | 'outside_window' | 'unknown_timezone' | 'unreadable'
@@ -255,82 +268,48 @@ function localParts(at: Date, zone: string): { minutes: number; isoDay: number }
   }
 }
 
-const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+/** The zone whose calendar decides a sending day. The founder's rule is UK days. */
+export const SENDING_DAY_ZONE = 'Europe/London'
+
+/** Monday to Friday in London — the whole of the sending rule since 2 Oct (R185 ①). */
+export function isUkSendingDay(at: Date): boolean {
+  const local = localParts(at, SENDING_DAY_ZONE)
+  return local !== null && local.isoDay >= 1 && local.isoDay <= 5
+}
 
 /**
- * May a message to this recipient leave right now?
+ * May a programme email leave right now?
  *
- * PURE. The schedule, the clock and everything known about the recipient are all passed in, so
- * every branch is provable without a database, a timer or a network.
+ * ⛓️ 2 Oct (R185 ① · #2545) — ~~"in the recipient's own local time, inside the programme's
+ * window, or not at all"~~. The answer is the UK day and nothing else: Monday to Friday in
+ * London, at any hour, to anyone, anywhere — a South African or an unplaced American lead
+ * included. Saturday and Sunday send nothing.
+ *
+ * ⚠️ THE STORED SCHEDULE IS NOT READ, AND NOT REWRITTEN. `programmes.send_schedule` is part of
+ * the approval record (the preparation snapshot), so rewriting a stored row would stop every
+ * approved programme with `preparation_changed`. It stays exactly as approved; it simply no
+ * longer decides when an email may leave. The parameters stay so no caller has to change.
+ *
+ * PURE. The clock is passed in, so every branch is provable without a database or a timer.
  */
 export function maySendNow(
-  schedule: unknown,
+  _schedule: unknown,
   at: Date,
-  recipient: RecipientLocation | string | null | undefined,
+  _recipient?: RecipientLocation | string | null,
 ): ScheduleVerdict {
-  if (schedule === null || schedule === undefined) {
-    return {
-      allowed: false, reason: 'no_schedule',
-      detail: 'No send schedule is configured for this programme, so nothing may leave. A missing schedule is not permission to send at any hour.',
-    }
-  }
-  if (!isSendSchedule(schedule)) {
+  const local = localParts(at, SENDING_DAY_ZONE)
+  if (!local) {
     return {
       allowed: false, reason: 'unreadable',
-      detail: 'This programme\'s send schedule could not be read (it is malformed), so nothing may leave until it is corrected.',
+      detail: 'The day in the UK could not be worked out, so nothing may leave until it can.',
     }
   }
-
-  const start = toMinutes(schedule.start)
-  const end = toMinutes(schedule.end)
-  // ⚠️ NO OVERNIGHT WRAP. A window that crossed midnight would be a different product decision
-  // (and a nasty one for cold outreach); an inverted pair is malformed, never reinterpreted.
-  if (end <= start) {
+  if (local.isoDay > 5) {
+    const names = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     return {
-      allowed: false, reason: 'unreadable',
-      detail: `This programme's send window ends (${schedule.end}) at or before it starts (${schedule.start}), so it describes no time at all.`,
+      allowed: false, reason: 'wrong_day',
+      detail: `It is ${names[local.isoDay]} in the UK. Programme emails go Monday to Friday only, at any hour.`,
     }
   }
-
-  // A bare country string is still accepted, so no caller has to be rewritten to keep working.
-  const loc: RecipientLocation | null =
-    typeof recipient === 'string' ? { country: recipient } : (recipient ?? null)
-
-  const zones = resolveRecipientZones(loc)
-  if (!zones.ok) {
-    return { allowed: false, reason: 'unknown_timezone', detail: `${zones.detail} Nothing may be sent to them until it can.` }
-  }
-
-  const names = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-  // 🛑 EVERY ZONE MUST ALLOW. For a one-zone answer this is an exact judgement; for a country
-  // set it is the intersection, which is what makes an unplaced American recipient safe: the
-  // window opens at 08:30 in the westernmost zone and closes at 17:00 in the easternmost.
-  for (const zone of zones.zones) {
-    const local = localParts(at, zone)
-    if (!local) {
-      return {
-        allowed: false, reason: 'unreadable',
-        detail: `The local time for this recipient could not be computed (timezone "${zone}"), so nothing may leave.`,
-      }
-    }
-    if (!schedule.days.includes(local.isoDay)) {
-      return {
-        allowed: false, reason: 'wrong_day',
-        detail: `It is ${names[local.isoDay]} in ${zone}, which is not a sending day for this programme.`,
-      }
-    }
-    if (local.minutes < start || local.minutes >= end) {
-      const hh = String(Math.floor(local.minutes / 60)).padStart(2, '0')
-      const mm = String(local.minutes % 60).padStart(2, '0')
-      return {
-        allowed: false, reason: 'outside_window',
-        detail: zones.zones.length > 1
-          ? `It is ${hh}:${mm} in ${zone}. This recipient's exact timezone is not known, so the window must be open in every zone their country spans (${zones.zones.length} of them) — otherwise somebody there would be emailed before ${schedule.start} their time.`
-          : `It is ${hh}:${mm} where this person is (${zone}); this programme sends between ${schedule.start} and ${schedule.end}.`,
-      }
-    }
-  }
-
-  return { allowed: true, zones: zones.zones, precision: zones.precision }
+  return { allowed: true, zones: [SENDING_DAY_ZONE], precision: 'uk_day' }
 }

@@ -213,13 +213,15 @@ describe('③ Day 0 · 3 · 7 · 12 · 18, Mon–Fri, 08:30–17:00 recipient-lo
     expect(isSendSchedule(HOUSE_SEND_SCHEDULE)).toBe(true)
   })
 
-  it('🛑 and under it, no unplaced American is reached at 05:30 Pacific', () => {
-    // 12:30 UTC = 08:30 New York = 05:30 Los Angeles. The intersection refuses it.
-    expect(maySendNow(HOUSE_SEND_SCHEDULE, new Date('2026-09-09T12:30:00Z'), { country: 'United States' }).allowed).toBe(false)
-    // A UK morning is fine, and the US intersection opens later in the day.
+  // ⛓️ 2 Oct (R185 ① · #2545) — ~~"and under it, no unplaced American is reached at 05:30
+  // Pacific"~~. The founder retired the recipient-local window; House's stored schedule above is
+  // unchanged (it is part of the approval record) and no longer decides the hour.
+  it('🛑 and House now sends at any hour on a UK weekday, to the US as much as the UK', () => {
+    // 12:30 UTC = 05:30 Los Angeles — refused by the old intersection, sent now.
+    expect(maySendNow(HOUSE_SEND_SCHEDULE, new Date('2026-09-09T12:30:00Z'), { country: 'United States' }).allowed).toBe(true)
     expect(maySendNow(HOUSE_SEND_SCHEDULE, new Date('2026-09-09T08:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(true)
     expect(maySendNow(HOUSE_SEND_SCHEDULE, new Date('2026-09-09T18:30:00Z'), { country: 'United States' }).allowed).toBe(true)
-    // Weekends refuse under the approved schedule.
+    // Weekends still refuse.
     expect(maySendNow(HOUSE_SEND_SCHEDULE, new Date('2026-09-12T10:00:00Z'), { country: 'United Kingdom' }).allowed).toBe(false)
   })
 })

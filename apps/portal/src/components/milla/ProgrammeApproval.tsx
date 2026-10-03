@@ -139,17 +139,19 @@ export type ApprovalPayload = {
   canApprove: boolean
 }
 
-/** "Weekdays, 08:30–17:00" — the schedule in words, or nothing when it is not a schedule. */
+/**
+ * When the emails go, in words — or nothing when there is no schedule to describe.
+ *
+ * ⛓️ 2 Oct (R185 ① ② · #2545) — ~~"Weekdays, 08:30–17:00", read off the stored hours~~. Every
+ * programme now sends Monday to Friday (UK days) at any hour, spread through the day, so that is
+ * what the client is told. The stored schedule is still part of what they approve; its hours no
+ * longer decide anything, so they are not shown as if they did.
+ */
 export function scheduleInWords(v: unknown): string | null {
   if (!v || typeof v !== 'object') return null
   const s = v as { days?: unknown; start?: unknown; end?: unknown }
   if (!Array.isArray(s.days) || typeof s.start !== 'string' || typeof s.end !== 'string') return null
-  const NAMES = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  const days = s.days.filter(d => typeof d === 'number' && d >= 1 && d <= 7) as number[]
-  if (days.length === 0) return null
-  const weekdays = days.length === 5 && [1, 2, 3, 4, 5].every(d => days.includes(d))
-  const label = weekdays ? 'Weekdays' : days.map(d => NAMES[d].slice(0, 3)).join(', ')
-  return `${label}, ${s.start}–${s.end}`
+  return 'Weekdays, spread through the day'
 }
 
 /**
@@ -366,7 +368,10 @@ export default function ProgrammeApproval({
             <div className="mv-field">
               <label>Cadence &amp; window</label>
               <strong>{schedule ?? 'Not stated'}</strong>
-              <small>{frozen && frozen.messages.length > 1 ? `${frozen.messages.length} steps over ${days} day${days === 1 ? '' : 's'}, in the recipient’s own time.` : 'In the recipient’s own time.'}</small>
+              {/* ⛓️ 2 Oct (R185 ①) — the recipient-local promise is gone: emails go at any hour on a UK weekday. */}
+              {frozen && frozen.messages.length > 1 && (
+                <small>{`${frozen.messages.length} steps over ${days} day${days === 1 ? '' : 's'}.`}</small>
+              )}
             </div>
             <div className="mv-field">
               <label>Sender</label>

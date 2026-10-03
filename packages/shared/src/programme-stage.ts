@@ -65,6 +65,14 @@ export const MILLA_PAUSE_COPY = {
   icp_change: "We've paused while your targeting is updated. Nothing is being sent in the meantime and your programme is kept exactly as it was. We'll be in touch.",
 } as const
 
+/**
+ * ⚑ 2 Oct (#2561 · 14c · R191 — *"Refuse until it's settled"*) — the client's payment was
+ * refunded or disputed with their bank. Before this the screen said "We've paused sending while
+ * we check quality", which was not why. Resume is refused until it is settled (Vida says why).
+ */
+export const MILLA_PAYMENT_REVERSED_COPY =
+  "Your payment for this programme was refunded or disputed with your bank, so we've paused it. Nothing is being sent and nobody new is being found. Our team will be in touch." as const
+
 export function pausedCopyFor(reason: string | null | undefined): string {
   return (MILLA_PAUSE_COPY as Record<string, string>)[reason ?? ''] ?? MILLA_FAILURE_COPY.sourcingPaused
 }

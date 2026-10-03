@@ -131,7 +131,8 @@ describe('③ the client is told why, in plain words', () => {
     expect(pausedCopyFor(null)).toBe(MILLA_FAILURE_COPY.sourcingPaused)
     expect(MILLA_FAILURE_COPY.sourcingPaused).toBe('Sourcing is paused while we recover.')
     const cp = readFileSync(join(process.cwd(), 'apps/api/src/lib/customer-programme.ts'), 'utf8')
-    expect(cp).toContain('pausedCopy: p.paused_at ? pausedCopyFor(p.pause_reason as string | null) : null,')
+    // ⛓️ 2 Oct (#2561 · 14c): a reversed payment now says so first; every other pause is unchanged.
+    expect(cp).toContain('(p.disputed_at ? MILLA_PAYMENT_REVERSED_COPY : pausedCopyFor(p.pause_reason as string | null))')
   })
 })
 

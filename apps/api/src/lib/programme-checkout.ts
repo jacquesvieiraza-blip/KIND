@@ -82,6 +82,14 @@ export async function createProgrammeCheckoutSession(params: {
   if (await isDemoClient(params.clientId)) {
     return { url: null, error: 'This is a demo account, so nothing is ever charged.' }
   }
+  // ⚑ 2 Oct (#2560 · R189 ②) — NO FIRST PAYMENT WITHOUT THE CLIENT'S TWO MAILBOXES. Asked at
+  // this, the only door that creates a Stripe session, so a client is never charged in full and
+  // then left waiting at "no sender". Refused before Stripe, so nothing is charged.
+  if (params.stage === 'programme_first') {
+    const { mailboxesReadyForPayment, MAILBOX_NOT_READY_COPY } = await import('./sender-claim')
+    const ready = await mailboxesReadyForPayment(params.clientId)
+    if (!ready.ok) return { url: null, error: MAILBOX_NOT_READY_COPY }
+  }
   try {
     const owedCents = Number.isFinite(params.quotedCents) ? Math.floor(params.quotedCents) : 0
     // ⚑ 25 Sep (P9) — nothing is owed at this stage (a programme paid in full has no second

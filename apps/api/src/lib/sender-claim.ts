@@ -300,3 +300,74 @@ async function insertClaim(clientId: string, sender: PooledSender): Promise<Inse
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 2 Oct (#2560 · R189 ②) — A SENDING MAILBOX IS GUARANTEED BEFORE THE CLIENT PAYS.
+//
+// R189 ② (founder, 2 Oct): each client gets **2 mailboxes, set up before approval and approved
+// together** — 50 + 50 = 100 a day. The client pays the whole programme at Recommendation, but
+// the mailboxes were only claimed later, at preparation: with the pool used up, a client paid
+// in full and then waited at "no sender" with nothing to approve. The payment door now asks
+// first, and the founder hears when the pool runs low.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** R189 ②: two mailboxes per client. */
+export const MAILBOXES_PER_CLIENT = 2
+
+/** How many pooled mailboxes exist, and how many are not live on any client. */
+export async function pooledSenderStock(): Promise<{ ok: true; total: number; free: number } | { ok: false; detail: string }> {
+  const pool = senderPoolFromEnv()
+  const senders = pool.senders.filter(s => !senderIsReserved(s.email))
+  const { data, error } = await db.from('client_inboxes')
+    .select('email').in('status', LIVE_CLAIM_STATUSES as unknown as string[])
+  if (error) return { ok: false, detail: `live mailboxes could not be listed (${error.message})` }
+  const taken = new Set(((data ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
+  return { ok: true, total: senders.length, free: senders.filter(s => !taken.has(s.email)).length }
+}
+
+/** The pure rule: can this client pay, given what they hold and what the pool has free? */
+export function mailboxGate(held: number, free: number): { ok: true; need: number } | { ok: false; need: number } {
+  const need = Math.max(0, MAILBOXES_PER_CLIENT - held)
+  return free >= need ? { ok: true, need } : { ok: false, need }
+}
+
+/** The client-facing refusal: plain, true, and clear that nothing was charged. */
+export const MAILBOX_NOT_READY_COPY =
+  "We can't take your payment just yet: the sending mailboxes for your programme aren't ready. Our team has been told and will be in touch shortly. Nothing has been charged."
+
+/**
+ * Asked by the payment door before a first payment's checkout is opened. Refuses (and tells the
+ * founder) when the client could not be given their two mailboxes; warns the founder when the
+ * pool would be left with fewer than two free. An unreadable answer refuses — taking money on a
+ * guess is the defect this exists to stop.
+ */
+export async function mailboxesReadyForPayment(clientId: string, now = new Date()): Promise<{ ok: true } | { ok: false; detail: string }> {
+  const { sendFounderAlert } = await import('./alerts')
+  const { data: held, error } = await db.from('client_inboxes')
+    .select('id').eq('client_id', clientId).in('status', LIVE_CLAIM_STATUSES as unknown as string[])
+  const stock = await pooledSenderStock()
+  if (error || !stock.ok) {
+    const why = error ? error.message : (stock as { detail: string }).detail
+    void sendFounderAlert('payment_failed', 'A client could not pay: their mailboxes could not be checked', [
+      `Client ${clientId}. ${why}`, 'The checkout was not opened, so nothing was charged.',
+    ], { clientId, dedupeKey: `mailbox_gate_unreadable:${clientId}` }).catch(() => {})
+    return { ok: false, detail: why }
+  }
+  const gate = mailboxGate((held ?? []).length, stock.free)
+  const day = now.toISOString().slice(0, 10)
+  if (!gate.ok) {
+    void sendFounderAlert('payment_failed', 'A client tried to pay and no sending mailbox was free', [
+      `Client ${clientId} needs ${gate.need} more mailbox${gate.need === 1 ? '' : 'es'} (R189 ②: two per client); the pool has ${stock.free} free of ${stock.total}.`,
+      'Their checkout was refused, so nothing was charged. Add mailboxes to POOLED_SENDERS_JSON in Railway, then ask them to pay again.',
+    ], { clientId, dedupeKey: `mailbox_gate_refused:${clientId}:${day}` }).catch(() => {})
+    return { ok: false, detail: `needs ${gate.need}, ${stock.free} free` }
+  }
+  const left = stock.free - gate.need
+  if (left < 2) {
+    void sendFounderAlert('sends_stalled', `Only ${left} pooled sending mailbox${left === 1 ? '' : 'es'} left`, [
+      `After this client's two, ${left} of ${stock.total} pooled mailboxes will be free. Each new client needs two (R189 ②).`,
+      'Add mailboxes to POOLED_SENDERS_JSON in Railway before the next client pays.',
+    ], { dedupeKey: `mailbox_pool_low:${day}` }).catch(() => {})
+  }
+  return { ok: true }
+}

@@ -15,6 +15,9 @@ const state = vi.hoisted(() => {
   return { creates: [] as Array<{ line_items: Array<{ price_data: { unit_amount: number } }> }> }
 })
 vi.mock('./demo', () => ({ isDemoClient: async () => false }))
+// ⚑ 2 Oct (#2560) — the first-payment door now asks for the client's two mailboxes first. That
+// gate has its own test (s9a-mailbox-before-pay); here it is open, so the price is what is tested.
+vi.mock('./sender-claim', () => ({ mailboxesReadyForPayment: async () => ({ ok: true }), MAILBOX_NOT_READY_COPY: 'not ready' }))
 vi.mock('stripe', () => ({
   default: class {
     checkout = { sessions: { create: async (s: never) => { state.creates.push(s); return { id: 'cs_1', url: 'https://checkout' } } } }

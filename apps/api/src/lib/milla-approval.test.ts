@@ -186,7 +186,9 @@ describe('③ the screen decides nothing', () => {
     expect(c).toContain('{APPROVED_COPY}')
     expect(APPROVAL).toContain(
       "export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
-    const at = c.indexOf('if (p.approved_at) {')
+    // ⛓️ 3 Oct: was 'if (p.approved_at) {' — a live programme's NEW version (reapproval) is
+    // approved again on this panel, so the approved card is for every OTHER approved programme.
+    const at = c.indexOf('if (p.approved_at && data.reapproval !== true) {')
     expect(at).toBeGreaterThan(-1)
     const approvedBranch = c.slice(at, c.indexOf('return (', at) + 900)
     for (const action of ['APPROVE_LABEL', 'onClick={approve}', 'data-testid="approve-programme"']) {
@@ -276,6 +278,8 @@ describe('⑤ it appears where the client already is, and only when it should', 
     // live programme's new version. Still silent at every other stage.
     expect(PAGE).toContain("? review.reapproval === true && (review.canApprove || review.awaiting_founder === true)")
     expect(PAGE).toContain(": review.canApprove || (review.awaiting_founder === true && review.programme.status === 'READY_FOR_APPROVAL')")
-    expect(PAGE).toContain('{review?.programme && review.programme.approved_at && (')
+    // ⛓️ 3 Oct: was '{review?.programme && review.programme.approved_at && (' — the lower panel now
+    // stays away while the upper one already shows a re-approval (it drew the card twice).
+    expect(PAGE).toContain('{review?.programme && review.programme.approved_at\n        && !(review.reapproval === true && (review.canApprove || review.awaiting_founder === true)) && (')
   })
 })

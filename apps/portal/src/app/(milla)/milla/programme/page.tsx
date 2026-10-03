@@ -36,6 +36,7 @@ import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
 import OfferCard from '@/components/milla/OfferCard'
 import MeetingChallenges from '@/components/milla/MeetingChallenges'
 import ProgrammeOutcome, { type OutcomeSummary } from '@/components/milla/ProgrammeOutcome'
+import SendingPanel from '@/components/milla/SendingPanel'
 import { acceptanceGate } from '@/lib/programme-acceptance'
 import { useProgrammeSync } from '@/components/milla/useProgrammeSync'
 
@@ -217,6 +218,8 @@ export default function ProgrammePage() {
       {p.hasProgramme && p.stage !== 'Completion' && <OfferCard />}
       {/* ⚑ 25 Sep (R141 · P5b) — the client's meetings, and their right under the Terms to challenge
           one within 3 business days of booking. Hidden until a meeting exists. */}
+      {/* ⚑ 2 Oct (#2551 · R187 ②) — every client's sending panel, once their programme is live. */}
+      {p.hasProgramme && (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') && <SendingPanel />}
       {p.hasProgramme && (p.stage === 'Live' || p.stage === 'Review' || p.stage === 'Completion') && <MeetingChallenges />}
       {/* ⛓️ 24 Sep (R145 step 4 · #27) — WAS three blocks here: the calculator (no programme yet),
           `ProgrammeAcceptance` ("Accept this recommendation"), and the first `ProgrammePayment`

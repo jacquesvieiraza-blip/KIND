@@ -86,7 +86,9 @@ describe('the ONE conversation knows fresh from refine', () => {
     // ⛓️ 3 Oct (R195 ④): a third kind of context — a "Your business" fact — sits between them and
     // `null`. `icp` and `icp-fresh` are still both real, still in this order.
     // ~~/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*null/~~
-    expect(CONV_CODE).toMatch(/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*null/)
+    // ⛓️ 3 Oct (R195 ②): and a part of the programme direction (piece 3).
+    // ~~/…'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*null/~~
+    expect(CONV_CODE).toMatch(/ConversationContext\s*=\s*'icp'\s*\|\s*'icp-fresh'\s*\|\s*BusinessContext\s*\|\s*DirectionContext\s*\|\s*null/)
   })
 
   it('a fresh save goes to /icps/fresh, and a refine still goes to /icps/revise', () => {

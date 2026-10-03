@@ -198,6 +198,11 @@ for (const stage of STAGES) {
   console.log(`\n── ${stage} (5 meetings) ─────────────────────────────`)
   const post = (path, json) => call('POST', path, { headers: { authorization: `Bearer ${USER_JWT}` }, json })
   await call('POST', '/operator/demo/northwind/stage', { headers: ADMIN, json: { stage: 'Programme' } })
+  // ⚑ 3 Oct (R195 ②) — the direction first: a goal, Milla's draft, the client's approval. No pay before it.
+  const direction = await post('/my/programme/direction/draft', { goal: 'Meetings with operations leaders at UK field-service firms.' })
+  note(stage, direction.status === 200 && !!direction.data?.data?.version, `Milla drafts the direction (${direction.status}) ${direction.data?.message ?? ''}`)
+  const approvedDir = await post('/my/programme/direction/approve', { base_version: direction.data?.data?.version })
+  note(stage, approvedDir.status === 200 && approvedDir.data?.data?.status === 'approved', `approving the direction works (${approvedDir.status}) ${approvedDir.data?.message ?? ''}`)
   const choose = await post('/my/programme/choose', { meetings: 5 })
   note(stage, choose.status === 200, `choosing 5 meetings works (${choose.status}) ${choose.data?.error ?? ''}`)
   const accept = await post('/my/programme/accept', {})

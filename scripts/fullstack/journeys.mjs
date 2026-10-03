@@ -651,6 +651,15 @@ export function makeJourneyChecks(kit) {
   async function j11() {
     const id = 'J11'
     if (needs(id, 'programmeId', 'programme')) return
+    // ⚑ 3 Oct (R195 ②) — NO FIRST PAYMENT WITHOUT AN APPROVED DIRECTION: proven refused first, then approved.
+    const refused = await asClient('/my/programme/checkout/first', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
+    if (refused.status !== 409 || !String(refused.text).includes('direction_not_approved')) {
+      return bad(id, `the first payment was not refused without an approved direction (HTTP ${refused.status}: ${String(refused.text).slice(0, 200)})`)
+    }
+    const drafted = await asClient('/my/programme/direction/draft', { method: 'POST', body: JSON.stringify({ goal: 'Meetings with operations leaders who are outgrowing spreadsheets.' }), timeoutMs: 60000 })
+    const version = (() => { try { return JSON.parse(drafted.text)?.data?.version } catch { return undefined } })()
+    const approvedDir = await asClient('/my/programme/direction/approve', { method: 'POST', body: JSON.stringify({ base_version: version }), timeoutMs: 60000 })
+    if (approvedDir.status !== 200) return bad(id, `the direction could not be drafted and approved (draft HTTP ${drafted.status}, approve HTTP ${approvedDir.status}: ${String(approvedDir.text).slice(0, 200)})`)
     const accept = await asClient('/my/programme/accept', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
     const checkout = await asClient('/my/programme/checkout/first', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
 

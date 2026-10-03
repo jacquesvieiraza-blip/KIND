@@ -113,15 +113,18 @@ export async function applyHouseApprovedEmails(programmeId: string): Promise<Res
     const slice = rows.slice(i, i + 100)
     const { data: leads } = await db.from('leads').select('id, first_name, last_name, company, job_title, industry').in('id', slice.map(r => r.lead_id))
     const byId = new Map(((leads ?? []) as { id: string }[]).map(l => [l.id, l]))
-    for (const r of slice) {
+    // ⚑ 3 Oct — many at a time (25), not one after another: 234 people one by one outlasted
+    // Vida's 45-second wait, so the founder never saw the count. Each row is still its own update.
+    const results = await inParallelBatches(slice, 25, async (r) => {
       const lead = byId.get(r.lead_id)
       const full = lead ? buildDraftStepsFromSequence(steps as never, lead as never, company) : []
-      if (!full.length) { failed.push(r.id); continue }
+      if (!full.length) return false
       const { error } = await db.from('figsy_enrollments').update({
         sequence_id: applied.sequenceId, steps: full, total_steps: full.length, updated_at: new Date().toISOString(),
       }).eq('id', r.id).eq('programme_id', programmeId)
-      if (error) failed.push(r.id); else updated++
-    }
+      return !error
+    })
+    results.forEach((ok, k) => { if (ok) updated++; else failed.push(slice[k].id) })
   }
   const frozen = await refreezeLive(programmeId)
   if (!frozen.ok) return { ok: false, status: frozen.status, reason: `The approved emails are on ${updated} people, but the new version could not be frozen: ${frozen.reason}` }
@@ -129,4 +132,11 @@ export async function applyHouseApprovedEmails(programmeId: string): Promise<Res
     ok: true,
     detail: `The approved emails are on ${updated} of ${rows.length} people${failed.length ? ` (${failed.length} could not be updated — try again)` : ''}. ${frozen.detail} Approve them in Vida, then in Milla, then resume House.`,
   }
+}
+
+/** Runs `fn` over `items` `size` at a time; results come back in the same order as `items`. */
+export async function inParallelBatches<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = []
+  for (let i = 0; i < items.length; i += size) out.push(...await Promise.all(items.slice(i, i + size).map(fn)))
+  return out
 }

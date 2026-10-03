@@ -97,9 +97,12 @@ describe('statuses and the four filters', () => {
   })
 })
 
-describe('🛑 the screen is read-only and carries nothing invented (R150)', () => {
-  it('no send, no draft, no "mark booked" — a client click never emails or bills', () => {
-    for (const banned of ['send-reply', 'ai-draft', 'mark-booked', 'Help me reply', 'textarea', 'api.post']) {
+describe('🛑 the screen carries nothing invented (R150 · amended 2 Oct by R187 ④)', () => {
+  // ⛓️ 2 Oct (R187 ④ amends R150 / R165): ~~"no send, no draft"~~ — *"Replies are answered from
+  // the portal: Milla drafts, a person edits and presses Send."* The draft, the box and the one
+  // Send press are guarded in `s12-answer-from-milla.test.ts`. What stays banned is unchanged:
+  it('no "mark booked" and no old "Help me reply" — a client click never bills', () => {
+    for (const banned of ['mark-booked', 'Help me reply']) {
       expect(SCREEN_CODE, `the inbox offers ${banned} again`).not.toContain(banned)
     }
   })

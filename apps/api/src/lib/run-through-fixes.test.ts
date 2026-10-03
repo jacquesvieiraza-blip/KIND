@@ -20,7 +20,8 @@ describe('1 · a client\'s own country is theirs, never a guessed "South Africa"
     expect(SETTINGS).not.toContain("country: 'South Africa'")
     expect(SETTINGS).not.toContain("c.country || 'South Africa'")
     expect(SETTINGS).toContain('{clientCountryOptions(form.country).map((c) =>')
-    expect(SETTINGS).toContain("await api.patch('/clients/me', country ? form : rest, session.access_token)")
+    // ⛓️ 2 Oct (#2543 · 5d): the same rule, written so an empty registered office is never sent either.
+    expect(SETTINGS).toContain("...(country ? { country } : {}),")
   })
 })
 

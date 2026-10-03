@@ -102,6 +102,14 @@ export async function recordFounderApproval(programmeId: string, version: string
     wording_hash: wordingHash(row.review_preparation_snapshot?.steps), approved_by: by,
   }, { onConflict: 'programme_id,snapshot_hash', ignoreDuplicates: true })
   if (error) return { ok: false, status: 503, error: `Your approval could not be saved (${error.message}). If the table is missing, run migration ${FOUNDER_APPROVAL_MIGRATION}.` }
+  // ⚑ 3 Oct (#2542 · 4d) — the Needs-you rows for this version close with the approval; a list
+  // that only grows is not a list. A failure here never undoes the approval.
+  try {
+    const { resolveOperatorTasksForCondition } = await import('./operator-tasks')
+    for (const key of [`founder_approval_waiting:${programmeId}:${version}`, `founder_approval_wait:${programmeId}:${version}`]) {
+      await resolveOperatorTasksForCondition('support_escalation', key, `Approved in Vida by ${by}.`)
+    }
+  } catch (err) { console.warn('[founder-approval] the waiting task could not be closed', err) }
   return { ok: true }
 }
 
@@ -117,4 +125,61 @@ export async function founderWordingApproved(programmeId: string): Promise<boole
   if (clientId && await isDemoProgrammeClient(clientId)) return true
   const { data, error } = await db.from('founder_wording_approvals').select('snapshot_hash').eq('programme_id', programmeId).eq('snapshot_hash', version)
   return !error && (data ?? []).length > 0
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 2 Oct (#2542 · R189 ⑧ · 4d) — A CLIENT WAITING ON THE FOUNDER'S APPROVAL IS NOT LEFT WAITING.
+//
+// R189 ⑧: pay first, with a one-working-day founder check and an alert. A client who has paid
+// and whose emails are prepared is waiting on the founder; past one working day he is told, once
+// per version (one Needs-you task, and an email only when that task is new).
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** `from` plus one working day (Mon–Fri), in UTC. */
+export function oneWorkingDayAfter(from: Date): Date {
+  const d = new Date(from.getTime() + 86_400_000)
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setTime(d.getTime() + 86_400_000)
+  return d
+}
+
+export async function alertFounderApprovalWaits(now: Date): Promise<{ ok: boolean; waiting: number }> {
+  if (!founderGateOn()) return { ok: true, waiting: 0 }
+  const { db } = await import('@kind/db')
+  const { TERMINAL_STATUSES } = await import('./programme')
+  const { data: progs, error } = await db.from('programmes')
+    .select('id, client_id, review_preparation_hash, review_preparation_at, clients(company_name)')
+    .not('review_preparation_hash', 'is', null)
+    .not('status', 'in', `(${TERMINAL_STATUSES.join(',')})`)
+  if (error) return { ok: false, waiting: 0 }
+  let waiting = 0
+  type Row = { id: string; client_id: string; review_preparation_hash: string; review_preparation_at: string | null; clients?: { company_name?: string | null } | { company_name?: string | null }[] | null }
+  for (const p of (progs ?? []) as Row[]) {
+    // ⚑ 3 Oct (review S9) — the demo is rebuilt on every press with a new version; it never waits on anyone.
+    if (await isDemoProgrammeClient(p.client_id)) continue
+    if (await founderWordingApproved(p.id)) continue
+    waiting++
+    const c = Array.isArray(p.clients) ? p.clients[0] : p.clients
+    const who = c?.company_name?.trim() || `Client ${p.client_id}`
+    const { raiseOperatorTask } = await import('./operator-tasks')
+    // ⚑ 3 Oct (R189 ⑧ — *"their emails go to the top of the founder's Vida list"*) — AT ONCE, not
+    // only after a day: a Needs-you task the moment a version waits on him, one per version.
+    await raiseOperatorTask({
+      kind: 'support_escalation', severity: 'warn',
+      title: `${who}'s emails are waiting for your approval`,
+      detail: `Approve them in Vida → ${who} → Programme. The client sees "with our team for a final check, usually within 1 working day" until you do.`,
+      clientId: p.client_id, programmeId: p.id, dedupeKey: `founder_approval_waiting:${p.id}:${p.review_preparation_hash}`,
+    })
+    if (!p.review_preparation_at || oneWorkingDayAfter(new Date(p.review_preparation_at)) > now) continue
+    const key = `founder_approval_wait:${p.id}:${p.review_preparation_hash}`
+    const title = 'A client has waited over a working day for your approval of their emails'
+    const lines = [
+      `${who} · programme ${p.id}. Prepared ${p.review_preparation_at}.`,
+      'Nothing is sent and the client cannot see their emails until you approve them in Vida → the client → Programme.',
+    ]
+    const t = await raiseOperatorTask({ kind: 'support_escalation', severity: 'critical', title, detail: lines.join('\n'), clientId: p.client_id, programmeId: p.id, dedupeKey: key })
+    if (t.ok && t.alreadyOpen) continue
+    const { sendFounderAlert } = await import('./alerts')
+    await sendFounderAlert('support_escalation', title, lines, { clientId: p.client_id, programmeId: p.id, dedupeKey: key })
+  }
+  return { ok: true, waiting }
 }

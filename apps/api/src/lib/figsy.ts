@@ -1065,6 +1065,9 @@ async function sendSequenceEmailCore(
   //
   // ⚠️ THE FOUNDER'S OWN PREVIEW IS EXEMPT — a 1:1 test to their own inbox is not programme
   // delivery to a prospect, the same exemption the kill-switch and demo backstop already make.
+  // ⚑ 2 Oct (#2542 · R189 ① · 4d) — set below when the PROGRAMME door allowed this send, which
+  // means the client approved this exact version and the founder approved its wording.
+  let programmeApprovedSend = false
   if (!opts?.isPreview && enrollmentId) {
     const { checkEnrollmentAuthority } = await import('./programme-authority')
     // ⚑ 8 Sep — THE RECIPIENT'S COUNTRY TRAVELS WITH THE QUESTION. The send window is judged
@@ -1084,6 +1087,7 @@ async function sendSequenceEmailCore(
       console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
       return 'deferred'
     }
+    programmeApprovedSend = verdict.mode === 'programme'
   }
 
   // #15 (AR / co-pilot) — HUMAN-IN-THE-LOOP REVIEW GATE. If the campaign is in co-pilot
@@ -1120,7 +1124,11 @@ async function sendSequenceEmailCore(
       )
       return 'deferred'
     }
-    const reviewRequired = (camp?.settings as { review_required?: boolean } | null)?.review_required === true
+    // ⛓️ 2 Oct (R189 ①, extends R178): Co-Pilot is OFF once the founder and the client have
+    // approved the sequence — every client's campaign is created with each email parked for
+    // approval, and that per-email queue is now skipped for a programme send the gate allowed.
+    // A legacy (non-programme) Co-Pilot campaign is unchanged.
+    const reviewRequired = !programmeApprovedSend && (camp?.settings as { review_required?: boolean } | null)?.review_required === true
     if (reviewRequired) {
       // Resolve client_id (approval_queue.client_id is NOT NULL). Prefer the lead's own;
       // fall back to the enrollment's for a client-less caller (defence-in-depth).

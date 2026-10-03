@@ -322,6 +322,8 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
     // floor-vs-count caveat belongs only to the budgeted live scan.
     const complete = 'complete' in set ? set.complete : true
 
+    const { founderWordingApproved } = await import('../lib/founder-approval')
+    const founderApproved = await founderWordingApproved(p.id)
     res.json({
       success: true,
       data: {
@@ -343,7 +345,10 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         // ⚑ 18 Sep (J14-C3 · R129) — the package, plus whose mailbox the from-line is. The
         // kind rides ON the frozen block because it describes the frozen sender and belongs
         // beside the address it qualifies; `null` states nothing rather than guessing.
-        frozen: frozen ? { ...frozen, sender_kind: senderKind } : null,
+        // ⚑ 2 Oct (#2542 · R186 ③ · 4c) — FOUNDER FIRST: the client sees the wording only after the
+        // founder has approved this version. Until then the emails are withheld and they cannot approve.
+        frozen: frozen ? { ...frozen, sender_kind: senderKind, messages: founderApproved ? frozen.messages : [] } : null,
+        awaiting_founder: !founderApproved,
         prospects: set.prospects,
         total: set.total,
         /** Where this page starts, and the page size — so "view all" is a real parameter. */
@@ -365,7 +370,7 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         complete,
         // ⚠️ THE BUTTON'S ENABLED-NESS IS DECIDED SERVER-SIDE, and re-decided by the POST. This
         // is what the UI renders from; it is NOT what authorises anything.
-        canApprove: p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,
+        canApprove: founderApproved && p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,
       },
     })
   } catch (err) {
@@ -876,6 +881,14 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
     // ⚠️ THE VERSION THE CLIENT WAS LOOKING AT, sent back with the press. See `frozen.version`
     // above and the refusal in `approveProgrammeAsCustomer`.
     const version = typeof req.body?.version === 'string' ? req.body.version.trim() : ''
+    // ⚑ 2 Oct (#2542 · R186 ③ · 4c) — re-decided here, not trusted from the screen: the client
+    // cannot approve wording the founder has not approved first.
+    {
+      const { founderWordingApproved } = await import('../lib/founder-approval')
+      if (!(await founderWordingApproved(p.id))) {
+        res.status(409).json({ success: false, error: 'awaiting_founder', message: 'Your emails are with our team for a final check, usually within 1 working day. You can approve them as soon as they appear here.' }); return
+      }
+    }
     const { approveProgrammeAsCustomer } = await import('../lib/programme')
     // ⚠️ THE AUTHOR COMES FROM THE SESSION. `req.userId` is what `requireAuth` proved; there is
     // no body field for it, so there is nothing a browser can put a different person into.

@@ -237,6 +237,32 @@ myProgrammeRouter.post('/direction/approve', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 3 Oct (R195 ③ · piece 6) — THE CLIENT CHANGES AN EMAIL BY TALKING TO MILLA ─────────────
+// One email, rewritten as asked; a new version that goes to the founder first, then the client.
+myProgrammeRouter.post('/emails/change', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const step = typeof b.step === 'number' && Number.isInteger(b.step) ? b.step : 0
+    const instruction = typeof b.instruction === 'string' ? b.instruction.trim() : ''
+    const version = typeof b.version === 'string' ? b.version : ''
+    if (step < 1 || step > 5 || instruction.length < 3 || !version) {
+      res.status(400).json({ success: false, error: 'Tell Milla which email and what should change.' }); return
+    }
+    const { changeEmailForClient } = await import('../lib/client-email-change')
+    const r = await changeEmailForClient(clientId, { step, instruction, version })
+    if (!r.ok) {
+      const status = r.code === 'stale' || r.code === 'wrong_state' ? 409 : r.code === 'not_found' ? 404 : r.code === 'refused' ? 422 : 503
+      res.status(status).json({ success: false, error: r.code, message: r.message }); return
+    }
+    res.json({ success: true, data: { version: r.version, step: r.step } })
+  } catch (err) {
+    console.error('[my/programme/emails/change POST]', err)
+    res.status(503).json({ success: false, error: 'Your change could not be made just now. Please try again.' })
+  }
+})
+
 // ── GET /my/programme/review — the masked prospects for THIS programme ─────────────────
 // ── ⚑ 25 Sep (R158 · R163) — THE CLIENT'S OFFER, IN THEIR OWN WORDS ─────────────────────────
 // Four answers — problems, impact, ROI (quoted only with the client's tick), solution — saved into

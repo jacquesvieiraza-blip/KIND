@@ -157,6 +157,9 @@ const ALLOWED: Record<string, string> = {
   'programme-preparation.ts': 'CONTENT — seeds that copy when the chain has no sequence, and nothing else',
   'programme-reconcile-availability.ts': 'CONTENT — reconciles that same one programme',
   'programme-sequence-generation.ts': 'CONTENT — states that it does NOT consult it',
+  // ⚑ 3 Oct (R195 ③ · piece 6) — a client's own email change keeps the sign-off every programme email
+  // carries; House signs "The Milla & Vida Team" (R189 ⑥), exactly as the programme writer does.
+  'client-email-change.ts': 'CONTENT — the sign-off: House signs "The Milla & Vida Team" (R189 ⑥), as the programme writer does',
   'provider-boundary.ts': 'PROVIDER — AR5, which vendor may be paid for a House audience',
   'instantly-map.ts': 'PROVIDER — AR5, which vendor a House audience may be pushed to',
   'instantly-push.ts': 'PROVIDER — AR5, the push itself is bounded by the same rule',

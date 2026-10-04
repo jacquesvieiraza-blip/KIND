@@ -731,6 +731,7 @@ export async function runIcpJob(
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
 
+
   // ══ 🛑 ⚑ 14 Sep (S1-RT-005) — THE NEEDS-ICP-REVIEW GATE ══════════════════════════════
   //
   // 🛑 ONE DOOR, ONE GATE — the same argument the programme gate below makes, and for the
@@ -758,6 +759,22 @@ export async function runIcpJob(
   )) {
     console.log(`[icp] sourcing REFUSED for client ${clientId}, icp ${icpId} — the targeting is awaiting ICP review. Nothing was sourced and nothing was spent.`)
     throw new Error('This targeting is still being prepared — some of what the client told us could not be translated into provider values yet, so nothing may be sourced against it until an operator has reviewed it.')
+  }
+
+  // ── ⚑ 3 Oct (sequencing piece 4 — the founder's blueprint view 5) — WHO THIS PROGRAMME IS FOR ──
+  // A programme whose client approved an audience slice searches THAT slice: the targeting's own
+  // values narrowed to it, plus its extra exclusions. Applied to this run's copy ONLY — the saved
+  // row (the client's master targeting) is never written from it, so it is the same everywhere in
+  // this run (pool, provider search, gate) and nowhere else. A programme with no approved slice —
+  // every one paid before piece 4, House's current one included — searches exactly as before.
+  // 🛑 AN UNREADABLE DIRECTION STOPS THE RUN: never search wider than the client approved.
+  if (!proofMode && (icp as { programme_id?: string | null }).programme_id) {
+    const { audienceSliceFor, applyAudienceSlice } = await import('../lib/programme-direction')
+    const slice = await audienceSliceFor((icp as { programme_id: string }).programme_id, clientId)
+    if (slice) {
+      Object.assign(icp, applyAudienceSlice(icp as Record<string, unknown>, slice))
+      console.log(`[icp] programme ${(icp as { programme_id: string }).programme_id} — searching the client's approved audience slice for this programme (the saved targeting is unchanged).`)
+    }
   }
 
   // ══ THE PROGRAMME SOURCING GATE (BUILD-003 PR2) ═══════════════════════════════════════

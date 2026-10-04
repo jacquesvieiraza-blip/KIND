@@ -325,6 +325,17 @@ const anthropicHandler = async (req, body, res, state) => {
   // ── ⚑ 3 Oct (R195 ② · sequencing piece 3) — A SCRIPTED SHAPE: THE PROGRAMME DIRECTION ──────
   // Milla drafts five parts as one JSON object; without this the walks could never approve a
   // direction, and so could never pay. The words are the harness's and prove nothing about writing.
+  // ⚑ Piece 4 — the client changes who the programme is for; Milla re-draws the slice.
+  if (prompt.includes('PROGRAMME_AUDIENCE_JSON')) {
+    return json(res, 200, {
+      id: 'msg_fake_audience', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({
+        industries: ['Facilities Services'], company_sizes: ['51–200', '201–500'], job_titles: ['Operations Director'],
+        exclude: 'consultancies, recruiters and councils', reason: 'Narrowed to facilities firms, as you asked.',
+      }) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
   if (prompt.includes('PROGRAMME_DIRECTION_JSON')) {
     return json(res, 200, {
       id: 'msg_fake_direction', type: 'message', role: 'assistant', model: 'fake-harness-model',
@@ -334,6 +345,10 @@ const anthropicHandler = async (req, body, res, state) => {
         impact: 'Coordinators lose hours a day and visits get missed.',
         answer: 'Scheduling, job tracking and on-site sign-off in one app.',
         ask: '15 minutes to compare how they book engineers today.',
+        // ⚑ Piece 4 — the audience slice, chosen from the demo's own targeting (en-dash sizes as stored).
+        industries: ['Facilities Services', 'Building Maintenance'], company_sizes: ['51–200'],
+        job_titles: ['Operations Director', 'Head of Operations'],
+        exclude: 'consultancies and recruiters', reason: 'Operations leaders at facilities firms feel the booking problem most.',
       }) }],
       stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
     }), true

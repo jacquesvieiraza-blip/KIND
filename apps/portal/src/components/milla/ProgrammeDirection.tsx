@@ -18,10 +18,18 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { useMillaConversation, DIRECTION_FIELDS, type DirectionKey } from '@/components/milla/MillaConversation'
 
+type Audience = { industries: string[]; company_sizes: string[]; job_titles: string[]; exclude: string; reason: string }
 type Direction = Record<DirectionKey, string> & {
+  audience?: Audience | null
   version: number; status: 'draft' | 'approved'; approved_at: string | null
 }
-type View = { direction: Direction | null; suggestedGoal: string | null; lastGoal: string | null }
+type Example = { company: string; role: string; industry: string; fits: boolean }
+type View = { direction: Direction | null; examples?: Example[]; suggestedGoal: string | null; lastGoal: string | null }
+
+const audienceSummary = (a: Audience): string => [
+  a.industries.join(', '), a.company_sizes.map(x => `${x} staff`).join(', '), a.job_titles.join(', '),
+  a.exclude ? `leaving out ${a.exclude}` : '',
+].filter(Boolean).join(' · ')
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -127,6 +135,53 @@ export function ProgrammeDirection({ onApproved }: { onApproved: (approved: bool
               </div>
             ))}
           </div>
+          {/* ⚑ Piece 4 — THE FOUNDER'S BLUEPRINT VIEW 5: who this programme is actually for. A slice of
+              the client's own targeting, changed by telling Milla (R196); My ICP is never changed. */}
+          {d.audience && (
+            <div data-testid="programme-audience" className="mt-3 rounded-2xl border border-[#ece5fb] bg-white p-3">
+              <div className="flex items-start gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#7C3AED]">Programme audience</div>
+                  <b className="text-[14px] block">Who this programme is actually for</b>
+                  <span className="text-[11.5px] text-[#9b8ec4]">A narrower slice of your targeting, for this programme only. Your targeting in My ICP stays as it is.</span>
+                </div>
+                <span className="text-[10px] font-extrabold text-[#6f3df4] bg-[#f3edff] rounded-full px-2.5 py-1 uppercase">Client adjustable</span>
+                <button onClick={() => conversation.focus('direction:audience', { current: audienceSummary(d.audience!), version: d.version })}
+                  className="text-[11.5px] font-bold text-[#7C3AED] hover:underline">Change</button>
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {([
+                  ['Industry', d.audience.industries.join(' · ')],
+                  ['Company size', d.audience.company_sizes.map(x => `${x} staff`).join(' · ')],
+                  ['Primary buyer', d.audience.job_titles[0] ?? ''],
+                  ['Secondary', d.audience.job_titles.slice(1).join(' · ') || '—'],
+                  ['Exclude', d.audience.exclude || 'Nothing extra'],
+                  ['Reason', d.audience.reason || '—'],
+                ] as const).map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-[#f3eefb] px-3 py-2">
+                    <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">{label}</div>
+                    <div className="text-[13px] mt-0.5 break-words">{value}</div>
+                  </div>
+                ))}
+              </div>
+              {(v?.examples?.length ?? 0) > 0 && (
+                <div className="mt-3">
+                  <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">List preview · from the people Milla already found for you</div>
+                  <div className="overflow-x-auto mt-1">
+                    <table className="w-full text-[12.5px]">
+                      <thead><tr className="text-left text-[10.5px] uppercase tracking-wide text-[#9b8ec4]"><th className="py-1 pr-2">Account</th><th className="py-1 pr-2">Role</th><th className="py-1 pr-2">Type</th><th className="py-1">State</th></tr></thead>
+                      <tbody>{v!.examples!.map(e => (
+                        <tr key={e.company} className="border-t border-[#f3eefb]">
+                          <td className="py-1.5 pr-2">{e.company}</td><td className="py-1.5 pr-2">{e.role}</td><td className="py-1.5 pr-2">{e.industry || '—'}</td>
+                          <td className="py-1.5"><span className={`text-[10px] font-extrabold rounded-full px-2 py-0.5 ${e.fits ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>{e.fits ? 'Fits' : 'Review'}</span></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-[12px] text-emerald-900">
               <b>When you approve:</b> your emails for this programme are written to this direction. Any change after that becomes a new version for you to approve.

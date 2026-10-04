@@ -20,6 +20,14 @@ export const EDIT_LOCK_MESSAGE =
   'This programme\'s targeting and emails are fixed from the client review onward — the client is reading (or has approved) exactly these. ' +
   'Change them from the Programme tab (Rewrite messages / Re-freeze), and the client approves the new version.'
 
+/**
+ * ⚑ 4 Oct (founder: "D. FIX") — the CLIENT's words for the same lock: their emails change only by
+ * talking to Milla (R196), and a change goes to the founder first, then back to them (R195 ③).
+ */
+export const CLIENT_EDIT_LOCK_MESSAGE =
+  'These emails are part of your programme\'s approved version, so they can\'t be changed here. ' +
+  'Ask Milla on your Programme page to change an email — it goes to our team for a check first, then back to you to approve.'
+
 export type EditVerdict = { refuse: false } | { refuse: true; status: 409 | 503; message: string }
 
 type Lock = { kind: 'none' } | { kind: 'locked'; programmeId: string } | { kind: 'unknown'; reason: string }

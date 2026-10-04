@@ -1518,6 +1518,14 @@ figsyRouter.put('/sequences/:id', async (req: AuthRequest, res) => {
         res.status(400).json({ success: false, error: `A sequence can have at most ${MAX_SEQUENCE_STEPS} email steps.` }); return
       }
     }
+    // ⚑ 4 Oct (founder: "D. FIX") — A FROZEN PROGRAMME'S OWN SEQUENCE IS NOT CHANGED HERE. From the
+    // client review onward the words change only through Milla, founder first (R195 ③), exactly as
+    // the operator route has refused since 29 Sep (R174 · 1d).
+    {
+      const { sequenceEditVerdict, CLIENT_EDIT_LOCK_MESSAGE } = await import('../lib/programme-edit-lock')
+      const v = await sequenceEditVerdict(clientId, req.params.id)
+      if (v.refuse) { res.status(v.status).json({ success: false, error: v.status === 409 ? CLIENT_EDIT_LOCK_MESSAGE : v.message }); return }
+    }
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (name !== undefined)  update.name = name
     if (steps !== undefined) update.steps = steps
@@ -1538,6 +1546,14 @@ figsyRouter.delete('/sequences/:id', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // ⚑ 4 Oct (founder: "D. FIX") — A FROZEN PROGRAMME'S OWN SEQUENCE IS NOT CHANGED HERE. From the
+    // client review onward the words change only through Milla, founder first (R195 ③), exactly as
+    // the operator route has refused since 29 Sep (R174 · 1d).
+    {
+      const { sequenceEditVerdict, CLIENT_EDIT_LOCK_MESSAGE } = await import('../lib/programme-edit-lock')
+      const v = await sequenceEditVerdict(clientId, req.params.id)
+      if (v.refuse) { res.status(v.status).json({ success: false, error: v.status === 409 ? CLIENT_EDIT_LOCK_MESSAGE : v.message }); return }
+    }
     const { error } = await db.from('figsy_sequences')
       .delete().eq('id', req.params.id).eq('client_id', clientId)
     if (error) throw error

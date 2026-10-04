@@ -237,6 +237,19 @@ myProgrammeRouter.post('/direction/approve', async (req: AuthRequest, res) => {
   }
 })
 
+// ── ⚑ 3 Oct (piece 7 — blueprint view 9) — PAST PROGRAMMES: what changed, read-only ──────────
+myProgrammeRouter.get('/history', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readProgrammeHistory } = await import('../lib/programme-history')
+    res.json({ success: true, data: await readProgrammeHistory(clientId) })
+  } catch (err) {
+    console.error('[my/programme/history GET]', err)
+    res.status(503).json({ success: false, error: 'Your programme history could not be loaded just now. Please try again.' })
+  }
+})
+
 // ── ⚑ 3 Oct (R195 ③ · piece 6) — THE CLIENT CHANGES AN EMAIL BY TALKING TO MILLA ─────────────
 // One email, rewritten as asked; a new version that goes to the founder first, then the client.
 myProgrammeRouter.post('/emails/change', async (req: AuthRequest, res) => {

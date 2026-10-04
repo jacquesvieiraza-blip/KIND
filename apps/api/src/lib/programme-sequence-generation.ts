@@ -49,6 +49,7 @@
 import { db } from '@kind/db'
 import { CONVERSATION_MODEL } from './models'
 import type { ProgrammeSequenceStep } from './programme-sequence'
+import { DIRECTION_JOBS } from './sequence-templates'
 
 export type GenerateSequenceResult =
   | { ok: true; created: boolean; steps: number; sequenceId: string; name: string; drafted_against: string }
@@ -219,7 +220,8 @@ export async function generateProgrammeSequence(
       // ⚑ 24 Sep (R159) — the programme's emails are written by the conversational model, a named
       // exception to R122a. One call per programme (or per Rewrite), never per person; every
       // per-person writer stays on Haiku.
-      { briefContext, industry: sample.industry ?? client.industry ?? null, model: CONVERSATION_MODEL },
+      // ⚑ 3 Oct (sequencing piece 5) — a programme with an approved direction: five emails, one job each.
+      { briefContext, industry: sample.industry ?? client.industry ?? null, ...(direction ? { jobs: DIRECTION_JOBS } : {}), model: CONVERSATION_MODEL },
     ) as unknown as Record<string, { subject?: string; body?: string }>
   } catch (err) {
     return {
@@ -248,6 +250,8 @@ export async function generateProgrammeSequence(
         // `wait_days` is the delay AFTER this step. Taken from the plan, never invented —
         // writing 0 here is how two cold emails land in one morning.
         wait_days: plan.gaps[n - 1] ?? 4,
+        // ⚑ 3 Oct (piece 5) — the email's job, kept with it so Vida and Milla show it.
+        ...(direction ? { job: DIRECTION_JOBS[n - 1]?.job } : {}),
       }
     })
     .filter(s => s.subject && s.body)

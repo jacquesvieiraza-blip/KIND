@@ -49,6 +49,12 @@ export interface SequenceStep {
   subject: string
   body: string
   wait_days: number
+  /**
+   * ⚑ 3 Oct (sequencing piece 5) — the email's ONE JOB (Problem · Impact · Solution · Proof · Ask)
+   * on a programme written to an approved direction. ABSENT on every other step, so no existing
+   * frozen version's digest moves.
+   */
+  job?: string
 }
 
 export interface ProgrammeChain {
@@ -84,7 +90,7 @@ export type ChainResult =
   | { ok: false; degraded: string }
 
 /** A step is only a step if it has words. A blank row is not reviewable content. */
-function readSteps(raw: unknown): SequenceStep[] {
+export function readSteps(raw: unknown): SequenceStep[] {
   if (!Array.isArray(raw)) return []
   const out: SequenceStep[] = []
   for (const s of raw) {
@@ -99,6 +105,8 @@ function readSteps(raw: unknown): SequenceStep[] {
     const ch = o.channel
     const channel = (ch === 'linkedin' || ch === 'call' || ch === 'whatsapp') ? ch : 'email' as const
     out.push({ channel, subject, body, wait_days: wait })
+    // ⚑ 3 Oct (piece 5) — the email's one job, kept only when present: no older version's digest moves.
+    if (typeof o.job === 'string' && o.job.trim()) out[out.length - 1].job = o.job.trim()
   }
   return out
 }

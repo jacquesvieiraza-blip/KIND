@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-type Email = { step: number; subject: string; body: string; wait_days: number }
+type Email = { step: number; subject: string; body: string; wait_days: number; /** ⚑ 3 Oct (piece 5) — its one job, on a programme written to an approved direction. */ job?: string }
 type Wording = {
   gate_on: boolean; version: string | null; version_number: number | null
   sample?: { name: string | null; company: string | null } | null
@@ -98,7 +98,7 @@ export default function FounderWordingApproval({ programmeId }: { programmeId: s
         {w.emails.map((e, i) => (
           <div key={e.step} className="rounded-lg border border-[#f0eafa] bg-[#fdfcff] px-3.5 py-3">
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#9b8ec4]">
-              Email {e.step} of {w.emails.length}{i > 0 ? ` · ${w.emails[i - 1].wait_days} day${w.emails[i - 1].wait_days === 1 ? '' : 's'} after email ${w.emails[i - 1].step}` : ''}
+              Email {e.step} of {w.emails.length}{e.job ? ` · ${e.job}` : ''}{i > 0 ? ` · ${w.emails[i - 1].wait_days} day${w.emails[i - 1].wait_days === 1 ? '' : 's'} after email ${w.emails[i - 1].step}` : ''}
             </div>
             <div className="text-[13px] font-semibold mt-1">Subject: {e.subject}</div>
             <div className="mt-2 text-[13px] leading-[1.55] text-[#2a2238]">

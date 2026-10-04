@@ -108,6 +108,9 @@ vi.mock('./figsy', () => ({
   getClientKnowledgeForOutreach: async () => 'We run outbound programmes and charge per qualified prospect.',
 }))
 vi.mock('./meeting-brief-deliver', () => ({ briefContextFor: async () => null }))
+// ⚑ 3 Oct (sequencing piece 5) — the client's approved direction for THIS programme, when a test sets one.
+const directionState: { block: string | null } = { block: null }
+vi.mock('./programme-direction', () => ({ approvedDirectionFor: async () => directionState.block }))
 // ⚑ 2 Oct (R189 ⑥) — House is decided by `isHouseClient`; every fixture here is NOT House unless a
 // test says so, so nothing below is satisfied by the House branch quietly doing the work.
 const houseState = { isHouse: false }
@@ -142,6 +145,34 @@ beforeEach(() => {
 afterEach(() => {
   if (prevHouse === undefined) delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
   else process.env.HOUSE_LAUNCH_PROGRAMME_ID = prevHouse
+})
+
+describe('⚑ 3 Oct (sequencing piece 5) — an approved direction means five emails, one job each — EXECUTED', () => {
+  afterEach(() => { directionState.block = null })
+  const five = Object.fromEntries([1, 2, 3, 4, 5].map(n => [`step${n}`, {
+    subject: `Halden question ${n}`,
+    body: `Hi Priya,\n\nA short note ${n} about Halden & Co and the first ninety days.\n\nWorth a look?\n\nJacques\n\nReply STOP to opt out.`,
+  }]))
+
+  it('🛑 the writer is handed the five jobs and the direction, and every stored email keeps its job, in order', async () => {
+    directionState.block = 'PROGRAMME DIRECTION — the client APPROVED this for this programme.'
+    state.draft = five
+    const { generateProgrammeSequence } = await import('./programme-sequence-generation')
+    const r = await generateProgrammeSequence(PROG)
+    expect(r.ok, r.ok ? '' : r.reason).toBe(true)
+    const opts = state.generatorCalls[0].opts as { jobs?: { job: string }[]; briefContext?: string }
+    expect(opts.jobs?.map(j => j.job)).toEqual(['Problem', 'Impact', 'Solution', 'Proof', 'Ask'])
+    expect(opts.briefContext).toContain('the client APPROVED this for this programme')
+    expect((state.sequences[0].steps as { job?: string }[]).map(s => s.job)).toEqual(['Problem', 'Impact', 'Solution', 'Proof', 'Ask'])
+  })
+
+  it('without an approved direction nothing changes: no jobs asked for, none stored', async () => {
+    const { generateProgrammeSequence } = await import('./programme-sequence-generation')
+    const r = await generateProgrammeSequence(PROG)
+    expect(r.ok, r.ok ? '' : r.reason).toBe(true)
+    expect((state.generatorCalls[0].opts as { jobs?: unknown }).jobs).toBeUndefined()
+    expect((state.sequences[0].steps as { job?: string }[]).every(s => s.job === undefined)).toBe(true)
+  })
 })
 
 describe('⚑ 2 Oct (R189 ⑥) — House signs "The Milla & Vida Team"', () => {

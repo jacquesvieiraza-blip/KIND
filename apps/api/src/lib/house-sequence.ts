@@ -82,6 +82,9 @@ export interface HouseStep {
 
 /**
  * The five approved messages. Founder-locked 8 Sep — **do not edit without a new lock.**
+ * ⛓️ 6 Oct (item 7 · founder "yes change to Milla & Vida", then "1 yes" for email 3): steps 1 and 3
+ * say "Milla & Vida" where they said "M&V" — a stranger reading a cold email does not know who "M&V"
+ * is. Every other word is unchanged. Milla and the website keep "M&V" (founder "2 keep").
  *
  * Each has a distinct job: pain, mechanism, insight, control, close. They carry no customer
  * proof, no ROI figure, no meeting count and no invented case study, because we have none.
@@ -91,7 +94,7 @@ export const HOUSE_SEQUENCE_STEPS: readonly HouseStep[] = [
     channel: 'email',
     subject: "{{first_name}}, who's building your pipeline this quarter?",
     body:
-      "Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work M&V can take off their plate.\n\n" +
+      "Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work Milla & Vida can take off their plate.\n\n" +
       "We build and run the pipeline so they can spend that time selling, delivering and growing the business.\n\n" +
       'Worth fifteen minutes?',
     wait_days: 3,
@@ -112,7 +115,7 @@ export const HOUSE_SEQUENCE_STEPS: readonly HouseStep[] = [
     subject: 'Why outbound usually stops',
     body:
       'Outbound usually becomes difficult when the list drifts, follow-up stops after one email, or whoever owns it gets pulled onto something more urgent.\n\n' +
-      "That's the operational problem M&V is built to take away.\n\n" +
+      "That's the operational problem Milla & Vida is built to take away.\n\n" +
       'Which of those is closest to {{company}}?',
     wait_days: 5,
   },

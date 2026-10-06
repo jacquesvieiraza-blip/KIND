@@ -60,3 +60,45 @@ describe('🛑 every Milla screen that shows a programme re-reads it', () => {
     expect(PAGE).toContain('useProgrammeSync(p, load, conversation.keepNotice)')
   })
 })
+
+// ⚑ 6 Oct (item 5 · founder "yes fix 5") — House's Milla chat said "Your programme is paused" twice
+// in a row: every open Milla screen saw the pause on its own clock and kept its OWN copy, because
+// the notice's key carried the moment that screen noticed it. The server keeps a notice once PER
+// KEY, so the key is now the pause itself — every screen, every refresh, the same key.
+describe('one pause, one notice — however many screens are open (item 5)', () => {
+  const live = { ...base, stage: 'Results', wentLiveAt: '2026-10-03T08:00Z' }
+  const pausedAt = '2026-10-04T09:12:00Z'
+  const tab = (prev: MillaSyncFacts, next: MillaSyncFacts, at: string) => {
+    const real = Date.now
+    Date.now = () => new Date(at).getTime()
+    try { return millaChangeLines(prev, next) } finally { Date.now = real }
+  }
+
+  it('two screens seeing the same pause a minute apart produce the SAME key', () => {
+    const a = tab(live, { ...live, paused: true, pausedAt }, '2026-10-04T09:12:20Z')
+    const b = tab(live, { ...live, paused: true, pausedAt }, '2026-10-04T09:13:20Z')
+    expect(a[0].kind).toBe('paused')
+    expect(a[0].key).toBe(b[0].key)
+    expect(a[0].key).toBe(`sync-paused-${pausedAt}`)
+  })
+
+  it('the resume that ends that pause is also one key on every screen', () => {
+    const a = tab({ ...live, paused: true, pausedAt }, live, '2026-10-04T10:00:00Z')
+    const b = tab({ ...live, paused: true, pausedAt }, live, '2026-10-04T10:00:40Z')
+    expect(a[0].kind).toBe('resumed')
+    expect(a[0].key).toBe(b[0].key)
+    expect(a[0].key).toBe(`sync-resumed-${pausedAt}`)
+  })
+
+  it('a SECOND pause later is a new notice — it is said, not swallowed', () => {
+    const first = tab(live, { ...live, paused: true, pausedAt }, '2026-10-04T09:12:20Z')
+    const second = tab(live, { ...live, paused: true, pausedAt: '2026-10-05T11:00:00Z' }, '2026-10-05T11:00:30Z')
+    expect(first[0].key).not.toBe(second[0].key)
+  })
+
+  it('the pause time comes from the programme the server sends', () => {
+    const f = millaFacts({ stage: 'Results', paused: true, pausedAt, approvedAt: 'a', wentLiveAt: 'b',
+      money: { firstPaidAt: null, secondPaidAt: null } })
+    expect(f.pausedAt).toBe(pausedAt)
+  })
+})

@@ -12,10 +12,13 @@ import { join } from 'node:path'
 
 const APPS = join(__dirname, '../../..')
 const CURRENT = /Last updated:? 1 October 2026/
+// ⛓️ 6 Oct (11b · founder "3 yes", "4 not material") — the three Privacy Policy copies gained the
+// Google Calendar / Limited Use section, so their date moved; the other pages did not change.
+const PRIVACY_CURRENT = /Last updated:? 6 October 2026/
+const PRIVACY = ['website/privacy.html', 'portal/public/privacy.html', 'portal/src/app/(legal)/privacy/page.tsx']
 
 const PAGES = [
-  'website/privacy.html', 'website/terms.html', 'website/dpa.html', 'website/dpa-us.html',
-  'portal/public/privacy.html', 'portal/src/app/(legal)/privacy/page.tsx',
+  'website/terms.html', 'website/dpa.html', 'website/dpa-us.html',
   'portal/public/terms.html', 'portal/src/app/(legal)/terms/page.tsx',
 ]
 
@@ -23,6 +26,16 @@ describe('every legal page carries its current date', () => {
   for (const p of PAGES) {
     it(`${p} says "Last updated 1 October 2026"`, () => {
       expect(readFileSync(join(APPS, p), 'utf8')).toMatch(CURRENT)
+    })
+  }
+  for (const p of PRIVACY) {
+    it(`${p} says "Last updated 6 October 2026" and carries Google's Limited Use disclosure`, () => {
+      const page = readFileSync(join(APPS, p), 'utf8')
+      expect(page).toMatch(PRIVACY_CURRENT)
+      expect(page).toContain('Google Calendar')
+      expect(page).toContain('Google API Services User Data Policy')
+      expect(page).toContain('including the Limited Use requirements')
+      expect(page).toContain('not used to train AI models')
     })
   }
 })

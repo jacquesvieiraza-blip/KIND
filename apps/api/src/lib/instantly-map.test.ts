@@ -145,7 +145,9 @@ describe('fromInstantlyReply', () => {
 
   it('falls back to HTML and strips the tags when there is no text part', () => {
     const r = fromInstantlyReply({ lead_email: 'a@b.com', reply_html: '<p>Yes <b>please</b></p>' })
-    expect(r?.body).toBe('Yes  please')
+    // ⛓️ 6 Oct (row 11): ~~'Yes  please'~~ — the double space WAS the bug (each tag became a space,
+    // codes stayed, lines were lost). Replies now go through the shared `replyText`.
+    expect(r?.body).toBe('Yes please')
   })
 
   it('returns NULL when there is no sender — the caller must escalate, not store it against nobody', () => {

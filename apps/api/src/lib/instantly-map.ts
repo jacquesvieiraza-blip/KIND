@@ -15,6 +15,7 @@
 
 import { applyTokens } from './sequence-apply'
 import type { SequenceStep } from './sequence-apply'
+import { replyText } from '@kind/shared'
 
 /** The house client — us. Only this account may use Instantly. */
 export const HOUSE_SENDING_MODE = 'instantly-api' as const
@@ -208,7 +209,8 @@ export function fromInstantlyReply(raw: InstantlyReplyRaw): {
     fromEmail: email,
     fromName: pick('lead_name', 'first_name', 'from_name') || null,
     subject: pick('reply_subject', 'subject') || null,
-    body: pick('reply_text', 'text', 'body_text', 'body') || html.replace(/<[^>]+>/g, ' ').trim(),
+    // ⚑ 6 Oct (row 11) — the one shared way a reply becomes text: codes decoded, lines kept.
+    body: replyText(pick('reply_text', 'text', 'body_text', 'body') || html),
     providerMessageId: pick('id', 'message_id', 'reply_id') || null,
     provider: 'instantly',
   }

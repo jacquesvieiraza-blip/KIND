@@ -1,6 +1,7 @@
 // ⚑ 25 Sep (R165) — THE INBOX'S RULES, PURE: one conversation per person, and what each
 // status is called and what happens next. Kept out of the component so they are tested
 // without a browser (inbox.test.ts). The screen is `components/milla/MillaInbox.tsx`.
+import { replyText } from '@kind/shared'
 export type ReplyRow = {
   id: string
   from_email: string
@@ -77,6 +78,9 @@ export function inFilter(c: Conversation, f: InboxFilter): boolean {
 const when = (r: { received_at?: string | null; processed_at?: string | null }) => r.received_at ?? r.processed_at ?? null
 const ms = (s: string | null) => (s ? new Date(s).getTime() : 0)
 const textOf = (r: { body_text?: string | null; body?: string | null }) => (r.body_text ?? r.body ?? '').trim()
+// ⚑ 6 Oct (row 11) — a reply FROM THEM is shown through the one shared reader, so replies saved
+// before the fix (codes like &nbsp; left in, lines lost) read as words too. Our own text is untouched.
+const theirTextOf = (r: { body_text?: string | null; body?: string | null }) => replyText(textOf(r))
 
 /**
  * One conversation per person: our emails, their replies and our answers, oldest first.
@@ -107,7 +111,7 @@ export function buildConversations(rows: ReplyRow[], sent: SentRow[] | null | un
     for (const r of group) {
       messages.push(r.classification === 'sent_reply'
         ? { kind: 'our_reply', label: 'Our reply', subject: null, text: textOf(r), at: when(r) }
-        : { kind: 'theirs', label: r.from_name?.trim() || name, subject: r.subject, text: textOf(r), at: when(r) })
+        : { kind: 'theirs', label: r.from_name?.trim() || name, subject: r.subject, text: theirTextOf(r), at: when(r) })
     }
     messages.sort((a, b) => ms(a.at) - ms(b.at))
 
@@ -117,7 +121,7 @@ export function buildConversations(rows: ReplyRow[], sent: SentRow[] | null | un
       company: lead?.company ?? null,
       status: booked ? 'booked' : statusOf(latest.classification),
       lastAt: when(latest),
-      snippet: textOf(latest).replace(/\s+/g, ' ').slice(0, 160),
+      snippet: theirTextOf(latest).replace(/\s+/g, ' ').slice(0, 160),
       messages,
       replyId: latest.id,
       awaitingAnswer: messages.length > 0 && messages[messages.length - 1].kind === 'theirs',

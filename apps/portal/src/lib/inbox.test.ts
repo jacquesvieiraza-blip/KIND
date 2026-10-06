@@ -137,3 +137,23 @@ describe('it is called Inbox, and there is one of it', () => {
     expect(OLD_PAGE).toContain("import MillaInbox from '@/components/milla/MillaInbox'")
   })
 })
+
+// ⚑ 6 Oct (row 11) — the founder's live Inbox showed a "Stop." reply as "Stop.&nbsp; &nbsp; …
+// Founder &amp; CEO … &lt;hello@…&gt;" on one line. A reply already SAVED like that reads as words.
+describe('a reply saved with codes in it reads as words (row 11)', () => {
+  const saved = 'Stop.&nbsp; &nbsp; &nbsp;Sam Doe &nbsp; Founder &amp; CEO On Oct 4, KIND &lt;hello@kindoutreach.com&gt; wrote:'
+  it('the message and the list preview show no codes and no runs of spaces', () => {
+    const [c] = buildConversations([reply({ body_text: saved, classification: 'opt_out' })], [])
+    const theirs = c.messages.find(m => m.kind === 'theirs')!
+    for (const t of [theirs.text, c.snippet]) {
+      expect(t).not.toMatch(/&(nbsp|amp|lt|gt);/)
+      expect(t).not.toMatch(/ {2,}/)
+      expect(t.startsWith('Stop. Sam Doe Founder & CEO')).toBe(true)
+    }
+    expect(theirs.text).toContain('KIND <hello@kindoutreach.com> wrote:')
+  })
+  it('our own email is shown exactly as it was sent', () => {
+    const [c] = buildConversations([reply({})], [ours({ body: 'Hi Priya &amp; team' })])
+    expect(c.messages.find(m => m.kind === 'ours')!.text).toBe('Hi Priya &amp; team')
+  })
+})

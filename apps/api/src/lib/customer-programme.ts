@@ -50,6 +50,8 @@ export type CustomerProgramme = {
   programmeId: string | null
   /** Orthogonal to stage — a paused programme keeps the stage it will return to. */
   paused: boolean
+  /** ⚑ 6 Oct (item 5) — when the current pause began (null when not paused). Milla keys its one "paused" notice by it. */
+  pausedAt: string | null
   /** LOCKED founder copy, sent from the server so the client cannot drift from it. */
   pausedCopy: string | null
   /** A review decision is waiting. Distinct from paused: live delivery continues. */
@@ -213,7 +215,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   quickAction: STAGE_QUICK_ACTION.Proof,
   hasProgramme: false,
   programmeId: null,
-  paused: false, pausedCopy: null, reviewOpen: false,
+  paused: false, pausedAt: null, pausedCopy: null, reviewOpen: false,
   // ⚑ 10 Sep (I5) — a client with no programme has not finished one either.
   terminal: null,
   outcome: { kind: 'meetings', target: null, stated: null },
@@ -459,6 +461,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     },
     programmeId: (p.id as string | null) ?? null,
     paused: Boolean(p.paused_at),
+    pausedAt: (p.paused_at as string | null) ?? null,
     // ⚑ 29 Sep (R174 · 2d) — the reason, in plain words; no reason keeps the locked sentence.
     // ⚑ 2 Oct (#2561 · 14c) — a refunded or disputed payment says so, not "checking quality".
     pausedCopy: pausedCopyForProgramme(p as { paused_at: string | null; pause_reason: string | null; disputed_at: string | null }),

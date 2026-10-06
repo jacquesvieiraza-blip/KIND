@@ -37,6 +37,8 @@ export type CustomerProgramme = {
   hasProgramme?: boolean
   programmeId?: string | null
   paused: boolean
+  /** ⚑ 6 Oct (item 5) — when the current pause began; keys Milla's one "paused" notice. Optional: an older API omits it. */
+  pausedAt?: string | null
   pausedCopy: string | null
   reviewOpen: boolean
   /**

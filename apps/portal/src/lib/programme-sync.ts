@@ -20,10 +20,12 @@ export type MillaSyncFacts = {
   approvedAt: string | null
   wentLiveAt: string | null
   paused: boolean
+  /** ⚑ 6 Oct (item 5) — WHEN the current pause began; it is the notice's key, so every screen agrees. */
+  pausedAt?: string | null
 }
 
 type Source = {
-  stage: string; paused: boolean; approvedAt: string | null; wentLiveAt: string | null
+  stage: string; paused: boolean; pausedAt?: string | null; approvedAt: string | null; wentLiveAt: string | null
   money: { firstPaidAt: string | null; secondPaidAt: string | null; firstAuthorisedAt?: string | null; secondAuthorisedAt?: string | null }
 }
 
@@ -35,12 +37,14 @@ export function millaFacts(p: Source): MillaSyncFacts {
     approvedAt: p.approvedAt,
     wentLiveAt: p.wentLiveAt,
     paused: p.paused,
+    pausedAt: p.pausedAt ?? null,
   }
 }
 
 export function sameMillaFacts(a: MillaSyncFacts, b: MillaSyncFacts): boolean {
   return a.stage === b.stage && a.firstAt === b.firstAt && a.secondAt === b.secondAt
     && a.approvedAt === b.approvedAt && a.wentLiveAt === b.wentLiveAt && a.paused === b.paused
+    && (a.pausedAt ?? null) === (b.pausedAt ?? null)
 }
 
 export type MillaChange = { key: string; kind: MillaNoticeKind; param?: string | null; lines: string[] }
@@ -62,8 +66,13 @@ export function millaChangeLines(prev: MillaSyncFacts, next: MillaSyncFacts): Mi
   // land in the same change, only the first notice is said (it already says "until you approve").
   if (!prev.secondAt && next.secondAt && !(!prev.firstAt && next.firstAt)) add(`sync-second-${next.secondAt}`, 'second')
   if (!prev.wentLiveAt && next.wentLiveAt) add(`sync-live-${next.wentLiveAt}`, 'live')
-  if (!prev.paused && next.paused) add(`sync-paused-${next.stage}-${Date.now()}`, 'paused')
-  if (prev.paused && !next.paused) add(`sync-resumed-${next.stage}-${Date.now()}`, 'resumed')
+  // ⚑ 6 Oct (item 5 · founder "yes fix 5") — ⛓️ ~~`sync-paused-${stage}-${Date.now()}`~~: each open
+  // screen keyed the notice by the moment IT noticed, so the server (which keeps one notice per
+  // key) kept one per screen — House's chat said "paused" twice in a row. The key is now the pause
+  // itself; a resume is keyed by the pause it ends. Only a server too old to send the time falls
+  // back to the moment, exactly as before.
+  if (!prev.paused && next.paused) add(`sync-paused-${next.pausedAt ?? `${next.stage}-${Date.now()}`}`, 'paused')
+  if (prev.paused && !next.paused) add(`sync-resumed-${prev.pausedAt ?? `${next.stage}-${Date.now()}`}`, 'resumed')
   if (out.length === 0 && prev.stage !== next.stage) add(`sync-stage-${next.stage}`, 'stage', next.stage)
   return out
 }

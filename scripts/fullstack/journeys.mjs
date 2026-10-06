@@ -967,6 +967,18 @@ export function makeJourneyChecks(kit) {
     // ⚠️ THE VERSION IS THE PREPARATION HASH, and it lives on the REVIEW surface — the screen
     // that actually shows the client what they are approving. `/my/programme` is the summary
     // and carries no version at all, which is why the first two attempts were refused.
+    // ⚑ 6 Oct (E · founder "yes fix E") — THE FOUNDER CHECKS THE WORDING FIRST (R191 ① 4a). The
+    // client's approval is refused with "awaiting_founder" until the founder has approved this exact
+    // frozen version in Vida — the run used to skip that step, so J16–J20 failed on a correct product.
+    // Done here through Vida's own route, against the hash J15 froze, never by writing the table.
+    if (W.frozenHash) {
+      const fw = await http(`${BASE}/programmes/${W.programmeId}/wording/approve`, {
+        method: 'POST', timeoutMs: 60000,
+        headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+        body: JSON.stringify({ version: W.frozenHash }),
+      })
+      if (fw.status !== 200) return bad(id, `the founder's wording approval was refused before the client could approve — HTTP ${fw.status}: ${String(fw.text).slice(0, 220)}`)
+    }
     const view = await asClient('/my/programme/review', { timeoutMs: 60000 })
     const vd = view.json?.data ?? view.json ?? {}
     // ⚠️ FOUND WHEREVER IT SITS, rather than at a path guessed from the route's source. Three
@@ -1007,6 +1019,18 @@ export function makeJourneyChecks(kit) {
     if (needs(id, 'programmeId', 'programme')) return
     const settled = (row) => !!(row.second_paid_at || row.second_authorised_at)
     const cols = 'status, second_paid_at, second_authorised_at'
+    // ⚑ 6 Oct (E) — ONE PAYMENT IN FULL (R166 ③ · P9). A new programme pays in full at acceptance:
+    // the Payment 1 webhook records the SAME Stripe session as settling Payment 2, and the second
+    // checkout answers 409 "paid_in_full" without charging. The run assumed two payments, so J17
+    // read "settled by the checkout alone" for a programme that was settled — correctly — at J11.
+    const pre = (await sql(`select ${cols}, first_payment_ref, second_payment_ref from public.programmes where id = $1`, [W.programmeId]))[0]
+    if (settled(pre) && pre.second_payment_ref && pre.second_payment_ref === pre.first_payment_ref) {
+      const again = await asClient('/my/programme/checkout/second', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
+      const post = (await sql(`select ${cols}, second_payment_ref from public.programmes where id = $1`, [W.programmeId]))[0]
+      if (again.status === 200) return bad(id, `a SECOND checkout was opened for a programme already paid in full — HTTP 200: ${String(again.text).slice(0, 200)}`)
+      if (post.second_payment_ref !== pre.second_payment_ref) return bad(id, 'the second checkout changed Payment 2 on a programme already paid in full')
+      return ok(id, `paid in full at acceptance (R166 ③): Payment 1's webhook settled Payment 2 with the same session, and the second checkout refused to charge again · HTTP ${again.status}${again.json?.error ? ` ${again.json.error}` : ''}`)
+    }
     const checkout = await asClient('/my/programme/checkout/second', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
     const before = (await sql(`select ${cols} from public.programmes where id = $1`, [W.programmeId]))[0]
     if (settled(before)) {
@@ -1026,6 +1050,17 @@ export function makeJourneyChecks(kit) {
   async function j18() {
     const id = 'J18'
     if (needs(id, 'programmeId', 'programme')) return
+    // ⚑ 6 Oct (E) — THE CLIENT CONNECTS THEIR GOOGLE CALENDAR FIRST (R189): Make Live refuses
+    // without it, because prospects book into it. The run plays the client finishing that connect
+    // (the two fields the OAuth callback stores) — the harness has no real Google account to consent.
+    // ⚑ 6 Oct (E) — AND THEIR LEGAL LINE (R189 ⑥): every email ends with the client's company name
+    // and registered office, so Make Live refuses without them. Saved the way the client saves it —
+    // their own Business Profile (PATCH /clients/me) — not written to the table.
+    const office = await asClient('/clients/me', { method: 'PATCH', timeoutMs: 30000, body: JSON.stringify({ registered_office: '1 Harness Street, London EC1A 1AA, United Kingdom' }) })
+    if (office.status !== 200) return bad(id, `the client could not save their registered office (HTTP ${office.status}): ${String(office.text).slice(0, 200)}`)
+    await sql(`update public.clients set calendar_booking_enabled = true,
+                 google_calendar_refresh_token = coalesce(google_calendar_refresh_token, 'fullstack-harness-refresh-token')
+               where id = $1`, [W.clientId])
     const smtpBefore = (await http(`${ENV.fakes.resend}/__fake/smtp`)).json?.calls ?? -1
     const r = await http(`${BASE}/programmes/${W.programmeId}/go-live`, {
       method: 'POST', timeoutMs: 90000,

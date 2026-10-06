@@ -119,7 +119,7 @@ export default function MillaInbox() {
   const open = shown.find(c => c.key === selected) ?? shown[0] ?? null
 
   return (
-    <div className="bg-white border border-[#e7e3ec] rounded-2xl overflow-hidden flex flex-col min-h-[560px]" data-testid="milla-inbox">
+    <div className="bg-white border border-[#e7e3ec] rounded-2xl overflow-hidden flex flex-col flex-1 min-h-[560px]" data-testid="milla-inbox">
       <header className="px-5 pt-4 pb-3 border-b border-[#e7e3ec] flex flex-wrap items-end gap-x-6 gap-y-2">
         <div className="min-w-0">
           <h1 className="text-[19px] font-extrabold text-[#17101f]">Inbox</h1>
@@ -148,8 +148,8 @@ export default function MillaInbox() {
       ) : all.length === 0 ? (
         <Empty sentTotal={sentTotal} />
       ) : (
-        <div className="flex-1 grid md:grid-cols-[minmax(260px,330px)_minmax(0,1fr)] min-h-0">
-          <div className={`md:border-r border-[#e7e3ec] flex-col min-w-0 ${reading ? 'hidden md:flex' : 'flex'}`}>
+        <div className="flex-1 grid grid-rows-[minmax(0,1fr)] md:grid-cols-[minmax(260px,330px)_minmax(0,1fr)] min-h-0">
+          <div className={`md:border-r border-[#e7e3ec] flex-col min-w-0 min-h-0 ${reading ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-3 flex flex-col gap-2.5 border-b border-[#e7e3ec]">
               <label className="flex items-center gap-2 border border-[#ded8e8] rounded-lg px-2.5 py-1.5 focus-within:border-[#7C3AED]">
                 <Search className="w-4 h-4 text-[#9b8ec4]" />
@@ -166,7 +166,7 @@ export default function MillaInbox() {
                 ))}
               </div>
             </div>
-            <div className="overflow-y-auto">
+            <div className="overflow-y-auto flex-1 min-h-0">
               {shown.length === 0 ? (
                 <p className="text-center text-[12.5px] text-[#9b8ec4] py-10 px-4">Nobody here{query ? ' matches that search' : ' yet'}.</p>
               ) : shown.map(c => (
@@ -188,7 +188,7 @@ export default function MillaInbox() {
             </div>
           </div>
 
-          <section className={`min-w-0 flex-col ${reading ? 'flex' : 'hidden md:flex'}`} aria-live="polite">
+          <section className={`min-w-0 min-h-0 overflow-y-auto flex-col ${reading ? 'flex' : 'hidden md:flex'}`} aria-live="polite">
             {open && <Thread c={open} onBack={() => setReading(false)} onSent={() => void load()} />}
           </section>
         </div>

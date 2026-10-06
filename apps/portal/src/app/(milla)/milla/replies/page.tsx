@@ -36,9 +36,11 @@ import MillaInbox from '@/components/milla/MillaInbox'
  */
 export default function MillaNative_replies() {
   return (
-    <div className="h-full overflow-y-auto p-5 sm:p-6">
+    // ⚑ 6 Oct (item 6) — a column the Inbox card fills, so the card (not the page) scrolls and its
+    // heading and counts stay in view; the page itself still scrolls on a very short screen.
+    <div className="h-full overflow-y-auto p-5 sm:p-6 flex flex-col">
       <MillaInbox />
-      <p data-testid="held-reply-note" className="mt-3 px-1 text-[11.5px] text-[#9b8ec4] leading-relaxed">
+      <p data-testid="held-reply-note" className="shrink-0 mt-3 px-1 text-[11.5px] text-[#9b8ec4] leading-relaxed">
         Very occasionally a reply arrives that we cannot match to your programme automatically.
         When that happens it is not lost and it is not deleted — a person at K.I.N.D reads it and
         places it, and it appears here once they have.

@@ -108,7 +108,9 @@ describe('① five steps, each with a distinct job, exactly as approved', () => 
 
   it('🛑 each body carries its approved opening sentence', () => {
     const opens = HOUSE_SEQUENCE_STEPS.map(s => s.body.split('\n')[0])
-    expect(opens[0]).toBe("Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work M&V can take off their plate.")
+    // ⛓️ 6 Oct (item 7 · founder "yes change to Milla & Vida"): ~~"…doing work M&V can take off their
+    // plate."~~ — a stranger reading a first email does not know who "M&V" is. A new lock on step 1 only.
+    expect(opens[0]).toBe("Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work Milla & Vida can take off their plate.")
     expect(opens[1]).toBe('Two halves.')
     expect(opens[2]).toBe('Outbound usually becomes difficult when the list drifts, follow-up stops after one email, or whoever owns it gets pulled onto something more urgent.')
     expect(opens[3]).toBe("Nothing goes out that you haven't seen.")

@@ -82,6 +82,8 @@ export interface HouseStep {
 
 /**
  * The five approved messages. Founder-locked 8 Sep — **do not edit without a new lock.**
+ * ⛓️ 6 Oct (item 7 · founder "yes change to Milla & Vida"): step 1's "M&V" now reads "Milla & Vida" —
+ * a stranger reading a first email does not know who "M&V" is. The other words are unchanged.
  *
  * Each has a distinct job: pain, mechanism, insight, control, close. They carry no customer
  * proof, no ROI figure, no meeting count and no invented case study, because we have none.
@@ -91,7 +93,7 @@ export const HOUSE_SEQUENCE_STEPS: readonly HouseStep[] = [
     channel: 'email',
     subject: "{{first_name}}, who's building your pipeline this quarter?",
     body:
-      "Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work M&V can take off their plate.\n\n" +
+      "Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work Milla & Vida can take off their plate.\n\n" +
       "We build and run the pipeline so they can spend that time selling, delivering and growing the business.\n\n" +
       'Worth fifteen minutes?',
     wait_days: 3,

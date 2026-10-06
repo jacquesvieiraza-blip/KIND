@@ -3,7 +3,7 @@ import { db } from '@kind/db'
 import { partnersFrozenGate } from '../middleware/partners-frozen'
 import { normalizeRevealEmails } from '../lib/billing-rules'
 import { adminKeyValid } from './admin'
-import { getExcludedClientIds } from '../lib/real-clients'
+import { getExcludedClientIds, getRetiredHouseClientIds } from '../lib/real-clients'
 import { withoutClients } from '../lib/real-clients-logic'
 import { documentReadFailure } from '../lib/document-read-failure'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
@@ -220,7 +220,9 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
       return
     }
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
-    const rows = (clients ?? []).map((c: Record<string, unknown>) => ({
+    // ⚑ 6 Oct (item 3) — the OLD House account (retired login, R152) is hidden; the live House stays.
+    const hidden = await getRetiredHouseClientIds()
+    const rows = (clients ?? []).filter((c: Record<string, unknown>) => !hidden.has(c.id as string)).map((c: Record<string, unknown>) => ({
       ...c,
       house_or_demo: c.is_demo === true || excluded.has(c.id as string),
     }))
@@ -244,7 +246,9 @@ operatorRouter.get('/lifecycle-board', async (_req: Request, res: Response) => {
   try {
     const { data: clients, error } = await db.from('clients').select('id')
     if (error) throw new Error(error.message)
-    const ids = ((clients ?? []) as { id: string }[]).map(c => c.id)
+    // ⚑ 6 Oct (item 3) — the old House account raises no "Needs you" (it is hidden, not changed).
+    const hidden = await getRetiredHouseClientIds()
+    const ids = ((clients ?? []) as { id: string }[]).map(c => c.id).filter(id => !hidden.has(id))
     const { lifecycleBoard } = await import('../lib/programme-lifecycle-facts')
     const rows = await lifecycleBoard(ids)
     res.json({ success: true, data: rows, meta: { needs_you: rows.filter(r => r.needs_you).length } })
@@ -278,7 +282,9 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       res.status(500).json({ success: false, error: `The worklist could not be read (${clientsErr.message}). This is NOT "nothing to do".` })
       return
     }
-    const rows = (clients ?? []) as Record<string, unknown>[]
+    // ⚑ 6 Oct (item 3) — the old House account is left off the worklist (hidden, not changed).
+    const hidden = await getRetiredHouseClientIds()
+    const rows = ((clients ?? []) as Record<string, unknown>[]).filter(c => !hidden.has(c.id as string))
     const ids = rows.map(c => c.id as string)
     if (ids.length === 0) { res.json({ success: true, data: [] }); return }
 

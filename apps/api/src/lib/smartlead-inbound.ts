@@ -26,6 +26,7 @@
 
 import type { InboundReply } from './reply-ingest'
 import { parseFromAddress } from './reply-ingest'
+import { replyText } from '@kind/shared'
 
 /**
  * Field aliases, widest first.
@@ -57,10 +58,6 @@ function pick(o: Record<string, unknown>, keys: readonly string[]): string | nul
   return null
 }
 
-/** Strip HTML when the only body we were given is markup. */
-function textFrom(raw: string): string {
-  return /<[a-z][\s\S]*>/i.test(raw) ? raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : raw
-}
 
 /**
  * Turn a Smartlead webhook body into an `InboundReply`, or null if it is not a readable reply.
@@ -99,7 +96,8 @@ export function parseSmartleadInbound(raw: unknown): InboundReply | null {
     fromEmail,
     fromName,
     subject: pick(o, FIELDS.subject),
-    body: textFrom(rawBody),
+    // ⚑ 6 Oct (row 11) — the one shared way a reply becomes text: codes decoded, lines kept.
+    body: replyText(rawBody),
     providerMessageId: pick(o, FIELDS.id),
     provider: 'smartlead',
     // THE FIELD #551 IS ABOUT. This is the client's own mailbox, which is the only unambiguous

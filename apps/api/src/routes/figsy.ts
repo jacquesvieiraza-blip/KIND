@@ -1,7 +1,7 @@
 import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
 // ⛓️ 18 Sep (Batch 1b) — the Resend host, default `https://api.resend.com` (unchanged when unset).
 import { resendBase } from '../lib/provider-hosts'
-import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
+import { isLaunchSendCountry, launchHoldReason, replyText } from '@kind/shared'
 import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
 import crypto from 'crypto'
@@ -291,7 +291,8 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // Extract name from "Name <email>" format
     const fromName = rawFrom.includes('<') ? rawFrom.split('<')[0].trim().replace(/^["']|["']$/g, '') : null
 
-    let body = (payload.text as string) || ((payload.html as string)?.replace(/<[^>]+>/g, ' ') ?? '') || ''
+    // ⚑ 6 Oct (row 11) — the one shared way a reply becomes text: codes decoded, lines kept.
+    let body = replyText((payload.text as string) || (payload.html as string) || '')
 
     // Resend's `email.received` webhook is METADATA-ONLY — it carries email_id but
     // NOT the body. Without this fetch, every real reply classifies on an empty
@@ -321,7 +322,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           })
           if (r.ok) {
             const full = await r.json() as { text?: string; html?: string }
-            body = (full.text || full.html?.replace(/<[^>]+>/g, ' ') || '').trim()
+            body = replyText(full.text || full.html || '')
             console.log(`[figsy/replies/inbound] fetched received email ${emailId} — body length ${body.length}`)
           } else {
             const t = (await r.text().catch(() => '')).slice(0, 200)

@@ -108,7 +108,9 @@ describe('① five steps, each with a distinct job, exactly as approved', () => 
 
   it('🛑 each body carries its approved opening sentence', () => {
     const opens = HOUSE_SEQUENCE_STEPS.map(s => s.body.split('\n')[0])
-    expect(opens[0]).toBe("Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work M&V can take off their plate.")
+    // ⛓️ 6 Oct (item 7 · founder "yes change to Milla & Vida"): ~~"…doing work M&V can take off their
+    // plate."~~ — a stranger reading a first email does not know who "M&V" is. A new lock on step 1 only.
+    expect(opens[0]).toBe("Hi {{first_name}} — if your senior people are still spending time finding prospects, they're doing work Milla & Vida can take off their plate.")
     expect(opens[1]).toBe('Two halves.')
     expect(opens[2]).toBe('Outbound usually becomes difficult when the list drifts, follow-up stops after one email, or whoever owns it gets pulled onto something more urgent.')
     expect(opens[3]).toBe("Nothing goes out that you haven't seen.")
@@ -532,5 +534,17 @@ describe('⑦ the apply refuses any programme but the configured one, on its own
     expect(await isHouseLaunchProgramme(LAUNCH, 'house')).toBe(false)
     process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
     expect(await isHouseLaunchProgramme(LAUNCH, 'house')).toBe(true)
+  })
+})
+
+// ⚑ 6 Oct (item 7 · founder "1 yes" — email 3 too) — no House email a prospect receives says "M&V":
+// a stranger does not know who that is. Milla and the website keep "M&V" (founder "2 keep").
+describe('no cold House email says "M&V" (item 7)', () => {
+  it('every step names Milla & Vida in full', () => {
+    for (const s of HOUSE_SEQUENCE_STEPS) {
+      expect(s.subject).not.toContain('M&V')
+      expect(s.body).not.toContain('M&V')
+    }
+    expect(HOUSE_SEQUENCE_STEPS[2].body).toContain("That's the operational problem Milla & Vida is built to take away.")
   })
 })

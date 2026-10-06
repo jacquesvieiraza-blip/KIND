@@ -162,6 +162,17 @@ const apolloHandler = async (req, body, res, state) => {
 
   // ── success ──
   if (path.endsWith('/mixed_people/api_search')) {
+    // ── ⚑ 4 Oct (founder: "C. FIX") — A COUNT PREVIEW GETS A REALISTIC TOTAL ─────────────────
+    // `previewCount` (apollo.ts) asks for ONE result to read `total_entries`, and the programme's
+    // capacity is built from that number. Answering 25 here capped every harness client below a
+    // 5-meeting programme ("over_capacity"), so J10 could never choose one and J11–J25 never ran.
+    // Real Apollo reports the whole market for a broad UK search; only the COUNT is answered here —
+    // the paged search below is unchanged.
+    let asked = {}
+    try { asked = JSON.parse(String(body ?? '{}')) } catch { asked = {} }
+    if (asked && asked.per_page === 1) {
+      return json(res, 200, { people: [], pagination: { page: 1, per_page: 1, total_entries: 5000, total_pages: 5000 } }), true
+    }
     // ── 🛑 ⚑ 19 Sep (J12) — A FRESH PAGE PER SEARCH, BECAUSE A REPEATED ONE PROVES NOTHING ──
     //
     // 🛑 THIS RETURNED THE SAME 25 IDENTITIES TO EVERY CALL, and the product's own dedupe then

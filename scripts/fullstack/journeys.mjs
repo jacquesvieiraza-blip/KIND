@@ -114,6 +114,12 @@ export function makeJourneyChecks(kit) {
         desired_outcome_kind: 'meetings', country: 'United Kingdom',
       }),
     })
+    // ⚑ 4 Oct (founder: "C. FIX") — HOW MANY PEOPLE WORK THERE IS AN ACCOUNT FACT sign-up requires
+    // (onboarding-state.ts `own_size`). In the product the client answers it in the conversation,
+    // which writes it into the draft; the harness's model is not scripted for that turn, so the
+    // answer is written where the conversation writes it. Without it, J1 was refused and every
+    // journey after it could not run (42 passed / 48 failed on main, 4 Oct).
+    await sql(`update public.onboarding_brief_drafts set facts = facts || '{"company_employees": 25}'::jsonb where user_id = $1`, [W.userId])
     W.briefGet = await asClient('/milla/brief-draft', { timeoutMs: 30000 })
 
     // 🛑 AND THE CLIENT CONFIRMS IT THEMSELVES. `/auth/onboard` refuses an unconfirmed brief

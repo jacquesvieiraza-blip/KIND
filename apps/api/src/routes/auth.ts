@@ -254,7 +254,10 @@ authRouter.post('/onboard', async (req, res) => {
       if (!gate.ok) {
         res.status(400).json({
           success: false,
-          error: `Milla still needs ${gate.missing.map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before this brief can be confirmed.`,
+          // ⛓️ 4 Oct (founder: "C. FIX") — the COMPLETE list, account facts included, as Milla's own
+          // confirm route has said since 16 Sep (S1-ONB-001). Built from `missing` alone, a brief
+          // held back only by country or company size read "Milla still needs  before…".
+          error: `Milla still needs ${((gate.missingLabels?.length ?? 0) > 0 ? gate.missingLabels : gate.missing.map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL])).join(', ')} before this brief can be confirmed.`,
           missing: gate.missing,
         })
         return

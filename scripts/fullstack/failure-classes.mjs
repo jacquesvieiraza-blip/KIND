@@ -43,13 +43,19 @@ export function makeFailureChecks(kit) {
   // same choice Batch 1b made — driving the whole programme lifecycle to reach one send would
   // make this a journey check rather than a failure-class one, and a failure in the lifecycle
   // would then look like a failure in the kill-switch.
-  async function makeSendable({ emailStatus = 'verified', prefix = 'fs' } = {}) {
+  // ⚑ 6 Oct (E) — `prospectDomain`: since 25 Sep (R164) the mailer refuses every `.invalid`
+  // recipient at the seam, so a fixture that must actually DELIVER (J20) addresses `.test`, the
+  // one reserved TLD the seam deliberately lets through (see `mailer.ts`). Every other check keeps
+  // `.invalid`.
+  async function makeSendable({ emailStatus = 'verified', prefix = 'fs', prospectDomain = 'prospect.invalid' } = {}) {
     const userId = randomUUID()
     const tag = `${prefix}-${userId.slice(0, 8)}`
     await sql('insert into auth.users(id, email) values ($1, $2)', [userId, `${tag}@example.invalid`])
     const [{ id: clientId }] = await sql(
-      `insert into public.clients(user_id, company_name, country, commercial_model)
-       values ($1, $2, 'United Kingdom', 'programme') returning id`, [userId, `Sendable ${tag}`])
+      // ⚑ 6 Oct (E) — with the registered office every email now ends with (R189 ⑥): without it
+      // the seam defers the send, and J20 read that as "nothing delivered".
+      `insert into public.clients(user_id, company_name, country, commercial_model, registered_office)
+       values ($1, $2, 'United Kingdom', 'programme', '1 Harness Street, London EC1A 1AA, United Kingdom') returning id`, [userId, `Sendable ${tag}`])
     const [{ id: programmeId }] = await sql(
       `insert into public.programmes(client_id, status, sourcing_ceiling, meeting_target, recommended_volume,
          price_per_meeting_cents, price_total_cents, first_payment_cents, second_payment_cents,
@@ -73,7 +79,7 @@ export function makeFailureChecks(kit) {
       // suppresses the send, which looks exactly like a delivery failure.
       `insert into public.leads(client_id, first_name, last_name, email, email_status, company, job_title, status, icp_id, country)
        values ($1, 'Send', 'Able', $2, $3, 'Acme Ltd', 'Head of Operations', 'scored', $4, 'United Kingdom') returning id`,
-      [clientId, `prospect-${tag}@prospect.invalid`, emailStatus, icpId])
+      [clientId, `prospect-${tag}@${prospectDomain}`, emailStatus, icpId])
     // ⚠️ THE CAMPAIGN NAMES THE ICP, AND A SEQUENCE NAMES THE CAMPAIGN. Sending authority
     // resolves a canonical chain — programme → ICP → campaign → figsy_sequences — and refuses
     // with `sequence_not_canonical` if any link is missing, because without it there are no
@@ -142,14 +148,24 @@ export function makeFailureChecks(kit) {
     const { buildPreparationSnapshot, preparationHash } = await import(`${ENV.tree}/apps/api/dist/lib/preparation-snapshot.js`)
     const snap = await buildPreparationSnapshot(programmeId)
     if (snap.ok) {
+      // ⚑ 6 Oct (E) — the version the client approved is the version that was FROZEN for review, as
+      // on a real programme after J15/J16; and the founder checks that wording first (R191 ① 4a) —
+      // without it every send defers with `founder_not_approved`, so J20 proved nothing. Recorded
+      // through Vida's own route against that hash, never written to the table.
+      const hash = preparationHash(snap.snapshot)
       await sql(
         `update public.programmes
             set approved_preparation_snapshot = $1::jsonb,
                 approved_preparation_hash     = $2,
                 approved_preparation_version  = 1,
+                review_preparation_snapshot   = $1::jsonb,
+                review_preparation_hash       = $2,
+                review_preparation_version    = 1,
                 approved_at                   = now()
           where id = $3`,
-        [JSON.stringify(snap.snapshot), preparationHash(snap.snapshot), programmeId])
+        [JSON.stringify(snap.snapshot), hash, programmeId])
+      const fw = await operator(`/programmes/${programmeId}/wording/approve`, { method: 'POST', body: JSON.stringify({ version: hash }), timeoutMs: 60000 })
+      if (fw.status !== 200) throw new Error(`the fixture's founder wording approval was refused — HTTP ${fw.status}: ${String(fw.text).slice(0, 200)}`)
     }
     return { userId, clientId, programmeId, icpId, leadId, campaignId, sequenceId, enrolmentId, tag, snapshotOk: !!snap.ok }
   }
@@ -221,7 +237,7 @@ export function makeFailureChecks(kit) {
   // ════════════════════════════════════════════════════════════════════════════════════════
   async function j20() {
     const id = 'J20'
-    const fx = await makeSendable({ prefix: 'deliver' })
+    const fx = await makeSendable({ prefix: 'deliver', prospectDomain: 'prospect.test' })
     try {
       const before = await sentCount(fx.clientId)
       const smtpBefore = await smtpDelivered()

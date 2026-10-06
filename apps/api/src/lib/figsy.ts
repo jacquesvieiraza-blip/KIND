@@ -109,10 +109,19 @@ async function coldCapReached(): Promise<boolean> {
 // on a query error — the global cap is the backstop"), so an unreadable count let one client
 // send up to the whole platform's daily total. The founder: *"the barriers need to be there."*
 // A count we cannot read is a count we cannot trust: the send is deferred, never dropped.
+/**
+ * ⚑ 6 Oct (item 1) — the per-client daily limit as ONE function, so the sender (below) and the
+ * automatic top-up (`programme-auto-batch.ts`) read the same number. `null` = no limit set.
+ */
+export function perClientDailyCap(): number | null {
+  const cap = parseInt(process.env.FIGSY_PER_CLIENT_DAILY_CAP ?? '50', 10)
+  return Number.isFinite(cap) && cap > 0 ? cap : null
+}
+
 export async function perClientCapReached(clientId: string | null | undefined): Promise<boolean> {
   if (!clientId) return false
-  const cap = parseInt(process.env.FIGSY_PER_CLIENT_DAILY_CAP ?? '50', 10)
-  if (!Number.isFinite(cap) || cap <= 0) return false
+  const cap = perClientDailyCap()
+  if (cap === null) return false
   try {
     const start = new Date()
     start.setUTCHours(0, 0, 0, 0)

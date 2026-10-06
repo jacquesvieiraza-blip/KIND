@@ -67,7 +67,7 @@ export type AutoBatchFacts = {
   authority: { allowed: true } | { allowed: false; reason: string; message: string }
   /** `nextBatchSize(p)`. */
   nextBatch: number
-  /** The send cap per day, or null when none is set. */
+  /** The send cap per day (`autoBatchDailyCap`), or null when none is set. */
   dailyCap: number | null
   /** Enrolled on this programme and not emailed yet. null = unreadable. */
   leftToContact: number | null
@@ -84,6 +84,19 @@ export type AutoBatchFacts = {
     /** Of those, how many are in the sequence (Make live has run). */
     enrolled: number | null
   }
+}
+
+/**
+ * ⚑ 6 Oct (item 1 · founder "lock that as a fix") — THE DAILY LIMIT "TWO DAYS OF SENDING" IS
+ * MEASURED IN. ⛓️ It was `coldDailyCap()` alone — the warm-up-era global cap. The ramp was
+ * removed on 3 Oct when the real limits went in (R185 ③: 100 a day per client), so every
+ * morning House's live programme logged `no_cap` and was never topped up past 234 people.
+ * Now: the per-client limit the sender enforces, or the global cold cap if one is set and lower.
+ * Neither set → null, and the decision still says `no_cap` rather than guessing a number.
+ */
+export function autoBatchDailyCap(cold: number | null, perClient: number | null): number | null {
+  const caps = [cold, perClient].filter((c): c is number => c !== null && Number.isFinite(c) && c > 0)
+  return caps.length ? Math.min(...caps) : null
 }
 
 const wait = (state: AutoBatchState, line: string): AutoBatchDecision => ({ action: 'wait', state, line })
@@ -159,7 +172,7 @@ export async function readAutoBatchFacts(p: ProgrammeRow): Promise<AutoBatchFact
   const { authorityFor } = await import('./programme-authority')
   const { nextBatchSize } = await import('./programme')
   const { killSwitchOn } = await import('./outreach-kill-switch')
-  const { coldDailyCap } = await import('./figsy')
+  const { coldDailyCap, perClientDailyCap } = await import('./figsy')
 
   const { data: client } = await db.from('clients').select('is_demo').eq('id', p.client_id).maybeSingle()
   const verdict = authorityFor(p, 'NEXT_BATCH')
@@ -208,7 +221,7 @@ export async function readAutoBatchFacts(p: ProgrammeRow): Promise<AutoBatchFact
     killSwitchOn: killSwitchOn(),
     authority: verdict.allowed ? { allowed: true } : { allowed: false, reason: verdict.reason, message: verdict.message },
     nextBatch: nextBatchSize(p),
-    dailyCap: coldDailyCap(),
+    dailyCap: autoBatchDailyCap(coldDailyCap(), perClientDailyCap()),
     leftToContact,
     latestBatch,
   }

@@ -157,3 +157,23 @@ describe('a reply saved with codes in it reads as words (row 11)', () => {
     expect(c.messages.find(m => m.kind === 'ours')!.text).toBe('Hi Priya &amp; team')
   })
 })
+
+// ⚑ 6 Oct (item 6 · founder "yes fix 6") — THE INBOX'S TOP STAYS IN VIEW. The founder's screenshot:
+// reading Gina's whole reply meant scrolling the PAGE, which slid the Inbox heading, the "Nothing is
+// sent until you press Send" line and the replied/interested/booked counts up under the shell's
+// header, half cut off. The cause: the page scrolled as one piece, and the reply pane had no scroll of
+// its own. Now the card fills the page and the list and the conversation scroll INSIDE it, so the
+// heading and counts stay put. Same components, same words — a layout fix, not a redesign (R167).
+describe('the Inbox heading and counts stay in view while a reply is read (item 6)', () => {
+  const INBOX_CODE = SCREEN_CODE
+  it('the page is a column the card fills — the note sits under it, the page does not scroll as one piece', () => {
+    expect(MILLA_PAGE).toContain('className="h-full overflow-y-auto p-5 sm:p-6 flex flex-col"')
+    expect(MILLA_PAGE).toContain('data-testid="held-reply-note" className="shrink-0')
+  })
+  it('the card grows to the page, its one row is the space left, and each side scrolls inside', () => {
+    expect(INBOX_CODE).toContain('flex flex-col flex-1 min-h-[560px]" data-testid="milla-inbox"')
+    expect(INBOX_CODE).toContain('grid-rows-[minmax(0,1fr)]')
+    expect(INBOX_CODE).toContain('<div className="overflow-y-auto flex-1 min-h-0">')
+    expect(INBOX_CODE).toMatch(/<section className={`min-w-0 min-h-0 overflow-y-auto flex-col/)
+  })
+})

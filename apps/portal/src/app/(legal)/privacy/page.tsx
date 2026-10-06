@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: 1 October 2026</p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 6 October 2026</p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
@@ -39,6 +39,9 @@ export default function PrivacyPage() {
               <li>Send service communications (not marketing without consent)</li>
               <li>Generate AI-powered features using Anthropic's Claude API</li>
             </ul>
+            {/* ⚑ 6 Oct (11b · founder "3 yes", "4 not material") — Google's Limited Use disclosure, required for app verification. */}
+            <h3 className="font-semibold text-gray-900 mt-4 mb-2">Google Calendar</h3>
+            <p>If you connect your Google Calendar, Milla &amp; Vida uses it only to book the meetings your prospects choose: we read your free/busy times and your calendar&apos;s time zone, create the meeting your prospect picks in your calendar, and read your Google account&apos;s email address so you are invited to it. We do not read the titles, descriptions, attendees or locations of your other events, and we do not change or delete them. Google user data is not sold, not used for advertising, not used to train AI models, and is not shared with anyone except to provide this booking feature. You can disconnect at any time in Milla → Settings, or at myaccount.google.com/permissions. Milla &amp; Vida&apos;s use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[#7C3AED] hover:underline">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
           </section>
 
           <section>

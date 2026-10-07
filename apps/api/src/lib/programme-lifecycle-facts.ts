@@ -32,6 +32,8 @@ import {
   deriveLifecycle, type LifecycleFacts, type LifecycleVerdict,
 } from './programme-lifecycle'
 import { PREPARATION_CLEARS } from './preparation-readiness'
+import { readInChunks } from './batched-reads'
+import { pageRows } from './page-rows'
 // 🛑 AUTHORITY IS ASKED, NEVER RE-DERIVED. `p2Authorised` is the one definition of "the second
 // half is settled", and it owns the columns that answer it — internal authorisation as well as
 // a real payment, which is the difference between House being authorised and House looking
@@ -432,6 +434,34 @@ const NO_COUNTS: LifecycleCounts = {
   unreadable: [],
 }
 
+/**
+ * ⚑ 6 Oct (N4) — THE PROGRAMME'S REPLIES, HOWEVER MANY PEOPLE IT HAS.
+ *
+ * ⛓️ WAS one `.in('lead_id', <every person>)` over a `.limit(20000)` people read. With ~486
+ * people the request line passed the server's limit, the error was ignored, and Vida showed 0
+ * replies; at 2,500 the people read itself would stop at the server's 1000-row cap. Now the
+ * people are paged and the replies read in chunks, and `complete: false` says a part could not
+ * be read — the caller marks the count unreadable instead of printing a smaller number as fact.
+ */
+async function programmeReplies<R extends { lead_id: string | null }>(
+  programmeId: string, clientId: string, columns: string,
+  narrow: (q: never) => unknown = q => q,
+): Promise<{ rows: R[]; companyByLead: Map<string, string | null>; complete: boolean }> {
+  const people = await pageRows<{ id: string; company: string | null }>(
+    'leads',
+    q => (q as unknown as { select: (c: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => unknown } } })
+      .select('id, company').eq('programme_id', programmeId).eq('client_id', clientId),
+    { orderBy: 'id', label: `programme ${programmeId.slice(0, 8)} people` },
+  )
+  const companyByLead = new Map(people.rows.map(l => [l.id, l.company]))
+  const replies = await readInChunks(people.rows.map(l => l.id), async ids => {
+    const { data, error } = await (narrow(db.from('figsy_replies').select(columns).in('lead_id', ids) as never) as PromiseLike<{ data: unknown; error: unknown }>)
+    if (error) throw error
+    return (data ?? []) as R[]
+  })
+  return { rows: replies.rows, companyByLead, complete: people.complete && replies.complete }
+}
+
 /** Every number the panels show, all of them scoped to this exact programme. */
 async function countsFor(programmeId: string, clientId: string, campaignId: string | null): Promise<LifecycleCounts> {
   const out: LifecycleCounts = { ...NO_COUNTS }
@@ -522,25 +552,25 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
   // replies into a live client's rail; the lead's `programme_id` is the only link that cannot
   // drift, so the reply set is derived from it even though it costs a second query.
   try {
-    const { data: leadRows } = await db.from('leads')
-      .select('id').eq('programme_id', programmeId).eq('client_id', clientId).limit(20000)
-    const ids = ((leadRows ?? []) as { id: string }[]).map(r => r.id)
-    if (ids.length > 0) {
-      const { data: replyRows } = await db.from('figsy_replies')
-        .select('classification, qualified_at, meeting_booked_at').in('lead_id', ids)
-      // ⚑ 29 Sep (R174 · 6c) — our own sent replies are not replies from a prospect.
-      const replies = ((replyRows ?? []) as { classification: string | null; qualified_at: string | null; meeting_booked_at: string | null }[])
-        .filter(r => !isOurOwnReply(r.classification))
-      out.replies = replies.length
-      out.positive = replies.filter(r => ['hot', 'warm', 'interested', 'referral'].includes(String(r.classification))).length
-      // ⚠️ "AWAITING A DECISION" IS NOT "UNREAD". A reply the pipeline already handles — an
-      // opt-out, an unsubscribe, an out-of-office — needs nobody, and counting it would put a
-      // client into Needs you for a message that resolved itself.
-      // ⛓️ 29 Sep (R174 · fix): ~~!qualified_at && !AUTO_HANDLED_REPLY~~ — a BOOKED reply was
-      // still counted. One rule now, the Inbox label's (`replyNeedsDecision`).
-      out.repliesAwaitingDecision = replies.filter(r => replyNeedsDecision(r)).length
-    }
-  } catch { /* counts stay zero — an unreadable reply set never invents a task */ }
+    const read = await programmeReplies<{ lead_id: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null }>(
+      programmeId, clientId, 'lead_id, classification, qualified_at, meeting_booked_at')
+    // ⚑ 6 Oct (N4) — a part that could not be read is NAMED, so Vida prints "?" — never a smaller
+    // number as if it were the count. The derivation keeps what was read (under-count, as before).
+    if (!read.complete) out.unreadable.push('replies', 'repliesAwaitingDecision')
+    // ⚑ 29 Sep (R174 · 6c) — our own sent replies are not replies from a prospect.
+    const replies = read.rows.filter(r => !isOurOwnReply(r.classification))
+    out.replies = replies.length
+    out.positive = replies.filter(r => ['hot', 'warm', 'interested', 'referral'].includes(String(r.classification))).length
+    // ⚠️ "AWAITING A DECISION" IS NOT "UNREAD". A reply the pipeline already handles — an
+    // opt-out, an unsubscribe, an out-of-office — needs nobody, and counting it would put a
+    // client into Needs you for a message that resolved itself.
+    // ⛓️ 29 Sep (R174 · fix): ~~!qualified_at && !AUTO_HANDLED_REPLY~~ — a BOOKED reply was
+    // still counted. One rule now, the Inbox label's (`replyNeedsDecision`).
+    out.repliesAwaitingDecision = replies.filter(r => replyNeedsDecision(r)).length
+  } catch {
+    // ⚑ 6 Oct (N4) — the people could not be read at all: unreadable, not zero.
+    out.unreadable.push('replies', 'repliesAwaitingDecision')
+  }
 
   return out
 }
@@ -549,23 +579,17 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
 async function replyAwaitingFor(programmeId: string, clientId: string): Promise<
   { id: string; name: string | null; company: string | null; classification: string | null } | null> {
   try {
-    const { data: leadRows } = await db.from('leads')
-      .select('id, company').eq('programme_id', programmeId).eq('client_id', clientId).limit(20000)
-    const leads = (leadRows ?? []) as { id: string; company: string | null }[]
-    if (leads.length === 0) return null
-    const byLead = new Map(leads.map(l => [l.id, l.company]))
-    const { data } = await db.from('figsy_replies')
-      .select('id, lead_id, from_name, classification, qualified_at, meeting_booked_at, received_at')
-      .in('lead_id', leads.map(l => l.id))
-      .is('qualified_at', null)
-      .order('received_at', { ascending: false }).limit(50)
-    const rows = (data ?? []) as { id: string; lead_id: string | null; from_name: string | null; classification: string | null; meeting_booked_at: string | null }[]
+    // ⚑ 6 Oct (N4) — the same chunked read as the count, so the person named and the number agree.
+    const read = await programmeReplies<{ id: string; lead_id: string | null; from_name: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }>(
+      programmeId, clientId, 'id, lead_id, from_name, classification, qualified_at, meeting_booked_at, received_at',
+      q => (q as unknown as { is: (c: string, v: null) => unknown }).is('qualified_at', null))
+    const rows = [...read.rows].sort((a, b) => String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')))
     // ⛓️ 29 Sep (R174 · fix): the reply Vida names is one that needs a decision — never a booked one.
     const first = rows.find(r => replyNeedsDecision(r))
     if (!first) return null
     return {
       id: first.id, name: first.from_name,
-      company: first.lead_id ? (byLead.get(first.lead_id) ?? null) : null,
+      company: first.lead_id ? (read.companyByLead.get(first.lead_id) ?? null) : null,
       classification: first.classification,
     }
   } catch { return null }

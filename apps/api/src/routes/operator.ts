@@ -6066,12 +6066,15 @@ operatorRouter.get('/health', async (_req: Request, res: Response) => {
 // fabricated "20".
 operatorRouter.get('/status', async (_req: Request, res: Response) => {
   try {
-    const { coldDailyCap, outreachEnabled } = await import('../lib/figsy')
+    const { coldDailyCap, outreachEnabled, perClientDailyCap } = await import('../lib/figsy')
     res.json({
       success: true,
       data: {
         outreach_enabled: outreachEnabled(),
         daily_cap: coldDailyCap(),   // number | null — null = no cap set
+        // ⚑ 6 Oct (N2) — the per-client limit holds even when the overall cap is unset; the top
+        // bar said "No send cap set" without it.
+        per_client_cap: perClientDailyCap(),
       },
     })
   } catch (err) { console.error('[operator/status]', err); res.status(500).json({ success: false, error: 'Failed to load status' }) }

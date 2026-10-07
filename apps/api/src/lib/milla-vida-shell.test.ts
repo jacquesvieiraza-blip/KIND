@@ -439,7 +439,9 @@ describe('VIDA — THE SHELL, AFTER THE TWO-WORKSPACE MOVE', () => {
     expect(code, 'the wordmark is gone').toContain('Vida<span className="text-[#9b8ec4]">&amp;Milla</span>')
     expect(code, 'the workspace is not named').toContain("workspace === 'command' ? 'Command Centre' : 'Clients'")
     expect(code, 'the sent/triage/approve pill is gone').toContain('sent</span>')
-    expect(code, 'the send-cap pill is gone').toContain('Cap ${status.daily_cap}/day')
+    // ⛓️ 6 Oct (N2): ~~'Cap ${status.daily_cap}/day'~~ — the pill stays; its words now come from
+    // `sendLimitChip` (the real limits, not only the overall warm-up cap).
+    expect(code, 'the send-limit pill is gone').toContain('sendLimitChip(status)')
     expect(code, 'the operator avatar/name chip is gone').toContain('{email ? displayName(email) : \'Operator\'}')
   })
 

@@ -14,7 +14,7 @@ import { Power, LogOut, ChevronDown } from 'lucide-react'
 import { VidaConversationProvider, useVidaConversation } from '@/components/vida/VidaConversation'
 import { VidaClients } from '@/components/vida/VidaClients'
 
-type Status = { outreach_enabled: boolean; daily_cap: number | null }
+type Status = SendStatus
 type Health = { sent_today: number; replies_today: number; pending_approvals: number }
 
 // ── ⚑ 9 Sep — THE TWO WORKSPACES REPLACE THE TWO FLAT LISTS ─────────────────────────────
@@ -34,6 +34,7 @@ type Health = { sent_today: number; replies_today: number; pending_approvals: nu
 // visible. Nothing was deleted to achieve them: every retired page still resolves.
 import { CLIENTS_WORKSPACE, COMMAND_CENTRE, type NavItem } from '@/lib/vida-nav'
 import { killSwitchChipLabel } from '@/lib/vida-lifecycle-copy'
+import { sendLimitChip, type SendStatus } from '@/lib/send-limit-chip'
 
 type Workspace = 'clients' | 'command'
 
@@ -287,15 +288,21 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           }`} title="Global outreach kill-switch (AUTO_OUTREACH_ENABLED)">
             <Power className="w-3.5 h-3.5" /> {killSwitchChipLabel(outreachPermitted)}
           </span>
-          {/* Cap chip — neutral "…" until status loads (never assert "no cap" on unknown),
-              amber only when status has loaded AND no cap is configured, purple with the cap. */}
-          <span className={`inline-flex items-center text-xs font-bold rounded-full px-3 py-1 border ${
-            !status ? 'text-[#9b8ec4] bg-[#f6f2fd] border-[#e4dcf7]'
-              : status.daily_cap == null ? 'text-amber-700 bg-amber-50 border-amber-200'
-              : 'text-[#7C3AED] bg-purple-50 border-purple-200'
-          }`} title="Global daily cold-send cap (FIGSY_COLD_DAILY_CAP / warm-up ramp)">
-            {!status ? 'Cap …' : status.daily_cap == null ? '⚠ No send cap set' : `Cap ${status.daily_cap}/day`}
-          </span>
+          {/* Limit chip — neutral "…" until status loads (never assert "no limit" on unknown).
+              ⚑ 6 Oct (N2): the words come from `sendLimitChip` — the real limits, not only
+              the overall warm-up cap, which warned of no cap while clients were capped). */}
+          {(() => {
+            const chip = sendLimitChip(status)
+            return (
+              <span className={`inline-flex items-center text-xs font-bold rounded-full px-3 py-1 border ${
+                chip.tone === 'unknown' ? 'text-[#9b8ec4] bg-[#f6f2fd] border-[#e4dcf7]'
+                  : chip.tone === 'warn' ? 'text-amber-700 bg-amber-50 border-amber-200'
+                  : 'text-[#7C3AED] bg-purple-50 border-purple-200'
+              }`} title={chip.title}>
+                {chip.label}
+              </span>
+            )
+          })()}
 
           {/* ── ⚑ 4 Sep — THE OPERATOR CHIP KEEPS ITS PLACE; ITS MENU DOES NOT ──────────
               🛑 THE NAVIGATION PANEL THAT HUNG HERE IS GONE. Twenty-five destinations lived

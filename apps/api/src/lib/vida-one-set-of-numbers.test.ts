@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { batchChipLabels, batchSeqOf } from '../../../admin/src/lib/pipeline-batch-chips'
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 const PAGE = read('apps/admin/src/app/vida/page.tsx')
@@ -27,7 +28,8 @@ function helpers() {
     .replace(/\(v\)|as Record<string, unknown>/g, '')
     .replace(/\(h => h\.detail\)/, '(h => h.detail)')
   // eslint-disable-next-line no-new-func
-  return new Function(`${src}; return { programmeCount, pipelineChips, blockerStrip }`)() as {
+  // ⛓️ 6 Oct (N5): the chips' labels come from `pipeline-batch-chips`, handed in here.
+  return new Function('batchChipLabels', 'batchSeqOf', `${src}; return { programmeCount, pipelineChips, blockerStrip }`)(batchChipLabels, batchSeqOf) as {
     programmeCount: (lc: unknown, k: string) => number | null | undefined
     pipelineChips: (lc: unknown) => [string, number | null | undefined, string | null][]
     blockerStrip: (b: unknown, lc: unknown) => { drafts: number; repliesToDecide: number | null; stuck: string[] }
@@ -48,6 +50,8 @@ describe('the numbers come from the programme', () => {
     expect(h.pipelineChips(LC).map(([l, n]) => [l, n])).toEqual([
       ['Sourced', 40], ['Qualified', 22], ['In the sequence', 20], ['Emails sent', null], ['Replied', 6], ['Meetings', 3],
     ])
+    // ⚑ 6 Oct (N5) — with the batch number the first two say what they count.
+    expect(h.pipelineChips({ ...LC, counts: { ...LC.counts, batchSeq: 2 } }).slice(0, 2).map(([l]) => l)).toEqual(['found', 'qualified'])
     expect(h.pipelineChips({ ...LC, programme: null }).every(([, n]) => n === undefined)).toBe(true)
     expect(h.pipelineChips(null).every(([, n]) => n === undefined)).toBe(true)
   })
@@ -59,7 +63,8 @@ describe('the numbers come from the programme', () => {
     expect(h.blockerStrip({ send_gate: 0 }, null)).toEqual({ drafts: 0, repliesToDecide: null, stuck: [] })
   })
   it('the chips, the badges and the strip all use the same helper', () => {
-    expect(PAGE).toContain('{pipelineChips(lc).map(([label, n, goTo]) => (')
+    // ⛓️ 6 Oct (N5): ~~([label, n, goTo])~~ — the index places the divider after the batch chips.
+    expect(PAGE).toContain('{pipelineChips(lc).map(([label, n, goTo], i) => (')
     expect(PAGE).toContain("const n = t === 'Inbox' ? (programmeCount(lc, 'repliesAwaitingDecision') ?? 0)")
     expect(PAGE).toContain(": t === 'People' ? (programmeCount(lc, 'sourced') ?? 0)")
     expect(PAGE).toContain(": t === 'Bookings' ? (programmeCount(lc, 'meetings') ?? 0)")

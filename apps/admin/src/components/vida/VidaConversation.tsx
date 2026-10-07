@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { killSwitchChipLabel } from '@/lib/vida-lifecycle-copy'
+import { sourcePressOutcome, sourceRunView, SOURCE_STATUS_ENDPOINT, SOURCE_POLL_MS, SOURCE_POLL_GIVE_UP_MS, SOURCING_LINE } from '@/lib/programme-source-run'
 import {
   programmeSourceRequest, sourcingChipLabel, sourcingConfirmQuestion,
   type ProgrammeSourcingAction,
@@ -218,6 +219,8 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   const [progPreview, setProgPreview] = useState<ProgrammeSourcingAction | null>(null)
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
+  // ⚑ 6 Oct (N3) — a programme batch the API has taken and is running after the press.
+  const [srcRunning, setSrcRunning] = useState<{ programmeId: string; since: number } | null>(null)
   // #552 — "sourced fine, but they still cannot SEND". A separate slot from srcResult on
   // purpose: one is the outcome of the button, the other is the state of the client.
   const [srcSendWarn, setSrcSendWarn] = useState<{ headline: string; label: string; detail: string } | null>(null)
@@ -308,6 +311,8 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
 
   /** No fetch at all: the quantity, the targeting and the verdict are already on screen. */
   function previewProgrammeSource(action: ProgrammeSourcingAction) {
+    // ⚑ 6 Oct (N3) — while a batch is running there is nothing to confirm; the sourcing line stays.
+    if (srcRunning) return
     setSrcResult(null); setSrcSendWarn(null); setSrcPreview(null)
     setProgPreview(action)
   }
@@ -324,8 +329,16 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         body: JSON.stringify(req.body),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
-      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for this programme${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
+      // ⚑ 6 Oct (N3) — the API answers at once (202) and runs the batch after. Started, already
+      // running, or Vida stopped waiting: the box closes and the sourcing line takes its place.
+      const out = sourcePressOutcome(res.status, json)
+      if (out.kind === 'running') {
+        setSrcRunning({ programmeId: progPreview.programmeId, since: Date.now() })
+        setProgPreview(null)
+        return
+      }
+      if (out.kind === 'error') throw new Error(out.message)
+      setSrcResult(`Sourced ${out.inserted ?? 0} lead${out.inserted === 1 ? '' : 's'} for this programme${out.note ? ` · ${out.note}` : ''}. New leads are in People.`)
       setProgPreview(null)
       await handlers.current.onSourced?.()
     } catch (e) {
@@ -334,6 +347,32 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
       setSrcResult(e instanceof Error ? e.message : 'Sourcing failed')
     } finally { setSrcBusy(false) }
   }
+
+  // ⚑ 6 Oct (N3) — READ THE RUN UNTIL IT IS DONE. A failed read keeps the sourcing line (the run
+  // is not known to have stopped); after the give-up bound Vida says so instead of waiting forever.
+  useEffect(() => {
+    if (!srcRunning) return
+    let alive = true
+    const tick = async () => {
+      if (Date.now() - srcRunning.since > SOURCE_POLL_GIVE_UP_MS) {
+        if (alive) { setSrcRunning(null); setSrcResult('Sourcing has not reported back after 35 minutes. Check the pipeline counts before starting another run.') }
+        return
+      }
+      try {
+        const r = await fetch(SOURCE_STATUS_ENDPOINT(srcRunning.programmeId))
+        const j = await r.json().catch(() => null)
+        if (!alive || !j?.success) return
+        const view = sourceRunView(j.data ?? null)
+        if (view.kind === 'running') return
+        setSrcRunning(null)
+        setSrcResult(view.line)
+        if (view.kind === 'done') await handlers.current.onSourced?.()
+      } catch { /* keep the sourcing line; the next read tries again */ }
+    }
+    const timer = setInterval(() => { void tick() }, SOURCE_POLL_MS)
+    void tick()
+    return () => { alive = false; clearInterval(timer) }
+  }, [srcRunning])
 
   async function runCommand(text: string) {
     const t = text.trim()
@@ -579,6 +618,11 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
                   <button onClick={() => setSrcPreview(null)} className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[13px] font-bold text-[#5c5279]">Cancel</button>
                 </div>
               )}
+            </div>
+          )}
+          {srcRunning && (
+            <div className="border border-[#e4dcf7] bg-[#f6f2fd] rounded-xl px-3.5 py-2.5 max-w-md text-[13px] font-semibold text-[#5c5279]" role="status">
+              {SOURCING_LINE}
             </div>
           )}
           {srcResult && <div className="text-[13px] font-semibold text-emerald-700">{srcResult}</div>}

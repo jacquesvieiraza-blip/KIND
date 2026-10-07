@@ -63,7 +63,7 @@ export type ProgrammeSourcingResult =
     }
   | { ok: false; reason: ProgrammeSourcingRefusal; message: string }
 
-const refuse = (reason: ProgrammeSourcingRefusal, message: string): ProgrammeSourcingResult =>
+const refuse = (reason: ProgrammeSourcingRefusal, message: string): Extract<ProgrammeSourcingResult, { ok: false }> =>
   ({ ok: false, reason, message })
 
 interface AttachedIcp {
@@ -81,7 +81,21 @@ interface AttachedIcp {
  * "0 leads" for a refusal — a refused run and an empty audience are different facts, and
  * conflating them is the failure this repo has already fixed twice.
  */
-export async function sourceProgramme(programmeId: string): Promise<ProgrammeSourcingResult> {
+/** What a run would do, when every check passes. */
+export type ProgrammeSourcePlan = {
+  ok: true
+  programme: ProgrammeRow
+  icp: AttachedIcp
+  requested: number
+}
+
+/**
+ * ⚑ 6 Oct (N3) — EVERY CHECK, NOTHING SPENT. The checks `sourceProgramme` runs before it buys
+ * anyone, as their own step, so the operator's press can be refused (or accepted) at once and the
+ * minutes-long run can happen after the answer. `sourceProgramme` runs these same checks again
+ * right before it spends, so a check that passes here and then changes still stops the run.
+ */
+export async function checkProgrammeSource(programmeId: string): Promise<ProgrammeSourcePlan | Extract<ProgrammeSourcingResult, { ok: false }>> {
   // ① THE PROGRAMME. Named explicitly by the caller — never inferred from a client, because
   // "the client's open programme" is a second lookup that can disagree with the first.
   let programme: ProgrammeRow | null
@@ -144,6 +158,14 @@ export async function sourceProgramme(programmeId: string): Promise<ProgrammeSou
     return refuse('sourcing_ceiling_reached',
       'This programme has no authorised sourcing volume remaining. Unused value never expires; opening more is a human decision.')
   }
+
+  return { ok: true, programme, icp, requested }
+}
+
+export async function sourceProgramme(programmeId: string): Promise<ProgrammeSourcingResult> {
+  const plan = await checkProgrammeSource(programmeId)
+  if (!plan.ok) return plan
+  const { programme, icp, requested } = plan
 
   // ⑤ ATTRIBUTION. `runIcpJob` wants a userId for the run's provenance; the programme's own
   // client owns it. `'operator'` only where a seat row genuinely has no auth user.

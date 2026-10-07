@@ -55,6 +55,8 @@ export const AUTOMATIC_WORK_KINDS = [
   'programme_prepare',
   /** P1 continuation: the automatic start after the first payment. */
   'p1_continuation',
+  /** ⚑ 6 Oct (N3) — an operator's "Confirm & source" for a programme's next batch, run after the press is answered. */
+  'programme_source',
 ] as const
 
 export type AutomaticWorkKind = typeof AUTOMATIC_WORK_KINDS[number]
@@ -76,6 +78,7 @@ const BOUND_SECONDS: Record<AutomaticWorkKind, number> = {
   brief_promotion: 5 * 60,
   programme_prepare: 60 * 60,
   p1_continuation: 30 * 60,
+  programme_source: 30 * 60,
 }
 
 /** A conservative bound for an unrecognised kind. */

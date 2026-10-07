@@ -6847,33 +6847,108 @@ operatorRouter.post('/programme/source', async (req: Request, res: Response) => 
       return
     }
 
-    const { sourceProgramme } = await import('../lib/programme-sourcing')
-    const result = await sourceProgramme(programme_id)
-
-    if (!result.ok) {
-      // A refusal is an ANSWER, not a server fault — it names which control stopped the run so
-      // an operator can act on it instead of retrying blindly.
+    // ── ⚑ 6 Oct (N3) — THE PRESS IS ANSWERED AT ONCE; THE RUN HAPPENS AFTER ──────────────────
+    //
+    // A batch of ~250 takes minutes. The press used to wait for all of it; Vida's proxy stopped
+    // waiting at 45s and said "abandoned" while the run carried on and finished (252 found, 249
+    // qualified on 6 Oct), and the open "Confirm & source" box invited a second press — a second
+    // Apollo search. Now: every check runs first and a refusal is answered as before (it names
+    // which control stopped the run); then ONE live run per programme is claimed in
+    // `automatic_work` (the database refuses a second), the press is answered 202, and
+    // `sourceProgramme` runs — re-checking everything — after.
+    const operator = operatorEmail(req)
+    const { checkProgrammeSource, sourceProgramme } = await import('../lib/programme-sourcing')
+    const check = await checkProgrammeSource(programme_id)
+    if (!check.ok) {
       await writeOperatorAudit({
-        operatorEmail: operatorEmail(req), action: 'programme_source_refused',
+        operatorEmail: operator, action: 'programme_source_refused',
         subjectType: 'programme', subjectId: programme_id,
-        detail: { reason: result.reason, message: result.message },
+        detail: { reason: check.reason, message: check.message },
       })
-      res.status(409).json({ success: false, error: result.message, reason: result.reason })
+      res.status(409).json({ success: false, error: check.message, reason: check.reason })
       return
     }
 
-    await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: result.clientId, action: 'programme_source_run',
-      subjectType: 'icp', subjectId: result.icpId,
-      detail: {
-        programme_id: result.programmeId, icp_name: result.icpName,
-        requested: result.requested, inserted: result.inserted, skipped: result.skipped, note: result.relaxed,
-      },
+    const { requestAutomaticWork, markAutomaticWorkStarted, markAutomaticWorkCompleted, markAutomaticWorkFailed } = await import('../lib/automatic-work')
+    const claim = await requestAutomaticWork({
+      kind: 'programme_source', subjectKind: 'programme', subjectId: programme_id,
+      clientId: check.programme.client_id, now: new Date().toISOString(),
     })
-    res.json({ success: true, ...result })
+    if (claim.alreadyLive) {
+      res.status(409).json({
+        success: false, reason: 'already_sourcing', running: true,
+        error: "This programme's next batch is already being sourced. Nothing new was started — Vida shows the batch when it lands.",
+      })
+      return
+    }
+    // ⚠️ NO CLAIM, NO SPEND. Without the row nothing stops a second press buying the same batch twice.
+    if (!claim.ok || !claim.workId) {
+      res.status(503).json({ success: false, error: `The run could not be recorded (${claim.error ?? 'no id returned'}), so nothing was started. Try again shortly.` })
+      return
+    }
+    const workId = claim.workId
+
+    void (async () => {
+      await markAutomaticWorkStarted(workId, { now: new Date().toISOString() })
+      const result = await sourceProgramme(programme_id)
+      if (!result.ok) {
+        await writeOperatorAudit({
+          operatorEmail: operator, action: 'programme_source_refused',
+          subjectType: 'programme', subjectId: programme_id,
+          detail: { reason: result.reason, message: result.message },
+        })
+        await markAutomaticWorkFailed(workId, { reason: result.message, now: new Date().toISOString() })
+        return
+      }
+      await writeOperatorAudit({
+        operatorEmail: operator, clientId: result.clientId, action: 'programme_source_run',
+        subjectType: 'icp', subjectId: result.icpId,
+        detail: {
+          programme_id: result.programmeId, icp_name: result.icpName,
+          requested: result.requested, inserted: result.inserted, skipped: result.skipped, note: result.relaxed,
+        },
+      })
+      await markAutomaticWorkCompleted(workId, { now: new Date().toISOString() })
+    })().catch(async err => {
+      console.error('[operator/programme/source] background run', err)
+      await markAutomaticWorkFailed(workId, { reason: err instanceof Error ? err.message : String(err), now: new Date().toISOString() }).catch(() => {})
+    })
+
+    res.status(202).json({ success: true, started: true, work_id: workId, requested: check.requested })
   } catch (err) {
     console.error('[operator/programme/source]', err)
     res.status(500).json({ success: false, error: 'Failed to source for this programme' })
+  }
+})
+
+// ⚑ 6 Oct (N3) — WHERE THE LAST "Confirm & source" RUN IS. Read by Vida after the press is
+// answered, until the run is done. Unreadable is an error, never "not running".
+operatorRouter.get('/programme/source/status', async (req: Request, res: Response) => {
+  try {
+    const programmeId = String(req.query.programme_id ?? '')
+    if (!programmeId) { res.status(400).json({ success: false, error: 'programme_id is required' }); return }
+    const { latestAutomaticWork } = await import('../lib/automatic-work')
+    const read = await latestAutomaticWork('programme_source', 'programme', programmeId)
+    if (!read.ok) { res.status(503).json({ success: false, error: `The run's state could not be read (${read.error}).` }); return }
+    const row = read.row
+    let inserted: number | null = null
+    if (row?.state === 'completed') {
+      const { data } = await db.from('operator_audit_log').select('detail, created_at')
+        .eq('action', 'programme_source_run').contains('detail', { programme_id: programmeId })
+        .gte('created_at', row.requested_at).order('created_at', { ascending: false }).limit(1)
+      const n = ((data ?? [])[0] as { detail?: { inserted?: unknown } } | undefined)?.detail?.inserted
+      inserted = typeof n === 'number' ? n : null
+    }
+    res.json({
+      success: true,
+      data: row ? {
+        state: row.state, requested_at: row.requested_at, completed_at: row.completed_at,
+        failed_at: row.failed_at, failure_reason: row.failure_reason, inserted,
+      } : null,
+    })
+  } catch (err) {
+    console.error('[operator/programme/source/status]', err)
+    res.status(500).json({ success: false, error: 'Failed to read the sourcing run' })
   }
 })
 

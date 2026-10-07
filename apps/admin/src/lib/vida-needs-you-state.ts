@@ -83,3 +83,23 @@ export function needsYouEmptyState(i: {
 
   return { kind: 'needs_you_empty', message: NEEDS_YOU_EMPTY_COPY, trustworthy: true }
 }
+
+/**
+ * ⚑ 6 Oct (N1) — THE CLIENTS THE "NEEDS YOU" BADGE COUNTS.
+ *
+ * Three reads say a client needs you: the lifecycle board, escalations (`/operator/tasks`) and
+ * proof reviews (`/operator/alerts`). Only the board knows which clients Vida hides (the old
+ * House account, #2710), so a client is counted ONLY if it is on the list the filter shows —
+ * R174 · 5b, the badge counts what the filter shows. The demo is never counted (R174 ⑧ · 8c).
+ */
+export function needsYouBadgeIds(i: {
+  board: Iterable<string>
+  escalated: Iterable<string>
+  proofReview: Iterable<string>
+  listed: Iterable<string>
+  demo: Set<string>
+}): string[] {
+  const listed = new Set(i.listed)
+  return Array.from(new Set([...i.board, ...i.escalated, ...i.proofReview]))
+    .filter(id => listed.has(id) && !i.demo.has(id))
+}

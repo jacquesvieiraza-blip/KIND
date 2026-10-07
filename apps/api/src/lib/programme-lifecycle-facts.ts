@@ -407,6 +407,8 @@ async function senderSendableFor(clientId: string): Promise<{ sendable: boolean;
 export type LifecycleCounts = {
   /** Current batch, as the client's own numbers. */
   sourced: number; qualified: number; rejected: number; stillToCheck: number
+  /** ⚑ 6 Oct (N5) — WHICH batch the four numbers above count (its `seq`), so Vida can say so. */
+  batchSeq?: number | null
   enrolled: number
   sends: number; replies: number; positive: number; meetings: number
   repliesAwaitingDecision: number
@@ -440,8 +442,10 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
   // The client reviews ONE batch. Counting across every batch a programme ever had would mix
   // an already-decided set into the numbers beside the one being prepared now.
   const { data: batchRows } = await db.from('programme_batches')
-    .select('id').eq('programme_id', programmeId).order('seq', { ascending: false }).limit(1)
-  const batchId = ((batchRows ?? []) as { id: string }[])[0]?.id ?? null
+    .select('id, seq').eq('programme_id', programmeId).order('seq', { ascending: false }).limit(1)
+  const batchRow = ((batchRows ?? []) as { id: string; seq?: number | null }[])[0]
+  const batchId = batchRow?.id ?? null
+  out.batchSeq = typeof batchRow?.seq === 'number' ? batchRow.seq : null
 
   if (batchId) {
     const onBatch = () => db.from('leads').select('id', { count: 'exact', head: true })

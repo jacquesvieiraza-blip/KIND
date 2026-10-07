@@ -1,5 +1,6 @@
 'use client'
 
+import { batchChipLabels, batchSeqOf } from '@/lib/pipeline-batch-chips'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
@@ -339,9 +340,11 @@ function programmeCount(lc: ProgrammeCounts, key: string): number | null | undef
 
 /** ⚑ 29 Sep (R174 · 5b) — the pipeline, in the programme's order, from the programme's counts. */
 function pipelineChips(lc: ProgrammeCounts): [string, number | null | undefined, CockpitTab | null][] {
+  // ⚑ 6 Oct (N5) — the first two count the newest batch only, and now say so (see the prefix).
+  const b = batchChipLabels(batchSeqOf(lc))
   return [
-    ['Sourced', programmeCount(lc, 'sourced'), 'People'],
-    ['Qualified', programmeCount(lc, 'qualified'), 'People'],
+    [b.sourced, programmeCount(lc, 'sourced'), 'People'],
+    [b.qualified, programmeCount(lc, 'qualified'), 'People'],
     ['In the sequence', programmeCount(lc, 'enrolled'), 'Campaign'],
     ['Emails sent', programmeCount(lc, 'sends'), 'Campaign'],
     ['Replied', programmeCount(lc, 'replies'), 'Inbox'],
@@ -3563,11 +3566,18 @@ export default function VidaConsolePage() {
                     this programme's. Every chip now reads the programme's own counts — the same
                     object the stage panel and the tab badges read — so they cannot disagree. "?"
                     is a count we could not read; "—" is a client with no programme yet. */}
-                {pipelineChips(lc).map(([label, n, goTo]) => (
-                  <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
+                {batchChipLabels(batchSeqOf(lc)).prefix && (
+                  <span className="text-[12px] font-bold text-[#5c5279]">{batchChipLabels(batchSeqOf(lc)).prefix}</span>
+                )}
+                {pipelineChips(lc).map(([label, n, goTo], i) => (
+                  <span key={label} className="inline-flex items-center gap-1.5">
+                  {/* ⚑ 6 Oct (N5) — a divider after the two batch chips: the rest count the whole programme. */}
+                  {i === 2 && batchChipLabels(batchSeqOf(lc)).prefix && <span className="text-[#cfc4e8]" aria-hidden>·</span>}
+                  <button onClick={() => goTo && setTab(goTo)} disabled={!goTo}
                     className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n === null || (typeof n === 'number' && n > 0) ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
                     {n === undefined ? '—' : n ?? '?'} {label}
                   </button>
+                  </span>
                 ))}
               </div>
 

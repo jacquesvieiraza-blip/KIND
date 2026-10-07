@@ -407,8 +407,10 @@ describe('⑥ Needs you is a filter on the client list, not a screen', () => {
   // read still shows no badge.
   it('the count comes from the server, and a failed read shows NO badge', () => {
     expect(LAYOUT).toContain('onNeedsYouCount={setNeedsYouCount}')
-    expect(LIST).toContain('const needsYouTotal = boardLoaded && !boardError ? needsYouIds.length : null')
-    expect(LIST).toContain("...Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),\n    ...escalated, ...proofReview,")
+    // ⛓️ 6 Oct (N1): the same three reads, counted only for clients on the list; still no badge
+    // until the board and the list have been read.
+    expect(LIST).toContain('const needsYouTotal = boardLoaded && !boardError && (work || clients) ? needsYouIds.length : null')
+    expect(LIST).toContain("board: Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),\n    escalated, proofReview,")
     // A badge reading "0" is a permanent claim that something was counted and found empty.
     expect(LAYOUT).toContain('count !== null && count > 0')
   })

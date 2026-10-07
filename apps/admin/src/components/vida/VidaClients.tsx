@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation'
 import { panelView, loadError } from '@kind/shared'
 import { clientRowStage } from '@/lib/vida-words'
 // J7-C1 — the one rule for what an empty Needs-you list is allowed to claim.
-import { needsYouEmptyState } from '@/lib/vida-needs-you-state'
+import { needsYouBadgeIds, needsYouEmptyState } from '@/lib/vida-needs-you-state'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 
 // ── ⚑ 4 Sep (UI-009) — THE CLIENT LIST IS A NAV GROUP NOW, NOT A COLUMN ──────────────────
@@ -289,11 +289,16 @@ export function VidaClients({ open, onNeedsYouCount }: { open: boolean; onNeedsY
   // ⚑ 29 Sep (R174 ⑧ · PR 8c) — AND THE DEMO IS NOT WORK. Its row still says "needs you" when it
   // is opened, so the walk looks real, but it is not counted in the badge and not in the filter.
   const demoIds = new Set((clients ?? []).filter(c => c.is_demo === true).map(c => c.id))
-  const needsYouIds = Array.from(new Set([
-    ...Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),
-    ...escalated, ...proofReview,
-  ])).filter(id => !demoIds.has(id))
-  const needsYouTotal = boardLoaded && !boardError ? needsYouIds.length : null
+  //
+  // ⚑ 6 Oct (N1) — AND ONLY A CLIENT ON THE LIST. Escalations and proof reviews do not know the
+  // old House account is hidden (#2710), so the badge counted a client the list never shows.
+  const needsYouIds = needsYouBadgeIds({
+    board: Object.values(lifecycle).filter(r => r.needs_you === true).map(r => r.client_id),
+    escalated, proofReview,
+    listed: ordered.map(c => c.id),
+    demo: demoIds,
+  })
+  const needsYouTotal = boardLoaded && !boardError && (work || clients) ? needsYouIds.length : null
   useEffect(() => { onNeedsYouCount?.(needsYouTotal) }, [needsYouTotal, onNeedsYouCount])
   // ⚠️ THE SELECTED CLIENT IS NEVER FILTERED OUT of the list they are looking at.
   const visible = needsFilter

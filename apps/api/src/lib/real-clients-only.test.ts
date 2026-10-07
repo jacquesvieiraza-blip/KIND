@@ -86,7 +86,10 @@ describe('every business screen goes through it', () => {
     expect(u).toContain(".order('received_at', { ascending: false, nullsFirst: false })")
     expect(u).not.toContain(".order('processed_at', { ascending: false })")
     const v = read('apps/admin/src/components/vida/VidaClients.tsx')
-    expect(v).toContain('])).filter(id => !demoIds.has(id))')
+    // ⛓️ 6 Oct (N1): ~~'])).filter(id => !demoIds.has(id))'~~ — the demo is still left out of the
+    // badge, now inside `needsYouBadgeIds` (which also leaves out any client not on the list).
+    expect(v).toContain('demo: demoIds,')
+    expect(read('apps/admin/src/lib/vida-needs-you-state.ts')).toContain('listed.has(id) && !i.demo.has(id)')
     expect(read('apps/admin/src/app/vida/nexus/page.tsx')).toContain('.filter(r => r.is_demo !== true || r.id === url)')
   })
 })

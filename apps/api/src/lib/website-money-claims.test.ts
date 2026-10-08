@@ -4,15 +4,17 @@ import { join } from 'path'
 import {
   PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD,
   PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD,
-  PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, PRECISION_CLIENT_NOTICE_HOURS, formatGbpWhole,
+  PRECISION_SETUP_FEE_USD, PRECISION_PER_HELD_MEETING_USD, PRECISION_CLIENT_NOTICE_HOURS, formatUsdWhole,
 } from '@kind/shared'
 
 // ⛓️ 8 Oct (precision model, founder GO: "give me a PR to merge to make live") — THE SITE NOW SELLS
 // A £1,000 SETUP FEE AND £500 PER HELD MEETING, THE SAME FOR EVERY CLIENT. The band prices, the one
 // programme payment and the shortfall credit are gone from every page a visitor can read. Every
 // figure below is still derived from @kind/shared, never typed here.
-const SETUP = formatGbpWhole(PRECISION_SETUP_FEE_GBP)            // "£1,000"
-const PER_MEETING = formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP) // "£500"
+// ⛓️ 8 Oct (later, R201 ⑥) — THE PRICES ARE IN US DOLLARS: $1,500 setup and $700 per held meeting (founder:
+// "prcing is $ not £.", "US Target"). Every figure is still derived from @kind/shared; a pound price is now the regression.
+const SETUP = formatUsdWhole(PRECISION_SETUP_FEE_USD)            // "$1,500"
+const PER_MEETING = formatUsdWhole(PRECISION_PER_HELD_MEETING_USD) // "$700"
 
 /**
  * ⛓️ 25 Sep (R166 ① · P13) — $299 IS NOW ENTERPRISE'S PRICE PER QUALIFIED MEETING, and the
@@ -193,9 +195,11 @@ describe('the contract describes the programme the code actually prices', () => 
   // @kind/shared, this fails. The curve figures must not be quoted as the current price.
   // ⛓️ 8 Oct (precision model) — WAS "§4 names the band prices". §4 now names the setup fee and the
   // price per held meeting, in pounds, from the constants; no band price and no curve figure.
-  it('§4 names the setup fee and the price per held meeting from the constants, in GBP, and no dollar price', () => {
+  // ⛓️ 8 Oct (later, R201 ⑥) — WAS "in GBP, and no dollar price". §4 is now in US dollars, and no pound price.
+  it('§4 names the setup fee and the price per held meeting from the constants, in US dollars, and no pound price', () => {
     expect(terms).toContain(`a one-off setup fee of <strong>${SETUP}</strong>, paid before we start, and <strong>${PER_MEETING}</strong> for each meeting that is held`)
-    expect(terms).toContain('<strong>pounds sterling (GBP)</strong>')
+    expect(terms).toContain('<strong>US dollars (USD)</strong>')
+    expect(terms, 'a pound price is back').not.toMatch(/£\s?\d/)
     for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms, `§4 still quotes the $${usd} band`).not.toContain(`$${usd}`)
     expect(terms).not.toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
     expect(terms).not.toContain(`$${PROGRAMME_FLOOR_USD} per qualified meeting`)
@@ -372,7 +376,10 @@ describe('P30 — the homepage states the whole programme offer in what a visito
       expect(home, `the homepage publishes the curve anchor ${n}`).not.toContain(n)
     }
     // And no typed per-meeting price in any shape.
-    expect(home).not.toMatch(/\$\s?\d[\d,.]*\s*(per|a|\/)\s*(targeted )?(booked )?meeting/i)
+    // ⛓️ 8 Oct (later, R201 ⑥) — WAS no dollar per-meeting price at all. The price per held meeting is now
+    // a dollar figure, so the guard allows exactly that one, from the constant, and nothing else per meeting.
+    const perMeeting = [...home.matchAll(/\$\s?\d[\d,.]*(?=\s*(per|a|\/)\s*(targeted |booked |held )?meeting)/gi)].map(m => m[0].replace(/\s/g, ''))
+    expect(perMeeting.filter(x => x !== PER_MEETING), 'a per-meeting price other than the constant').toEqual([])
   })
 
   // ✅ THE FOOTER IS SWEPT, SO THIS IS NOW ZERO. It was pinned at exactly one while the shared
@@ -414,10 +421,11 @@ describe('the site prices the precision model: one setup fee, one price per held
   const visibleText = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '')
   it('the calculator types the two constants and never multiplies our price by a number of meetings', () => {
     const script = pricing.slice(pricing.indexOf("var m=document.getElementById('c-meet')"))
-    expect(script).toContain(`var SETUP_FEE_GBP=${PRECISION_SETUP_FEE_GBP}, PER_HELD_MEETING_GBP=${PRECISION_PER_HELD_MEETING_GBP}`)
-    expect(script).toContain("set('c-per',gbp(SETUP_FEE_GBP));")
-    expect(script).toContain("set('c-total',gbp(PER_HELD_MEETING_GBP));")
-    expect(script, 'the calculator prices a number of meetings again').not.toMatch(/per\*n|PER_HELD_MEETING_GBP\s*\*/)
+    expect(script).toContain(`var SETUP_FEE_USD=${PRECISION_SETUP_FEE_USD}, PER_HELD_MEETING_USD=${PRECISION_PER_HELD_MEETING_USD}`)
+    expect(script).toContain("set('c-per',usd(SETUP_FEE_USD));")
+    expect(script).toContain("set('c-total',usd(PER_HELD_MEETING_USD));")
+    expect(script, 'the calculator writes pounds again').not.toMatch(/£|en-GB/)
+    expect(script, 'the calculator prices a number of meetings again').not.toMatch(/per\*n|PER_HELD_MEETING_USD\s*\*/)
     expect([...pricing.matchAll(/<option value="(\d+)"/g)], 'a price is a calculator option again').toEqual([])
     expect(pricing).not.toContain('id="c-p2"')
   })
@@ -433,6 +441,7 @@ describe('the site prices the precision model: one setup fee, one price per held
       const v = visibleText(site(f))
       expect(v, `${f} still quotes $${PROGRAMME_ANCHOR_1_USD}`).not.toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
       expect(v, `${f} still says 50/50`).not.toMatch(/50\/50/)
+      expect(v, `${f} still shows a pound price`).not.toMatch(/£\s?\d/)
       expect(v, `${f} still mentions a second half`).not.toMatch(/second half/i)
     }
   })

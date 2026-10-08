@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Data we collect</h2>
             <p><strong>Client account data:</strong> name, email, company, country, billing details. Used to provide and bill for the service.</p>
-            <p className="mt-2"><strong>Prospect data:</strong> names, work emails, job titles and company details of business contacts, sourced from Apollo.io, and the public business facts that give a dated reason to get in touch, from public sources such as company announcements, news and job postings. Processed on behalf of clients under our Data Processing Agreement.</p>
+            <p className="mt-2"><strong>Prospect data:</strong> names, work emails, job titles and company details of business contacts, sourced from Apollo.io, and the public business facts that give a dated reason to get in touch, from public sources such as company announcements, news, job postings and role changes. Processed on behalf of clients under our Data Processing Agreement.</p>
             <p className="mt-2"><strong>Usage data:</strong> platform activity, API calls, feature usage. Used for service improvement and billing accuracy.</p>
           </section>
 
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">6. Prospect data & opt-outs</h2>
-            <p>Prospect contact details come from Apollo.io, a licensed B2B data provider, and the dated reason we get in touch from public sources such as company announcements, news and job postings. Our platform keeps a permanent opt-out list: anyone who asks not to be contacted is blocked across all clients and never contacted again, unless they explicitly opt back in.</p>
+            <p>Prospect contact details come from Apollo.io, a licensed B2B data provider, and the dated reason we get in touch from public sources such as company announcements, news, job postings and role changes. Our platform keeps a permanent opt-out list: anyone who asks not to be contacted is blocked across all clients and never contacted again, unless they explicitly opt back in.</p>
           </section>
 
           <section>

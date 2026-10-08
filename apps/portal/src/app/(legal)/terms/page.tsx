@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
-import { PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, PRECISION_CLIENT_NOTICE_HOURS, formatGbpWhole } from '@kind/shared'
+import { PRECISION_SETUP_FEE_USD, PRECISION_PER_HELD_MEETING_USD, PRECISION_CLIENT_NOTICE_HOURS, formatUsdWhole } from '@kind/shared'
 
 export const metadata = { title: 'Terms of Service — K.I.N.D', description: 'K.I.N.D Terms of Service' }
 
@@ -18,8 +18,8 @@ export default function TermsPage() {
         <p className="text-gray-500 text-sm mb-8">Last updated: 8 October 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
-          {/* ⛓️ 8 Oct (precision model, founder GO) — this summary follows the full Terms: a £1,000 setup fee by card,
-              then £500 per held meeting charged to the card on file, nothing for a meeting that does not happen.
+          {/* ⛓️ 8 Oct (precision model, founder GO) — this summary follows the full Terms: a $1,500 setup fee by card,
+              then $700 per held meeting charged to the card on file, nothing for a meeting that does not happen.
               Figures come from @kind/shared, never typed here. Programmes on the earlier terms keep them. */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Parties</h2>
@@ -33,7 +33,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Pricing &amp; Payment</h2>
-            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Free Proof on your own market costs nothing. We charge two things, in pounds sterling: a one-off setup fee of <strong>{formatGbpWhole(PRECISION_SETUP_FEE_GBP)}</strong>, paid by card before work begins, and <strong>{formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}</strong> for each held meeting, charged to the card on file after the meeting takes place. If a meeting doesn&rsquo;t happen, you don&rsquo;t pay for it; if you cancel or don&rsquo;t attend without at least {PRECISION_CLIENT_NOTICE_HOURS} hours&rsquo; notice, it is charged as held. The setup fee is not refundable once work has begun. Anything you agreed with us before 8 October 2026 continues on the terms agreed at the time.</p>
+            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Free Proof on your own market costs nothing. We charge two things, in pounds sterling: a one-off setup fee of <strong>{formatUsdWhole(PRECISION_SETUP_FEE_USD)}</strong>, paid by card before work begins, and <strong>{formatUsdWhole(PRECISION_PER_HELD_MEETING_USD)}</strong> for each held meeting, charged to the card on file after the meeting takes place. If a meeting doesn&rsquo;t happen, you don&rsquo;t pay for it; if you cancel or don&rsquo;t attend without at least {PRECISION_CLIENT_NOTICE_HOURS} hours&rsquo; notice, it is charged as held. The setup fee is not refundable once work has begun. Anything you agreed with us before 8 October 2026 continues on the terms agreed at the time.</p>
             <p className="mt-2">We make <strong>no guarantee</strong> of meetings, replies, conversion rates or sales outcomes. A held meeting meets all seven conditions in our full Terms.</p>
           </section>
 
@@ -44,7 +44,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Data &amp; Privacy</h2>
-            <p>We process the personal data of the people we contact for you as a data processor. Their contact details come from Apollo.io, a licensed B2B data provider, and the dated reason we get in touch from public sources such as company announcements, news and job postings. Our Privacy Policy is available at get-kind.com/privacy.</p>
+            <p>We process the personal data of the people we contact for you as a data processor. Their contact details come from Apollo.io, a licensed B2B data provider, and the dated reason we get in touch from public sources such as company announcements, news, job postings and role changes. Our Privacy Policy is available at get-kind.com/privacy.</p>
           </section>
 
           <section>

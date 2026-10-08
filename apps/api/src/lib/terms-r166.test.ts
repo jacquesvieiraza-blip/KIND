@@ -28,24 +28,28 @@ const text = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 // client, and nothing for a meeting that does not happen. Programmes agreed before 8 October keep the
 // terms agreed at the time. The static file types the figures (no build step), held to the constants;
 // the route interpolates them and types none.
-import { PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
+// ⛓️ 8 Oct (later, R201 ⑥) — in US dollars now: $1,500 setup, $700 per held meeting. A pound price is the regression.
+import { PRECISION_SETUP_FEE_USD, PRECISION_PER_HELD_MEETING_USD, formatUsdWhole } from '@kind/shared'
 const raw = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 
 for (const f of ['public/terms.html', 'src/app/(legal)/terms/page.tsx']) {
   describe(f, () => {
     const t = text(f)
-    it('one setup fee and one price per held meeting, the same for every client — no band, no dollar price', () => {
+    it('one setup fee and one price per held meeting, the same for every client — no band, no other price, no pounds', () => {
       if (f.endsWith('.html')) {
         // text() turns each tag into a space, so "<strong>£1,000</strong>," reads "£1,000 ,".
         const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        expect(t).toMatch(new RegExp(`a one-off setup fee of ${esc(formatGbpWhole(PRECISION_SETUP_FEE_GBP))}\\s*, paid before we start, and ${esc(formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP))}\\s+for each meeting that is held`))
+        expect(t).toMatch(new RegExp(`a one-off setup fee of ${esc(formatUsdWhole(PRECISION_SETUP_FEE_USD))}\\s*, paid before we start, and ${esc(formatUsdWhole(PRECISION_PER_HELD_MEETING_USD))}\\s+for each meeting that is held`))
       } else {
-        expect(raw(f)).toContain('formatGbpWhole(PRECISION_SETUP_FEE_GBP)')
-        expect(raw(f)).toContain('formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)')
-        expect(t, 'a price is typed into what the route renders').not.toMatch(/£\s?\d/)
+        expect(raw(f)).toContain('formatUsdWhole(PRECISION_SETUP_FEE_USD)')
+        expect(raw(f)).toContain('formatUsdWhole(PRECISION_PER_HELD_MEETING_USD)')
+        expect(t, 'a price is typed into what the route renders').not.toMatch(/[£$]\s?\d/)
       }
       expect(t, 'the size band is back').not.toMatch(/Founders \(1–50 employees\)|your price is set from it|confirms your band/)
-      expect(t).not.toMatch(/\$\s?\d/)
+      const allowed = [formatUsdWhole(PRECISION_SETUP_FEE_USD), formatUsdWhole(PRECISION_PER_HELD_MEETING_USD)]
+      const dollars = [...t.matchAll(/\$\s?[\d,]*\d/g)].map(m => m[0].replace(/\s/g, ''))
+      expect(dollars.filter(d => !allowed.includes(d)), 'a dollar figure other than the two prices').toEqual([])
+      expect(t, 'a pound price is back').not.toMatch(/£\s?\d/)
     })
     it('the setup fee by card before work begins; each held meeting charged to the card on file; nothing sent before approval', () => {
       expect(t).toMatch(/paid by card/i)

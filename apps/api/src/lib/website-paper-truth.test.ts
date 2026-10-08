@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_USD, PRECISION_PER_HELD_MEETING_USD, formatUsdWhole } from '@kind/shared'
 
 // #413 #410 #327 — THE PAPER MATCHES THE PRODUCT.
 //
@@ -89,7 +89,8 @@ describe('#413 — the contract matches the payment path', () => {
   it('no outreach is paid for or sent before the client has approved', () => {
     expect(terms).toMatch(/No email is sent until you have approved it\./)
     expect(terms).toMatch(/You see who we plan to contact, and the message written to each of them, before anything is sent\./)
-    expect(terms).toMatch(/The setup fee of £1,000 is paid by card, in one payment, in full, before work begins/)
+    // ⛓️ 8 Oct (later, R201 ⑥) — in US dollars; derived from the constant, not typed.
+    expect(terms).toContain(`The setup fee of ${formatUsdWhole(PRECISION_SETUP_FEE_USD)} is paid by card, in one payment, in full, before work begins`)
     expect(terms).toMatch(/Each held meeting is charged to the card you keep on file with us, after the meeting takes place\./)
   })
 
@@ -103,8 +104,9 @@ describe('#413 — the contract matches the payment path', () => {
 
   it('and still states the model itself correctly', () => {
     // ⛓️ 8 Oct — derived from the precision constants, not typed: the setup fee and the price per held meeting.
-    expect(terms).toContain(`<strong>${formatGbpWhole(PRECISION_SETUP_FEE_GBP)}</strong>`)
-    expect(terms).toContain(`<strong>${formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}</strong> for each meeting that is held`)
+    expect(terms).toContain(`<strong>${formatUsdWhole(PRECISION_SETUP_FEE_USD)}</strong>`)
+    expect(terms).toContain(`<strong>${formatUsdWhole(PRECISION_PER_HELD_MEETING_USD)}</strong> for each meeting that is held`)
+    expect(terms, 'a pound price is back').not.toMatch(/£\s?\d/)
     for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms, `the $${usd} band is back`).not.toContain(`$${usd}`)
     expect(terms).toMatch(/reviewing is always free/i)
     expect(terms).toMatch(/no subscription to cancel/i)

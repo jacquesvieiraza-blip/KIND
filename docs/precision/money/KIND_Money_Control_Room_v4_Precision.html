@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>K.I.N.D Money Control Room v4 — Precision ($)</title><style>
+:root{--bg:#0d0a14;--panel:#17121f;--panel2:#1d1728;--line:#352b46;--ink:#f3eff8;--muted:#aaa0bb;--purple:#8b5cf6;--purple2:#6d35ea;--green:#52e0ae;--red:#ff8d8d;--amber:#ffd65c;--blue:#7cc7ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}.wrap{max-width:1320px;margin:auto;padding:18px}.hero{padding:20px 4px 12px;border-bottom:1px solid var(--line)}.hero h1{margin:0;font-family:Georgia,serif;font-size:32px;letter-spacing:-.3px}.sub{color:var(--muted);font-size:12px;line-height:1.5;margin-top:7px;max-width:1000px}.rule{margin-top:11px;padding:10px 12px;background:#171120;border:1px solid #3a2d51;border-radius:10px;color:#c9bed8;font-size:10.5px;line-height:1.45}
+.tabs{display:flex;gap:6px;overflow:auto;padding:13px 0 4px;position:sticky;top:0;background:rgba(13,10,20,.95);backdrop-filter:blur(12px);z-index:10}.tabbtn{background:#17121f;color:#bcb2ca;border:1px solid #332944;border-radius:9px;padding:9px 12px;font-size:10.5px;font-weight:900;cursor:pointer;white-space:nowrap}.tabbtn.active{background:var(--purple);color:white;border-color:var(--purple)}.tab{display:none}.tab.active{display:block}.q{font-family:Georgia,serif;font-size:22px;margin:18px 0 6px}.qsub{color:var(--muted);font-size:10.5px;line-height:1.45;margin-bottom:10px}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0}.control{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px}.chead{display:flex;justify-content:space-between;gap:8px;align-items:center}.cl{font-size:10px;font-weight:900;color:#d8d1e2}.cv{font-size:17px;font-weight:950;color:#a88cff}input[type=range]{width:100%;accent-color:var(--purple)}select,input[type=number]{width:100%;padding:8px;background:#130f1a;color:var(--ink);border:1px solid #392e49;border-radius:8px;font-weight:850}.hint{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0}.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:104px}.metric.accent{background:linear-gradient(145deg,#6d35ea,#8b5cf6);border:0}.ml{font-size:9px;text-transform:uppercase;letter-spacing:.55px;font-weight:950;color:#9f95af}.accent .ml{color:#ded4ff}.mv{font-size:29px;font-weight:950;margin-top:7px;font-variant-numeric:tabular-nums}.ms{font-size:9.5px;color:var(--muted);line-height:1.35;margin-top:6px}.accent .ms{color:#eee7ff}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}.ct{font-family:Georgia,serif;font-size:16px;margin-bottom:5px}.cs{font-size:10px;color:var(--muted);line-height:1.45;margin-bottom:8px}.rows{display:grid}.row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-bottom:1px solid #2a2236;align-items:center}.row:last-child{border-bottom:0}.rn{font-size:10.5px;color:#cfc6da}.rv{font-size:11.5px;font-weight:900;font-variant-numeric:tabular-nums}.row.total{border-top:2px solid #7862a4;margin-top:3px;padding-top:10px}.row.total .rn,.row.total .rv{font-weight:950;color:#f2ecfb}.good{color:var(--green)!important}.bad{color:var(--red)!important}.amber{color:var(--amber)!important}
+.callout{background:#10291f;border:1px solid #176841;border-radius:10px;padding:10px 11px;color:#96f1c8;font-size:10.5px;line-height:1.5}.warn{background:#352706;border-color:#795b0f;color:#ffe07a}.info{background:#111d2a;border-color:#234c72;color:#a9d8ff}.tablewrap{overflow:auto;border:1px solid #30263d;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#211a2b;color:#b9aec9;padding:8px;text-align:right;text-transform:uppercase;font-size:8.5px;letter-spacing:.5px}th:first-child,td:first-child{text-align:left}td{padding:8px;border-bottom:1px solid #2b2337;text-align:right;font-variant-numeric:tabular-nums}
+details{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:0 12px;margin-top:9px}summary{padding:12px 0;font-weight:950;cursor:pointer;color:#e7e0f1}.assgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:12px}.field{background:#130f1a;border:1px solid #332944;border-radius:8px;padding:9px}.field label{display:block;font-size:9px;font-weight:850;color:#aaa0bb;margin-bottom:5px}.badge{font-size:7.5px;border-radius:999px;padding:2px 5px;background:#123a2a;color:#5ce1ad;font-weight:950}.badge.work{background:#3d300a;color:#ffd75e}.badge.tax{background:#102c43;color:#7cc7ff}.footer{text-align:center;color:#6e6579;font-size:8.5px;padding:18px 0}
+@media(max-width:950px){.flow,.controls,.assgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.flow,.controls,.grid2,.assgrid{grid-template-columns:1fr}.wrap{padding:9px}.mv{font-size:25px}}
+.gbtn.active{background:var(--purple);color:#fff;border-color:var(--purple)!important}
+</style></head>
+<body><div class="wrap">
+<div class="hero"><h1>K.I.N.D Money Control Room — v4 · precision · in $ (8 Oct)</h1>
+<div class="sub">Rebuilt for the <b>precision model</b>: each month we find the few companies with a real, dated reason to talk to the client now, research each person, write to each one individually, a person checks every message, and nothing is sent until the client approves. The client pays a <b>one-off setup fee</b>, then <b>one price for each meeting that takes place</b>. No meeting target, no cap per meeting, no 50/50, no wallet credit.</div>
+<div class="rule"><b>Planning rules for this model:</b> one price for every client (<i>"we cant charge different values"</i>, 7 Oct) · the client pays for setup (<i>"client pays for set up"</i>, 7 Oct) · at least <b>35% margin at the worst case</b> (<i>"i need to make at least 35% on worst case"</i>, 7 Oct), and the worst case is <b>1 held meeting per 1,300 people</b> (7 Oct) · US prospects first, so prices are in $ (R201 ⑥, 8 Oct); the company is UK-registered, so the UK tax and cash lines stay in £ · <b>Apollo is the only data provider</b> (R146, 23 Sep) · partners frozen (R139, 23 Sep), maths kept · Coaching is <b>coming soon</b>, nothing in Coaching approved to build (R188, corrected 2 Oct); your 2 Oct price was $100 a meeting (R188 Q11).</div>
+<div class="rule" style="border-color:#8b5cf6;background:#1c1430;color:#d9ccff"><b>The decided model (8 Oct, R200–R202).</b> <b>$1,500 setup and $700 per held meeting</b>, live on the website since 8 Oct; 2 mailboxes per client at 50 a day in the client's own Google account; 100 people per client a week to start. Milla's own billing still takes the old programme payment until card billing (M4) ships. Every money figure on this page is shown in $ at the £1 = $ rate set below. Numbers marked <span class="badge work">UNKNOWN</span> aren't measured yet: Apollo's price for extra credits (D9), credits used per person, and the AI cost per person (pilot row H7). Every number is editable.</div>
+<div class="rule" style="border-color:#795b0f;background:#241b06;color:#ffe07a"><b>What changed from v3:</b> the Founders / Growth / Enterprise bands → <b>one price</b> · "programme" with a meeting target, a people cap, 50/50 or full upfront and wallet credit → <b>setup fee + per held meeting</b>, billed after each meeting happens · 250 / 300 / 400 people per meeting → <b>1 held meeting per N people</b> (plan 1 in 500, worst 1 in 1,300) · sending mailboxes: <b>the client can pay Google directly</b> (decision D8) · Smartlead and ChatGPT flagged as not needed · PDL removed (retired, R146) · Pool reuse removed (old volume code) · target 70% → <b>35% at the worst case</b> · Coaching added as <b>coming soon</b> · company floor and tax unchanged · <b>8 Oct, later: prices in $</b>, $1,500 setup and $700 per held meeting (R201 ⑥); results shown in $, UK tax and cash in £.</div></div>
+
+<div class="tabs">
+<button class="tabbtn active" onclick="showTab('overview',this)">Overview</button>
+<button class="tabbtn" onclick="showTab('programme',this)">One client · Milla view</button>
+<button class="tabbtn" onclick="showTab('partner',this)">Partner (frozen)</button>
+<button class="tabbtn" onclick="showTab('scale',this)">Scale</button>
+<button class="tabbtn" onclick="showTab('floor',this)">Company floor</button>
+<button class="tabbtn" onclick="showTab('tax',this)">Tax &amp; VAT</button>
+<button class="tabbtn" onclick="showTab('cash',this)">Cash</button>
+<button class="tabbtn" onclick="showTab('founder-cac',this)">Our own clients · House pilot</button>
+<button class="tabbtn" onclick="showTab('locked-cac',this)">CAC · people → held meeting → client</button>
+<button class="tabbtn" onclick="showTab('assumptions',this)">Assumptions</button>
+</div>
+
+<div id="groupBar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 2px">
+<span style="font-size:10.5px;font-weight:900;color:#aaa0bb">HOW WELL PRECISION WORKS:</span>
+<button class="tabbtn gbtn" data-r="150" onclick="pickRate(150)" style="border-color:#16a34a">🟢 Good · 1 in 150</button>
+<button class="tabbtn gbtn" data-r="250" onclick="pickRate(250)" style="border-color:#0f766e">Middle · 1 in 250</button>
+<button class="tabbtn gbtn" data-r="400" onclick="pickRate(400)" style="border-color:#6d35ea">Precision's own worst · 1 in 400</button>
+<button class="tabbtn gbtn" data-r="500" onclick="pickRate(500)" style="border-color:#8b5cf6">📌 Plan on · 1 in 500</button>
+<button class="tabbtn gbtn" data-r="1300" onclick="pickRate(1300)" style="border-color:#be185d">🔴 Your worst case · 1 in 1,300</button>
+<span style="font-size:10px;color:#aaa0bb">Held meetings per people contacted. Every tab uses the rate picked here (or the exact number in Assumptions).</span>
+</div>
+
+<div id="overview" class="tab active">
+<div class="q">What does the company make under the precision model?</div>
+<div class="qsub">A steady month: active clients pay for the meetings that took place; new clients pay the setup fee. The company floor is subtracted once. Showing: <b id="ovRateLbl"></b>.</div>
+<div class="controls">
+<div class="control" style="border-color:#6d35ea"><div class="chead"><span class="cl">Active clients</span><span id="ovClientsV" class="cv"></span></div><input id="clients" type="range" min="0" max="100" value="3" step="1" oninput="update()"><div class="hint">Clients we're working for this month.</div></div>
+<div class="control"><div class="chead"><span class="cl">New clients this month</span><span id="ovNewV" class="cv"></span></div><input id="newClients" type="range" min="0" max="20" value="1" step="1" oninput="update()"><div class="hint">Each pays the setup fee once.</div></div>
+<div class="control"><div class="chead"><span class="cl">People per client per month</span><span id="ovPeopleV" class="cv"></span></div><input id="peoplePerMonth" type="range" min="100" max="3000" value="1000" step="50" oninput="update()"><div class="hint">Chosen on a real, dated reason. Precision plan: about 1,000.</div></div>
+<div class="control"><div class="chead"><span class="cl">Coaching</span><span id="ovCoachV" class="cv"></span></div><select id="coachingOn" onchange="update()"><option value="off" selected>Coming soon — not counted</option><option value="on">Count it (what-if)</option></select><div class="hint">Not approved to build (R188). Price set in Assumptions.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Monthly revenue</div><div id="ovRevenue" class="mv"></div><div id="ovRevenueS" class="ms"></div></div>
+<div class="metric"><div class="ml">Client costs + payment + setup work</div><div id="ovVariable" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Operating profit</div><div id="ovOpProfit" class="mv"></div><div class="ms">After company floor, before corporation tax.</div></div>
+<div class="metric"><div class="ml">After-tax profit / month</div><div id="ovAfterTax" class="mv"></div></div>
+</div>
+<div class="q" style="font-size:16px">The same month at every meeting rate</div>
+<div class="qsub">Same clients and costs — only how many people it takes to get one held meeting changes. The 35% check is your worst-case rule, per client.</div>
+<div class="tablewrap" style="margin:10px 0"><table><thead><tr><th>How well it works</th><th>Held meetings / client / month</th><th>Client pays / month</th><th>Our cost / client</th><th>We keep / client</th><th>Margin / client</th><th>35% rule</th><th>Company profit after floor</th></tr></thead><tbody id="rateTable"></tbody></table></div>
+<div class="grid2">
+<div class="card"><div class="ct">Monthly waterfall</div><div class="rows">
+<div class="row"><span class="rn">Held meetings × price</span><span id="owMeetings" class="rv"></span></div>
+<div class="row"><span class="rn">Setup fees (new clients)</span><span id="owSetup" class="rv"></span></div>
+<div class="row"><span class="rn">Coaching (coming soon)</span><span id="owCoach" class="rv"></span></div>
+<div class="row"><span class="rn">Apollo top-up (people found)</span><span id="owApollo" class="rv"></span></div>
+<div class="row"><span class="rn">AI research and writing</span><span id="owAi" class="rv"></span></div>
+<div class="row"><span class="rn">Checking every message and replies (people)</span><span id="owPeople" class="rv"></span></div>
+<div class="row"><span class="rn">Mailboxes and domains (only if we pay)</span><span id="owSend" class="rv"></span></div>
+<div class="row"><span class="rn">Coaching delivery (coming soon)</span><span id="owCoachCost" class="rv"></span></div>
+<div class="row"><span class="rn">Payment costs</span><span id="owStripe" class="rv"></span></div>
+<div class="row"><span class="rn">Setup work for new clients</span><span id="owSetupCost" class="rv"></span></div>
+<div class="row"><span class="rn">Company fixed floor</span><span id="owFloor" class="rv"></span></div>
+<div class="row"><span class="rn">Corporation-tax reserve</span><span id="owTax" class="rv"></span></div>
+<div class="row total"><span class="rn">After-tax profit</span><span id="owNet" class="rv"></span></div>
+</div></div>
+<div class="card"><div class="ct">Company health</div><div id="ovMessage" class="callout"></div><div class="cs" style="margin-top:9px">The calculator shows the worst case on purpose. It never assumes a better meeting rate than the one you pick, and it never promises a client a number of meetings.</div></div>
+</div></div>
+
+<div id="programme" class="tab">
+<div class="q">One client — what they pay, what it's worth to them, what we keep</div>
+<div class="qsub">This is the master scenario. Change it once; Overview, Scale, Partner and Cash use the same client. Showing: <b id="ccRateLbl"></b>.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">People it takes for 1 held meeting</span><span id="rateV" class="cv"></span></div><input id="rateN" type="range" min="100" max="2000" value="500" step="10" oninput="update()"><div class="hint">Nobody knows this yet. The House pilot measures it. Worst case 1,300.</div></div>
+<div class="control"><div class="chead"><span class="cl">Value of one new customer to the client</span><span id="dealV" class="cv"></span></div><input id="dealValue" type="range" min="1000" max="250000" value="20000" step="1000" oninput="update()"><div class="hint">The client's own figure.</div></div>
+<div class="control"><div class="chead"><span class="cl">Good meetings that become customers</span><span id="convV" class="cv"></span></div><input id="conversion" type="range" min="5" max="60" value="20" step="5" oninput="update()"><div class="hint">The client's own close rate. Used only for their return.</div></div>
+<div class="control"><div class="chead"><span class="cl">Months the client stays</span><span id="monthsV" class="cv"></span></div><input id="months" type="range" min="1" max="24" value="12" step="1" oninput="update()"><div class="hint">For first-year cost and setup payback.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Held meetings / month (expected)</div><div id="prMeetings" class="mv"></div><div class="ms">People per month ÷ people per held meeting. Not a promise.</div></div>
+<div class="metric"><div class="ml">Client pays / month</div><div id="prMonth" class="mv"></div><div class="ms">Only for meetings that took place.</div></div>
+<div class="metric accent"><div class="ml">Client's cost over <span id="prMonthsLbl"></span></div><div id="prTotal" class="mv"></div><div class="ms">Setup fee + held meetings.</div></div>
+<div class="metric"><div class="ml">What it could return</div><div id="prRoi" class="mv"></div><div class="ms">From the client's own value and close rate.</div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="ct">What the client pays</div><div class="rows">
+<div class="row"><span class="rn">Setup fee, once</span><span id="prSetup" class="rv"></span></div>
+<div class="row"><span class="rn">Price per held meeting</span><span id="prPpm" class="rv"></span></div>
+<div class="row"><span class="rn">Expected held meetings / month</span><span id="prMeetings2" class="rv"></span></div>
+<div class="row"><span class="rn">Coaching (coming soon, optional)</span><span id="prCoach" class="rv"></span></div>
+<div class="row"><span class="rn">A meeting that doesn't happen</span><span class="rv">£0</span></div>
+<div class="row total"><span class="rn">Expected per month</span><span id="prMonth2" class="rv"></span></div>
+</div></div>
+<div class="card"><div class="ct">What it could be worth to the client</div><div class="rows">
+<div class="row"><span class="rn">Value of one new customer</span><span id="prDeal" class="rv"></span></div>
+<div class="row"><span class="rn">Good meeting → customer</span><span id="prConv" class="rv"></span></div>
+<div class="row"><span class="rn">What one held meeting is worth to them</span><span id="prPerMeeting" class="rv"></span></div>
+<div class="row"><span class="rn">Expected new customers over the period</span><span id="prNewCust" class="rv"></span></div>
+<div class="row total"><span class="rn">Value ÷ what they pay</span><span id="prRoi2" class="rv"></span></div>
+</div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="ct">Our cost for this client, each month</div><div class="rows">
+<div class="row"><span class="rn">Apollo top-up (<span id="prCredits"></span> credits)</span><span id="prApollo" class="rv"></span></div>
+<div class="row"><span class="rn">AI research and writing</span><span id="prAi" class="rv"></span></div>
+<div class="row"><span class="rn">Checking every message and replies</span><span id="prPeople" class="rv"></span></div>
+<div class="row"><span class="rn">Mailboxes and domains</span><span id="prSend" class="rv"></span></div>
+<div class="row"><span class="rn">Coaching delivery</span><span id="prCoachCost" class="rv"></span></div>
+<div class="row"><span class="rn">Payment</span><span id="prStripe" class="rv"></span></div>
+<div class="row total"><span class="rn">Our cost per month</span><span id="prDelivery" class="rv"></span></div>
+</div><div class="cs" style="margin-top:8px" id="prSendCheck"></div></div>
+<div class="card"><div class="ct">Margin guard</div><div id="prMessage" class="callout"></div><div class="rows" style="margin-top:8px">
+<div class="row"><span class="rn">Setup fee</span><span id="prSetupFee" class="rv"></span></div>
+<div class="row"><span class="rn">Setup work and costs</span><span id="prSetupCost" class="rv"></span></div>
+<div class="row total"><span class="rn">We keep from the setup</span><span id="prSetupKeep" class="rv"></span></div>
+</div><div class="cs" style="margin-top:8px">The client's return is their own sum, never our promise. We don't promise a number of meetings.</div></div>
+</div>
+</div>
+
+<div id="partner" class="tab">
+<div class="q">What would a partner-introduced client leave K.I.N.D?</div>
+<div class="qsub">⏸ <b>Partners are frozen (R139, 23 Sep)</b> — kept for when they return. A partner would get a share of the client's contribution, never of gross revenue.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Shared client</span><span id="paScenarioV" class="cv"></span></div><div class="hint">Uses the One client tab. Change it there.</div></div>
+<div class="control"><div class="chead"><span class="cl">Partner share of contribution</span><span id="paPctV" class="cv"></span></div><div class="hint">Set in Assumptions.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Client pays / month</div><div id="paRevenue" class="mv"></div></div>
+<div class="metric"><div class="ml">Contribution before partner</div><div id="paPre" class="mv"></div></div>
+<div class="metric"><div class="ml">Partner would earn</div><div id="paComm" class="mv"></div></div>
+<div class="metric accent"><div class="ml">K.I.N.D keeps</div><div id="paRetained" class="mv"></div><div id="paRetMargin" class="ms"></div></div>
+</div></div>
+
+<div id="scale" class="tab">
+<div class="q">What happens as the number of clients grows?</div>
+<div class="qsub">Steady months at the meeting rate you picked. The company floor stays the same; client costs grow with each client. One operator can look after about <span id="scOpsLbl"></span> clients.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Meeting rate</span><span id="scRateV" class="cv"></span></div><div class="hint">Pick it above the tabs.</div></div>
+<div class="control"><div class="chead"><span class="cl">New clients per month at each size</span><span id="scNewV" class="cv"></span></div><input id="scaleNewPct" type="range" min="0" max="50" value="10" step="5" oninput="update()"><div class="hint">% of the client base that is new each month (setup fees).</div></div>
+</div>
+<div class="tablewrap"><table><thead><tr><th>Clients</th><th>Revenue / month</th><th>Client costs + setup work</th><th>Company floor</th><th>Operating profit</th><th>Operating margin</th><th>After-tax / year</th><th>Operators</th></tr></thead><tbody id="scaleTable"></tbody></table></div>
+<div class="q" style="font-size:16px">The same growth at your worst case (1 in 1,300)</div>
+<div class="tablewrap"><table><thead><tr><th>Clients</th><th>Revenue / month</th><th>Client costs + setup work</th><th>Company floor</th><th>Operating profit</th><th>Operating margin</th><th>After-tax / year</th><th>Operators</th></tr></thead><tbody id="scaleWorst"></tbody></table></div>
+</div>
+
+<div id="floor" class="tab">
+<div class="q">What does K.I.N.D cost before any client work?</div><div class="qsub">The fixed company floor, kept separate from client costs. Your own figures; change them in Assumptions.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Floor to use</span><span id="floorModeV" class="cv"></span></div><select id="floorMode" onchange="update()"><option value="today" selected>Today — everything you pay</option><option value="precision">Precision — without what nothing uses</option></select><div class="hint">Precision drops ChatGPT and Smartlead (nothing in the product uses them).</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Core services</div><div id="floorCore" class="mv"></div></div>
+<div class="metric"><div class="ml">Not needed for precision</div><div id="floorCut" class="mv"></div><div class="ms">ChatGPT and Smartlead.</div></div>
+<div class="metric"><div class="ml">Compliance / admin reserve</div><div id="floorAdmin" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Total fixed floor / month</div><div id="floorTotal" class="mv"></div></div>
+</div>
+<div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Service</th><th>$ / month</th><th>£ / month</th><th>What it does</th><th>Needed for precision?</th></tr></thead><tbody id="floorTable"></tbody></table></div>
+</div>
+
+<div id="tax" class="tab">
+<div class="q">Tax &amp; VAT planning</div><div class="qsub">Planning only; the accountant remains the filing authority. Prices are in £.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">VAT registered?</span><span id="vatRegV" class="cv"></span></div><select id="vatRegistered" onchange="update()"><option value="no" selected>No</option><option value="yes">Yes</option></select></div>
+<div class="control"><div class="chead"><span class="cl">UK share of client revenue</span><span id="ukShareV" class="cv"></span></div><input id="ukRevenueShare" type="range" min="0" max="100" value="0" step="5" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Qualifying overseas services / month £</span><span id="overseasV" class="cv"></span></div><input id="overseasServicesMonthly" type="range" min="0" max="5000" value="150" step="10" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Recoverable input VAT / month £</span><span id="inputVatV" class="cv"></span></div><input id="recoverableInputVat" type="range" min="0" max="2000" value="0" step="10" oninput="update()"></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">VAT threshold run-rate</div><div id="vatRunRate" class="mv"></div></div>
+<div class="metric"><div class="ml">Distance to £90k</div><div id="vatDistance" class="mv"></div></div>
+<div class="metric"><div class="ml">VAT held / month</div><div id="vatHeld" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Corp tax reserve / year</div><div id="corpTaxYear" class="mv"></div></div>
+</div><div id="taxMessage" class="callout warn"></div></div>
+
+<div id="cash" class="tab">
+<div class="q">How much cash is actually available?</div><div class="qsub">Setup fees arrive before work starts. Meetings are billed after they take place, so this month's invoices are for last month's meetings.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">Opening company cash</span><span id="openingCashV" class="cv"></span></div><input id="openingCash" type="range" min="0" max="20000" value="0" step="100" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Founder cash added this month</span><span id="founderCashV" class="cv"></span></div><input id="founderCash" type="range" min="0" max="5000" value="300" step="50" oninput="update()"></div>
+<div class="control"><div class="chead"><span class="cl">Meeting invoices paid this month</span><span id="collectV" class="cv"></span></div><input id="collectPct" type="range" min="0" max="100" value="100" step="5" oninput="update()"><div class="hint">Share of last month's meeting invoices paid on time.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Setup fees in</div><div id="cashFirst" class="mv"></div></div>
+<div class="metric"><div class="ml">Meeting invoices paid</div><div id="cashSecond" class="mv"></div></div>
+<div class="metric"><div class="ml">Cash costs + reserves</div><div id="cashOut" class="mv"></div></div>
+<div class="metric accent"><div class="ml">Cash left</div><div id="cashLeft" class="mv"></div></div>
+</div><div id="cashMessage" class="callout"></div></div>
+
+<div id="founder-cac" class="tab">
+<div class="q">What does it cost K.I.N.D to win one client — the House pilot</div>
+<div class="qsub">The pilot: about 250 hand-picked people with a real reason to talk now, each written to individually, every email checked by you. Standalone: it doesn't change the client maths above. PDL was retired (R146) and is no longer shown.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">People contacted</span><span id="cacContactsV" class="cv"></span></div><input id="cacContacts" type="range" min="50" max="2000" value="250" step="10" oninput="update()"><div class="hint">The pilot's size.</div></div>
+<div class="control"><div class="chead"><span class="cl">Held meetings</span><span id="cacMeetingsV" class="cv"></span></div><input id="cacMeetings" type="range" min="0" max="40" value="2" step="1" oninput="update()"><div class="hint">Your pass mark (D5) is set before the first email.</div></div>
+<div class="control"><div class="chead"><span class="cl">Clients won</span><span id="cacClientsV" class="cv"></span></div><input id="cacClients" type="range" min="0" max="10" value="1" step="1" oninput="update()"><div class="hint">Paying clients from the pilot.</div></div>
+<div class="control"><div class="chead"><span class="cl">Your hours checking and replying</span><span id="cacHoursV" class="cv"></span></div><input id="cacHours" type="range" min="0" max="80" value="20" step="1" oninput="update()"><div class="hint">Counted at the hourly rate in Assumptions.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Data + AI cost</div><div id="cacSpend" class="mv"></div><div class="ms">Apollo + AI for every person contacted.</div></div>
+<div class="metric"><div class="ml">Cost per held meeting</div><div id="cacPerMeeting" class="mv"></div><div class="ms">Including your time.</div></div>
+<div class="metric accent"><div class="ml">Cost to win one client</div><div id="cacPerClient" class="mv"></div><div class="ms">Including your time.</div></div>
+<div class="metric"><div class="ml">Paid back by</div><div id="cacPayback" class="mv"></div><div class="ms">Setup fee + first meetings of one client.</div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="ct">Pilot funnel</div><div class="rows">
+<div class="row"><span class="rn">People contacted</span><span id="cacFContacts" class="rv"></span></div>
+<div class="row"><span class="rn">Held meetings</span><span id="cacFMeetings" class="rv"></span></div>
+<div class="row"><span class="rn">People per held meeting</span><span id="cacMeetingRate" class="rv"></span></div>
+<div class="row"><span class="rn">Clients won</span><span id="cacFClients" class="rv"></span></div>
+<div class="row"><span class="rn">Held meeting → client</span><span id="cacCloseRate" class="rv"></span></div>
+<div class="row total"><span class="rn">People contacted per client won</span><span id="cacContactsPerClient" class="rv"></span></div>
+</div></div>
+<div class="card"><div class="ct">What it tells you</div><div id="cacMessage" class="callout info"></div><div class="cs" style="margin-top:8px">The pilot's real result replaces every guess in this file: people per held meeting, Apollo credits per person, and the AI cost per person.</div></div>
+</div>
+<div class="callout warn" style="margin-top:10px"><b>Standalone by design:</b> changing this tab does not alter client pricing, company profit, partner, scale, tax or cash.</div>
+</div>
+
+<div id="locked-cac" class="tab">
+<div class="q">Winning a client — people → held meeting → client</div>
+<div class="qsub">A held meeting isn't a client. This tab works out how many people it takes to win one paying client, from the meeting rate and an explicit close rate. Standalone.</div>
+<div class="callout info" style="margin-top:10px"><b>The rule:</b> people per client = people per held meeting ÷ held-meeting-to-client close rate. Example: 500 ÷ 20% = 2,500 people → 5 held meetings → 1 client.</div>
+<div class="controls">
+<div class="control"><div class="chead"><span class="cl">People per held meeting</span><span id="lcBenchV" class="cv"></span></div><input id="lcBenchmark" type="range" min="100" max="2000" value="500" step="10" oninput="update()"><div class="hint">Plan on 500; worst case 1,300.</div></div>
+<div class="control"><div class="chead"><span class="cl">Held meeting → client close rate</span><span id="lcCloseV" class="cv"></span></div><input id="lcCloseRate" type="range" min="5" max="50" value="20" step="1" oninput="update()"><div class="hint">Replace with real results as they come in.</div></div>
+<div class="control"><div class="chead"><span class="cl">Data + AI per person</span><span id="lcPerPersonV" class="cv"></span></div><div class="hint">Apollo credits and AI, from Assumptions.</div></div>
+<div class="control"><div class="chead"><span class="cl">Checking per person</span><span id="lcCheckV" class="cv"></span></div><div class="hint">People time spread over the people contacted.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Held meetings per client</div><div id="lcMeetingsNeeded" class="mv"></div><div class="ms">1 ÷ close rate.</div></div>
+<div class="metric"><div class="ml">People per client</div><div id="lcProspectsNeeded" class="mv"></div><div class="ms">People per held meeting × meetings needed.</div></div>
+<div class="metric"><div class="ml">Data + AI cost per client</div><div id="lcDataCAC" class="mv"></div></div>
+<div class="metric accent"><div class="ml">With checking time</div><div id="lcFullCAC" class="mv"></div></div>
+</div>
+<div class="q" style="font-size:18px">Cost to win a client, by close rate</div>
+<div class="qsub">Same meeting rate and costs; only the close rate changes.</div>
+<div class="tablewrap"><table><thead><tr><th>Held meeting → client</th><th>Meetings / client</th><th>People / client</th><th>Data + AI</th><th>With checking time</th></tr></thead><tbody id="lcSensitivityTable"></tbody></table></div>
+<div class="q" style="font-size:18px">…and by meeting rate</div>
+<div class="tablewrap"><table><thead><tr><th>People per held meeting</th><th>People / client</th><th>Data + AI</th><th>With checking time</th></tr></thead><tbody id="lcRateTable"></tbody></table></div>
+</div>
+
+<div id="assumptions" class="tab">
+<div class="q">Assumptions &amp; editable controls</div><div class="qsub">The precision model is the structure. Every value stays editable so the file can follow real bills and the pilot's results.</div>
+<div class="card" style="margin:10px 0;border:2px solid #8b5cf6">
+<div class="ct" style="font-size:20px">🎛️ Play with the numbers — every tab follows</div>
+<div class="cs">One price for every client · setup fee paid by the client · pay only for meetings that take place · at least 35% at the worst case. Move a slider and every tab changes.</div>
+<div class="controls">
+<div class="control" style="border-color:#8b5cf6"><div class="chead"><span class="cl">💷 Price per held meeting</span><span id="pgPriceV" class="cv"></span></div><input id="pgPrice" type="range" min="100" max="2000" value="700" step="10" oninput="pgSet()"><div class="hint" id="pgPriceHint"></div></div>
+<div class="control"><div class="chead"><span class="cl">🧾 Setup fee</span><span id="pgSetupV" class="cv"></span></div><input id="pgSetup" type="range" min="0" max="5000" value="1500" step="50" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">👥 People per client per month</span><span id="pgPeopleV" class="cv"></span></div><input id="pgPeople" type="range" min="100" max="3000" value="1000" step="50" oninput="pgSet()"></div>
+<div class="control"><div class="chead"><span class="cl">❓ People it REALLY takes for 1 held meeting</span><span id="pgNeedV" class="cv"></span></div><input id="pgNeed" type="range" min="100" max="2000" value="500" step="10" oninput="pgSet()"><div class="hint">Nobody knows this yet. Slide it up to see bad luck.</div></div>
+</div>
+<div class="flow">
+<div class="metric"><div class="ml">Client pays / month</div><div id="pgRev" class="mv"></div><div id="pgRevS" class="ms"></div></div>
+<div class="metric"><div class="ml">Our cost / month</div><div id="pgCost" class="mv"></div><div id="pgCostS" class="ms"></div></div>
+<div class="metric"><div class="ml">At your worst case</div><div id="pgWorst" class="mv"></div><div id="pgWorstS" class="ms"></div></div>
+<div class="metric accent"><div class="ml">We keep / month</div><div id="pgProfit" class="mv"></div><div id="pgProfitS" class="ms"></div></div>
+</div>
+<div class="card" style="margin-top:9px"><div class="ct">One client's month</div><div class="rows" id="pgStory"></div></div>
+<div id="pgVerdict" class="callout" style="font-size:12px;margin-top:9px"></div>
+<div class="q" style="font-size:16px">Same client at different prices</div>
+<div class="qsub">Everything else stays the same — only the price per held meeting changes. Each price is checked at the rate you picked and at your worst case.</div>
+<div class="tablewrap"><table><thead><tr><th>Price per held meeting</th><th>Client pays / month</th><th>Our cost</th><th>We keep</th><th>Margin</th><th>Margin at worst case (1 in 1,300)</th><th>35% rule</th></tr></thead><tbody id="pgTable"></tbody></table></div>
+<div class="q" style="font-size:16px">What if it really takes more people?</div>
+<div class="qsub">Same price — only the real number of people per held meeting changes. With no meeting target there's no credit to give back: fewer meetings means the client pays less, and we earn less.</div>
+<div class="tablewrap"><table><thead><tr><th>People per held meeting</th><th>Held meetings / month</th><th>Client pays</th><th>Our cost</th><th>We keep</th><th>Margin</th><th>35% rule</th></tr></thead><tbody id="pgRisk"></tbody></table></div>
+<div class="callout info" style="margin-top:10px" id="pgBreak"></div>
+</div>
+
+<details open><summary>Price and Coaching <span class="badge work">DRAFT · D1</span></summary><div class="assgrid">
+<div class="field"><label>Price per held meeting $ <span class="badge work">DRAFT</span></label><input id="price" type="number" value="700" step="10" oninput="update()"><div class="hint">One price for every client.</div></div>
+<div class="field"><label>Setup fee $, once <span class="badge work">DRAFT</span></label><input id="setupFee" type="number" value="1500" step="50" oninput="update()"><div class="hint">Paid by the client before work starts.</div></div>
+<div class="field"><label>Coaching price $ per held meeting <span class="badge work">COMING SOON</span></label><input id="coachPrice" type="number" value="100" step="5" oninput="update()"><div class="hint">2 Oct: $100 (R188 Q11). Needs a £ figure (CO1).</div></div>
+<div class="field"><label>Clients who take Coaching %</label><input id="coachTake" type="number" value="30" step="5" oninput="update()"><div class="hint">Offered after the 3rd held meeting.</div></div>
+<div class="field"><label>Coaching cost £ per coached meeting <span class="badge work">UNKNOWN</span></label><input id="coachCost" type="number" value="10" step="1" oninput="update()"><div class="hint">AI time and any review. Not measured (CO5).</div></div>
+<div class="field"><label>Your worst case: people per held meeting <span class="badge">YOUR RULE</span></label><input id="worstN" type="number" value="1300" step="10" oninput="update()"></div>
+<div class="field"><label>Minimum margin at the worst case % <span class="badge">YOUR RULE</span></label><input id="minMargin" type="number" value="35" step="1" oninput="update()"></div>
+<div class="field"><label>Partner share of contribution % <span class="badge">FROZEN</span></label><input id="partnerPct" type="number" value="25" oninput="update()"></div>
+</div></details>
+
+<details open><summary>Client costs — per person and per client</summary><div class="assgrid">
+<div class="field"><label>Apollo $ per extra credit <span class="badge work">UNKNOWN · D9</span></label><input id="apolloCredit" type="number" value="0.025" step="0.005" oninput="update()"><div class="hint">About 2.5c assumed. At 20c the top-up is about 8× more. Check Apollo → Settings → Billing.</div></div>
+<div class="field"><label>Apollo credits used per person <span class="badge work">UNKNOWN</span></label><input id="creditsPerPerson" type="number" value="1" step="0.25" oninput="update()"><div class="hint">1 assumed. The stalled House cycle looked like 6+.</div></div>
+<div class="field"><label>AI research + writing $ per person <span class="badge work">UNKNOWN · H7</span></label><input id="aiPerPerson" type="number" value="0.10" step="0.01" oninput="update()"><div class="hint">Research with sources plus one email. Measure in the pilot.</div></div>
+<div class="field"><label>Checking + replies, hours per client / month</label><input id="checkHours" type="number" value="8" step="1" oninput="update()"><div class="hint">Every message checked, replies the same day.</div></div>
+<div class="field"><label>£ per hour (your time or an operator)</label><input id="hourRate" type="number" value="12.5" step="0.5" oninput="update()"><div class="hint">8 h × £12.50 = £100 a client.</div></div>
+<div class="field"><label>Clients per operator</label><input id="clientsPerOp" type="number" value="25" step="1" oninput="update()"></div>
+<div class="field"><label>Who pays the mailboxes each month <span class="badge work">D8</span></label><select id="mailboxPayer" onchange="update()"><option value="client" selected>The client pays Google directly</option><option value="us">K.I.N.D pays</option></select></div>
+<div class="field"><label>Mailboxes per client</label><input id="mailboxes" type="number" value="8" step="1" oninput="update()"><div class="hint">6–10 for about 150 emails a day.</div></div>
+<div class="field"><label>$ per mailbox / month</label><input id="mailboxCost" type="number" value="7" step="0.5" oninput="update()"></div>
+<div class="field"><label>Domains per client</label><input id="domainsPerClient" type="number" value="3" step="1" oninput="update()"><div class="hint">About 3 mailboxes per domain.</div></div>
+<div class="field"><label>$ per domain / year</label><input id="domainYear" type="number" value="11.17" step="0.01" oninput="update()"></div>
+<div class="field"><label>Emails per person</label><input id="emailsPerPerson" type="number" value="3" step="1" oninput="update()"></div>
+<div class="field"><label>Sending days / month</label><input id="sendDays" type="number" value="22" step="1" oninput="update()"></div>
+<div class="field"><label>Payment all-in %</label><input id="stripePct" type="number" value="5" step="0.1" oninput="update()"></div>
+<div class="field"><label>Setup work, hours per new client</label><input id="setupHours" type="number" value="10" step="1" oninput="update()"></div>
+<div class="field"><label>Other setup costs £ per new client</label><input id="setupOther" type="number" value="0" step="10" oninput="update()"><div class="hint">Warm-up is covered by the Instantly plan today.</div></div>
+</div></details>
+
+<details><summary>Core company floor — USD / month (your figures)</summary><div class="assgrid">
+<div class="field"><label>Railway</label><input id="railway" type="number" value="10.59" step=".01" oninput="update()"></div>
+<div class="field"><label>Supabase</label><input id="supabase" type="number" value="35" oninput="update()"></div>
+<div class="field"><label>Claude subscription</label><input id="claude" type="number" value="119" oninput="update()"></div>
+<div class="field"><label>ChatGPT <span class="badge work">NOT NEEDED</span></label><input id="chatgpt" type="number" value="20" oninput="update()"></div>
+<div class="field"><label>Google Workspace (House's 4 mailboxes)</label><input id="google" type="number" value="28" oninput="update()"></div>
+<div class="field"><label>Apollo base plan</label><input id="apollo" type="number" value="65" oninput="update()"></div>
+<div class="field"><label>Instantly (warm-up)</label><input id="instantly" type="number" value="47" oninput="update()"></div>
+<div class="field"><label>Smartlead <span class="badge work">NOT NEEDED</span></label><input id="smartlead" type="number" value="39" oninput="update()"></div>
+<div class="field"><label>Zoho — hello@get-kind.com</label><input id="zoho" type="number" value="3" oninput="update()"></div>
+<div class="field"><label>Domains (4)</label><input id="domains" type="number" value="5" oninput="update()"></div>
+<div class="field"><label>Failover standby</label><input id="failover" type="number" value="12" oninput="update()"></div>
+<div class="field"><label>Other fixed USD / month</label><input id="otherFixed" type="number" value="0" oninput="update()"></div>
+</div></details>
+
+<details><summary>Compliance / admin reserves — GBP</summary><div class="assgrid">
+<div class="field"><label>ICO £ / year</label><input id="icoAnnualGbp" type="number" value="47" step=".01" oninput="update()"></div>
+<div class="field"><label>Companies House £ / year</label><input id="companiesHouseAnnualGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Accountant / bookkeeping £ / month</label><input id="accountantMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Accounting software £ / month</label><input id="accountingSoftwareMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>Insurance £ / month</label><input id="insuranceMonthlyGbp" type="number" value="0" oninput="update()"></div>
+<div class="field"><label>£1 in USD</label><input id="gbpUsd" type="number" value="1.34" step=".01" oninput="update()"></div>
+</div></details>
+
+<details><summary>Tax assumptions</summary><div class="assgrid">
+<div class="field"><label>UK VAT rate %</label><input id="vatRate" type="number" value="20" step=".1" oninput="update()"></div>
+<div class="field"><label>VAT threshold £</label><input id="vatThresholdGbp" type="number" value="90000" step="1000" oninput="update()"></div>
+<div class="field"><label>Corp tax lower limit £</label><input id="corpLowerGbp" type="number" value="50000" step="1000" oninput="update()"></div>
+<div class="field"><label>Corp tax upper limit £</label><input id="corpUpperGbp" type="number" value="250000" step="1000" oninput="update()"></div>
+<div class="field"><label>Small profits rate %</label><input id="corpSmallRate" type="number" value="19" step=".1" oninput="update()"></div>
+<div class="field"><label>Main rate %</label><input id="corpMainRate" type="number" value="25" step=".1" oninput="update()"></div>
+<div class="field"><label>Marginal-relief fraction</label><input id="marginalFraction" type="number" value=".015" step=".001" oninput="update()"></div>
+</div></details>
+</div>
+
+<div class="footer">K.I.N.D Company Money Control Room · v4 precision · a plan being decided, not the live rules · management planning, not tax advice</div></div>
+
+<script>
+const $=id=>document.getElementById(id), N=id=>Number($(id)?.value||0);
+const fmt=(x,sym)=>{if(!isFinite(x))return '—';const s=x<0?'-':'',a=Math.abs(x);return s+sym+a.toLocaleString(undefined,{minimumFractionDigits:a<100&&a%1?2:0,maximumFractionDigits:a<100?2:0})};
+const gbpTrue=x=>fmt(x,'£'), usd=x=>fmt(x,'$'), gbp=x=>fmt(x*fx(),'$');
+const num=(x,d=0)=>isFinite(x)?Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const pct=x=>isFinite(x)?(x*100).toFixed(1)+'%':'—';
+const rule=()=>num(N('minMargin'))+'%';
+const fx=()=>N('gbpUsd')||1.34;
+const RATES=[[150,'🟢 Good'],[250,'Middle'],[400,"Precision's own worst"],[500,'📌 Plan on'],[1300,'🔴 Your worst case']];
+function rateLabel(n){const f=RATES.find(r=>r[0]===n);return (f?f[1]+' · ':'')+'1 held meeting per '+num(n)+' people'}
+function showTab(id,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tabs .tabbtn').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');btn.classList.add('active')}
+function pickRate(n){$('rateN').value=n;update()}
+// ── one client, one month
+function client(rateN,o={}){
+ const people=o.people??N('peoplePerMonth'), price=o.price??N('price')/fx();
+ const meetings=people/Math.max(1,rateN);
+ const coachOn=$('coachingOn').value==='on', coachMeet=coachOn?meetings*N('coachTake')/100:0;
+ const revMeet=meetings*price, revCoach=coachMeet*N('coachPrice')/fx(), revenue=revMeet+revCoach;
+ const credits=people*N('creditsPerPerson');
+ const apollo=credits*N('apolloCredit')/fx(), ai=people*N('aiPerPerson')/fx(), ppl=N('checkHours')*N('hourRate');
+ const weMail=$('mailboxPayer').value==='us';
+ const send=weMail?(N('mailboxes')*N('mailboxCost')+N('domainsPerClient')*N('domainYear')/12)/fx():0;
+ const coachCost=coachMeet*N('coachCost'), stripe=revenue*N('stripePct')/100;
+ const fixedCost=apollo+ai+ppl+send, cost=fixedCost+coachCost+stripe, pre=revenue-cost;
+ const emails=people*N('emailsPerPerson'), perBoxDay=emails/(Math.max(1,N('sendDays'))*Math.max(1,N('mailboxes')));
+ return {people,price,rateN,meetings,coachMeet,revMeet,revCoach,revenue,credits,apollo,ai,ppl,send,coachCost,stripe,fixedCost,cost,pre,margin:revenue>0?pre/revenue:-Infinity,emails,perBoxDay,weMail};
+}
+// lowest price per held meeting that clears the minimum margin at a given rate (coaching left out)
+function priceFor(rateN,minM){const c=client(rateN,{price:0}),m=c.meetings,s=N('stripePct')/100,d=1-s-minM;return d>0&&m>0?c.fixedCost/(m*d):Infinity}
+// people per held meeting at which one client breaks even
+function breakEvenN(price){const c=client(1,{price}),s=N('stripePct')/100,need=c.fixedCost/(price*(1-s));return need>0?c.people/need:Infinity}
+function setup(){const fee=N('setupFee')/fx(),cost=N('setupHours')*N('hourRate')+N('setupOther'),stripe=fee*N('stripePct')/100;return {fee,cost,stripe,keep:fee-cost-stripe}}
+// ── company floor
+const FLOOR=[['railway','Railway','Hosts the API, both portals and the website','Yes'],['supabase','Supabase','Database and logins','Yes'],['claude','Claude subscription','Building K.I.N.D; also the pilot\'s research and writing','Yes'],['chatgpt','ChatGPT','Nothing in the product uses it','No'],['google','Google Workspace','House\'s 4 sending mailboxes','Yes — the pilot sends from them'],['apollo','Apollo base plan','Finding people and their emails','Yes — pending Apollo\'s written answer (L1)'],['instantly','Instantly','Warm-up only; it doesn\'t send','Yes, while mailboxes send'],['smartlead','Smartlead','Nothing can reach it','No — after your ruling'],['zoho','Zoho','hello@get-kind.com','Yes'],['domains','Domains (4)','get-kind.com and House\'s sending domains','Yes'],['failover','Failover standby','Standby if Railway fails','Optional — moving the DNS comes first'],['otherFixed','Other','Anything else you pay','—']];
+const CUT=['chatgpt','smartlead'];
+function coreUsd(){return FLOOR.filter(f=>!CUT.includes(f[0])).reduce((s,f)=>s+N(f[0]),0)}
+function cutUsd(){return CUT.reduce((s,k)=>s+N(k),0)}
+function adminGbp(){return N('icoAnnualGbp')/12+N('companiesHouseAnnualGbp')/12+N('accountantMonthlyGbp')+N('accountingSoftwareMonthlyGbp')+N('insuranceMonthlyGbp')}
+function floorTotal(){return (coreUsd()+($('floorMode').value==='today'?cutUsd():0))/fx()+adminGbp()}
+function corpTaxGbp(p){if(p<=0)return 0;const low=N('corpLowerGbp'),high=N('corpUpperGbp'),small=N('corpSmallRate')/100,main=N('corpMainRate')/100,frac=N('marginalFraction');if(p<=low)return p*small;if(p>=high)return p*main;return p*main-frac*(high-p)}
+function company(n,k,rateN){const c=client(rateN),s=setup();
+ const revenue=n*c.revenue+k*s.fee, variable=n*c.cost+k*(s.cost+s.stripe), floor=floorTotal(), op=revenue-variable-floor;
+ const taxYr=corpTaxGbp(op*12), afterMonth=op-taxYr/12;
+ return {c,s,n,k,revenue,variable,floor,op,taxYr,afterMonth,margin:revenue>0?op/revenue:-Infinity};
+}
+const ok=(m)=>m>=N('minMargin')/100;
+const cls=(c)=>c.pre<=0?'bad':!ok(c.margin)?'amber':'good';
+function update(){
+ const r=N('rateN'),n=N('clients'),k=N('newClients'),minM=N('minMargin')/100,W=N('worstN');
+ if(document.activeElement!==$('lcBenchmark'))$('lcBenchmark').value=r;
+ document.querySelectorAll('.gbtn').forEach(b=>b.classList.toggle('active',Number(b.dataset.r)===r));
+ const c=client(r),cw=client(W),s=setup(),co=company(n,k,r);
+ // overview
+ $('ovRateLbl').textContent=rateLabel(r);$('ovClientsV').textContent=num(n);$('ovNewV').textContent=num(k);$('ovPeopleV').textContent=num(N('peoplePerMonth'));$('ovCoachV').textContent=$('coachingOn').value==='on'?'WHAT-IF':'SOON';
+ $('ovRevenue').textContent=gbp(co.revenue);$('ovRevenueS').textContent=`${num(n*c.meetings,1)} held meetings · ${num(k)} setup fee${k===1?'':'s'}`;
+ $('ovVariable').textContent=gbp(co.variable);$('ovOpProfit').textContent=gbp(co.op);$('ovAfterTax').textContent=gbp(co.afterMonth);
+ const rates=RATES.map(x=>x[0]);if(!rates.includes(r))rates.push(r);rates.sort((a,b)=>a-b);
+ $('rateTable').innerHTML=rates.map(x=>{const y=client(x),z=company(n,k,x);return `<tr${x===r?' style="background:#241b3a"':''}><td>${rateLabel(x)}${x===r?' ← now':''}</td><td>${num(y.meetings,2)}</td><td>${gbp(y.revenue)}</td><td>${gbp(y.cost)}</td><td class="${cls(y)}">${gbp(y.pre)}</td><td class="${cls(y)}">${pct(y.margin)}</td><td>${ok(y.margin)?'✅ clears '+rule():'❌ under '+rule()}</td><td class="${z.op<0?'bad':''}">${gbp(z.op)}</td></tr>`}).join('');
+ $('owMeetings').textContent=gbp(n*c.revMeet);$('owSetup').textContent=gbp(k*s.fee);$('owCoach').textContent=gbp(n*c.revCoach);
+ $('owApollo').textContent=gbp(-n*c.apollo);$('owAi').textContent=gbp(-n*c.ai);$('owPeople').textContent=gbp(-n*c.ppl);$('owSend').textContent=gbp(-n*c.send);$('owCoachCost').textContent=gbp(-n*c.coachCost);
+ $('owStripe').textContent=gbp(-(n*c.stripe+k*s.stripe));$('owSetupCost').textContent=gbp(-k*s.cost);$('owFloor').textContent=gbp(-co.floor);$('owTax').textContent=gbp(-co.taxYr/12);$('owNet').textContent=gbp(co.afterMonth);
+ const pw=priceFor(W,minM);
+ $('ovMessage').className='callout'+(co.op<0||!ok(cw.margin)?' warn':'');
+ $('ovMessage').innerHTML=`Per client at ${rateLabel(r).toLowerCase()}: we keep <b>${gbp(c.pre)}</b> a month (<b>${pct(c.margin)}</b>). At your worst case (1 in ${num(W)}): <b>${pct(cw.margin)}</b> — ${ok(cw.margin)?'✅ clears your '+rule()+'.':'❌ under your '+rule()+'; the price would need to be about <b>'+gbp(pw)+'</b> per held meeting.'} The company, after the ${gbp(co.floor)} floor: <b>${gbp(co.op)}</b> a month${co.op<0?' — the floor isn\'t covered yet at this many clients.':'.'}`;
+ // one client
+ const M=N('months'),deal=N('dealValue'),conv=N('conversion')/100,perMeet=deal*conv,total=s.fee+c.revenue*M,cust=c.meetings*M*conv,value=cust*deal,roi=total>0?value/total:0;
+ $('ccRateLbl').textContent=rateLabel(r);$('rateV').textContent='1 in '+num(r);$('dealV').textContent=gbp(deal);$('convV').textContent=num(conv*100)+'%';$('monthsV').textContent=num(M);$('prMonthsLbl').textContent=num(M)+' month'+(M===1?'':'s');
+ $('prMeetings').textContent=num(c.meetings,2);$('prMonth').textContent=gbp(c.revenue);$('prTotal').textContent=gbp(total);$('prRoi').textContent=num(roi,1)+'×';
+ $('prSetup').textContent=gbp(s.fee);$('prPpm').textContent=usd(N('price'));$('prMeetings2').textContent=num(c.meetings,2);$('prCoach').textContent=$('coachingOn').value==='on'?gbp(c.revCoach)+' (what-if)':'Coming soon';$('prMonth2').textContent=gbp(c.revenue);
+ $('prDeal').textContent=gbp(deal);$('prConv').textContent=num(conv*100)+'%';$('prPerMeeting').textContent=gbp(perMeet);$('prNewCust').textContent=num(cust,1);$('prRoi2').textContent=num(roi,1)+'×';
+ $('prCredits').textContent=num(c.credits);$('prApollo').textContent=gbp(c.apollo);$('prAi').textContent=gbp(c.ai);$('prPeople').textContent=gbp(c.ppl);$('prSend').textContent=c.weMail?gbp(c.send):'$0 — the client pays Google';$('prCoachCost').textContent=gbp(c.coachCost);$('prStripe').textContent=gbp(c.stripe);$('prDelivery').textContent=gbp(c.cost);
+ $('prSendCheck').innerHTML=`Sending: ${num(c.emails)} emails a month from ${num(N('mailboxes'))} mailboxes ≈ <b>${num(c.perBoxDay,0)} a mailbox a day</b> ${c.perBoxDay>50?'<span class="bad">— over the safe 30–50; add mailboxes</span>':'(safe range 30–50)'}.`;
+ $('prMessage').className='callout'+(c.pre<=0||!ok(cw.margin)?' warn':'');
+ $('prMessage').innerHTML=c.pre<=0?`<b>This client loses money</b> at ${rateLabel(r).toLowerCase()}: ${gbp(c.cost)} of cost against ${gbp(c.revenue)} in.`:`We keep <b>${gbp(c.pre)}</b> a month (<b>${pct(c.margin)}</b>). At your worst case: <b>${pct(cw.margin)}</b> ${ok(cw.margin)?'✅':'❌'}. Break-even: 1 held meeting per <b>${num(breakEvenN(N('price')/fx()))}</b> people — beyond that this client costs more than they pay.`;
+ $('prSetupFee').textContent=gbp(s.fee);$('prSetupCost').textContent=gbp(-(s.cost+s.stripe));$('prSetupKeep').textContent=gbp(s.keep);
+ // partner (frozen)
+ const pPct=N('partnerPct')/100,comm=Math.max(0,c.pre)*pPct;
+ $('paScenarioV').textContent='1 in '+num(r);$('paPctV').textContent=num(pPct*100)+'%';$('paRevenue').textContent=gbp(c.revenue);$('paPre').textContent=gbp(c.pre);$('paComm').textContent=gbp(comm);$('paRetained').textContent=gbp(c.pre-comm);$('paRetMargin').textContent='Kept margin '+pct(c.revenue?(c.pre-comm)/c.revenue:0);
+ // scale
+ const sizes=[1,3,5,10,25,50,100],newPct=N('scaleNewPct')/100,opsPer=Math.max(1,N('clientsPerOp'));
+ $('scRateV').textContent='1 in '+num(r);$('scNewV').textContent=num(newPct*100)+'%';$('scOpsLbl').textContent=num(opsPer);
+ const scaleRows=x=>sizes.map(q=>{const z=company(q,Math.round(q*newPct),x);return `<tr><td>${num(q)}</td><td>${gbp(z.revenue)}</td><td>${gbp(z.variable)}</td><td>${gbp(z.floor)}</td><td class="${z.op<0?'bad':''}">${gbp(z.op)}</td><td class="${z.margin<minM?'amber':''}">${pct(z.margin)}</td><td>${gbp(z.afterMonth*12)}</td><td>${num(Math.ceil(q/opsPer))}</td></tr>`}).join('');
+ $('scaleTable').innerHTML=scaleRows(r);$('scaleWorst').innerHTML=scaleRows(W);
+ // floor
+ $('floorModeV').textContent=$('floorMode').value==='today'?'TODAY':'PRECISION';$('floorCore').textContent=gbp(coreUsd()/fx());$('floorCut').textContent=gbp(cutUsd()/fx());$('floorAdmin').textContent=gbp(adminGbp());$('floorTotal').textContent=gbp(floorTotal());
+ $('floorTable').innerHTML=FLOOR.map(f=>`<tr><td>${f[1]}</td><td>${usd(N(f[0]))}</td><td>${gbpTrue(N(f[0])/fx())}</td><td style="text-align:left">${f[2]}</td><td style="text-align:left" class="${f[3].startsWith('No')?'amber':''}">${f[3]}</td></tr>`).join('')+`<tr><td>Compliance / admin</td><td></td><td>${gbp(adminGbp())}</td><td style="text-align:left">ICO and the admin reserve</td><td style="text-align:left">Yes</td></tr><tr><td><b>Total in use</b></td><td></td><td><b>${gbp(floorTotal())}</b></td><td></td><td></td></tr>`;
+ // tax
+ $('vatRegV').textContent=$('vatRegistered').value==='yes'?'YES':'NO';$('ukShareV').textContent=num(N('ukRevenueShare'))+'%';$('overseasV').textContent=gbpTrue(N('overseasServicesMonthly'));$('inputVatV').textContent=gbpTrue(N('recoverableInputVat'));
+ const ukMonthly=co.revenue*N('ukRevenueShare')/100, measure=ukMonthly*12+N('overseasServicesMonthly')*12, distance=N('vatThresholdGbp')-measure;
+ $('vatRunRate').textContent=gbpTrue(measure);$('vatDistance').textContent=gbpTrue(distance);
+ const held=Math.max(0,($('vatRegistered').value==='yes'?ukMonthly*N('vatRate')/100:0)-N('recoverableInputVat'));
+ $('vatHeld').textContent=gbpTrue(held);$('corpTaxYear').textContent=gbpTrue(co.taxYr);
+ $('taxMessage').innerHTML=distance>0?`The annualised threshold measure is <b>${gbpTrue(measure)}</b>, leaving <b>${gbpTrue(distance)}</b> before the £90k planning threshold.`:`The annualised threshold measure is above £90k. Confirm the VAT position with the accountant.`;
+ // cash
+ const collect=N('collectPct')/100, first=k*s.fee, second=n*c.revenue*collect, out=co.variable+co.floor+held+co.taxYr/12, left=N('openingCash')+N('founderCash')+first+second-out;
+ $('openingCashV').textContent=gbpTrue(N('openingCash'));$('founderCashV').textContent=gbpTrue(N('founderCash'));$('collectV').textContent=num(collect*100)+'%';
+ $('cashFirst').textContent=gbpTrue(first);$('cashSecond').textContent=gbpTrue(second);$('cashOut').textContent=gbpTrue(out);$('cashLeft').textContent=gbpTrue(left);
+ $('cashMessage').className='callout'+(left<0?' warn':'');
+ $('cashMessage').innerHTML=`Setup fees come in before any work starts. Meetings are billed after they take place, so this month you're paid for last month's meetings (${num(collect*100)}% of them on time). ${left<0?'<b>Cash runs out this month</b> at these numbers.':'Cash left: <b>'+gbpTrue(left)+'</b>.'} There's no credit or refund to hold back: a meeting that doesn't happen is simply never billed.`;
+ // own clients · House pilot
+ const per=(N('creditsPerPerson')*N('apolloCredit')+N('aiPerPerson'))/fx(), contacts=N('cacContacts'), hm=N('cacMeetings'), won=N('cacClients'), spend=contacts*per, time=N('cacHours')*N('hourRate'), all=spend+time;
+ $('cacContactsV').textContent=num(contacts);$('cacMeetingsV').textContent=num(hm);$('cacClientsV').textContent=num(won);$('cacHoursV').textContent=num(N('cacHours'))+' h';
+ $('cacSpend').textContent=gbp(spend);$('cacPerMeeting').textContent=hm?gbp(all/hm):'—';$('cacPerClient').textContent=won?gbp(all/won):'—';
+ const firstMonth=s.fee+c.revenue;$('cacPayback').textContent=won?(s.keep>=all/won?'Setup fee alone':num((all/won-s.keep)/Math.max(1,c.pre),1)+' months of meetings'):'—';
+ $('cacFContacts').textContent=num(contacts);$('cacFMeetings').textContent=num(hm);$('cacMeetingRate').textContent=hm?'1 in '+num(contacts/hm):'—';$('cacFClients').textContent=num(won);$('cacCloseRate').textContent=hm?pct(won/hm):'—';$('cacContactsPerClient').textContent=won?num(contacts/won):'—';
+ $('cacMessage').innerHTML=hm?`${num(contacts)} people → <b>${num(hm)}</b> held meeting${hm===1?'':'s'} is <b>1 in ${num(contacts/hm)}</b> — ${contacts/hm<=500?'at or better than the 1 in 500 plan.':contacts/hm<=W?'worse than the plan, better than your worst case.':'worse than your worst case.'} Data and AI cost <b>${gbp(spend)}</b>; with your time, <b>${gbp(all)}</b>${won?', or '+gbp(all/won)+' per client won':''}.`:`No held meetings yet: the pilot answers whether precision works before anything is built.`;
+ // CAC framework
+ const bench=N('lcBenchmark'), close=N('lcCloseRate')/100, chk=N('checkHours')*N('hourRate')/Math.max(1,N('peoplePerMonth'));
+ const meetNeed=close>0?1/close:0, ppc=bench*meetNeed;
+ $('lcBenchV').textContent=num(bench);$('lcCloseV').textContent=num(close*100)+'%';$('lcPerPersonV').textContent=gbp(per);$('lcCheckV').textContent=gbp(chk);
+ $('lcMeetingsNeeded').textContent=num(meetNeed,2);$('lcProspectsNeeded').textContent=num(ppc);$('lcDataCAC').textContent=gbp(ppc*per);$('lcFullCAC').textContent=gbp(ppc*(per+chk));
+ $('lcSensitivityTable').innerHTML=[50,33.333333,25,20,15,10,8.333333].map(x=>{const cr=x/100,mm=1/cr,pp=bench*mm,lab=Math.abs(x-33.333333)<.001?'33.3':Math.abs(x-8.333333)<.001?'8.33':num(x);return `<tr><td>${lab}%</td><td>${num(mm,2)}</td><td>${num(pp)}</td><td>${gbp(pp*per)}</td><td>${gbp(pp*(per+chk))}</td></tr>`}).join('');
+ $('lcRateTable').innerHTML=RATES.map(([x,l])=>{const pp=x*meetNeed;return `<tr${x===bench?' style="background:#241b3a"':''}><td>${l} · 1 in ${num(x)}</td><td>${num(pp)}</td><td>${gbp(pp*per)}</td><td>${gbp(pp*(per+chk))}</td></tr>`}).join('');
+ pg();
+}
+// ── playground: its sliders write into the master inputs every tab reads
+const PG_LINKS=[['pgPrice','price'],['pgSetup','setupFee'],['pgPeople','peoplePerMonth'],['pgNeed','rateN']];
+function pgSet(){PG_LINKS.forEach(([a,b])=>{$(b).value=$(a).value});update()}
+function pg(){
+ PG_LINKS.forEach(([a,b])=>{if(document.activeElement!==$(a))$(a).value=$(b).value});
+ const r=N('rateN'),W=N('worstN'),minM=N('minMargin')/100,c=client(r),cw=client(W),s=setup();
+ $('pgPriceV').textContent=usd(N('price'));$('pgSetupV').textContent=usd(N('setupFee'));$('pgPeopleV').textContent=num(N('peoplePerMonth'));$('pgNeedV').textContent='1 in '+num(r);
+ $('pgPriceHint').textContent=`One price for every client. Lowest price that clears ${rule()} at your worst case: ${gbp(priceFor(W,minM))}.`;
+ $('pgRev').textContent=gbp(c.revenue);$('pgRevS').textContent=`${num(c.meetings,2)} held meetings × ${usd(N('price'))}${c.revCoach?' + Coaching '+gbp(c.revCoach):''}`;
+ $('pgCost').textContent=gbp(c.cost);$('pgCostS').textContent=`${num(c.people)} people · ${gbp(c.meetings?c.cost/c.meetings:0)} per held meeting`;
+ $('pgWorst').textContent=pct(cw.margin);$('pgWorstS').textContent=`1 in ${num(W)}: we keep ${gbp(cw.pre)} a month ${ok(cw.margin)?'✅':'❌'}`;
+ $('pgProfit').textContent=gbp(c.pre);$('pgProfitS').textContent=`${pct(c.margin)} margin · setup keeps ${gbp(s.keep)} once`;
+ $('pgStory').innerHTML=`
+<div class="row"><span class="rn">People chosen this month, each with a dated reason</span><span class="rv">${num(c.people)}</span></div>
+<div class="row"><span class="rn">Held meetings expected (1 in ${num(r)})</span><span class="rv">${num(c.meetings,2)}</span></div>
+<div class="row"><span class="rn">Client pays for the meetings that took place</span><span class="rv">${gbp(c.revMeet)}</span></div>
+<div class="row"><span class="rn">Apollo ${num(c.credits)} credits · AI research and writing</span><span class="rv">${gbp(c.apollo)} · ${gbp(c.ai)}</span></div>
+<div class="row"><span class="rn">Checking every message and replies</span><span class="rv">${gbp(c.ppl)}</span></div>
+<div class="row"><span class="rn">Mailboxes and domains</span><span class="rv">${c.weMail?gbp(c.send):'Client pays Google'}</span></div>
+<div class="row"><span class="rn">Payment costs</span><span class="rv">${gbp(c.stripe)}</span></div>
+<div class="row total"><span class="rn">We keep this month</span><span class="rv ${cls(c)}">${gbp(c.pre)} · ${pct(c.margin)}</span></div>`;
+ $('pgVerdict').className='callout'+(c.pre<=0||!ok(cw.margin)?' warn':'');
+ $('pgVerdict').innerHTML=c.pre<=0?`🔴 <b>This loses money</b> at 1 in ${num(r)}: ${gbp(c.cost)} out against ${gbp(c.revenue)} in.`:!ok(cw.margin)?`🟡 <b>Makes money at 1 in ${num(r)}</b> (${pct(c.margin)}), but at your worst case it's ${pct(cw.margin)}, under your ${rule()}. Lowest price that clears it: ${gbp(priceFor(W,minM))}.`:`🟢 <b>Clears your rule.</b> ${pct(c.margin)} at 1 in ${num(r)}, and ${pct(cw.margin)} even at your worst case.`;
+ const keep=N('price'),prices=[400,500,600,700,800,900,1000,1200];if(!prices.includes(keep))prices.push(keep);prices.sort((a,b)=>a-b);
+ $('pgTable').innerHTML=prices.map(p=>{const y=client(r,{price:p/fx()}),w=client(W,{price:p/fx()});return `<tr${p===keep?' style="background:#241b3a"':''}><td>${usd(p)}${p===keep?' ← now':''}</td><td>${gbp(y.revenue)}</td><td>${gbp(y.cost)}</td><td class="${cls(y)}">${gbp(y.pre)}</td><td class="${cls(y)}">${pct(y.margin)}</td><td class="${cls(w)}">${pct(w.margin)}</td><td>${ok(w.margin)?'✅':'❌'}</td></tr>`}).join('');
+ const rs=[100,150,200,250,300,400,500,750,1000,1300,1500,2000];if(!rs.includes(r))rs.push(r);rs.sort((a,b)=>a-b);
+ $('pgRisk').innerHTML=rs.map(x=>{const y=client(x);return `<tr${x===r?' style="background:#241b3a"':''}><td>1 in ${num(x)}${x===r?' ← now':''}${x===W?' (your worst case)':''}</td><td>${num(y.meetings,2)}</td><td>${gbp(y.revenue)}</td><td>${gbp(y.cost)}</td><td class="${cls(y)}">${gbp(y.pre)}</td><td class="${cls(y)}">${pct(y.margin)}</td><td>${ok(y.margin)?'✅':'❌'}</td></tr>`}).join('');
+ $('pgBreak').innerHTML=`At ${gbp(keep)} per held meeting, one client breaks even at <b>1 held meeting per ${num(breakEvenN(keep))} people</b>. To clear ${rule()} at your worst case (1 in ${num(W)}), the price needs to be at least <b>${gbp(priceFor(W,minM))}</b>. The setup fee (${gbp(s.fee)}) keeps <b>${gbp(s.keep)}</b> after the setup work.`;
+}
+update();
+</script></body></html>

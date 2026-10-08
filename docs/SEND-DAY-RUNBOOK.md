@@ -1,5 +1,7 @@
 # 🚀 SEND-DAY RUNBOOK — you run this alone
 
+> ⛓️ **8 Oct 2026 (R200–R202): the business model changed.** K.I.N.D now runs the **precision model**: Milla & Vida, a boutique outsourced SDR/BDR team for US companies, at **$1,500 setup** and **$700 per held meeting**. Anything below about the programme ($99 / $199 / $299 or $450 a meeting, one payment, six stages), volume batches, auto top-up, the shared pool or prices in £ is **history, not current truth**. Current truth: [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) (R200–R202) and [`KIND-MASTER.md`](./KIND-MASTER.md) → Start here; the build is the `precision` cards on the board.
+
 > ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): written for the ~25 Aug send day, which has passed. Sending has since been rebuilt around the programme: the kill-switch is absolute with no operator/canary exception (R114, `lib/outreach-kill-switch.ts`), senders come from the env-backed pool (`POOLED_SENDERS_JSON`, R129), and Make Live is not Run (R130). Kept as a record, not current instructions.**
 
 > **Why this exists.** The plan used to be "we write the steps near the date, with the agent watching." **Claude access ends 18 Aug and send-day is ~25 Aug**, so that plan died. Everything below was read out of the actual code before it was written down, and it is written to be followed by one person with no agent.

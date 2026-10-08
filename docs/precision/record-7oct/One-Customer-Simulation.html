@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Customer Simulation</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1c1a17;--muted:#66625a;--line:#e3dfd6;--accent:#3f5bd8;--good:#11734a;--goodbg:#e3f3ea;--warn:#8a5a00;--warnbg:#fbf0d9;--bad:#a8261f;--badbg:#fbe6e3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--card:#1d1c1a;--ink:#efece6;--muted:#a8a397;--line:#34322d;--accent:#93a6ff;--good:#6fd6a2;--goodbg:#173326;--warn:#f0c46c;--warnbg:#3a2e12;--bad:#ff9a90;--badbg:#3c1c19}}
+:root[data-theme="dark"]{--bg:#141412;--card:#1d1c1a;--ink:#efece6;--muted:#a8a397;--line:#34322d;--accent:#93a6ff;--good:#6fd6a2;--goodbg:#173326;--warn:#f0c46c;--warnbg:#3a2e12;--bad:#ff9a90;--badbg:#3c1c19}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding-inline:16px;padding-block:28px}
+main{max-width:1000px;margin:0 auto;display:grid;gap:20px}
+h1{font-size:24px;margin:0;text-wrap:balance} h2{font-size:18px;margin:0 0 6px;text-wrap:balance}
+p{margin:0;max-width:72ch} .muted{color:var(--muted)}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px}
+.answer{border-left:4px solid var(--accent)}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top} th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+td.n{text-align:right;white-space:nowrap}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.g{background:var(--goodbg);color:var(--good)} .w{background:var(--warnbg);color:var(--warn)} .b{background:var(--badbg);color:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+ul{margin:0;padding-left:20px;max-width:75ch} li{margin:3px 0}
+.foot{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<main>
+<header><h1>One customer, 10 meetings in one month</h1>
+<p class="muted">Your figures (Money Control Room v3), the live rules, today's prices and the code, run as 20,000 versions of the month, then rebuilt independently by two checkers. Read-only: nothing was changed or bought. 7 Oct 2026.</p></header>
+
+<section class="answer"><h2>The straight answer</h2>
+<p><b>You can afford the tools. You cannot reliably promise 10 meetings in the same month from a cold start, and that holds even after spending more.</b></p>
+<div class="stats">
+<div class="stat"><span class="muted">Under today's rules</span><span class="big">0.2%</span><span>chance of 10 in the month (about 1.8 meetings expected)</span></div>
+<div class="stat"><span class="muted">Rules changed, 22 warmed mailboxes, hit rate exactly 1 in 250</span><span class="big">~54%</span><span>a coin flip, and that's the ceiling for 2,500 people</span></div>
+<div class="stat"><span class="muted">Same, with real-world friction</span><span class="big">~1 in 3</span><span>qualification, approvals, a stall day, booking lag</span></div>
+<div class="stat"><span class="muted">The one thing that decides it</span><span class="big">Hit rate</span><span>never measured. House's 188 emails and 0 meetings fit anything from 1 in 100 to 1 in 1,000</span></div>
+</div>
+<p>The money per meeting works at <b>$199 and $299</b>. It does not work at <b>$99</b>.</p>
+<p>Your own limit of 1,000 emails a day across all clients caps the whole business at about <b>17–18 meetings a month</b>. At 1 in 250 that's about $1.7k / $3.5k / $5.3k of revenue a month, whatever the number of clients.</p></section>
+
+<section><h2>1 · What you pay today</h2>
+<p>From your file: <b>$383.59 a month, about £286 at your rate of 1.34</b>. With the ICO fee it's about <b>£290</b>. That matches your "£300+" once VAT and card exchange fees are added.</p>
+<div class="tw"><table><tr><th>Check these</th><th>Why</th><th>Effect</th></tr>
+<tr><td>ChatGPT $20</td><td>Nothing in the product uses it</td><td class="n">−$20</td></tr>
+<tr><td>Smartlead $39</td><td>No programme client can reach it, and it overlaps Instantly. It needs your ruling (D2/R25 were never retired)</td><td class="n">−$39</td></tr>
+<tr><td>Render failover $12</td><td>The setup file defines 3 standby servers, not 1</td><td class="n">up to +$14</td></tr>
+<tr><td>Anthropic API (not on your list)</td><td>The product's AI is pay-per-use, separate from your $119 subscription</td><td class="n">+$10 or more</td></tr>
+<tr><td>Company costs (£0 in your file)</td><td>Accountant, accounting software, insurance and Companies House are needed later</td><td class="n">up to +$201</td></tr>
+</table></div>
+<p class="muted">If ChatGPT and Smartlead go: about <b>£246 a month</b>.</p></section>
+
+<section><h2>2 · The month for one customer: what it takes</h2>
+<p>10 meetings at the code's plan of 250 people per meeting means <b>2,500 people × 5 emails = 12,500 emails</b>. To start everyone early enough to land inside the month, you need about <b>22 mailboxes on 8 domains, warmed 2–3 weeks before the client pays</b>, peaking at <b>1,100 emails a day</b>.</p>
+<div class="tw"><table><tr><th></th><th>12 mailboxes</th><th>22 mailboxes</th><th>Today's rules (2 mailboxes, 100 a day)</th></tr>
+<tr><td>Peak emails a day</td><td class="n">600</td><td class="n">1,100</td><td class="n">100</td></tr>
+<tr><td>People who get all 5 emails inside the month</td><td class="n">1,800</td><td class="n">2,500</td><td class="n">≈ 600 started</td></tr>
+<tr><td>Chance of 10 in the month (hit rate exactly 1 in 250)</td><td class="n">~46%</td><td class="n">~54%</td><td class="n">0.2%</td></tr>
+<tr><td>Chance with the hit rate uncertain</td><td class="n">~41%</td><td class="n">~46%</td><td class="n">—</td></tr>
+<tr><td>Mailbox cost</td><td class="n">$84/mo</td><td class="n">$154/mo ($185 month-to-month)</td><td class="n">already paid</td></tr>
+<tr><td>Year commitment (at $7)</td><td class="n">$1,008</td><td class="n">$1,848</td><td class="n">—</td></tr>
+</table></div>
+<p><b>Why it's a coin flip even if 250 is exactly right:</b> 2,500 people at 1 in 250 gives 10 meetings <i>on average</i>, and half of all months land below average. To be 90% sure you need about <b>3,550 people (32 mailboxes)</b>. Your own sourcing cap (R166 ④: 300 people per meeting for Founders and Growth) allows at most 3,000, so the best you're allowed is about 50–57%.</p></section>
+
+<section><h2>3 · Money for that customer</h2>
+<p>All 10 meetings paid upfront. 22 mailboxes. This one client carries your whole fixed cost.</p>
+<div class="tw"><table><tr><th>Band</th><th>Client pays</th><th>You keep if all 10 land</th><th>After a warm-up month of mailboxes</th><th>Realistic (month-to-month mailboxes + company costs)</th><th>Chance of a loss</th></tr>
+<tr><td>Founders $99</td><td class="n">$990</td><td class="n">+$145</td><td class="n">−$9</td><td class="n">loses in every run</td><td><span class="pill b">does not work</span></td></tr>
+<tr><td>Growth $199</td><td class="n">$1,990</td><td class="n">+$1,095</td><td class="n">+$941</td><td class="n">≈ +$650</td><td><span class="pill w">17%</span> if missed meetings are valued as credit at the price paid</td></tr>
+<tr><td>Enterprise $299</td><td class="n">$2,990</td><td class="n">+$2,045</td><td class="n">+$1,891</td><td class="n">≈ +$1,600</td><td><span class="pill g">10%</span> on the same basis</td></tr>
+</table></div>
+<p><b>Two unchecked costs could flip $199.</b></p>
+<ul>
+<li><b>Apollo's add-on price.</b> I used $0.025 a credit. One public source says about $0.20. At $0.20, the $199 band loses money in 55% of runs. <b>Your step:</b> read the real price on Apollo's "Customize credits" slider.</li>
+<li><b>The 22 mailboxes serving only one client.</b> On the annual plan, if they can't be reused for the next client, $199 loses money every time.</li>
+</ul>
+<p><b>Over a quarter</b> (30 meetings, 12 mailboxes, 7,500 people): about a <b>42%</b> chance of all 30 inside the quarter, with 27 the middle result. You'd keep about <b>$3,400 at $199</b> and <b>$6,300 at $299</b>, before company costs.</p></section>
+
+<section><h2>4 · The risks, measured</h2>
+<div class="tw"><table><tr><th>Risk</th><th>Measured effect</th><th>Size</th></tr>
+<tr><td><b>The hit rate</b> (people per meeting)</td><td>At 1 in 400 the chance of 10 in the month falls to <b>~10%</b>; at 1 in 600 to <b>~1%</b>. With a midpoint of 400 instead of 250: <b>21%</b></td><td><span class="pill b">decides everything</span></td></tr>
+<tr><td><b>Qualified, not just booked</b> (R141's seven conditions)</td><td>If 85% of bookings qualify: <b>35%</b>. If 70%: <b>25%</b></td><td><span class="pill b">high</span></td></tr>
+<tr><td><b>No warmed pool ready</b></td><td>Mailboxes bought after the client pays start 2–3 weeks late, and the chance drops to <b>15–33%</b></td><td><span class="pill b">high</span></td></tr>
+<tr><td><b>Never run at volume</b></td><td>The most sent live is 20 a day; the plan needs 1,100 (55×). It stalled silently for days already. A lost week costs about 0.8 meetings (to ~44%)</td><td><span class="pill b">high</span></td></tr>
+<tr><td><b>Business-wide limit</b> (your 1,000-a-day brake)</td><td>Caps every client together at ~4,400 people and ~17–18 meetings a month. A front-loaded client stops every other client, House included, on 10 days of the month</td><td><span class="pill w">caps growth</span></td></tr>
+<tr><td><b>Your time</b></td><td>22 mailboxes at 20–40 minutes each is 7–15 hours, plus DNS for 8 domains, about 10 batch approvals, and around 86 replies to handle in 3 weeks. You are the only person doing all of it</td><td><span class="pill w">medium–high</span></td></tr>
+<tr><td><b>Cash before payment</b></td><td>The warmed pool is paid before any client pays ($154–185 a month, or a $1,848 year commitment). That conflicts with R166 ③, "paid in full before anything is spent"</td><td><span class="pill w">medium</span></td></tr>
+<tr><td><b>Spam</b></td><td>Real, but not measurable from here: Google's reporting barely covers work addresses at this volume</td><td><span class="pill w">unknown</span></td></tr>
+<tr><td><b>Demand</b></td><td>Nobody has paid on these terms yet</td><td><span class="pill b">unknown</span></td></tr>
+</table></div></section>
+
+<section><h2>5 · What decides stop or continue, cheaply</h2>
+<p>None of this tells you the hit rate, and that is the only number that matters. You can measure it for almost nothing:</p>
+<ul>
+<li><b>Get House sending again</b> and put <b>1,000 people</b> through all 5 emails. That uses the 4 mailboxes and Apollo plan you already pay for.</li>
+<li><b>Read the result:</b> if 1 in 250 is true, 0 meetings from 1,000 people has only a <b>2%</b> chance. So <b>0 meetings means stop</b>: the message, the targeting or the inboxing is wrong, and more tech won't fix it. <b>3 or more means the plan rate is real</b>. Then decide on pricing (drop $99), the mailbox pool, and your sending limits.</li>
+<li><b>Time:</b> about 10 weeks at today's 100 a day for House, or about 5 weeks if you raise House's daily limit to 200.</li>
+</ul></section>
+
+<p class="foot">Method: day-by-day sending model (follow-ups first, 50 a mailbox each weekday, five emails on days 0/3/7/12/18). Hit rate drawn from a range centred on 1 in 250 (5th percentile 1 in 100), updated by House's 188 emails and 0 meetings. 20,000 runs. Then rebuilt independently, exact sums and assumptions checked against public data (Instantly 2026 benchmark, Google Workspace billing, Apollo pricing) and the code. Figures marked "realistic" use the checkers' corrections. Files: scratchpad/sim/.</p>
+</main>
+
+</body>
+</html>

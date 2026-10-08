@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worst Case Reality</title>
+<style>
+:root{--bg:#f5f4f1;--card:#fff;--ink:#1b1a17;--muted:#67635b;--line:#e2ded5;--accent:#3653c9;--good:#11734a;--goodbg:#e2f3e9;--warn:#8a5a00;--warnbg:#fbefd6;--bad:#a5251e;--badbg:#fbe5e2;--wbg:#fff6f4;--pbg:#eef1fd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--card:#1d1c1a;--ink:#efece6;--muted:#a7a296;--line:#34322d;--accent:#93a6ff;--good:#6fd6a2;--goodbg:#173326;--warn:#f0c46c;--warnbg:#3a2e12;--bad:#ff9a90;--badbg:#3c1c19;--wbg:#2a1d1b;--pbg:#1c2133}}
+:root[data-theme="dark"]{--bg:#141412;--card:#1d1c1a;--ink:#efece6;--muted:#a7a296;--line:#34322d;--accent:#93a6ff;--good:#6fd6a2;--goodbg:#173326;--warn:#f0c46c;--warnbg:#3a2e12;--bad:#ff9a90;--badbg:#3c1c19;--wbg:#2a1d1b;--pbg:#1c2133}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding-inline:16px;padding-block:28px}
+main{max-width:1080px;margin:0 auto;display:grid;gap:20px}
+h1{font-size:24px;margin:0;text-wrap:balance} h2{font-size:18px;margin:0 0 6px;text-wrap:balance}
+p{margin:0;max-width:74ch} .muted{color:var(--muted)}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px}
+.answer{border-left:4px solid var(--bad)}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top} th{font-size:12px;letter-spacing:.03em;color:var(--muted)}
+td.n{text-align:right;white-space:nowrap} th.worst{color:var(--bad)} td.worstc{background:var(--wbg)} th.plan{color:var(--accent)} td.planc{background:var(--pbg)}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.g{background:var(--goodbg);color:var(--good)} .w{background:var(--warnbg);color:var(--warn)} .b{background:var(--badbg);color:var(--bad)}
+ul,ol{margin:0;padding-left:22px;max-width:76ch} li{margin:3px 0} a{color:var(--accent)}
+.foot{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<main>
+<header><h1>The worst case: 1 meeting per 1,300 people</h1>
+<p class="muted">One client, 10 meetings in one month, run the fastest way we found (bought warmed inboxes, 3 emails per person, our own sender). Your cost figures. Nothing is decided — this is for thinking. 7 Oct 2026.</p></header>
+
+<section class="answer"><h2>In one paragraph</h2>
+<p>At <b>1 in 1,300</b> one client needs <b>13,000 people, 39,000 emails, about 123 inboxes and roughly 390 replies handled in a month</b>, and costs <b>$2,450–5,540</b> that month. Break-even is <b>$258–583 a meeting</b>. At your prices you <b>lose at $99 and $199</b>, and $299 only scrapes +$389 in the best case. One person cannot answer 390 replies a month. <b>At the worst case, this business cannot operate at your prices.</b> It works only if your emails do far better than the agency average — around 1 in 250 or better — and nobody has measured that yet.</p></section>
+
+<section><h2>Five possible worlds, one client, 10 meetings</h2>
+<p class="muted">People planned = 10 × the rate, which gives an even (coin-flip) chance of all 10 in the month; for a ~85% chance you need ~30% more people and inboxes. Inboxes $6–8 each, 25 emails a day each, sending over 16 working days, 25% spares. Apollo $0.025–0.20 per credit (the top is unconfirmed). AI $0.07 a person. Card fees 5%. Your fixed ~$389 + $8 delivery.</p>
+<div class="tw"><table><tr><th></th><th class="">1 in 100 · top 10%</th><th class="">1 in 250 · our plan</th><th class="plan">1 in 500 · realistic planning case</th><th class="">1 in 600 · weak</th><th class="worst">1 in 1,300 · agency average (worst case)</th></tr><tr><td>People to email</td><td class="n">1,000</td><td class="n">2,500</td><td class="n planc">5,000</td><td class="n">6,000</td><td class="n worstc">13,000</td></tr><tr><td>Emails (3 each)</td><td class="n">3,000</td><td class="n">7,500</td><td class="n planc">15,000</td><td class="n">18,000</td><td class="n worstc">39,000</td></tr><tr><td>Inboxes (incl. spares)</td><td class="n">10</td><td class="n">24</td><td class="n planc">48</td><td class="n">57</td><td class="n worstc">123</td></tr><tr><td>Replies to handle that month</td><td class="n">~30</td><td class="n">~75</td><td class="n planc">~150</td><td class="n">~180</td><td class="n worstc">~390</td></tr><tr><td>Inboxes $/mo</td><td class="n">$60–80</td><td class="n">$144–192</td><td class="n planc">$288–384</td><td class="n">$342–456</td><td class="n worstc">$738–984</td></tr><tr><td>AI writing</td><td class="n">$70</td><td class="n">$175</td><td class="n planc">$350</td><td class="n">$420</td><td class="n worstc">$910</td></tr><tr><td>Apollo data</td><td class="n">$31–250</td><td class="n">$78–625</td><td class="n planc">$156–1,250</td><td class="n">$188–1,500</td><td class="n worstc">$406–3,250</td></tr><tr><td><b>Total cost that month</b> (incl. your fixed ~$397)</td><td class="n"><b>$558–797</b></td><td class="n"><b>$794–1,389</b></td><td class="n planc"><b>$1,191–2,381</b></td><td class="n"><b>$1,346–2,773</b></td><td class="n worstc"><b>$2,451–5,541</b></td></tr><tr><td><b>Break-even price per meeting</b></td><td class="n"><b>$59–84</b></td><td class="n"><b>$84–146</b></td><td class="n planc"><b>$125–251</b></td><td class="n"><b>$142–292</b></td><td class="n worstc"><b>$258–583</b></td></tr></table></div></section>
+
+<section><h2>What you keep from that one client</h2>
+<div class="tw"><table><tr><th>Price</th><th class="">1 in 100 · top 10%</th><th class="">1 in 250 · our plan</th><th class="plan">1 in 500 · realistic planning case</th><th class="">1 in 600 · weak</th><th class="worst">1 in 1,300 · agency average (worst case)</th></tr><tr><td>$99 a meeting (client pays $990)</td><td class="n"><span class="pill g">+$382 to +$144</span></td><td class="n"><span class="pill w">+$146 to −$448</span></td><td class="n planc"><span class="pill b">−$251 to −$1,440</span></td><td class="n"><span class="pill b">−$406 to −$1,832</span></td><td class="n worstc"><span class="pill b">−$1,511 to −$4,600</span></td></tr><tr><td>$199 a meeting (client pays $1,990)</td><td class="n"><span class="pill g">+$1,332 to +$1,094</span></td><td class="n"><span class="pill g">+$1,096 to +$502</span></td><td class="n planc"><span class="pill w">+$699 to −$490</span></td><td class="n"><span class="pill w">+$544 to −$882</span></td><td class="n worstc"><span class="pill b">−$561 to −$3,650</span></td></tr><tr><td>$299 a meeting (client pays $2,990)</td><td class="n"><span class="pill g">+$2,282 to +$2,044</span></td><td class="n"><span class="pill g">+$2,046 to +$1,452</span></td><td class="n planc"><span class="pill g">+$1,649 to +$460</span></td><td class="n"><span class="pill g">+$1,494 to +$68</span></td><td class="n worstc"><span class="pill w">+$389 to −$2,700</span></td></tr></table></div>
+<p>The ranges are cheapest-to-dearest inbox and Apollo prices. <span class="pill g">green</span> profitable even at the dear end · <span class="pill w">amber</span> depends on prices · <span class="pill b">red</span> loses even at the cheap end.</p></section>
+
+<section><h2>What the worst case means in practice</h2>
+<ul>
+<li><b>The work, not just the money:</b> 123 inboxes on ~40 domains for one client, and ~390 replies in a month — a full-time job for one client.</li>
+<li><b>Your sending limit:</b> 39,000 emails is ~1,800–2,400 a day for one client; your all-client brake is 1,000.</li>
+<li><b>The only prices that survive:</b> roughly $300–600 a meeting — about what agencies charge (see the market research).</li>
+<li><b>Same-month promise:</b> even with everything bought, planning for 10 gives only an even chance; being ~85% sure needs ~17,000 people and ~160 inboxes.</li>
+</ul></section>
+
+<section><h2>What would change the picture</h2>
+<ol>
+<li><b>A better hit rate</b> — only emailing people with a buying signal; a sharper offer. At 1 in 250 the $199 and $299 bands work (see the table). Unproven for UK clients.</li>
+<li><b>A higher price</b> — about $260–580 a meeting covers the worst case; UK agencies charge £150–500 plus a retainer.</li>
+<li><b>No same-month promise</b> — e.g. 10 meetings over 60–90 days with fewer inboxes.</li>
+<li><b>Measure first</b> — the ~$260, 5-week House test tells you which world you are in before you spend more.</li>
+</ol></section>
+
+<section><h2>Market research: is 1 in 1,300 right?</h2>
+<p><b>Verdict: 1 in 1,300 is not absurd — it is a realistic floor.</b> A large agency's whole client book (Belkins, 2025: 7.5M emails, ~1,200 meetings) works out at about 1 in 1,250–1,570 people, and an independent 147,000-email campaign landed at about 1 in 1,225. The largest independent per-person dataset (1.37M contacts, 0.64% positive replies) gives about <b>1 in 300–500</b> when replies are handled well. A tight campaign — only people with a buying signal, small-company founders, 3+ follow-ups, a soft "interested?" ask, fast replies — realistically reaches <b>1 in 150–400</b>; 1 in 100 is top-10%. Only 60–80% of booked meetings actually happen. <b>Plan on 1 in 500; stress-test at 1 in 1,300.</b></p>
+<div class="tw"><table><tr><th>Who</th><th>What they claim or show</th><th>People per meeting</th><th>Price</th></tr>
+<tr><td><b>Alta</b> (AI agents your own team runs)</td><td>One unnamed customer: 12,000 reached → 96 meetings in 6 weeks. CEO (Mar 2026): most AI SDRs are "just faster spam", "reply rates collapsed".</td><td class="n">~125 (vendor claim, unchecked)</td><td>Not published; ~$15k–60k a year reported; no meeting guarantee</td></tr>
+<tr><td><b>11x</b> (Alice)</td><td>"+30% more meetings per AE". TechCrunch (Mar 2025): claimed customers it didn't have; ex-staff "losing 70–80% of customers"; ZoomInfo pilot "significantly worse than our SDR employees". CEO stepped down May 2025.</td><td class="n">not published</td><td>$3,750/mo, annual</td></tr>
+<tr><td><b>Artisan</b> (Ava)</td><td>Founder: "sweet spot… about a 1% response rate"; admits "relatively high churn". Briefly banned by LinkedIn (Dec 2025).</td><td class="n">not published</td><td>quote-only since Jul 2026</td></tr>
+<tr><td><b>AiSDR</b></td><td>Hand-picked case studies: 7 meetings from 400; 6 meetings from 4,485 emails.</td><td class="n">57–250 (cherry-picked)</td><td>$250–2,500/mo</td></tr>
+<tr><td><b>Belkins</b> (agency)</td><td>2025, all clients: 0.45% human replies per email.</td><td class="n">~1,250–1,570</td><td>$3k–15k/mo retainer; ~$300–800+ per meeting</td></tr>
+<tr><td><b>Sales.co data</b> (independent)</td><td>1.37M contacts: 2.09% reply, 0.64% positive.</td><td class="n">~310–520</td><td>—</td></tr>
+<tr><td><b>Reddit campaign</b> (independent)</td><td>147,000 emails → 40 meetings.</td><td class="n">~1,225</td><td>—</td></tr>
+</table></div>
+<p><b>What agencies charge per meeting:</b> UK about <b>£150–500</b> per qualified meeting; US $150–500 (small business), $300–900 (mid-market). Almost all add a <b>monthly retainer of $2k–15k</b> or a setup fee. <b>No AI-SDR vendor offers a meeting guarantee.</b></p>
+<p><b>Where that leaves K.I.N.D:</b> your $99–299 per meeting, with no retainer and a meeting promise, is at or below the bottom of the market — and you are promising something nobody else does. At the realistic 1 in 500, $99 loses, $199 is marginal, $299 works (table above). At 1 in 1,300, only a price around $260–580 a meeting — roughly what agencies charge — survives.</p>
+<p class="muted">Sources (7 Oct 2026): belkins.io/blog/cold-email-response-rates · instantly.ai/cold-email-benchmark-report-2026 · hunter.io/the-state-of-cold-email · konabayev.com (Sales.co write-up) · prospeo.io case studies · gong.io · altahq.com · calcalistech.com (8 Jul 2026) · techcrunch.com (11x 24 Mar 2025, 5 May 2025; Artisan 9 Apr 2025, 7 Jan 2026) · 11x.ai/products/alice/pricing · aisdr.com/pricing · supernova-ai.com · outboundpros.io · saleshive.com. Vendor figures are marketing, not audited.</p></section>
+<section><h2>All your tech, with links</h2>
+<div class="tw"><table><tr><th>Tech</th><th>What it does</th><th>$/month</th><th>Where to manage it</th></tr><tr><td><b>Claude subscription</b></td><td>Building K.I.N.D</td><td class="n">119</td><td><a href="https://claude.ai/settings/billing">claude.ai/settings/billing</a></td></tr><tr><td><b>Anthropic API (pay-per-use)</b></td><td>The AI inside the product</td><td class="n">~10+</td><td><a href="https://console.anthropic.com">console.anthropic.com</a></td></tr><tr><td><b>Apollo</b></td><td>Finding people</td><td class="n">65</td><td><a href="https://app.apollo.io">app.apollo.io</a></td></tr><tr><td><b>Instantly</b></td><td>Warming mailboxes</td><td class="n">47</td><td><a href="https://app.instantly.ai">app.instantly.ai</a></td></tr><tr><td><b>Smartlead</b></td><td>Nothing — unused</td><td class="n">39</td><td><a href="https://app.smartlead.ai">app.smartlead.ai</a></td></tr><tr><td><b>Supabase</b></td><td>Database and logins</td><td class="n">35</td><td><a href="https://supabase.com/dashboard">supabase.com/dashboard</a></td></tr><tr><td><b>Google Workspace</b></td><td>House's 4 sending mailboxes</td><td class="n">28</td><td><a href="https://admin.google.com">admin.google.com</a></td></tr><tr><td><b>ChatGPT</b></td><td>Not used by the product</td><td class="n">20</td><td><a href="https://chatgpt.com">chatgpt.com</a></td></tr><tr><td><b>Render</b></td><td>Standby copy of the site</td><td class="n">12 (maybe 26)</td><td><a href="https://dashboard.render.com">dashboard.render.com</a></td></tr><tr><td><b>Railway</b></td><td>Runs the live API, portal, Vida</td><td class="n">10.59</td><td><a href="https://railway.com/dashboard">railway.com/dashboard</a></td></tr><tr><td><b>Domains</b></td><td>get-kind.com, kindoutreach.com, gettingkind.com, trykind.org</td><td class="n">~5</td><td><a href="https://dash.cloudflare.com">dash.cloudflare.com</a></td></tr><tr><td><b>Zoho Mail</b></td><td>hello@get-kind.com</td><td class="n">3</td><td><a href="https://mailadmin.zoho.com">mailadmin.zoho.com</a></td></tr><tr><td><b>ICO fee</b></td><td>Legal — data protection</td><td class="n">~£4 (£47/yr)</td><td><a href="https://ico.org.uk/for-organisations/data-protection-fee/">ico.org.uk/for-organisations/data-protection-fee/</a></td></tr><tr><td><b>Resend</b></td><td>System emails, alerts, replies</td><td class="n">free tier</td><td><a href="https://resend.com">resend.com</a></td></tr><tr><td><b>Cloudflare</b></td><td>DNS, site hosting, failover</td><td class="n">free</td><td><a href="https://dash.cloudflare.com">dash.cloudflare.com</a></td></tr><tr><td><b>Stripe</b></td><td>Client payments (fee per payment)</td><td class="n">per payment</td><td><a href="https://dashboard.stripe.com">dashboard.stripe.com</a></td></tr><tr><td><b>GitHub</b></td><td>The code</td><td class="n">free</td><td><a href="https://github.com/settings/billing">github.com/settings/billing</a></td></tr><tr><td><b>Netlify</b></td><td>Old waitlist page</td><td class="n">free</td><td><a href="https://app.netlify.com">app.netlify.com</a></td></tr></table></div>
+<p class="muted">Probably old accounts with keys still in the code — check you are not paying for any: Hunter, People Data Labs, Clearbit, HubSpot, Vapi, PhantomBuster, WhatsApp/Meta API, Slack, X API.</p>
+<p><b>Safe pause order:</b> ① stop sending and sourcing (Railway → API → Variables: <code>AUTO_OUTREACH_ENABLED=false</code>, <code>RUN_CRONS=false</code>; pause House in Vida) · ② cut ChatGPT and Smartlead ($59, unused) · ③ keep the domains · ④ check Google Workspace's plan before cancelling · ⑤ export Supabase before downgrading — it holds prospects' personal data (keep the ICO fee while you hold it) · ⑥ Railway and Supabase run the live sites.</p></section>
+
+<p class="foot">Sources: your Money Control Room v3 costs; live pricing rules (R166); inbox and Apollo prices from the 7 Oct research (Zapmail/Inboxlogy $5–8 per inbox; Apollo add-on price unconfirmed); 1 in 1,300 from Belkins' agency data (belkins.io, 26 Jun 2026). Market research by three independent research passes, 7 Oct.</p>
+</main>
+</body>
+</html>

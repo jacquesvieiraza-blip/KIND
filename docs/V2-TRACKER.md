@@ -35,8 +35,22 @@
   - **every batch after the first sourced by hand** → the next batch starts itself inside a live programme's own limit, and still waits for Send and Make live (**R175**, 30 Sep).
   - **"sending is OFF / delivery not proven"** → House (Client Zero) is **live and running** as of 30 Sep, kill-switch OFF. The first real send was not yet confirmed that day.
   - **UI redesign ideas for the current product** → the product look is **locked** (**R167**). Changes improve it in the look it already has.
+- ⛓️ **Added 8 Oct, the precision model (R200–R202). Each of these is superseded wherever it appears below:**
+  - **the programme** ($99 Founders · $199 Growth · $299 Enterprise per meeting, one payment, a target count, a shortfall as wallet credit) → **$1,500 setup**, paid by card before work begins, then **$700 per held meeting**, in dollars, for a US target (**R200**, **R201 ⑥**).
+  - **volume** (batches of 250, the auto top-up, the shared pool, sourcing caps per meeting) → every person has a dated, sourced reason to talk now; **100 people per client per week** to start (**R202 ⑥**); **2 mailboxes per client at 50 a day**, in the client's own Google account (**R202 ⑤**).
+  - **"the product look is locked" (R167)** → for this rebuild, both vetted demos are built exactly in their layout, with the precision details (**R201**).
+  - **the post-launch phases, tiers and steals below** → nothing in them is built unless it is a `precision` card, or the founder approves it as a new card.
 >
 > ⚠️ **This fence is a fence, not an edit.** The body below has **not** been re-fact-checked and has **not** been rewritten — that was deliberate (founder, 21 Aug). Treat every current-state sentence in it as historical until you have checked it against the three docs above.
+
+## ⛓️ 8 OCT 2026 — THE LONG-TERM PLAN, FOR THE PRECISION MODEL *(the current plan; everything below this box is history)*
+
+- **The plan of record is the six-week build (R201, R202).** Every element of the two vetted demos (Milla V2 and Vida V2), in their exact layout with the precision details: 113 rows, the `precision` cards #2726–#2818, in six weekly releases, each walked by the founder before it counts, built in stages, one at a time, with the founder's layout approval before each screen (R205). The two demos, byte for byte, and the review are in `docs/precision/` (R204). Milla's top-right menu stays; the way we find people (Apollo search, qualification, batches, mailboxes, send gate, replies, booking) is not reinvented.
+- **The deadline (R202 ① ③).** Six weeks from the GO on 8 Oct. The business continues only if, at week 6, everything is live and walked, the House pilot has **at least 2 held meetings**, and **at least 1 client has paid the setup fee**.
+- **Results every week, not at week 6 (R201).** Pilot pass marks (R202 ⑦): week 2, 3 positive replies; week 3, 2 meetings booked; week 4, 1 held meeting. A scorecard every Friday.
+- **After week 6, only if the test passes:** each client's weekly number is set from the pilot (it starts at 100 people a week, R202 ⑥), and clients are added at that number within the 1,000-a-day brake across all clients (R189 ③). Coaching is $100 per held meeting, shown "Coming soon" until it launches (R202 ⑩).
+- **The board, sorted 8 Oct** (every open card that was not a `precision` card): **89** closed into the precision card that now does the work; **157** parked as the old model (label `parked`, closed as not planned, never deleted); **113** possibly covered by a precision card, kept open and listed on that card to close when it is built; **219** still needed now and kept open; **162** future ideas that still fit the precision model, kept open for after week 6. The full list, with a reason for every card, is on the board clean-up card X3 (#2812).
+- **Everything below this box** (the post-launch phases, tiers, the learning engine, GTM and the steals) was written for earlier models. It is history: nothing in it is built unless it is a `precision` card, or the founder approves it as a new card.
 
 > 🔄 **RESTORED VERBATIM — 21 Aug 2026.** The 21-Aug "S1" cut reduced this doc to a 690-word skeleton and lost the working roadmap the founder actually uses — the three-product future (R39), agent capability specs, Alta parity, the J&J steals, the Milla & Vida future and the market history. This body is the pre-cut file restored byte-for-byte from git; **that skeleton is not deleted, it lives in git history** (`346b54dd:docs/V2-TRACKER.md`).
 > **This doc is future detail — roadmap · risks · steals.** The 25th-cut execution list stays in [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) and never moves here.
@@ -152,7 +166,7 @@ Advanced tier price/shape (safely held by "sell before build") · R2 public post
 >
 > | | **P1 · MANAGED** *(live)* | **P2 · COACHING** *(the second paid product)* | **P3 · FULL SaaS** *(later)* |
 > |---|---|---|---|
-> | **Price** | $4/approved lead · $299 start incl. 100 | Everything in P1 + added items at a **higher set per-lead price** ($8 is the founder's EXAMPLE, not locked) | **Monthly + a usage rate** — the one subscription in the model |
+> | **Price** | ⛓️ **8 Oct (R200–R202): the precision model.** **$1,500 setup**, paid by card before work begins, then **$700 per held meeting**, charged to the card on file after it takes place (`packages/shared/src/precision-pricing.ts`); US target, in dollars. Live on the website and the legal pages; Milla's own billing still runs the programme payment until M4 (#2774) replaces it. **Everything after this in the row is superseded history:** $4/approved lead · $299 start incl. 100 | Everything in P1 + added items at a **higher set per-lead price** ($8 is the founder's EXAMPLE, not locked) | **Monthly + a usage rate** — the one subscription in the model |
 > | **Billing shape** | Usage only, never monthly | **Usage only, never monthly** | Subscription + usage |
 > | **Who operates** | We do (Vida); client approves in Milla | Same, **plus a named operator close to the business** | **The client operates it themselves** |
 > | **Sequencing** | Full engine (#651), we wield it | Full engine + **Nexus auto-tuning ON** (it learns their best depth/cadence) | Full engine, **client-wielded** — the Alta-style visual flow is P3's surface |

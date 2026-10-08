@@ -1,5 +1,7 @@
 # 🗂️ FOUNDER TRUTH REGISTER — the index over the reconciliation
 
+> ⛓️ **8 Oct 2026 (R200–R202): the business model changed.** K.I.N.D now runs the **precision model**: Milla & Vida, a boutique outsourced SDR/BDR team for US companies, at **$1,500 setup** and **$700 per held meeting**. Anything below about the programme ($99 / $199 / $299 or $450 a meeting, one payment, six stages), volume batches, auto top-up, the shared pool or prices in £ is **history, not current truth**. Current truth: [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) (R200–R202) and [`KIND-MASTER.md`](./KIND-MASTER.md) → Start here; the build is the `precision` cards on the board.
+
 > ⛓️ **2 Oct — HISTORICAL INDEX.** This register describes the 28-Aug reconciliation. Several of its rows have since been overruled — read these overrides before quoting any row: **`CMP-0001` / `CMP-0002`** (the $299 pack and $4 per lead) are **retired** (R124, R137) · **`CMP-0004` / `CMP-0018`** (~$450 per meeting, 50/50) are **superseded for new programmes** by R166/R168 — a flat $99 / $199 / $299 per qualified meeting by company size, one payment · **`CMP-0007`** (partner commission) — partners are **frozen** (R139) · **`CMP-0027` / `CMP-0174`** (PDL and Hunter) — **Apollo is the only data provider** (R146) · **`CMP-0181` / `CMP-0182`** (conversion coaching, V2) — Coaching is now **Phase 1 of the commercial model** (R180, cards #2482–#2539). Status lives on the Operating Board (R85a).
 >
 > **THIS PAGE IS AN INDEX. IT IS NOT A SOURCE OF TRUTH.**

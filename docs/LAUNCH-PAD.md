@@ -1,5 +1,7 @@
 # 🚀 LAUNCH PAD — what to do now
 
+> ⛓️ **8 Oct 2026 (R200–R202): the business model changed.** K.I.N.D now runs the **precision model**: Milla & Vida, a boutique outsourced SDR/BDR team for US companies, at **$1,500 setup** and **$700 per held meeting**. Anything below about the programme ($99 / $199 / $299 or $450 a meeting, one payment, six stages), volume batches, auto top-up, the shared pool or prices in £ is **history, not current truth**. Current truth: [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) (R200–R202) and [`KIND-MASTER.md`](./KIND-MASTER.md) → Start here; the build is the `precision` cards on the board.
+
 > 🗂️ **⛓️ FROZEN 24 SEP (R85a) — STATUS NOW LIVES ON THE K.I.N.D OPERATING BOARD:** https://github.com/users/jacquesvieiraza-blip/projects/5 · Every open item is a card there; the column is its status. **This page is kept as the history record** — its dots are true as of 24 Sep and are no longer updated. Nothing here was deleted.
 
 > **This page is a LIST, not a book** (founder, 21 Aug: *"tracking docs need to be like lists… i cant read 60 000 words in 5 minutes"*). Item · one line · owner. **Why** lives in KIND-MASTER · **status** in PRODUCT-INVENTORY · **later** in V2-TRACKER · **rulings** in PRODUCT-RULES.

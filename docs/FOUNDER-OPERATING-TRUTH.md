@@ -1,5 +1,7 @@
 # 🎛️ FOUNDER OPERATING TRUTH — the daily operating layer
 
+> ⛓️ **8 Oct 2026 (R200–R202): the business model changed.** K.I.N.D now runs the **precision model**: Milla & Vida, a boutique outsourced SDR/BDR team for US companies, at **$1,500 setup** and **$700 per held meeting**. Anything below about the programme ($99 / $199 / $299 or $450 a meeting, one payment, six stages), volume batches, auto top-up, the shared pool or prices in £ is **history, not current truth**. Current truth: [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) (R200–R202) and [`KIND-MASTER.md`](./KIND-MASTER.md) → Start here; the build is the `precision` cards on the board.
+
 > ⛓️ **FROZEN — 2 Oct.** This page was last regenerated on 29 Aug and predates the board rule (**R85a**, 24 Sep), the new prices (**R166**, 25 Sep) and "nothing goes to GPT" (**R154**, 24 Sep). **It is history, not today.** For where things stand, open **the K.I.N.D Operating Board (GitHub Project #5)** — every item is a card, its column is its status, READY is the founder's GO — and the START HERE box at the top of KIND-MASTER. Rulings are in PRODUCT-RULES. The dated corrections below fix the lines a reader would act on wrongly; everything else is kept as written.
 
 > **What this is.** The one page the founder opens to answer *"what is happening right now, and what needs me?"* It is the **operating** layer: today, this week, who is doing what, what is blocked, what needs a decision.

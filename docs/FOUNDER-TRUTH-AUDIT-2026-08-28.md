@@ -1,5 +1,7 @@
 # 🔎 FOUNDER TRUTH AUDIT — 28 August 2026
 
+> ⛓️ **8 Oct 2026 (R200–R202): the business model changed.** K.I.N.D now runs the **precision model**: Milla & Vida, a boutique outsourced SDR/BDR team for US companies, at **$1,500 setup** and **$700 per held meeting**. Anything below about the programme ($99 / $199 / $299 or $450 a meeting, one payment, six stages), volume batches, auto top-up, the shared pool or prices in £ is **history, not current truth**. Current truth: [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) (R200–R202) and [`KIND-MASTER.md`](./KIND-MASTER.md) → Start here; the build is the `precision` cards on the board.
+
 > **This file is an AUDIT, not a source of truth.** It records what was found, where, and how far it can be trusted. It changes nothing, decides nothing and supersedes nothing.
 
 ---

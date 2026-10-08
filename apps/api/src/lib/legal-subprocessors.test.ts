@@ -88,9 +88,12 @@ describe('the FORMAL DPA table is complete — it is what a client\'s lawyer rea
 })
 
 describe('the pages describe the provider\'s ROLE, not just its name', () => {
-  it('Apollo is identified as the only source of prospect data', () => {
-    expect(dpa).toMatch(/only source of prospect data/i)
-    expect(privacy).toMatch(/only source of prospect data/i)
+  // ⛓️ 8 Oct (precision model) — WAS "the only source of prospect data". The dated reason to get in touch
+  // now comes from public sources (company announcements, news, job postings), so Apollo is the only
+  // source of prospect CONTACT DETAILS, and the pages say exactly that.
+  it('Apollo is identified as the only source of prospect contact details', () => {
+    expect(dpa).toMatch(/only source of prospect contact details/i)
+    expect(privacy).toMatch(/only source of prospect contact details/i)
     expect(terms).toMatch(/sourced from Apollo\.io, a licensed B2B data provider/)
   })
 })

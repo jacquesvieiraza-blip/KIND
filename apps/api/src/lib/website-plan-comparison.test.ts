@@ -7,36 +7,51 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { BAND_PRICE_PER_MEETING_USD } from '@kind/shared'
+import { BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
+
+// ⛓️ 8 Oct (precision model, founder GO) — THERE ARE NO PLANS TO COMPARE ANY MORE: one setup fee and
+// one price per held meeting for every client. The drop-down stays, under the price cards and closed,
+// and now shows what the setup fee, the monthly (no fee) and each held meeting include. ② holds: no
+// Coaching price until it launches. ① is AMENDED by the founder's 8 Oct note, verbatim: "pricing needs
+// to have coaching coming soon too. this is vital to growth" — the approved preview shows Coaching's
+// first features (a deal coach, a deeper debrief, roleplay) marked Coming soon, so "Deal coach" is no
+// longer on the not-advertised list. Everything else later-phase stays off the site.
 
 const html = readFileSync(join(__dirname, '../../../website/pricing.html'), 'utf8')
 const start = html.indexOf('<details class="cmp" id="compare">')
 const block = start >= 0 ? html.slice(start, html.indexOf('</details>', start) + 10) : ''
 const text = block.replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/g, ' ').replace(/\s+/g, ' ')
 
-describe('R181 — the plan comparison under the prices', () => {
-  it('exists, sits under the three prices, and is closed by default', () => {
+describe('R181, amended 8 Oct — what the price includes, under the price cards', () => {
+  it('exists, sits under the price cards, and is closed by default', () => {
     expect(start).toBeGreaterThan(html.indexOf('<div class="plan-grid">'))
     expect(block).not.toMatch(/<details[^>]*\bopen\b/)
-    expect(text).toContain('Compare what each plan includes')
+    expect(text).toContain('See everything that s included')
   })
 
-  it('heads each column with the band price from @kind/shared', () => {
-    for (const p of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(text).toContain(`$${p}`)
+  it('heads the columns with the setup fee and the price per held meeting from @kind/shared, and no band', () => {
+    expect(text).toContain(`Setup ${formatGbpWhole(PRECISION_SETUP_FEE_GBP)}`)
+    expect(text).toContain('Monthly No fee')
+    expect(text).toContain(`Meeting held ${formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}`)
+    for (const p of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(text, `the $${p} band is back`).not.toContain(`$${p}`)
   })
 
-  it('② shows no Full Coaching price — "priced when it launches"', () => {
-    expect(text).not.toMatch(/\$100|\+\s*\$|uplift/i)
-    expect(text).toContain('Full Coaching is priced when it launches')
+  it('② shows no Coaching price — "priced per held meeting when it launches"', () => {
+    expect(text).not.toMatch(/\$\d|\+\s*£|uplift/i)
+    // The Coaching rows run from their group heading to the note under the table; no figure inside them.
+    const coaching = text.slice(text.indexOf('Coaching, optional'), text.indexOf('You pay '))
+    expect(coaching.length, 'the Coaching rows are gone').toBeGreaterThan(40)
+    expect(coaching, 'a Coaching price is on the site').not.toMatch(/[£$]\s?\d/)
+    expect(text).toContain('Coaching is optional, is priced per held meeting when it launches')
   })
 
   it('① every not-yet-built feature is marked Coming soon; later-phase features are not advertised', () => {
-    for (const soon of ['What s converting for you', 'Follow-up drafted after each meeting', 'Prep built on your own pitch', 'Meeting debrief with Milla', 'Objection Coach and roleplay']) {
+    for (const soon of ['Meeting card: who and why now', 'How did it go? after every meeting', 'Deal coach, built on your pitch', 'A deeper debrief with Milla', 'Roleplay on upcoming meetings']) {
       const at = text.indexOf(soon)
       expect(at, soon).toBeGreaterThan(-1)
       expect(text.slice(at, at + soon.length + 20), soon).toContain('Coming soon')
     }
-    for (const later of ['Deal Coach', 'Deal Review', 'Scorecard', 'Team coaching', 'Manager', 'Win / Loss', 'Win/Loss', 'Winning Moments', 'Playbook', 'Conversion Intelligence', 'transcri', 'recording']) {
+    for (const later of ['Deal Review', 'Scorecard', 'Team coaching', 'Manager', 'Win / Loss', 'Win/Loss', 'Winning Moments', 'Playbook', 'Conversion Intelligence', 'transcri', 'recording']) {
       expect(text, later).not.toContain(later)
     }
   })

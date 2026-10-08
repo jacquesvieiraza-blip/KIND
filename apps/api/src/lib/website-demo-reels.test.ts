@@ -29,10 +29,14 @@ const LIVE = (() => {
   return readdirSync(WEB).filter(f => f.endsWith('.html') && !retired.has(f))
 })()
 
+// ⛓️ 8 Oct (founder: "nothing should show the old model either.") — both reels and the Vida still were
+// remade on the precision model, under NEW file names: the CDN failover serves .mp4 and images as
+// immutable for a year, so a reused name could keep showing the old reel. The old files stay on disk
+// (nothing is deleted). The Milla still (abstract shapes, no words) is unchanged.
 const REELS: Array<{ page: string; video: string; still: string }> = [
-  { page: 'index.html', video: 'mv-milla-reel.mp4', still: 'mv-milla-reel-poster.webp' },
-  { page: 'milla.html', video: 'mv-milla-reel.mp4', still: 'mv-milla-reel-poster.webp' },
-  { page: 'vida.html', video: 'mv-vida-reel.mp4', still: 'mv-vida-reel-poster.webp' },
+  { page: 'index.html', video: 'mv-milla-reel-v2.mp4', still: 'mv-milla-reel-poster.webp' },
+  { page: 'milla.html', video: 'mv-milla-reel-v2.mp4', still: 'mv-milla-reel-poster.webp' },
+  { page: 'vida.html', video: 'mv-vida-reel-v2.mp4', still: 'mv-vida-reel-poster-v2.webp' },
 ]
 
 describe('each page plays its own reel, under its own picture', () => {
@@ -52,8 +56,11 @@ describe('each page plays its own reel, under its own picture', () => {
   // visitor reads directly under the thing it is wrong about.
   it('each caption describes the picture above it, not the one it replaced', () => {
     const cap = (p: string) => read(p).match(/<div class="product-caption"><strong>[^<]*<\/strong><span>([^<]*)<\/span>/)?.[1] ?? ''
-    expect(cap('index.html')).toBe('Results: your programme in progress, and only the replies that need you. Demo data.')
-    expect(cap('vida.html')).toBe('The operator view: a programme preparing itself, with nothing waiting on a person. Demo records.')
+    // ⛓️ 8 Oct — the captions describe the remade reels (precision model).
+    expect(cap('index.html')).toBe('This month’s work in one place, and only the replies that need you. Demo data.')
+    expect(cap('vida.html')).toBe('Our team\'s view: the month\'s companies, the reason to contact each one, and every message waiting for a person to check it. Demo records.')
+    expect(read('index.html'), 'the programme caption is back').not.toContain('your programme in progress')
+    expect(read('vida.html'), 'the programme caption is back').not.toContain('a programme preparing itself')
     expect(read('index.html'), 'the old Milla caption is back').not.toContain('Your brief, confirmed by you before anything runs')
     expect(read('vida.html'), 'the old Vida caption is back').not.toContain('sending state, daily cap and what still needs approval')
   })
@@ -65,7 +72,7 @@ describe('each page plays its own reel, under its own picture', () => {
 })
 
 describe('the files behind the play buttons are real, and start fast', () => {
-  for (const f of ['mv-milla-reel.mp4', 'mv-vida-reel.mp4']) {
+  for (const f of ['mv-milla-reel-v2.mp4', 'mv-vida-reel-v2.mp4']) {
     it(`${f} is an MP4 whose index comes before its data`, () => {
       expect(existsSync(join(WEB, f)), `${f} is missing — the play button leads nowhere`).toBe(true)
       const b = bytes(f)
@@ -79,7 +86,7 @@ describe('the files behind the play buttons are real, and start fast', () => {
     })
   }
 
-  for (const f of ['mv-milla-reel-poster.webp', 'mv-vida-reel-poster.webp']) {
+  for (const f of ['mv-milla-reel-poster.webp', 'mv-vida-reel-poster-v2.webp']) {
     it(`${f} is a real WebP picture`, () => {
       expect(existsSync(join(WEB, f)), `${f} is missing — the frame would be empty`).toBe(true)
       const b = bytes(f)

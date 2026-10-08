@@ -85,9 +85,13 @@ export function fieldsOf(e: Enquiry): Array<[string, string]> {
         ['Email', e.email],
         ['Company', e.company],
         ['Website', e.website],
-        ['Outcome they want', e.outcome],
+        // ⛓️ 8 Oct (precision model) — the Get started questions changed, so the labels the founder
+        // reads follow them: "What do you want the programme to achieve?" became "What do you sell,
+        // and who buys it?", and "Qualified meetings you are targeting" became "What is a typical
+        // deal worth to you?". The payload keys (outcome, volume) are unchanged.
+        ['What they sell', e.outcome],
         ['Who to target', e.target],
-        ['Volume', e.volume],
+        ['Typical deal size', e.volume],
         ['Timing', e.when],
       ]
   return rows.filter((r): r is [string, string] => Boolean(r[1]))

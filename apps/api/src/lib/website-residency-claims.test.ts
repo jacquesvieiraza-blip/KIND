@@ -114,7 +114,11 @@ describe('② "Cape Town" and "South Africa" are banned in a HOSTING sentence on
     // flattened.
     expect(read('dpa.html'), 'the team really is in South Africa').toContain('Our team is based in South Africa')
     expect(read('figsy.html'), 'testimonial cities are a different problem, not this pass').toContain('Cape Town')
-    expect(read('terms.html'), 'POPIA is still a named law').toContain('POPIA (South Africa)')
+    // ⛓️ 8 Oct (founder, 7 Oct: "south africa is not a target country. we target US only as a start.")
+    // — WAS "POPIA is still a named law" on the Terms. South Africa is no longer a market, so POPIA left
+    // the Terms on purpose; the slot it held now states the lawful basis, and THAT is what must survive.
+    expect(read('terms.html'), 'the lawful-basis slot that replaced POPIA is gone').toContain('Why we may contact people')
+    expect(read('dpa.html'), 'the team location must survive the US-only change').toContain('Our team is based in South Africa and is happy to answer any questions')
   })
 })
 
@@ -146,8 +150,13 @@ describe('④ the replacement claims are ones the CODE can prove', () => {
     for (const f of ['support.html', 'about.html']) {
       expect(read(f), `${f} still claims every lead consents`).not.toContain('consent workflow')
       expect(read(f)).toContain('legitimate-interest basis')
-      expect(read(f)).toContain('one-click unsubscribe and our postal address')
     }
+    // ⛓️ 8 Oct (precision model) — About now says "a postal address": emails go out in the client's name,
+    // and whose address the footer carries is the client's decision still to settle (D8 / T5). Every send
+    // path still adds a postal footer, so "a postal address" is true either way. support.html is retired
+    // and unchanged.
+    expect(read('support.html')).toContain('one-click unsubscribe and our postal address')
+    expect(read('about.html')).toContain('every message carries a one-click unsubscribe and a postal address')
   })
 
   // ⛓️ REWRITTEN 16 Sep — FROM A FREQUENCY COUNT TO A NAMED-PAGE REQUIREMENT.
@@ -267,9 +276,12 @@ describe('⑤ the portal legal pages carry the same truth as the website', () =>
     // The #617 shape again: "no offenders" is equally satisfied by deleting every mention,
     // including the ones that were never false. POPIA is still a named law and South African
     // data subjects still have rights under it.
+    // ⛓️ 8 Oct (founder, 7 Oct: "south africa is not a target country. we target US only as a start.") — the
+    // portal's legal pages now carry the website's text word for word, and POPIA left both on purpose.
+    // What must survive is what replaced it: the lawful-basis section and the rights of anyone we emailed.
     const s = readPortal('privacy.html')
-    expect(s, 'POPIA still governs South African data subjects').toContain('POPIA')
-    expect(readPortal('terms.html'), 'POPIA is still a named law').toContain('POPIA (South Africa)')
+    expect(s, 'the rights of anyone we emailed').toContain('If we have emailed you (anyone, anywhere)')
+    expect(readPortal('terms.html'), 'the lawful-basis section that replaced POPIA').toContain('Why we may contact people')
   })
 })
 
@@ -321,7 +333,9 @@ describe('⑥ no live legal surface promises a trial or an outcome guarantee', (
     // Deleting the guarantee section entirely would also pass every assertion above while
     // leaving the Terms silent on outcomes — the #617 shape. The document must SAY it.
     const terms = readFileSync(join(__dirname, '../../../portal/public/terms.html'), 'utf8')
-    expect(terms, 'the Terms must state the no-guarantee position').toContain('No Outcome Guarantee')
+    // ⛓️ 8 Oct — the portal Terms are now the website's text: the heading is "No guarantee of results".
+    expect(terms, 'the Terms must state the no-guarantee position').toContain('No guarantee of results')
+    expect(terms).toContain('We do not guarantee any number of meetings')
     expect(terms, 'and state plainly that there is no trial').toContain('There is no free trial')
   })
 })

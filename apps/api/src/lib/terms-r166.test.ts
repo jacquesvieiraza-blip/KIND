@@ -21,38 +21,47 @@ const text = (p: string) => readFileSync(join(ROOT, p), 'utf8')
   .replace(/<[^>]+>/g, ' ').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–').replace(/&rsquo;/g, '’')
   .replace(/&amp;/g, '&').replace(/\s+/g, ' ')
 
+// ⛓️ 8 Oct (precision model, founder GO: "give me a PR to merge to make live"; "Yes, card on file";
+// "24 hours") — R166's bands, one programme payment and shortfall credit are replaced for new clients.
+// Both portal copies now state the precision model: a £1,000 setup fee by card before work begins, then
+// £500 for each held meeting, charged to the card on file after it takes place, the same for every
+// client, and nothing for a meeting that does not happen. Programmes agreed before 8 October keep the
+// terms agreed at the time. The static file types the figures (no build step), held to the constants;
+// the route interpolates them and types none.
+import { PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
+const raw = (p: string) => readFileSync(join(ROOT, p), 'utf8')
+
 for (const f of ['public/terms.html', 'src/app/(legal)/terms/page.tsx']) {
   describe(f, () => {
     const t = text(f)
-    it('prices by company size, set by us, with no volume discount — and types no price', () => {
-      expect(t).toMatch(/Founders \(1–50 employees\), Growth \(51–200\) or Enterprise \(more than 200\)/)
-      expect(t).toMatch(/Pricing page/)
+    it('one setup fee and one price per held meeting, the same for every client — no band, no dollar price', () => {
       if (f.endsWith('.html')) {
-        // ⛓️ 25 Sep (R168 ④ · P13b) — WAS `/you do not choose your band/` (R166 ②: "never chosen by
-        // the client"). The founder then ruled that the client TELLS us their size and we check it,
-        // and approved this exact sentence for the Terms. The old line is now forbidden, not merely
-        // absent.
-        expect(t).not.toMatch(/you do not choose your band/)
-        expect(t).toMatch(/There is no volume discount/)
+        // text() turns each tag into a space, so "<strong>£1,000</strong>," reads "£1,000 ,".
+        const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        expect(t).toMatch(new RegExp(`a one-off setup fee of ${esc(formatGbpWhole(PRECISION_SETUP_FEE_GBP))}\\s*, paid before we start, and ${esc(formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP))}\\s+for each meeting that is held`))
+      } else {
+        expect(raw(f)).toContain('formatGbpWhole(PRECISION_SETUP_FEE_GBP)')
+        expect(raw(f)).toContain('formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)')
+        expect(t, 'a price is typed into what the route renders').not.toMatch(/£\s?\d/)
       }
-      // ⚑ 25 Sep (R168 ④) — the approved size sentence, in both the Terms file and the page.
-      expect(t).toContain('You tell us the size of your company when you sign up, and your price is set from it. We check it against company records; if they show your company is larger, our team confirms your band before you pay.')
+      expect(t, 'the size band is back').not.toMatch(/Founders \(1–50 employees\)|your price is set from it|confirms your band/)
       expect(t).not.toMatch(/\$\s?\d/)
     })
-    it('one payment, in full, when you accept; outreach only after approval', () => {
-      expect(t).toMatch(/in one payment, in full/i)
-      expect(t).toMatch(/outreach begins only after you approve the prepared package/i)
+    it('the setup fee by card before work begins; each held meeting charged to the card on file; nothing sent before approval', () => {
+      expect(t).toMatch(/paid by card/i)
+      expect(t).toMatch(/card (you keep )?on file/i)
+      expect(t).toMatch(/nothing is sent until you have approved it|No email is sent until you have approved it/i)
+      expect(t, 'the one programme payment is back').not.toMatch(/in one payment, in full, when you accept/i)
     })
-    it('the credit: once per client, expires 90 days after it is credited', () => {
-      expect(t).toMatch(/once per client/i)
-      expect(t).toMatch(/expires 90 days after it is credited/i)
+    it('no credit: a meeting that does not happen is not charged', () => {
+      expect(t).toMatch(/If a meeting doesn[’']t happen, you don[’']t pay for it/)
+      expect(t, 'the shortfall credit is back').not.toMatch(/once per client|expires 90 days after it is credited/i)
     })
-    it('⛓️ the earlier two-payment terms are kept, and labelled as the earlier terms', () => {
-      expect(t).toMatch(/under our earlier terms/i)
-      expect(t).toMatch(/Payment 2 is never charged/)
+    it('agreements made before 8 October 2026 keep the terms agreed at the time', () => {
+      expect(t).toMatch(/before (these terms were updated on )?8 October 2026 continues on the terms agreed at the time/)
+      expect(t, 'the halves are back as the current model').not.toMatch(/Payment 2 is never charged/)
     })
-    // ⛓️ 1 Oct — WAS 'dated 25 September 2026'. The Terms changed on 1 Oct (R182 · W-6) and the
-    // founder said "yes fix the dates"; `legal-pages-dated.test.ts` now pins the date on every page.
-    it('dated 1 October 2026', () => { expect(t).toMatch(/Last updated: 1 October 2026/) })
+    // ⛓️ 8 Oct — WAS 'dated 1 October 2026'; `legal-pages-dated.test.ts` pins the date on every page.
+    it('dated 8 October 2026', () => { expect(t).toMatch(/Last updated: 8 October 2026/) })
   })
 }

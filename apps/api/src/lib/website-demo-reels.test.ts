@@ -34,9 +34,11 @@ const LIVE = (() => {
 // immutable for a year, so a reused name could keep showing the old reel. The old files stay on disk
 // (nothing is deleted). The Milla still (abstract shapes, no words) is unchanged.
 const REELS: Array<{ page: string; video: string; still: string }> = [
-  { page: 'index.html', video: 'mv-milla-reel-v2.mp4', still: 'mv-milla-reel-poster.webp' },
-  { page: 'milla.html', video: 'mv-milla-reel-v2.mp4', still: 'mv-milla-reel-poster.webp' },
-  { page: 'vida.html', video: 'mv-vida-reel-v2.mp4', still: 'mv-vida-reel-poster-v2.webp' },
+  // ⛓️ 8 Oct (later, R201 ⑥) — v3: the reels re-rendered with the dollar prices ($1,500 setup, $700 a meeting),
+  // under new names because the CDN caches media for a year.
+  { page: 'index.html', video: 'mv-milla-reel-v3.mp4', still: 'mv-milla-reel-poster.webp' },
+  { page: 'milla.html', video: 'mv-milla-reel-v3.mp4', still: 'mv-milla-reel-poster.webp' },
+  { page: 'vida.html', video: 'mv-vida-reel-v3.mp4', still: 'mv-vida-reel-poster-v2.webp' },
 ]
 
 describe('each page plays its own reel, under its own picture', () => {
@@ -72,7 +74,7 @@ describe('each page plays its own reel, under its own picture', () => {
 })
 
 describe('the files behind the play buttons are real, and start fast', () => {
-  for (const f of ['mv-milla-reel-v2.mp4', 'mv-vida-reel-v2.mp4']) {
+  for (const f of ['mv-milla-reel-v3.mp4', 'mv-vida-reel-v3.mp4']) {
     it(`${f} is an MP4 whose index comes before its data`, () => {
       expect(existsSync(join(WEB, f)), `${f} is missing — the play button leads nowhere`).toBe(true)
       const b = bytes(f)

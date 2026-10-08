@@ -64,6 +64,6 @@ export * from './milla-notices'
 export * from './reply-text'
 // ⚑ 25 Sep (R166 ② · P7) — the client's size band (Founders · Growth · Enterprise).
 export * from './size-band'
-// ⚑ 8 Oct (precision model) — £1,000 setup + £500 per held meeting; the website is held to these.
+// ⚑ 8 Oct (precision model, R201 ⑥) — $1,500 setup + $700 per held meeting; the website is held to these.
 export * from './precision-pricing'
 export * from './real-clients-filter'

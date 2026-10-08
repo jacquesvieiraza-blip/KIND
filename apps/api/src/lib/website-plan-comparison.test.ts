@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
+import { BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_USD, PRECISION_PER_HELD_MEETING_USD, formatUsdWhole } from '@kind/shared'
 
 // ⛓️ 8 Oct (precision model, founder GO) — THERE ARE NO PLANS TO COMPARE ANY MORE: one setup fee and
 // one price per held meeting for every client. The drop-down stays, under the price cards and closed,
@@ -30,14 +30,17 @@ describe('R181, amended 8 Oct — what the price includes, under the price cards
   })
 
   it('heads the columns with the setup fee and the price per held meeting from @kind/shared, and no band', () => {
-    expect(text).toContain(`Setup ${formatGbpWhole(PRECISION_SETUP_FEE_GBP)}`)
+    expect(text).toContain(`Setup ${formatUsdWhole(PRECISION_SETUP_FEE_USD)}`)
     expect(text).toContain('Monthly No fee')
-    expect(text).toContain(`Meeting held ${formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}`)
+    expect(text).toContain(`Meeting held ${formatUsdWhole(PRECISION_PER_HELD_MEETING_USD)}`)
     for (const p of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(text, `the $${p} band is back`).not.toContain(`$${p}`)
   })
 
   it('② shows no Coaching price — "priced per held meeting when it launches"', () => {
-    expect(text).not.toMatch(/\$\d|\+\s*£|uplift/i)
+    // ⛓️ 8 Oct (later, R201 ⑥) — WAS no dollar figure at all. In dollars now: the only figures are the two prices.
+    const dollars = [...text.matchAll(/\$\s?[\d,]*\d/g)].map(m => m[0].replace(/\s/g, ''))
+    expect(dollars.filter(d => d !== formatUsdWhole(PRECISION_SETUP_FEE_USD) && d !== formatUsdWhole(PRECISION_PER_HELD_MEETING_USD))).toEqual([])
+    expect(text).not.toMatch(/£\s?\d|\+\s*\$|uplift/i)
     // The Coaching rows run from their group heading to the note under the table; no figure inside them.
     const coaching = text.slice(text.indexOf('Coaching, optional'), text.indexOf('You pay '))
     expect(coaching.length, 'the Coaching rows are gone').toBeGreaterThan(40)

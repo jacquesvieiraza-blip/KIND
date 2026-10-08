@@ -72,6 +72,7 @@ describe('W-2 — the live website copy says only what is true', () => {
     expect(page('trust.html')).toMatch(/We source prospects from Apollo\.io, a licensed B2B data provider/)
     expect(page('faqs.html')).toMatch(/Milla drafts the answer and a person on our team checks it/)
     expect(page('get-started.html')).toMatch(/You can create a free account and start with Milla yourself/)
-    expect(page('pricing.html')).toMatch(/Enterprise — 201\+ employees/)
+    // ⛓️ 8 Oct (precision model) — WAS "Enterprise — 201+ employees": there are no size bands now.
+    expect(page('pricing.html')).toMatch(/One price for every client\./)
   })
 })

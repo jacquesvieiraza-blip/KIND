@@ -4,7 +4,15 @@ import { join } from 'path'
 import {
   PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD,
   PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD,
+  PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, PRECISION_CLIENT_NOTICE_HOURS, formatGbpWhole,
 } from '@kind/shared'
+
+// ⛓️ 8 Oct (precision model, founder GO: "give me a PR to merge to make live") — THE SITE NOW SELLS
+// A £1,000 SETUP FEE AND £500 PER HELD MEETING, THE SAME FOR EVERY CLIENT. The band prices, the one
+// programme payment and the shortfall credit are gone from every page a visitor can read. Every
+// figure below is still derived from @kind/shared, never typed here.
+const SETUP = formatGbpWhole(PRECISION_SETUP_FEE_GBP)            // "£1,000"
+const PER_MEETING = formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP) // "£500"
 
 /**
  * ⛓️ 25 Sep (R166 ① · P13) — $299 IS NOW ENTERPRISE'S PRICE PER QUALIFIED MEETING, and the
@@ -183,8 +191,12 @@ describe('the contract describes the programme the code actually prices', () => 
   // flat by company size (founder: *"99 for founders. 199 for growth. and 299 for enterprise"*,
   // *"Fixed $299, shown on the site"*). Still derived, never typed: if a band price moves in
   // @kind/shared, this fails. The curve figures must not be quoted as the current price.
-  it('§4 names the band prices from the constants, and no longer quotes the curve', () => {
-    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms).toContain(`<strong>$${usd}</strong>`)
+  // ⛓️ 8 Oct (precision model) — WAS "§4 names the band prices". §4 now names the setup fee and the
+  // price per held meeting, in pounds, from the constants; no band price and no curve figure.
+  it('§4 names the setup fee and the price per held meeting from the constants, in GBP, and no dollar price', () => {
+    expect(terms).toContain(`a one-off setup fee of <strong>${SETUP}</strong>, paid before we start, and <strong>${PER_MEETING}</strong> for each meeting that is held`)
+    expect(terms).toContain('<strong>pounds sterling (GBP)</strong>')
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms, `§4 still quotes the $${usd} band`).not.toContain(`$${usd}`)
     expect(terms).not.toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
     expect(terms).not.toContain(`$${PROGRAMME_FLOOR_USD} per qualified meeting`)
   })
@@ -195,11 +207,17 @@ describe('the contract describes the programme the code actually prices', () => 
   // credits or top-ups … no balance is held on your account", which would have denied, in the
   // contract, the one credit the product now owes. It is still not a top-up model — nobody
   // pre-loads a balance — so that denial stays pinned, and the credit is now pinned beside it.
-  it('§4 states the 50/50 split, is still not a top-up model, and names the one credit it holds', () => {
-    expect(terms).toContain('50% of your programme price')
+  // ⛓️ 8 Oct (precision model; founder chose "Yes, card on file") — WAS "§4 states the 50/50 split …
+  // and names the one credit it holds". There is no split and no credit now: the setup fee is paid by
+  // card before work begins, and each held meeting is charged to that card after it takes place, so
+  // a meeting that does not happen is simply never charged. Still not a top-up model.
+  it('§4 states the card on file, charged after each held meeting, is not a top-up model, and holds no credit', () => {
+    expect(terms).toContain(`The setup fee of ${SETUP} is paid by card, in one payment, in full, before work begins, and the card stays on file for your held meetings.`)
+    expect(terms).toContain('Each held meeting is charged to the card you keep on file with us, after the meeting takes place.')
     expect(terms).toContain('not a wallet top-up')
-    expect(terms).toContain('The one credit we hold for you is for qualified meetings we did not deliver')
-    expect(terms, 'the old sentence denied any balance — it contradicts the credit').not.toContain('no balance is held on your account')
+    expect(terms, 'the halves are back').not.toContain('50% of your programme price')
+    expect(terms, 'a credit is back — nothing undelivered is ever charged, so nothing is owed back').not.toContain('The one credit we hold for you')
+    expect(terms).not.toMatch(/credited to your (K\.I\.N\.D )?account/)
   })
 
   // ⛓️ 23 Sep — REWRITTEN BY FOUNDER RULING: "BOOKED MEETING" → "QUALIFIED MEETING".
@@ -210,33 +228,39 @@ describe('the contract describes the programme the code actually prices', () => 
   // absorbing no-shows, wrong decision-makers and after-the-fact disputes it cannot control. So
   // the thing being sold is now a QUALIFIED meeting, defined by seven conditions, and the old
   // calendar-only definition is exactly what must not creep back.
-  it('§5 defines a QUALIFIED meeting by all seven conditions — the thing actually being sold', () => {
+  // ⛓️ 8 Oct (precision model) — WAS a QUALIFIED meeting, counted when it was booked. The thing sold is
+  // now a HELD meeting: condition 4 says it took place, with the agreed person, and a meeting that is
+  // arranged but does not happen is not one. "Scheduled" must not creep back as the test of a charge.
+  it('§5 defines a HELD meeting by all seven conditions — the thing actually being sold', () => {
     const conditions = [
       'falls within your approved ICP and targeting criteria',
       'agreed role, seniority or buying-influence criteria',
       'positively agreed to a meeting with you',
-      'scheduled for an agreed date and time',
+      'The meeting took place at the agreed date and time, with the agreed person',
       'genuine relevance to your stated offer, problem or service area',
       'not an existing customer, active opportunity or excluded account',
       'evidence the prospect&rsquo;s acceptance of the meeting',
     ]
-    expect(terms).toContain('A <strong>qualified meeting</strong> is a meeting that meets all seven')
+    expect(terms).toContain('A <strong>held meeting</strong> is a meeting that meets all seven')
+    expect(terms).toContain('neither is a meeting that is arranged but does not take place')
+    expect(terms, 'a booked meeting is being charged again').not.toContain('scheduled for an agreed date and time')
     for (const c of conditions) expect(terms, `§5 has lost a condition: "${c}"`).toContain(c)
     // The definition that carried the risk. "A real person at a company that matches the brief"
     // is any person at any matching company — no role, no relevance, no evidence.
     expect(terms, 'the old calendar-only definition is back').not.toContain('by a real person at a company that matches the brief')
   })
 
-  it('§5 carries the credit, the no-show rules, the challenge window and the split of responsibility', () => {
-    expect(terms).toContain('each qualified meeting not delivered is credited to your account at the per-meeting rate you paid')
-    // ⛓️ 25 Sep (R166 ③ ⑤) — one payment, so "the first payment" is gone; once per client, 90 days.
-    expect(terms).toContain('applied against the payment for your next programme')
-    expect(terms).toContain('This credit is given <strong>once per client</strong> and <strong>expires 90 days</strong> after it is credited')
-    expect(terms).toContain('not paid out in cash')
-    expect(terms).toContain('reschedule the meeting once, at no additional charge')
-    expect(terms).toContain('You cancel or do not attend:</strong> the meeting counts as delivered')
-    expect(terms).toContain('within 3 business days of the meeting being booked into your calendar')
+  // ⛓️ 8 Oct (precision model; founder chose "24 hours") — WAS "§5 carries the credit …". No credit:
+  // a meeting that does not happen is not charged. The client's own cancellation or no-show is still
+  // charged, now unless they gave PRECISION_CLIENT_NOTICE_HOURS' notice, and a challenge runs from the
+  // meeting taking place, since only a held meeting is charged.
+  it('§5 carries the no-charge rule, the no-show rules, the challenge window and the split of responsibility', () => {
+    expect(terms).toContain('<strong>If a meeting doesn\'t happen, you don\'t pay for it.</strong>')
+    expect(terms).toContain('<strong>The prospect does not attend:</strong> you are not charged, and we will make reasonable efforts to reschedule the meeting once.')
+    expect(terms).toContain(`<strong>You cancel or do not attend:</strong> the meeting is charged as a held meeting unless you give us at least ${PRECISION_CLIENT_NOTICE_HOURS} hours&rsquo; notice.`)
+    expect(terms).toContain('within 3 business days of the meeting taking place')
     expect(terms).toContain('must identify which of the seven conditions above was not met')
+    expect(terms, 'the credit for undelivered meetings is back').not.toContain('not delivered is credited')
     expect(terms).toContain('judged against the information available at the point the meeting was booked')
     expect(terms).toContain('<strong>You are responsible for</strong> attending')
     // "Neither payment is contingent on the number of meetings produced" was true of a model
@@ -317,24 +341,29 @@ describe('P30 — the homepage states the whole programme offer in what a visito
   // ⛓️ 25 Sep (R166 ③ · P13) — WAS "50/50 … Half to start, half to go live … second half is never
   // charged". New programmes pay once, in full, before we start (founder: *"one payment in. run
   // bang"*); nothing is sent until the client approves. The block states THAT structure now.
+  // ⛓️ 8 Oct (precision model) — WAS "in one payment before we start" and the three band prices.
+  // The block now states the setup fee and the one price per held meeting, from the constants.
   it('the block states the payment structure the client actually meets', () => {
-    expect(homePricing).toMatch(/in one payment<\/strong> before we start/)
-    expect(homePricing).toMatch(/Nothing is sent until you have seen and approved the prepared programme/)
+    expect(homePricing).toContain(`You pay a one-off setup fee of <strong>${SETUP}</strong> to start.`)
+    expect(homePricing).toContain(`one price: <strong>${PER_MEETING}</strong> for each meeting that actually takes place.`)
+    expect(homePricing).toContain('Nothing is sent until you have seen and approved it.')
     expect(homePricing, 'the halves are back on the homepage').not.toMatch(/50\/50|second half/)
-    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(homePricing).toContain(`<strong>$${usd}</strong>`)
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(homePricing, `the $${usd} band is back`).not.toContain(`$${usd}`)
   })
 
-  it('it states the free proof, the single approval and the no-subscription promise', () => {
-    expect(homePricing).toMatch(/Free Proof/)
-    expect(homePricing).toMatch(/One programme\. One approval\./)
+  // ⛓️ 8 Oct — WAS "One programme. One approval." The programme is retired from the site.
+  it('it states the no-charge promise and the no-subscription promise, and sells no programme', () => {
+    expect(homePricing).toContain('If a meeting doesn’t happen, <strong>you don’t pay for it</strong>.')
     expect(homePricing).toContain('No subscription.')
+    expect(homePricing, 'the programme is back on the homepage').not.toMatch(/One programme\. One approval\./)
   })
 
-  // ⛓️ 25 Sep (R166 ⑤ · P13) — WAS "unused programme value … never expires". The new-terms credit
-  // expires after 90 days, so the homepage no longer promises forever; it states the credit.
-  it('it states the credit for meetings not delivered, and no longer promises it never expires', () => {
-    expect(homePricing).toMatch(/the difference is credited toward your next programme/)
+  // ⛓️ 8 Oct — WAS "the difference is credited toward your next programme". There is no credit to
+  // state: a meeting that does not happen is never charged. Neither the credit nor "never expires" may return.
+  it('it carries no credit for meetings not delivered, and promises no number of meetings', () => {
+    expect(homePricing).not.toMatch(/credited toward your next programme/)
     expect(homePricing).not.toMatch(/never expires/)
+    expect(homePricing).toContain('We do not promise a number of meetings')
   })
 
   it('🛑 it publishes NO figure from the pricing curve (R81 — unquotable)', () => {
@@ -366,7 +395,10 @@ describe('P30 — the homepage states the whole programme offer in what a visito
       // ⛓️ 23 Sep — "You choose the outcome" → "You choose how many qualified meetings". The founder:
       // "you need to give what the outcome is" — an undefined "outcome" is the dispute his risk review
       // warned about ("the definition of the outcome is too open to dispute"). The footer now names it.
-      expect(foot(html), `${name} footer lost the programme sentence`).toContain('You choose how many qualified meetings')
+      // ⛓️ 8 Oct (precision model) — WAS "You choose how many qualified meetings". The footer now
+      // states the precision model, and the old sentence must not return.
+      expect(foot(html), `${name} footer lost the precision sentence`).toContain('Nothing sends until you approve, and you only pay for meetings that actually happen.')
+      expect(foot(html), `${name} footer still sells a number of meetings`).not.toContain('You choose how many qualified meetings')
       expect(foot(html), `${name} footer sells an undefined "outcome" again`).not.toContain('You choose the outcome')
       expect(foot(html), `${name} footer still links the retired calculator`).not.toContain('pipeline-calculator.html')
     }
@@ -374,24 +406,26 @@ describe('P30 — the homepage states the whole programme offer in what a visito
 })
 
 // ⚑ 25 Sep (R166 ① ③ · P13, board #2359) — THE WEBSITE'S PRICES ARE THE CODE'S PRICES.
-// Founder: *"99 for founders. 199 for growth. and 299 for enterprise"*, *"Fixed $299, shown on
-// the site"*, *"one payment in"*. The calculator and the three band cards must say exactly what
-// @kind/shared charges, and nothing may still quote the curve or a second half.
-describe('R166 — the site prices by band, in one payment', () => {
+// ⛓️ 8 Oct (precision model, founder GO) — WAS "the site prices by band, in one payment" (R166). The
+// site now prices one setup fee and one price per held meeting for every client. The DUTY is the
+// same: what the calculator and the cards say must be exactly the constants in @kind/shared, and
+// nothing may still quote the curve, a band, or a second half.
+describe('the site prices the precision model: one setup fee, one price per held meeting', () => {
   const visibleText = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '')
-  it('the calculator offers exactly the three band prices, and prices flat with one payment', () => {
-    const script = pricing.slice(pricing.indexOf("var b=document.getElementById('c-band');"))
-    const opts = [...pricing.matchAll(/<option value="(\d+)"/g)].map(m => Number(m[1]))
-    expect(opts).toEqual(Object.values(BAND_PRICE_PER_MEETING_USD))
-    expect(script).toContain('var total=per*n*100;')
-    expect(script).toContain("set('c-p1',money(total));")
+  it('the calculator types the two constants and never multiplies our price by a number of meetings', () => {
+    const script = pricing.slice(pricing.indexOf("var m=document.getElementById('c-meet')"))
+    expect(script).toContain(`var SETUP_FEE_GBP=${PRECISION_SETUP_FEE_GBP}, PER_HELD_MEETING_GBP=${PRECISION_PER_HELD_MEETING_GBP}`)
+    expect(script).toContain("set('c-per',gbp(SETUP_FEE_GBP));")
+    expect(script).toContain("set('c-total',gbp(PER_HELD_MEETING_GBP));")
+    expect(script, 'the calculator prices a number of meetings again').not.toMatch(/per\*n|PER_HELD_MEETING_GBP\s*\*/)
+    expect([...pricing.matchAll(/<option value="(\d+)"/g)], 'a price is a calculator option again').toEqual([])
     expect(pricing).not.toContain('id="c-p2"')
   })
-  it('the three cards carry the three prices, by name', () => {
-    for (const [band, usd] of Object.entries(BAND_PRICE_PER_MEETING_USD)) {
-      const name = band[0].toUpperCase() + band.slice(1)
-      expect(pricing).toMatch(new RegExp(`<h3>${name}</h3><div class="plan-range">per qualified meeting</div><div class="plan-price">\\$${usd}</div>`))
-    }
+  it('the three cards: setup and per meeting from the constants, Coaching coming soon with no price', () => {
+    expect(pricing).toContain(`<h3>Setup</h3><div class="plan-range">one-off, paid by you</div><div class="plan-price">${SETUP}</div>`)
+    expect(pricing).toContain(`<h3>Per meeting</h3><div class="plan-range">only when the meeting takes place</div><div class="plan-price">${PER_MEETING}</div>`)
+    expect(pricing).toContain('<h3>Coaching</h3><div class="plan-range">for your meetings</div><div class="plan-price">Coming soon</div>')
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(visibleText(pricing), `the $${usd} band is back`).not.toContain(`$${usd}`)
   })
   it('no page a visitor can read still quotes the curve or a second half', () => {
     for (const f of ['pricing.html', 'index.html', 'milla.html', 'faqs.html', 'get-started.html', 'demo.html',

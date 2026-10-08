@@ -112,12 +112,12 @@ describe('nothing the visitor typed is dropped on the way to the founder', () =>
   const getStarted = {
     type: 'get-started' as const,
     name: 'Jo', email: 'jo@co.com', company: 'Co', website: 'co.com',
-    outcome: 'Meetings with MDs', target: 'UK agencies', volume: '6 – 15', when: 'This quarter',
+    outcome: 'Payroll software for logistics firms', target: 'US logistics firms', volume: '£10k – £50k', when: 'This quarter',
   }
 
   it('every answered field reaches the email', () => {
     const labels = fieldsOf(getStarted).map(([l]) => l)
-    expect(labels).toEqual(['Name', 'Email', 'Company', 'Website', 'Outcome they want', 'Who to target', 'Volume', 'Timing'])
+    expect(labels).toEqual(['Name', 'Email', 'Company', 'Website', 'What they sell', 'Who to target', 'Typical deal size', 'Timing'])
     const html = emailHtml(getStarted)
     for (const v of Object.values(getStarted)) {
       if (v === 'get-started') continue
@@ -136,9 +136,9 @@ describe('nothing the visitor typed is dropped on the way to the founder', () =>
     const d = detailsOf(getStarted)
     expect(d).toEqual({
       'Website': 'co.com',
-      'Outcome they want': 'Meetings with MDs',
-      'Who to target': 'UK agencies',
-      'Volume': '6 – 15',
+      'What they sell': 'Payroll software for logistics firms',
+      'Who to target': 'US logistics firms',
+      'Typical deal size': '£10k – £50k',
       'Timing': 'This quarter',
     })
     expect(d.Name, 'name has its own column; duplicating it into details is noise').toBeUndefined()

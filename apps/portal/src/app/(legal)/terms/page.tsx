@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
+import { PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, PRECISION_CLIENT_NOTICE_HOURS, formatGbpWhole } from '@kind/shared'
 
 export const metadata = { title: 'Terms of Service — K.I.N.D', description: 'K.I.N.D Terms of Service' }
 
@@ -14,34 +15,36 @@ export default function TermsPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: 1 October 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 8 October 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
+          {/* ⛓️ 8 Oct (precision model, founder GO) — this summary follows the full Terms: a £1,000 setup fee by card,
+              then £500 per held meeting charged to the card on file, nothing for a meeting that does not happen.
+              Figures come from @kind/shared, never typed here. Programmes on the earlier terms keep them. */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Parties</h2>
-            <p>These Terms of Service govern your use of the K.I.N.D AI Platform, operated by K.I.N.D Technologies Ltd, a company registered in England and Wales (company number 17260532) trading as K.I.N.D ("K.I.N.D", "we", "us"). By signing an Order Form or accessing the Platform you agree to these Terms.</p>
+            <p>These Terms of Service govern your use of Milla &amp; Vida, a trading name of K.I.N.D Technologies Ltd, a company registered in England and Wales (company number 17260532) (&ldquo;we&rdquo;, &ldquo;us&rdquo;). By using your account, paying the setup fee or using any service you agree to these Terms.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Services</h2>
-            <p>K.I.N.D runs outbound programmes for businesses that sell to other businesses. You tell Milla the outcome you want and who you want to reach; we find real people who match, show you a free Proof sample before you pay, prepare the outreach, and &mdash; once you approve the exact package &mdash; send it on your behalf and work towards qualified meetings.</p>
+            <p>A managed email service, paid per meeting that takes place. Each month we find the few companies with a real, dated reason to talk to you now, research each person and write to each one individually. A real person checks every message before it goes, and nothing is sent until you have approved it in Milla. Emails go out in your name, from your own mailboxes. The service is email only.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Programmes &amp; Billing</h2>
-            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Your Brief and your Proof &mdash; up to 20 real people who match your targeting, shown masked &mdash; are free. You choose the number of qualified meetings your programme aims for. It is priced at a fixed amount per meeting set by your company&rsquo;s size &mdash; Founders (1&ndash;50 employees), Growth (51&ndash;200) or Enterprise (more than 200), at the rates on our Pricing page &mdash; and its price is shown before you commit. You tell us the size of your company when you sign up, and your price is set from it. We check it against company records; if they show your company is larger, our team confirms your band before you pay. It is paid <strong>in one payment, in full</strong>, when you accept it: that payment authorises sourcing and preparation only, and outreach begins only after you approve the prepared package. A programme accepted under our earlier terms continues on them: <strong>Payment 1</strong> authorises sourcing and preparation only, and <strong>Payment 2</strong> is taken when you approve the prepared package and authorises outreach. If you pause before your programme goes live, Payment 2 is never charged.</p>
-            <p className="mt-2">If your programme ends having delivered fewer qualified meetings than your target, the difference, at the price per meeting you bought at, is <strong>credited to your K.I.N.D account</strong> towards the payment for a future programme. This credit is given <strong>once per client</strong> and <strong>expires 90 days</strong> after it is credited (credit owed on a programme under our earlier terms does not expire). Account credit is not paid back to your card. Programme payments are non-refundable.</p>
-            <p className="mt-2">K.I.N.D makes <strong>no guarantee</strong> of qualified meetings, replies, conversion rates or sales outcomes. A qualified meeting meets all seven conditions in our full Terms. Any figure we give for expected prospects or results is a planning estimate based on our current experience, not a promise.</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Pricing &amp; Payment</h2>
+            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Free Proof on your own market costs nothing. We charge two things, in pounds sterling: a one-off setup fee of <strong>{formatGbpWhole(PRECISION_SETUP_FEE_GBP)}</strong>, paid by card before work begins, and <strong>{formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}</strong> for each held meeting, charged to the card on file after the meeting takes place. If a meeting doesn&rsquo;t happen, you don&rsquo;t pay for it; if you cancel or don&rsquo;t attend without at least {PRECISION_CLIENT_NOTICE_HOURS} hours&rsquo; notice, it is charged as held. The setup fee is not refundable once work has begun. Anything you agreed with us before 8 October 2026 continues on the terms agreed at the time.</p>
+            <p className="mt-2">We make <strong>no guarantee</strong> of meetings, replies, conversion rates or sales outcomes. A held meeting meets all seven conditions in our full Terms.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">4. Acceptable Use</h2>
-            <p>You may not use the Platform to contact leads who have opted out, send communications violating POPIA, GDPR, or CAN-SPAM, reverse-engineer any component, or resell access without written permission.</p>
+            <p>You may not use the Platform to contact people who have opted out, send spam or communications that break UK GDPR, CAN-SPAM or any other applicable law, reverse-engineer any component, or resell access without written permission.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Data & Privacy</h2>
-            <p>K.I.N.D processes personal data on your behalf as a data processor. You remain the data controller responsible for ensuring your use of leads complies with POPIA, GDPR, CAN-SPAM, and all applicable laws. Our Privacy Policy is available at get-kind.com/privacy.</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Data &amp; Privacy</h2>
+            <p>We process the personal data of the people we contact for you as a data processor. Their contact details come from Apollo.io, a licensed B2B data provider, and the dated reason we get in touch from public sources such as company announcements, news and job postings. Our Privacy Policy is available at get-kind.com/privacy.</p>
           </section>
 
           <section>

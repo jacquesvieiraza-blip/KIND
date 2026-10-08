@@ -12,23 +12,28 @@ import { join } from 'node:path'
 const site = (f: string) => readFileSync(join(__dirname, '../../../website', f), 'utf8')
   .replace(/&rsquo;/g, '’').replace(/&mdash;/g, '—').replace(/\s+/g, ' ')
 
-describe('the size lines', () => {
-  it('Pricing: the calculator note and the band section', () => {
+// ⛓️ 8 Oct (precision model, founder GO) — WAS "the size lines": the price was set by company size, so
+// the site said "you tell us your size; we check it". There is now one price for every client, so no
+// page may ask for or check a company size to set a price, and the band sentence must not return.
+describe('one price for every client — no page sets a price by company size', () => {
+  it('Pricing: one price for every client, and no size note or band section', () => {
     const p = site('pricing.html')
-    expect(p).toContain('<p class="calc-help">You tell us your company’s size when you sign up; we check it.</p>')
-    expect(p).toContain('Your band is set by the size of your company — you tell us your company’s size when you sign up; we check it.')
+    expect(p).toContain('One price for every client.')
+    expect(p).not.toContain('<p class="calc-help">You tell us your company’s size when you sign up; we check it.</p>')
+    expect(p).not.toMatch(/Your band is set by the size of your company/)
     expect(p).not.toMatch(/you don’t choose it/)
   })
 
-  it('FAQs', () => {
+  it('FAQs: no size line', () => {
     const f = site('faqs.html')
-    expect(f).toContain('You tell us your company’s size when you sign up; we check it.')
+    expect(f).not.toContain('You tell us your company’s size when you sign up; we check it.')
     expect(f).not.toContain('We confirm your company’s size ourselves')
   })
 
-  it('Terms: the same sentence as the portal Terms', () => {
+  it('Terms: no band sentence — the price is not set from a size', () => {
     const t = site('terms.html')
-    expect(t).toContain('You tell us the size of your company when you sign up, and your price is set from it. We check it against company records; if they show your company is larger, our team confirms your band before you pay.')
+    expect(t).not.toContain('your price is set from it')
+    expect(t).not.toContain('confirms your band before you pay')
     expect(t).not.toContain('you do not choose your band')
   })
 })

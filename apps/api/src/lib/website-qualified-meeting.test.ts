@@ -14,6 +14,11 @@ import { join } from 'path'
 // the site says the same thing — because a site that sells one definition on the pricing page
 // and contracts another in the Terms is the exact dispute this ruling exists to prevent.
 // "Website only, legal included, not the portals" — the founder's scope, so only apps/website.
+//
+// ⛓️ 8 Oct (precision model, founder GO) — THE THING SOLD IS NOW A *HELD* MEETING. £500 is charged only
+// for a meeting that took place and meets all seven conditions; a meeting that does not happen is not
+// charged, so the shortfall credit is gone from the site. The DUTY of this file is unchanged: one
+// definition, read from the Terms, carried word for word everywhere the site defines what is charged.
 
 const WEB = join(__dirname, '../../../website')
 const read = (f: string) => readFileSync(join(WEB, f), 'utf8')
@@ -46,7 +51,10 @@ const LIVE = (() => {
  */
 const SEVEN = (() => {
   const terms = read('terms.html')
-  const at = terms.indexOf('A <strong>qualified meeting</strong> is a meeting that meets all seven')
+  // ⛓️ 8 Oct — the marker is the HELD-meeting definition. If it is ever missing, return nothing so
+  // the length check below goes red, instead of reading whichever <ol> happens to come first.
+  const at = terms.indexOf('A <strong>held meeting</strong> is a meeting that meets all seven')
+  if (at < 0) return []
   const ol = terms.slice(terms.indexOf('<ol>', at), terms.indexOf('</ol>', at))
   return [...ol.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => m[1])
 })()
@@ -95,57 +103,73 @@ describe('the definition is the same everywhere it is given', () => {
     }
   })
 
-  it('the calculator and the form both ask for QUALIFIED meetings', () => {
-    expect(read('pricing.html')).toContain('<label for="c-meet">Qualified meetings you want</label>')
-    expect(read('get-started.html')).toContain('<label for="gs-volume">Qualified meetings you are targeting</label>')
+  // ⛓️ 8 Oct (precision model) — WAS "both ask for QUALIFIED meetings". Nobody chooses a number of
+  // meetings any more, so neither asks for one: the calculator asks what a customer is worth and the
+  // form asks what a typical deal is worth.
+  it('the calculator and the form ask what a deal is worth, never how many meetings', () => {
+    expect(read('pricing.html')).toContain('<label for="c-deal">Your average deal size</label>')
+    expect(read('get-started.html')).toContain('<label for="gs-volume">What is a typical deal worth to you?</label>')
+    for (const f of ['pricing.html', 'get-started.html']) {
+      expect(read(f), `${f} asks for a number of meetings again`).not.toMatch(/Qualified meetings you (want|are targeting)/)
+    }
   })
 })
 
-describe('the credit for undelivered meetings is said the same way wherever "not a guarantee" is', () => {
-  // A page that says "not a guarantee" and stops there reads as "you lose the money". The founder
-  // ruled the opposite. Every page that makes the not-a-guarantee statement must carry the credit.
-  const CREDIT = 'If fewer qualified meetings are delivered, the difference is credited against your next programme.'
+// ⛓️ 8 Oct (precision model) — WAS "the credit for undelivered meetings is said the same way wherever
+// 'not a guarantee' is". A page that says "not a guarantee" and stops there still reads as "you lose
+// the money", so the duty stays: wherever the site says meetings are not guaranteed, it must also say
+// what happens to your money. That is no longer a credit; it is that a meeting that does not happen
+// is not charged. And the old credit must not come back anywhere a visitor can read.
+describe('wherever meetings are "not guaranteed", the site says you do not pay for one that does not happen', () => {
+  const NO_CHARGE = /If a meeting doesn’t happen, you don’t pay for it/
 
-  it('Pricing says it beside the calculator', () => {
-    expect(visible(read('pricing.html'))).toContain(CREDIT)
+  it('Pricing says it on the price card, and names what is not guaranteed', () => {
+    const t = visible(read('pricing.html'))
+    expect(t).toMatch(NO_CHARGE)
+    expect(t).toContain('Not guaranteed')
   })
 
-  // ⛓️ 1 Oct (R182 · W-2) — Trust now states the credit WITH its limits, in the same sentence
-  // (founder: "all yes"). Was `toContain(CREDIT)`, which ended the sentence before the limits.
-  it('Trust says it beside "not guarantees of meetings" — with once per client, 90 days', () => {
-    expect(visible(read('trust.html'))).toContain(CREDIT.replace(/\.$/, ' — once per client, within 90 days.'))
-  })
-
-  // ⛓️ 25 Sep (R166 ③ ⑤ · P13) — "the FIRST payment" no longer exists for a new programme: it is
-  // paid in one payment. Founder: *"one payment in. run bang"* and *"Once only, 90 days, new
-  // programmes"*. The FAQ now names THE payment, and says once per client / 90 days.
-  it('the FAQ answer to "Do you guarantee the meetings?" says it, names the payment, once and 90 days', () => {
+  it('the FAQ answer to "Do you guarantee the meetings?" says no, and names attendance', () => {
     const t = visible(read('faqs.html'))
-    expect(t).toContain('each one not delivered is credited against the payment for your next programme')
-    expect(t).toContain('That credit is given once per client and expires after 90 days')
+    expect(t).toContain('Do you guarantee the meetings? No.')
     expect(t, 'attendance was the first thing the risk review said is not guaranteed').toContain('attendance')
+    expect(t).toMatch(NO_CHARGE)
+  })
+
+  it('no page a visitor can reach still promises the retired shortfall credit', () => {
+    for (const page of LIVE) {
+      const t = visible(read(page))
+      expect(t, `${page} still promises the credit`).not.toMatch(/credited (against|toward) (the payment for )?your next programme/)
+      expect(t, `${page} still states the credit's limits`).not.toMatch(/once per client[^.]*90 days/)
+    }
   })
 })
 
 describe('the FAQs and the Terms state the same rules', () => {
-  it('both new questions are on the FAQ page', () => {
+  it('both questions are on the FAQ page', () => {
     const html = read('faqs.html')
     expect(html).toContain('What if the prospect doesn&rsquo;t turn up?')
-    expect(html).toContain('What if I think a meeting wasn&rsquo;t qualified?')
+    // ⛓️ 8 Oct — WAS "wasn't qualified"; a held meeting is challenged on whether it should count.
+    expect(html).toContain('What if I think a meeting shouldn&rsquo;t count?')
   })
 
+  // ⛓️ 8 Oct (precision model) — the window now runs from the meeting TAKING PLACE, because only a
+  // held meeting is charged. Still derived from the Terms, so the two cannot drift.
   it('the challenge window in the FAQ is the challenge window in the contract', () => {
-    // Derived from the Terms, so changing the number in one place and not the other fails here.
-    const days = read('terms.html').match(/within (\d+) business days of the meeting being booked/)?.[1]
+    const days = read('terms.html').match(/within (\d+) business days of the meeting taking place/)?.[1]
     expect(days, 'the Terms no longer state a challenge window').toBeTruthy()
-    expect(visible(read('faqs.html'))).toContain(`Tell us within ${days} business days of the meeting being booked`)
+    expect(visible(read('faqs.html'))).toContain(`Tell us within ${days} business days of the meeting taking place`)
   })
 
-  it('the FAQ no-show answer matches the contract: once, free, client no-show counts, no cash', () => {
+  // ⛓️ 8 Oct (precision model; founder chose "24 hours") — WAS "client no-show counts … no cash".
+  // A client's own cancellation or no-show is charged unless they gave the notice in the Terms, and
+  // the FAQ and the Terms must give the same number of hours.
+  it('the FAQ no-show answer matches the contract: once, free for a prospect no-show, the same notice', () => {
     const t = visible(read('faqs.html'))
     expect(t).toContain('reschedule once, at no extra charge')
-    expect(t).toContain('If you cancel or don’t attend, the meeting counts as delivered')
-    expect(t).toContain('We don’t give cash refunds')
+    const hours = read('terms.html').match(/unless you give us at least (\d+) hours&rsquo; notice/)?.[1]
+    expect(hours, 'the Terms no longer state the notice').toBeTruthy()
+    expect(t).toContain(`If you cancel or don’t attend, the meeting is charged as a held meeting unless you give us at least ${hours} hours’ notice`)
   })
 })
 
@@ -158,7 +182,9 @@ describe('the FAQs and the Terms state the same rules', () => {
 // "qualified meetings" or "meeting target", and the word survives in exactly two senses:
 //   · DEFINING the outcome as a Qualified Meeting (the Pricing section, the homepage link)
 //   · the SALES result we do not guarantee — his own words ("the outcome it controls")
-describe('the outcome is a Qualified Meeting, and the site says so', () => {
+// ⛓️ 8 Oct (precision model) — the outcome is now a HELD meeting; the DUTY (name it, never leave it
+// open) is unchanged.
+describe('the outcome is a held meeting, and the site says so', () => {
   const ALLOWED = [
     'sales outcome', 'revenue outcome', 'the outcome we control',          // what we do not guarantee
     'The outcome you pay for', 'The outcome is a Qualified Meeting', 'THE OUTCOME', // what it IS
@@ -174,10 +200,10 @@ describe('the outcome is a Qualified Meeting, and the site says so', () => {
     }
   })
 
-  it('Pricing leads with the price per qualified meeting, not "Outcome-priced"', () => {
+  it('Pricing leads with paying for meetings that happen, not "Outcome-priced"', () => {
     const html = read('pricing.html')
-    expect(html).toContain('<h1 class="motion-headline">Priced per qualified meeting.</h1>')
-    expect(html, '"outcome-priced" reads as pay-on-result — the programme is 50/50 up front').not.toMatch(/outcome-priced/i)
+    expect(html).toContain('<h1 class="motion-headline">Pay for meetings that happen.</h1>')
+    expect(html, '"outcome-priced" names no outcome').not.toMatch(/outcome-priced/i)
   })
 
   it('Pricing names the outcome directly under the headline, with all seven conditions', () => {
@@ -187,21 +213,23 @@ describe('the outcome is a Qualified Meeting, and the site says so', () => {
     // Under the headline means BEFORE the buy cards and the calculator, not somewhere below them.
     expect(at, 'the definition has slipped below the buy cards').toBeLessThan(html.indexOf('class="pricing-top"'))
     const section = html.slice(at, html.indexOf('class="pricing-top"'))
-    expect(section).toContain('The outcome you pay for: a Qualified Meeting.')
-    expect(section).toContain('only when all seven of these are met and it is booked')
+    expect(section).toContain('The outcome you pay for: a held meeting.')
+    expect(section).toContain('only when all seven of these are true')
     for (const c of SEVEN) expect(section, `the Pricing section lost: "${c}"`).toContain(c)
     expect(section, 'what is NOT guaranteed is part of defining the outcome').toContain('That the prospect will attend')
     expect(section).toContain('the performance of your salespeople')
   })
 
   it('the challenge window on Pricing is the one in the contract', () => {
-    const days = read('terms.html').match(/within (\d+) business days of the meeting being booked/)?.[1]
-    expect(visible(read('pricing.html'))).toContain(`raised within ${days} business days of it being booked`)
+    const days = read('terms.html').match(/within (\d+) business days of the meeting taking place/)?.[1]
+    expect(days, 'the Terms no longer state a challenge window').toBeTruthy()
+    expect(visible(read('pricing.html'))).toContain(`tell us within ${days} business days of it taking place`)
   })
 
   it('the homepage points at that definition, and the link lands on it', () => {
     const home = read('index.html')
-    expect(home).toContain('<a href="pricing.html#qualified-meeting">The outcome is a Qualified Meeting.')
+    // ⛓️ 8 Oct — the anchor keeps its id; the link now says what you pay for.
+    expect(home).toContain('<a href="pricing.html#qualified-meeting">You only pay for meetings that happen. See exactly what counts')
     expect(read('pricing.html'), 'the homepage link points at an anchor that does not exist').toContain('id="qualified-meeting"')
   })
 })

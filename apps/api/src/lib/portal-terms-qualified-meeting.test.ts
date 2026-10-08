@@ -22,9 +22,14 @@ const text = (s: string) => s
   .replace(/<[^>]+>/g, ' ').replace(/&mdash;/g, '—').replace(/&rsquo;/g, '’')
   .replace(/&amp;/g, '&').replace(/\s+/g, ' ')
 
+// ⛓️ 8 Oct (precision model, founder GO) — WAS "the portal Terms count QUALIFIED meetings". Both Terms now
+// sell a HELD meeting: £500 only for a meeting that took place and meets all seven conditions. The portal's
+// full Terms carry the website's text word for word, so the duty below (same seven, same no-show and
+// challenge rules) is unchanged; the wording it checks is the held-meeting wording.
 const SEVEN = (() => {
   const terms = raw('website/terms.html')
-  const at = terms.indexOf('A <strong>qualified meeting</strong> is a meeting that meets all seven')
+  const at = terms.indexOf('A <strong>held meeting</strong> is a meeting that meets all seven')
+  if (at < 0) return []
   const ol = terms.slice(terms.indexOf('<ol>', at), terms.indexOf('</ol>', at))
   return [...ol.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => text(m[1]).trim())
 })()
@@ -32,7 +37,7 @@ const SEVEN = (() => {
 const FULL = 'portal/public/terms.html'
 const SUMMARY = 'portal/src/app/(legal)/terms/page.tsx'
 
-describe('W-6 — the portal Terms count qualified meetings, as the website does', () => {
+describe('W-6 — the portal Terms count held meetings, as the website does', () => {
   it('the website still carries its seven — otherwise the checks below are vacuous', () => {
     expect(SEVEN).toHaveLength(7)
   })
@@ -42,29 +47,29 @@ describe('W-6 — the portal Terms count qualified meetings, as the website does
       const t = text(raw(f))
       expect(t).not.toMatch(/booked meetings/i)
       expect(t).not.toMatch(/meetings booked/i)
-      expect(t).toMatch(/qualified meetings/)
+      expect(t).toMatch(/held meeting/)
     })
   }
 
   it('🛑 the full Terms count a meeting only when all seven conditions are met — the same seven, word for word', () => {
     const t = text(raw(FULL))
     expect(t).not.toMatch(/counts towards your programme when it is booked with a prospect/)
-    expect(t).toMatch(/one that meets all seven of these conditions/)
+    expect(t).toMatch(/A held meeting is a meeting that meets all seven of the following conditions/)
     for (const c of SEVEN) expect(t, c).toContain(c)
-    expect(t).toMatch(/A reply on its own is not a qualified meeting/)
+    expect(t).toMatch(/A reply on its own is not a held meeting/)
   })
 
-  it('the full Terms state no-shows and the 3-business-day challenge', () => {
+  it('the full Terms state no-shows and the 3-business-day challenge, from the meeting taking place', () => {
     const t = text(raw(FULL))
-    expect(t).toMatch(/reschedule the meeting once, at no additional charge/)
-    expect(t).toMatch(/If you cancel or do not attend, the meeting counts as delivered/)
-    expect(t).toMatch(/within 3 business days of the meeting being booked/)
+    expect(t).toMatch(/we will make reasonable efforts to reschedule the meeting once/)
+    expect(t).toMatch(/the meeting is charged as a held meeting unless you give us at least 24 hours’ notice/)
+    expect(t).toMatch(/within 3 business days of the meeting taking place/)
   })
 
   it('no retired wording: no "3-sequence", no "qualified leads", Google Workspace named as a sub-processor', () => {
     const t = text(raw(FULL))
     expect(t).not.toMatch(/3-sequence/)
     expect(t).not.toMatch(/qualified leads/i)
-    expect(t).toMatch(/Google Workspace \(sending mailboxes\)/)
+    expect(t).toMatch(/Google Workspace \(sending mailboxes/)
   })
 })

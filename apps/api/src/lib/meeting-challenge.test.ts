@@ -52,9 +52,24 @@ describe('the window is the Terms\' — 3 business days from booking', () => {
     expect(challengeWindowOpen(BOOKED, late)).toBe(false)
   })
 
-  it('every condition carries the website Pricing page\'s own sentence for the client', () => {
+  // ⛓️ 8 Oct (precision model, founder GO) — the website now sells a HELD meeting: its condition 4 is
+  // "The meeting took place at the agreed date and time, with the agreed person." and a challenge runs
+  // from the meeting taking place. This screen and this window serve meetings on the EARLIER terms,
+  // which the new Terms keep in force ("Anything you agreed with us before these terms were updated on
+  // 8 October 2026 continues on the terms agreed at the time"): condition 4 is "scheduled", and the
+  // window runs from booking. Changing only the label would offer a "took place" condition on a window
+  // that can close before the meeting happens, so both move together with precision billing.
+  // Until then: the other six are still the Pricing page's own sentences, word for word, and condition 4
+  // is still the earlier-terms sentence the window above measures.
+  it('six conditions carry the website Pricing page\'s own sentence; condition 4 is the earlier terms\'', () => {
     const pricing = readFileSync(join(__dirname, '../../../website/pricing.html'), 'utf8').replace(/&rsquo;|’/g, '’')
-    for (const c of QUALIFIED_MEETING_CONDITIONS) expect(pricing).toContain(c.clientLabel)
+    for (const c of QUALIFIED_MEETING_CONDITIONS) {
+      if (c.key === 'date_time_set') continue
+      expect(pricing, c.key).toContain(c.clientLabel)
+    }
+    const four = QUALIFIED_MEETING_CONDITIONS.find(c => c.key === 'date_time_set')!
+    expect(four.clientLabel).toBe('The meeting has been scheduled for an agreed date and time.')
+    expect(pricing, 'the site sells a held meeting').toContain('The meeting took place at the agreed date and time, with the agreed person.')
   })
 })
 

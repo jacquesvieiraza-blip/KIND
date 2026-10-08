@@ -24,25 +24,30 @@ const text = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 
 const FILES = ['public/terms.html', 'src/app/(legal)/terms/page.tsx'] as const
 
-describe('the portal Terms describe the programme (R140)', () => {
+// ⛓️ 8 Oct (precision model, founder GO) — the portal Terms now describe the precision model, not the
+// programme: a setup fee by card, then one price per held meeting charged to the card on file, nothing for
+// a meeting that does not happen, no credit and no Payment 1 / Payment 2. The bans on every RETIRED model
+// stay; the only change to them is that "not a wallet top-up model" is a denial, like "no subscription".
+describe('the portal Terms describe the model being sold (R140, amended 8 Oct)', () => {
   for (const f of FILES) {
     const t = text(f)
     it(`🛑 ${f} carries no retired commercial model`, () => {
+      const denials = t.replace(/this is not a wallet top-up model/gi, '')
       for (const banned of [
         /\$\s?1 per credit/i, /\$\s?3 per credit/i, /bundle/i, /top[- ]?up/i, /FIGSY/,
         /onboarding pack/i, /per approved lead/i, /approved leads? included/i, /\$299/, /\$4\b/,
         /Credit System/i, /Downgrade/i, /qualified lead is defined/i,
-      ]) expect(t, `${f}: ${banned}`).not.toMatch(banned)
+      ]) expect(denials, `${f}: ${banned}`).not.toMatch(banned)
       // Only "no subscription" may mention a subscription.
       expect(t.replace(/no subscription/gi, ''), `${f}: a subscription is described`).not.toMatch(/subscription/i)
     })
 
-    it(`🛑 ${f} states the programme as ruled`, () => {
-      expect(t).toMatch(/Payment 1/)
-      expect(t).toMatch(/Payment 2/)
-      expect(t).toMatch(/pause before your programme goes live, Payment 2 is never charged/i)
-      expect(t).toMatch(/credited to your K\.I\.N\.D account/i)
-      expect(t).toMatch(/not paid back to your card/i)
+    it(`🛑 ${f} states the precision model as ruled`, () => {
+      expect(t).toMatch(/held meeting/)
+      expect(t).toMatch(/card (you keep )?on file/i)
+      expect(t).toMatch(/If a meeting doesn[’'&rsquo;]+t happen, you don[’'&rsquo;]+t pay for it/)
+      expect(t, `${f} still sells the two payments`).not.toMatch(/Payment 1|Payment 2/)
+      expect(t, `${f} still promises account credit`).not.toMatch(/credited to your K\.I\.N\.D account/i)
       expect(t, `${f} names the internal limit`).not.toMatch(/\b400\b/)
     })
   }
@@ -50,7 +55,9 @@ describe('the portal Terms describe the programme (R140)', () => {
   it('the guarded legal sentences survive (no trial, no outcome guarantee)', () => {
     const pub = readFileSync(join(ROOT, 'public/terms.html'), 'utf8')
     expect(pub).toContain('There is no free trial')
-    expect(pub).toContain('No Outcome Guarantee')
-    expect(text('public/terms.html')).toMatch(/target we work towards, not a guarantee/i)
+    // ⛓️ 8 Oct — the portal Terms are the website's text: "No guarantee of results", and no number of
+    // meetings is promised (WAS "No Outcome Guarantee" / "a target we work towards, not a guarantee").
+    expect(pub).toContain('No guarantee of results')
+    expect(text('public/terms.html')).toMatch(/We do not guarantee any number of meetings/)
   })
 })

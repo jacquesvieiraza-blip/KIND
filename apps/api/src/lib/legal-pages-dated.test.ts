@@ -11,10 +11,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const APPS = join(__dirname, '../../..')
-const CURRENT = /Last updated:? 1 October 2026/
+// ⛓️ 8 Oct (precision model, founder GO) — every legal page, website and portal, was rewritten for the
+// precision model on 8 October 2026. WAS 1 October (Terms, DPAs) and 6 October (Privacy).
+const CURRENT = /Last updated:? 8 October 2026/
 // ⛓️ 6 Oct (11b · founder "3 yes", "4 not material") — the three Privacy Policy copies gained the
 // Google Calendar / Limited Use section, so their date moved; the other pages did not change.
-const PRIVACY_CURRENT = /Last updated:? 6 October 2026/
+// ⛓️ 8 Oct — rewritten with the rest; the Limited Use disclosure is still required, word for word.
+const PRIVACY_CURRENT = /Last updated:? 8 October 2026/
 const PRIVACY = ['website/privacy.html', 'portal/public/privacy.html', 'portal/src/app/(legal)/privacy/page.tsx']
 
 const PAGES = [
@@ -24,12 +27,12 @@ const PAGES = [
 
 describe('every legal page carries its current date', () => {
   for (const p of PAGES) {
-    it(`${p} says "Last updated 1 October 2026"`, () => {
+    it(`${p} says "Last updated 8 October 2026"`, () => {
       expect(readFileSync(join(APPS, p), 'utf8')).toMatch(CURRENT)
     })
   }
   for (const p of PRIVACY) {
-    it(`${p} says "Last updated 6 October 2026" and carries Google's Limited Use disclosure`, () => {
+    it(`${p} says "Last updated 8 October 2026" and carries Google's Limited Use disclosure`, () => {
       const page = readFileSync(join(APPS, p), 'utf8')
       expect(page).toMatch(PRIVACY_CURRENT)
       expect(page).toContain('Google Calendar')

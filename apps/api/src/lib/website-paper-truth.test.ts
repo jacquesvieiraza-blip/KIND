@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD } from '@kind/shared'
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD, BAND_PRICE_PER_MEETING_USD, PRECISION_SETUP_FEE_GBP, PRECISION_PER_HELD_MEETING_GBP, formatGbpWhole } from '@kind/shared'
 
 // #413 #410 #327 — THE PAPER MATCHES THE PRODUCT.
 //
@@ -82,23 +82,30 @@ describe('#413 — the contract matches the payment path', () => {
   //
   // The DUTY is unchanged and is what these now assert: the contract must state exactly when
   // money is taken, and must never imply a charge that happens earlier than it does.
+  // ⛓️ 8 Oct (precision model, founder GO; "Yes, card on file") — the payment path is now the setup fee
+  // by card before work begins, then each held meeting charged to that card after it takes place. The
+  // DUTY is unchanged: the contract states exactly when money is taken, never earlier than it is, and
+  // nothing is sent before the client has approved it.
   it('no outreach is paid for or sent before the client has approved', () => {
-    // ⛓️ 25 Sep (R166 ③ · P13) — one payment, before sourcing; outreach still waits for approval.
-    expect(terms).toMatch(/No outreach is sent until you have approved the prepared programme and instructed us to go live/)
-    expect(terms).toMatch(/Your programme is paid in one payment, in full, when you accept it/)
+    expect(terms).toMatch(/No email is sent until you have approved it\./)
+    expect(terms).toMatch(/You see who we plan to contact, and the message written to each of them, before anything is sent\./)
+    expect(terms).toMatch(/The setup fee of £1,000 is paid by card, in one payment, in full, before work begins/)
+    expect(terms).toMatch(/Each held meeting is charged to the card you keep on file with us, after the meeting takes place\./)
   })
 
-  it('the two payments are stated as halves, and the second is escapable', () => {
-    // ⛓️ 25 Sep (R166 ⑧ · P13) — the halves now live in the EARLIER-TERMS clause, which still
-    // binds every programme already running (founder: running programmes keep what they bought).
-    expect(terms).toMatch(/50% of your programme price/)
-    expect(terms).toMatch(/never taken if you pause before go-live/)
+  // ⛓️ 8 Oct — WAS "the two payments are stated as halves, and the second is escapable". There are no
+  // halves now. Agreements made before 8 Oct keep their own terms, stated in one sentence, and the
+  // halves must not come back as the current model.
+  it('there are no halves, and earlier agreements keep the terms they were made on', () => {
+    expect(terms).toMatch(/Anything you agreed with us before these terms were updated on 8 October 2026 continues on the terms agreed at the time, until it ends\./)
+    expect(terms, 'the halves are back').not.toMatch(/50% of your programme price|Payment 2/)
   })
 
   it('and still states the model itself correctly', () => {
-    // Derived from the R81 curve, not typed: the rate and the floor.
-    // ⛓️ 25 Sep (R166 ① · P13) — the model is priced by size band now, from the constants.
-    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms).toContain(`$${usd}`)
+    // ⛓️ 8 Oct — derived from the precision constants, not typed: the setup fee and the price per held meeting.
+    expect(terms).toContain(`<strong>${formatGbpWhole(PRECISION_SETUP_FEE_GBP)}</strong>`)
+    expect(terms).toContain(`<strong>${formatGbpWhole(PRECISION_PER_HELD_MEETING_GBP)}</strong> for each meeting that is held`)
+    for (const usd of Object.values(BAND_PRICE_PER_MEETING_USD)) expect(terms, `the $${usd} band is back`).not.toContain(`$${usd}`)
     expect(terms).toMatch(/reviewing is always free/i)
     expect(terms).toMatch(/no subscription to cancel/i)
   })

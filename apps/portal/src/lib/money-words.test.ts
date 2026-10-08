@@ -87,10 +87,13 @@ describe('B5 · the credit line says how long it lasts', () => {
 describe('B7 · the website band wording is the founder\'s own, and the code reads it right', () => {
   // ⛓️ 1 Oct (R182 · W-2) — WAS '"200+" stays (R166, verbatim)'. The founder then ruled the label
   // "201+" ("all yes", W-2): 200 employees is Growth, so "200+" read as overlapping it.
-  it('"201+" (R182, chaining R166\'s "200+"); Enterprise starts above 200', () => {
+  // ⛓️ 8 Oct (precision model, founder GO) — the website no longer prices by size: one setup fee and one
+  // price per held meeting for every client, so it shows no band at all. The bands stay in the code for
+  // programmes on the earlier terms, where Enterprise still starts above 200.
+  it('the website shows no size band; the code\'s Enterprise band still starts above 200', () => {
     const site = readFileSync(join(__dirname, '../../../website/pricing.html'), 'utf8')
-    expect(site).toContain('Enterprise &mdash; 201+ employees')
-    expect(site).not.toContain('200+')
+    expect(site).toContain('One price for every client.')
+    expect(site, 'a size band is back on the website').not.toMatch(/Enterprise &mdash; 201\+ employees|\b20[01]\+/)
     expect(readFileSync(join(__dirname, '../../../../packages/shared/src/size-band.ts'), 'utf8'))
       .toContain("{ key: 'enterprise', label: 'Enterprise', min: 201, max: null }")
   })

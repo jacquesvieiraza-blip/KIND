@@ -1,5 +1,7 @@
 # Vida V2 — the UI spec, element by element
 
+> ⛓️ **9 Oct (R210 ①): history.** Boutique M&V replaced the precision model. The element log for the Boutique demos, the reference now, is [`docs/boutique/ui-spec/`](../../boutique/ui-spec/).
+
 > Generated 8 Oct 2026 from `docs/precision/Vida_V2_Deepened_FIXED.html` (the founder's file, byte for byte), opened in a real browser (Chromium, 1440×900, plus a 390-wide phone view). Every step of the clickthrough was rendered, and every element that shows text or can be clicked was recorded with its exact words, position, font, size, weight, colours and corner rounding. **21 views, 1368 distinct elements, 0 script errors.** This is the reference the build is checked against (R204). **R205:** Vida is refined, simpler and better, and the founder approves every screen's layout before it is built.
 
 ## 1 · The look

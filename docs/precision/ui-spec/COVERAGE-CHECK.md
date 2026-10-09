@@ -1,5 +1,7 @@
 # Coverage check: every rendered element against the ledger
 
+> ⛓️ **9 Oct (R210 ①): history.** Boutique M&V replaced the precision model. The element log for the Boutique demos, the reference now, is [`docs/boutique/ui-spec/`](../../boutique/ui-spec/).
+
 > Method (8 Oct): both demos were opened in a real browser and walked through every step, menu entry, tab and channel preview; every element that shows text or can be clicked was recorded (`*-elements.json`). In nine screen groups, one reviewer mapped **every** element to the ledger entry that covers it, or marked it missing, and read the demo source for behaviour a walk does not show (toasts, locks, alternative branches). A second, independent reviewer re-checked every "missing" call against the full ledger and sampled at least 30 "covered" calls per group. Confirmed gaps were added to the ledger.
 
 | Group | Demo | Elements | Mapped by the first check | Added to the ledger | Missing calls rejected (already covered) | Covered calls corrected | Still unresolved |

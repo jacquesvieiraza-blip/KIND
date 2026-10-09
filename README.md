@@ -1,6 +1,6 @@
 # K.I.N.D
 
-> ⛓️ **8 Oct (R200–R202):** Milla & Vida, a boutique outsourced SDR/BDR team for US companies: **$1,500 setup**, then **$700 per held meeting**. ~~B2B AI-SDR for African SMBs.~~ This repo holds the product code **and** the operating docs.
+> ⛓️ **9 Oct (R207–R211): Boutique M&V.** Milla & Vida work as an **internal extension of a client's sales team**, with a person checking everything: **set-up free, the first result free, then $700 per result** (a held meeting, or a qualified person who turns up at an event). The client keeps Milla; we run their work in Vida. The reference is [`docs/boutique/`](./docs/boutique/). ~~8 Oct (R200–R202): a boutique outsourced SDR/BDR team for US companies, $1,500 setup, then $700 per held meeting.~~ ~~B2B AI-SDR for African SMBs.~~ This repo holds the product code **and** the operating docs.
 
 **Read [`docs/PRODUCT-RULES.md`](./docs/PRODUCT-RULES.md) first, every session — it wins every conflict.** Then the four working docs. ⛓️ **24 Sep (R85a):** status and today's work live on the **K.I.N.D Operating Board** (GitHub Project #5); LAUNCH-PAD and PRODUCT-INVENTORY are frozen history. ~~[`docs/LAUNCH-PAD.md`](./docs/LAUNCH-PAD.md) is the one you open day-to-day.~~
 

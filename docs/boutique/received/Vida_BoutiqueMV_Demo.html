@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vida · Boutique M&amp;V · click-through preview</title>
+<style>
+
+:root{--ink:#17141c;--muted:#766f7e;--dim:#a29aa9;--line:#e8e3ec;--line2:#ddd5e5;--page:#f6f4f8;--panel:#fff;--wash:#fbf9fd;--accent:#6f3df4;--accent2:#d84ca5;--deep:#4d22b6;--soft:#f3edff;--good:#177552;--goodbg:#eaf7f0;--warn:#956414;--warnbg:#fff4dc;--red:#b43b49;--redbg:#fff0f2;--shadow:0 22px 65px rgba(35,22,52,.10)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--page);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}button,input{font:inherit}button{cursor:pointer}.app{height:100vh;display:grid;grid-template-rows:64px 42px 1fr;background:#fff}.top{display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line);gap:14px}.brand{display:flex;align-items:center;gap:9px;min-width:200px}.mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#294b75,var(--accent));display:grid;place-items:center;color:#fff;font-weight:900}.brand b{font-size:14px}.brand b span{color:var(--accent)}.title b{font-size:12px;display:block}.title span{font-size:9px;color:var(--muted);display:block;margin-top:2px}.client{margin-left:auto;font-size:10px;font-weight:850}.client small{display:block;font-size:8px;color:var(--muted);font-weight:650}.stage{display:flex;align-items:center;padding:0 18px;background:#fcfbfd;border-bottom:1px solid var(--line);gap:6px;overflow:auto}.stage .lab{font-size:8px;font-weight:900;color:var(--dim);letter-spacing:.1em;margin-right:6px}.stage .s{font-size:8.5px;font-weight:750;color:#aaa1af;white-space:nowrap}.stage .s.done{color:#706475}.stage .s.on{color:var(--deep);font-weight:900}.stage .sep{width:18px;height:1px;background:#ddd7e0;flex:0 0 auto}.main{min-height:0;display:grid;grid-template-columns:190px minmax(410px,500px) minmax(0,1fr)}.nav{background:#fbfafc;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}.navin{padding:15px 10px;overflow:auto}.navlab{font-size:7.5px;font-weight:900;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;padding:0 9px 6px;margin-top:10px}.nav button{width:100%;border:0;background:transparent;text-align:left;border-radius:9px;padding:9px 10px;font-size:10px;color:#5e5664;margin-bottom:2px;display:flex;align-items:center;gap:8px}.nav button.active{background:#f0eafd;color:var(--deep);font-weight:900}.nav button.locked{opacity:.38}.nDot{width:6px;height:6px;border-radius:50%;background:#ddd5e1}.nav button.active .nDot{background:var(--accent)}.navfoot{margin-top:auto;border-top:1px solid var(--line);padding:11px 12px;font-size:8px;line-height:1.45;color:var(--muted)}.chat{border-right:1px solid var(--line);display:grid;grid-template-rows:58px 1fr auto;min-height:0;background:#fff}.chatHead{display:flex;align-items:center;gap:9px;padding:0 13px;border-bottom:1px solid var(--line)}.avatar{width:31px;height:31px;border-radius:10px;background:linear-gradient(135deg,#294b75,var(--accent));display:grid;place-items:center;color:#fff;font-weight:900}.chatHead b{font-size:11px}.chatHead span{display:block;font-size:8px;color:var(--muted)}.online{margin-left:auto;font-size:8px;color:var(--good);font-weight:900}.thread{padding:15px;overflow:auto;display:flex;flex-direction:column;gap:11px}.msg{max-width:92%;font-size:10.5px;line-height:1.55}.msg .who{font-size:7.3px;font-weight:900;color:var(--dim);margin:0 0 4px 3px;text-transform:uppercase}.msg .bubble{background:#eef5ff;padding:9px 11px;border-radius:13px 13px 13px 4px}.msg.user{align-self:flex-end}.msg.user .bubble{background:#f2f0f3;border:1px solid #e7e2e9;border-radius:13px 13px 4px 13px}.composer{display:flex;gap:7px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}.composer input{flex:1;border:1px solid var(--line2);border-radius:10px;padding:10px 11px;font-size:9.5px;outline:0;background:#fff}.composer button{border:0;border-radius:9px;background:linear-gradient(135deg,#294b75,var(--accent));color:#fff;padding:9px 11px;font-size:9px;font-weight:900}.work{background:var(--wash);overflow:auto;min-width:0}.workHead{height:58px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:3}.workHead b{font-size:12px}.workHead span.sub{display:block;font-size:8px;color:var(--muted);margin-top:2px}.state{margin-left:auto;border-radius:999px;padding:6px 8px;font-size:8px;font-weight:900;background:#f0edf3;color:#675e6d}.body{padding:13px}.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:0}.tile{background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px;min-width:0}.tile span{display:block;font-size:7px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:900}.tile b{display:block;font-size:13px;margin-top:4px;overflow-wrap:anywhere}.tile small{display:block;font-size:7.5px;color:var(--muted);margin-top:3px;line-height:1.3}.card{background:#fff;border:1px solid var(--line);border-radius:12px;margin-top:8px;overflow:hidden}.cardHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid var(--line)}.cardHead b{font-size:10px}.cardHead span{font-size:7.4px;color:var(--dim);font-weight:900;text-transform:uppercase;letter-spacing:.05em}.cardBody{padding:10px}.row{display:grid;grid-template-columns:135px 1fr auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid #eeeaf0}.row:last-child{border-bottom:0}.row label{font-size:7.4px;color:var(--dim);font-weight:900;text-transform:uppercase}.row .v{font-size:9px;line-height:1.45}.row .m{font-size:7.7px;color:var(--muted)}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.act{border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 10px;font-size:8.5px;font-weight:850;color:#574f5d}.act.primary{border:0;background:linear-gradient(135deg,#294b75,var(--accent));color:#fff}.email{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:7px;background:#fff}.emailTop{display:flex;align-items:center;gap:8px}.num{width:22px;height:22px;border-radius:7px;background:var(--soft);display:grid;place-items:center;color:var(--deep);font-size:8px;font-weight:900}.email b{font-size:9px}.email small{display:block;font-size:7.4px;color:var(--muted);margin-top:2px}.email p{font-size:9px;line-height:1.5;color:#514958;margin:8px 0 0;white-space:pre-line}.tag{display:inline-flex;border-radius:999px;padding:4px 6px;font-size:7px;font-weight:900;margin-left:auto}.tag.good{background:var(--goodbg);color:var(--good)}.tag.warn{background:var(--warnbg);color:var(--warn)}.tag.vio{background:var(--soft);color:var(--deep)}.tag.red{background:var(--redbg);color:var(--red)}.tableWrap{overflow:auto}.tbl{width:100%;border-collapse:collapse;min-width:680px}.tbl th{font-size:7px;text-align:left;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;padding:7px 8px;background:#fcfbfd;border-bottom:1px solid var(--line)}.tbl td{font-size:8.3px;padding:8px;border-bottom:1px solid #eeeaf0;vertical-align:top;line-height:1.35}.callout{border-left:3px solid var(--accent);background:#f8f3ff;border-radius:8px;padding:9px 10px;font-size:8.5px;line-height:1.5;color:#5f5667;margin-top:8px}.callout b{display:block;color:var(--ink);margin-bottom:3px}.logicRow{display:grid;grid-template-columns:110px 1fr;gap:9px;padding:8px 0;border-bottom:1px solid #eeeaf0;font-size:8.5px;line-height:1.45}.logicRow:last-child{border-bottom:0}.logicRow b{color:var(--deep)}.logicRow span{color:#5f5667}.presenter{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:600;width:min(820px,calc(100% - 28px));background:rgba(31,24,37,.98);color:#fff;border:1px solid #504458;border-radius:14px;padding:11px 13px;box-shadow:0 22px 70px rgba(0,0,0,.3);display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}.presenter.off{display:none}.pType{border-radius:999px;background:#fff;color:#211a27;padding:6px 8px;font-size:8px;font-weight:900;white-space:nowrap}.pText b{display:block;font-size:10px;line-height:1.35}.pText span{display:block;font-size:8px;color:#cbbfd2;margin-top:3px}.pKeys{font-size:8px;color:#d9d0de;white-space:nowrap;text-align:right}.toast{position:fixed;right:16px;bottom:16px;z-index:700;background:#211a27;color:#fff;border-radius:10px;padding:10px 12px;font-size:9px;max-width:340px}
+
+.clientTabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.clientTab{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 9px;font-size:8px;font-weight:850;color:#675e6d}.clientTab.on{background:var(--soft);color:var(--deep);border-color:#d7c8fb}.clientTab.locked{opacity:.38;cursor:not-allowed}
+.qualityGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.qualityPerson{border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px}.qualityPerson .meta{font-size:7.7px;color:var(--muted);line-height:1.45;margin-top:5px}.qualityPerson .email{margin-top:8px}.qualityActions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.qualityActions button{border:1px solid var(--line2);background:#fff;border-radius:8px;padding:6px 8px;font-size:7.8px;font-weight:850}.qualityActions button.approve{background:var(--goodbg);color:var(--good);border-color:#cfe8da}.qualityActions button.reject{background:var(--redbg);color:var(--red);border-color:#f0ccd2}
+@media(max-width:1100px){.main{grid-template-columns:160px minmax(360px,430px) minmax(0,1fr)}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:820px){.app{height:auto;min-height:100vh}.main{display:block}.nav{display:none}.chat{min-height:430px;border-right:0;border-bottom:1px solid var(--line)}.work{overflow:visible}.stage{flex-wrap:wrap;height:auto;min-height:42px;padding-top:6px;padding-bottom:6px}.tbl{min-width:0}.tableWrap{overflow:visible}.tbl thead{display:none}.tbl,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}.tbl tr{padding:5px;border-bottom:1px solid var(--line)}.tbl td{border:0!important;padding:5px 7px;font-size:9px}.tbl td:before{content:attr(data-label);display:block;font-size:6.8px;color:var(--dim);font-weight:900;text-transform:uppercase}.client{display:none}}
+@media(max-width:560px){.tiles{grid-template-columns:1fr}.qualityGrid{grid-template-columns:1fr}.brand{min-width:0}.presenter{grid-template-columns:1fr}.pKeys{text-align:left}.row{grid-template-columns:1fr}.row .m{margin-top:-4px}}
+
+/* intelligence layer styles (from V2) */
+.needsStrip{border:1px solid #f0d6b0;background:#fff8eb;border-radius:12px;padding:10px 12px;margin-bottom:9px}.needsStrip b{font-size:9px}.needsItem{display:grid;grid-template-columns:1.5fr 2.4fr .9fr .8fr;gap:8px;padding:7px 0;border-top:1px solid #f1e4d1;font-size:8px;line-height:1.4}.needsItem:first-of-type{margin-top:7px}.roleBar{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin-bottom:9px;font-size:8px}.roleBar b{font-size:9px}.riskHigh{background:var(--redbg);color:var(--red)}.riskWatch{background:var(--warnbg);color:var(--warn)}.riskHealthy{background:var(--goodbg);color:var(--good)}
+.subjectLine{font-size:8px;font-weight:850;margin-top:7px;padding:7px 8px;background:#faf8fc;border:1px solid var(--line);border-radius:8px}.researchList{margin:7px 0 0;padding-left:16px;font-size:7.8px;line-height:1.45;color:#5f5667}.researchRisk{margin-top:7px;padding:7px 8px;border-left:3px solid var(--warn);background:var(--warnbg);border-radius:7px;font-size:7.8px;line-height:1.4}.approvalRecord{margin-top:7px;border:1px solid var(--line);border-radius:8px;background:#fcfbfd;padding:7px 8px;font-size:7.6px;line-height:1.45}.followups{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}.followup{margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:7.8px;line-height:1.45}.followup b{display:block;font-size:7.9px;margin-bottom:3px}.qualityPerson{min-width:0}.qualityPerson .email p{max-height:190px;overflow:auto}.decisionOpen{display:inline-flex;border-radius:999px;padding:4px 7px;font-size:7px;font-weight:900;background:#f2edf8;color:#6d547d}.capacityPanel{border:1px solid #d9d1e0;background:#fbf9fd;border-radius:12px;margin-top:8px;overflow:hidden}.capacityPanel .capHead{padding:10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}.capacityPanel .capHead b{font-size:10px}.capacityGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px}.cap{border:1px solid var(--line);border-radius:9px;background:#fff;padding:8px}.cap span{display:block;font-size:6.8px;text-transform:uppercase;color:var(--dim);font-weight:900}.cap b{display:block;margin-top:4px;font-size:10px}.miniCallout{margin-top:8px;border-left:3px solid var(--accent);background:#f8f3ff;border-radius:8px;padding:8px 9px;font-size:8px;line-height:1.45}.qaBadge{display:inline-flex;border-radius:999px;padding:3px 6px;font-size:6.8px;font-weight:900;background:var(--goodbg);color:var(--good);margin-right:3px;margin-top:3px}.openBadge{display:inline-flex;border-radius:999px;padding:3px 6px;font-size:6.8px;font-weight:900;background:var(--warnbg);color:var(--warn)}
+.mobileNav{display:none}
+@media(max-width:820px){body{padding-bottom:58px}.main{display:flex;flex-direction:column}.mobileToday .work{order:1}.mobileToday .chat{order:2}.mobileToday .workHead{position:static}.mobileNav{position:fixed;left:0;right:0;bottom:0;z-index:800;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(255,255,255,.98);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(35,22,52,.08)}.mobileNav button{border:0;background:transparent;padding:9px 3px 8px;font-size:7px;font-weight:850;color:#6a6270;min-height:48px}.mobileNav button.on{color:var(--deep);background:var(--soft)}.capacityGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.needsItem{grid-template-columns:1fr}.qualityPerson .email p{max-height:none}}
+@media(max-width:560px){.capacityGrid{grid-template-columns:1fr}}
+
+
+
+/* compat: Milla V2 pieces Vida V2 lacks, at the same sizes */
+:root{--accent-deep:var(--deep);--accent-soft:var(--soft)}
+.hero{background:linear-gradient(145deg,#fff,#f7f2ff);border:1px solid #dfd3f8;border-radius:14px;padding:14px;margin-bottom:8px}.hero .eyebrow,.eyebrow{font-size:7.5px;color:var(--deep);font-weight:900;letter-spacing:.09em;text-transform:uppercase}.hero h2{font-size:21px;letter-spacing:-.04em;margin:5px 0}.hero p{font-size:10px;color:var(--muted);line-height:1.55;margin:0;max-width:650px}
+.empty{border:1px dashed #d8d0dd;background:#fff;border-radius:12px;padding:16px;text-align:center;margin-top:8px}.empty b{font-size:11px}.empty p{font-size:9px;color:var(--muted);line-height:1.5;max-width:430px;margin:6px auto 0}
+.connTabs{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}.connTab{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 11px;font-size:10px;font-weight:850;color:#5d5564;cursor:pointer}.connTab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.typing{display:inline-flex;gap:3px;align-items:center}.typing i{width:5px;height:5px;border-radius:50%;background:#a795bd;animation:bounce 1s infinite}.typing i:nth-child(2){animation-delay:.13s}.typing i:nth-child(3){animation-delay:.26s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-3px);opacity:1}}
+.tbl tr.sel td{background:#faf7ff}
+textarea.ed{width:100%;min-height:150px;border:1px solid var(--line2);border-radius:9px;padding:9px;font:inherit;font-size:9px;line-height:1.5;color:var(--ink);resize:vertical}
+/* ===== Boutique M&V additions · sized to match V2 ===== */
+.anchor{scroll-margin-top:66px}
+.stage .date{margin-left:auto;font-size:8px;font-weight:900;color:var(--accent-deep);background:var(--accent-soft);border-radius:999px;padding:4px 8px;white-space:nowrap}
+.userBtn{margin-left:12px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:5px 9px 5px 5px;font-size:10px;font-weight:850;color:var(--ink)}
+.userBtn:hover{border-color:#cdb9f7}.userBtn .ini{width:24px;height:24px;border-radius:8px;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-size:9px;font-weight:900}
+.userBtn .car{font-size:8px;color:var(--muted)}
+.userMenu{position:fixed;top:56px;right:14px;z-index:1500;background:#fff;border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);width:220px;padding:6px}
+.userMenu .ul{font-size:7.5px;font-weight:900;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;padding:8px 9px 4px}
+.userMenu button{width:100%;border:0;background:#fff;text-align:left;border-radius:8px;padding:8px 9px;font-size:10px;color:#4f4756;display:flex;justify-content:space-between;align-items:center}
+.userMenu button:hover{background:var(--accent-soft);color:var(--accent-deep)}.userMenu button small{font-size:7.5px;color:var(--dim)}
+.userMenu hr{border:0;border-top:1px solid var(--line);margin:5px 0}
+.signedOut{position:fixed;inset:0;z-index:2600;background:var(--page);display:grid;place-items:center}
+.signedOut .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center;box-shadow:var(--shadow)}
+.signedOut b{font-size:13px}.signedOut p{font-size:9px;color:var(--muted)}
+.msg.fresh{animation:rise .3s ease both}@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.msg.rp .bubble{background:#fff7e8;border:1px solid #f1dfb2}
+.quote{font-size:10.5px;line-height:1.5;color:var(--ink2);border-left:3px solid var(--accent);padding:3px 0 3px 10px;margin:10px 0 0;font-style:italic}
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.choice{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+.choice button{border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 10px;font-size:9px;font-weight:850;color:#574f5d}
+.choice button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.field{display:grid;gap:4px;margin-top:8px}.field label{font-size:7.4px;font-weight:900;color:var(--dim);text-transform:uppercase}
+.field input{border:1px solid var(--line2);border-radius:9px;padding:8px 9px;font-size:9.5px;background:#fff;color:var(--ink)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:9px;line-height:1.45;margin-top:10px;cursor:pointer;color:var(--ink2)}
+.check input{width:13px;height:13px;margin-top:1px;accent-color:var(--accent)}
+.mbGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px}
+.mb{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff}.mb b{display:block;font-size:9px}.mb small{display:block;font-size:7.5px;color:var(--muted);margin-top:3px}
+.bar{height:6px;border-radius:99px;background:#efeaf4;overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px}
+.obj{position:relative;margin:14px 4px 22px}.objTrack{height:10px;border-radius:99px;background:#efeaf4;overflow:hidden}.objFill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px}
+.objMark{position:absolute;top:-5px;width:2px;height:20px;background:#cdbfe6}.objMark.hit{background:var(--accent-deep)}
+.objMark span{position:absolute;top:23px;left:50%;transform:translateX(-50%);font-size:7.5px;font-weight:900;color:var(--dim);white-space:nowrap}.objMark.hit span{color:var(--accent-deep)}
+.objEnd,.objStart{position:absolute;top:23px;font-size:7.5px;font-weight:900;color:var(--dim)}.objEnd{right:0}.objStart{left:0}
+.moment{border:1px solid #dfd3f8;background:linear-gradient(145deg,#fff,#f7f2ff);border-radius:12px;padding:11px;margin-top:8px}
+.moment.locked{border-style:dashed;background:#fff;opacity:.72}
+.moment .mk{font-size:7.5px;font-weight:900;letter-spacing:.09em;color:var(--accent-deep);text-transform:uppercase}
+.moment h3{font-size:11px;margin:4px 0}.moment p{font-size:9px;color:#5f5667;line-height:1.5;margin:3px 0 0}
+.moment .said{font-size:10px;font-style:italic;color:var(--ink2);border-left:3px solid var(--accent);padding-left:9px;margin:7px 0 0;line-height:1.5}
+.answer{margin-top:8px;font-size:8.5px;color:var(--good);font-weight:900}
+.rp{display:grid;gap:6px;margin-top:8px}.rp button{border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 10px;text-align:left;font-size:9px;line-height:1.45;color:var(--ink2)}
+.rp button.picked{border-color:var(--accent);background:var(--accent-soft)}
+.fb{margin-top:8px;border-radius:8px;padding:9px 10px;font-size:9px;line-height:1.5}.fb.ok{background:var(--goodbg);color:#1f5640}.fb.no{background:var(--redbg);color:#7c2b35}
+.act.demo{border:1px dashed #b9a6e6;background:#faf7ff;color:var(--accent-deep)}.act.on{background:var(--accent-soft);border-color:#cdb9f7;color:var(--accent-deep)}
+.demoNote{font-size:7.7px;color:var(--muted);margin-top:5px;line-height:1.45}
+.open{display:inline-flex;border-radius:5px;padding:1px 5px;font-size:7px;font-weight:900;letter-spacing:.05em;background:#fff4dc;color:var(--warn);border:1px solid #f1dfb2}
+.prov{display:inline-flex;font-size:7px;font-weight:900;letter-spacing:.06em;color:#7a4e0c;background:#fff1d6;border:1px solid #efd7a4;border-radius:5px;padding:2px 6px}
+.closed{display:inline-flex;font-size:7px;font-weight:900;letter-spacing:.06em;color:var(--good);background:var(--goodbg);border:1px solid #cfe8da;border-radius:5px;padding:2px 6px}
+.tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:#fcfaff}
+.chart{position:relative;margin-top:6px}.cols{display:flex;align-items:flex-end;gap:2px;height:80px;border-bottom:1px solid #e3dde8;padding:0 2px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.col i{display:block;width:min(12px,70%);background:var(--accent);border-radius:4px 4px 0 0}
+.col.we{background:repeating-linear-gradient(0deg,transparent,transparent 3px,#faf8fc 3px,#faf8fc 6px)}.col em{font-style:normal;font-size:7.5px;font-weight:900;color:var(--ink2);margin-bottom:2px}
+.colAxis{display:flex;justify-content:space-between;font-size:7.5px;color:var(--muted);margin-top:4px}
+.tip{position:fixed;z-index:3000;background:#211a27;color:#fff;border-radius:8px;padding:6px 8px;font-size:9px;line-height:1.4;pointer-events:none;max-width:240px}
+.fun{display:grid;grid-template-columns:90px 1fr 50px;gap:8px;align-items:center;padding:5px 0;cursor:pointer;border-radius:7px}.fun:hover,.fun.sel{background:#f8f4ff}
+.fun span{font-size:8.5px;font-weight:850;color:var(--ink2)}.fun .trk{height:10px;border-radius:99px;background:#f2eef6;overflow:hidden}.fun .trk i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.fun .trk.isopen{background:repeating-linear-gradient(135deg,#fff7e6,#fff7e6 5px,#fbefd4 5px,#fbefd4 10px);border:1px dashed #ecd7a8}.fun b{font-size:9px;text-align:right}
+/* three-pane menu */
+.portal{position:fixed;inset:0;z-index:2000;background:rgba(22,16,28,.55);display:grid;place-items:center;padding:14px}
+.pShell{width:min(1280px,100%);height:min(820px,100%);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.32);display:grid;grid-template-rows:54px 1fr;grid-template-columns:minmax(0,1fr)}
+.pTop{display:flex;align-items:center;gap:10px;padding:0 13px;border-bottom:1px solid var(--line);background:#fcfbfd}
+.pTop .who b{display:block;font-size:11px}.pTop .who span{display:block;font-size:8px;color:var(--muted)}
+.switch{position:relative}.switchBtn{border:1px solid var(--line2);background:#fff;border-radius:9px;padding:7px 10px;font-size:9.5px;font-weight:900;color:var(--ink);display:flex;gap:7px;align-items:center}
+.switchBtn small{font-size:7.5px;color:var(--muted);font-weight:700}
+.switchList{position:absolute;top:38px;left:0;z-index:5;background:#fff;border:1px solid var(--line2);border-radius:11px;box-shadow:var(--shadow);width:260px;padding:5px}
+.switchList button{width:100%;border:0;background:#fff;text-align:left;border-radius:8px;padding:8px 9px;font-size:9.5px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.switchList button:hover,.switchList button.on{background:var(--accent-soft)}.switchList small{font-size:7.5px;color:var(--muted)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:8px;font-weight:900;color:var(--good);background:var(--goodbg);border-radius:999px;padding:5px 8px;white-space:nowrap}
+.live i{width:7px;height:7px;border-radius:50%;background:#1fa36f;animation:ping 1.6s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(31,163,111,.55)}80%{box-shadow:0 0 0 6px rgba(31,163,111,0)}100%{box-shadow:0 0 0 0 rgba(31,163,111,0)}}
+.pClose{margin-left:auto;border:0;background:#eeeaf0;border-radius:8px;padding:7px 10px;font-size:9px;font-weight:900;color:#5f5664}
+.pBody{display:grid;grid-template-columns:185px minmax(0,1fr) 290px;min-height:0}
+.pMenu{border-right:1px solid var(--line);background:#fbfafc;padding:13px 9px;overflow:auto}
+.pMenu .navlab{margin-top:10px}.pMenu .navlab:first-child{margin-top:0}
+.pMenu button{width:100%;border:0;background:transparent;text-align:left;border-radius:9px;padding:8px 10px;font-size:10px;color:#5e5664;display:block;margin-bottom:2px}
+.pMenu button.on{background:#f0eafd;color:var(--accent-deep);font-weight:900}
+.pPage{overflow:auto;background:var(--wash);padding:13px;min-width:0}
+.pPage h2{font-size:15px;margin:0;letter-spacing:-.02em}.pPage .lede{font-size:9px;color:var(--muted);margin:3px 0 0}
+.pDetail{border-left:1px solid var(--line);overflow:auto;background:#fff;padding:13px}
+.pDetail .dh{font-size:7.5px;font-weight:900;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.pDetail h3{font-size:12px;margin:5px 0 2px}.pDetail .ds{font-size:8.5px;color:var(--muted);margin:0 0 6px}
+.kv{display:grid;grid-template-columns:95px 1fr;gap:7px;padding:7px 0;border-bottom:1px solid #f0ecf3;font-size:9px;line-height:1.45}
+.kv span{color:var(--dim);font-weight:900;font-size:7.4px;text-transform:uppercase;padding-top:1px}
+.dEmpty{border:1px dashed var(--line2);border-radius:11px;padding:16px;text-align:center;color:var(--muted);font-size:9px;line-height:1.5;margin-top:8px}
+.ocard{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px;cursor:pointer;min-width:0}.ocard:hover{border-color:#cdb9f7}.ocard.sel{border-color:var(--accent);box-shadow:0 0 0 3px #efe6ff}
+.ocard .k{font-size:7px;font-weight:900;color:var(--dim);letter-spacing:.05em;text-transform:uppercase}.ocard b{display:block;font-size:11px;margin-top:3px}.ocard small{display:block;font-size:8px;color:var(--muted);margin-top:3px;line-height:1.4}
+.oGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px}
+.list .li{display:flex;gap:9px;align-items:flex-start;padding:8px 2px;border-bottom:1px solid #f0ecf3;cursor:pointer;font-size:9px;line-height:1.4}
+.list .li:last-child{border-bottom:0}.list .li:hover{background:#fcfaff}.list .li.sel{background:#f6f1ff}.list .li time{font-size:7.4px;color:var(--dim);font-weight:900;min-width:78px;padding-top:1px}
+.wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}.wm span{transform:rotate(-16deg);font-size:24px;font-weight:900;letter-spacing:.12em;color:rgba(111,61,244,.10);white-space:nowrap}
+.email{position:relative;overflow:hidden}.email .foot{font-size:7.5px;line-height:1.5;color:var(--muted);margin-top:8px;border-top:1px dashed var(--line2);padding-top:6px;white-space:pre-line}
+.toggle{border:1px solid var(--line2);border-radius:999px;padding:4px 9px;font-size:8px;font-weight:900;background:#fff;color:#6b6271;min-width:44px}.toggle.on{background:var(--goodbg);border-color:#cfe8da;color:var(--good)}
+.inline{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}.inline input,.inline select{border:1px solid var(--line2);border-radius:8px;padding:7px 9px;font-size:9px;background:#fff;min-width:0}
+.app{grid-template-columns:minmax(0,1fr)}
+@media(max-width:1100px){.pBody{grid-template-columns:160px minmax(0,1fr) 250px}}
+@media(max-width:820px){.split,.mbGrid,.oGrid{grid-template-columns:1fr}.pBody{grid-template-columns:1fr;overflow:auto}.pMenu{display:flex;overflow:auto}.pMenu button{white-space:nowrap;width:auto}.pMenu .navlab{display:none}.pDetail{border-left:0;border-top:1px solid var(--line)}.userBtn span.nm{display:none}.stage .date{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="brand"><div class="mark">V</div><b>Milla<span>&amp;Vida</span> · Vida</b></div><div class="title"><b id="screenTitle">Today board</b><span id="screenSub">Every client · what needs you</span></div><div class="client">K.I.N.D · Vida<small>Signed in: Founder · all the human work</small></div></header>
+  <div class="stage" id="stage"></div>
+  <div class="main">
+    <aside class="nav"><div class="navin" id="navIn"></div><div class="navfoot">Vida is our console: we run each client’s work here, as part of their sales team. Presenter keys, separate from the buttons: SPACE next · ← back · R reset · P notes · + / − text size.</div></aside>
+    <section class="chat"><div class="chatHead"><div class="avatar">V</div><div><b>Vida</b><span>Our console · you and Vida</span></div><div class="online">● ONLINE</div></div><div class="thread" id="thread"></div><div class="composer"><input id="input" autocomplete="off" placeholder="Message Vida…" aria-label="Message Vida"><button id="sendBtn">Send</button></div></section>
+    <section class="work" id="work"><div class="workHead"><div><b id="workTitle">Today board</b><span class="sub" id="workSub"></span></div><div class="state" id="workState">READY</div></div><div class="body" id="workspace"></div></section>
+  </div>
+</div>
+<div id="presenter" class="presenter off"><div class="pType" id="pType">NEXT</div><div class="pText"><b id="pMain">Press SPACE to begin.</b><span id="pSub"></span></div><div class="pKeys">SPACE next · ← back · P notes · R reset</div></div>
+<div class="tip hidden" id="tip"></div>
+<script>
+/* ================= Milla · Boutique M&V · click-through preview =================
+   Every on-screen button calls the action its label names (act('…')).
+   Presenter keys (SPACE / ← / R / P) are separate: they run the same actions in script order.
+================================================================================= */
+const STORE='mv_vida_boutique_v1_09oct';
+const MB1='dana@asterfieldhq.com', MB2='dana.reyes@asterfieldhq.com';
+const PRICE=700, COACH=100, OBJ=10, MAILBOX_FEE=8.40;
+
+/* ---- the people: Week 1 (first 10 = Proof). Sizes are employee bands. ---- */
+const P=[
+ {id:'morgan',n:'Morgan Lee',t:'Operations Director',c:'Ridgewell Fire & Security',ind:'Fire & security',sz:'50–100',why:'Hiring service coordinators; lost to timing in February',src:'Ridgewell careers page',d:'05 Oct 2026',crm:'In your CRM · lost to timing (Feb)',mb:1},
+ {id:'priya',n:'Priya Shah',t:'COO',c:'Pinecrest Facilities',ind:'Facilities maintenance',sz:'50–100',why:'Opened a new regional service hub',src:'Company news',d:'02 Oct 2026',crm:'New',mb:2},
+ {id:'noah',n:'Noah Carter',t:'Operations Director',c:'Northbank Maintenance',ind:'Facilities maintenance',sz:'20–50',why:'Moved into the Operations Director role',src:'Role change · via Clay',d:'03 Oct 2026',crm:'New · identity checked',mb:1},
+ {id:'leah',n:'Leah Morris',t:'VP Operations',c:'Beacon Facilities',ind:'Facilities maintenance',sz:'50–100',why:'Acquired two service depots',src:'Press release',d:'30 Sep 2026',crm:'New',mb:2},
+ {id:'ethan',n:'Ethan Brooks',t:'Operations Director',c:'Summit Maintenance',ind:'Facilities maintenance',sz:'20–50',why:'Hiring a dispatch manager',src:'Careers page',d:'06 Oct 2026',crm:'New',mb:1},
+ {id:'grace',n:'Grace Kim',t:'Head of Operations',c:'Halcyon Field Services',ind:'Field services',sz:'50–100',why:'Expanding the technician team',src:'Careers page',d:'01 Oct 2026',crm:'New',mb:2},
+ {id:'daniel',n:'Daniel Ortiz',t:'COO',c:'MetroServe FM',ind:'Facilities maintenance',sz:'50–100',why:'Won a new response-time contract',src:'Company news',d:'29 Sep 2026',crm:'New',mb:1},
+ {id:'maya',n:'Maya Chen',t:'COO',c:'Axis Property Services',ind:'Property services',sz:'50–100',why:'Newly appointed COO',src:'Company announcement',d:'04 Oct 2026',crm:'New',mb:2},
+ {id:'oliver',n:'Oliver Grant',t:'Operations Director',c:'Redbridge Maintenance',ind:'Facilities maintenance',sz:'20–50',why:'Opened a field-operations systems role',src:'Careers page',d:'05 Oct 2026',crm:'New',mb:1},
+ {id:'ava',n:'Ava Patel',t:'Operations Director',c:'Ironwood Services',ind:'Field services',sz:'20–50',why:'Opened a second branch',src:'Company website',d:'05 Oct 2026',crm:'New',mb:2},
+ {id:'sofia',n:'Sofia Alvarez',t:'COO',c:'Crestline Facility Services',ind:'Facilities maintenance',sz:'50–100',why:'Opened a Dallas branch',src:'Company news',d:'08 Oct 2026',crm:'New',mb:1},
+ {id:'james',n:'James Whitaker',t:'Operations Director',c:'Harbor Point Maintenance',ind:'Facilities maintenance',sz:'20–50',why:'Hiring two field supervisors',src:'Careers page',d:'09 Oct 2026',crm:'New',mb:2},
+ {id:'hannah',n:'Hannah Liu',t:'Head of Operations',c:'Keystone Property Care',ind:'Property services',sz:'50–100',why:'Won a school-district maintenance contract',src:'Company news',d:'07 Oct 2026',crm:'New',mb:1},
+ {id:'marcus',n:'Marcus Reed',t:'COO',c:'Bluewater Facilities Group',ind:'Facilities maintenance',sz:'50–100',why:'Raised growth funding',src:'Press release',d:'06 Oct 2026',crm:'New',mb:2},
+ {id:'elena',n:'Elena Novak',t:'Operations Director',c:'Granite State Services',ind:'Field services',sz:'20–50',why:'New in the Operations Director role',src:'Role change · via Clay',d:'05 Oct 2026',crm:'New',mb:1},
+ {id:'tom',n:'Tom Fischer',t:'VP Operations',c:'Lakeshore Building Services',ind:'Property services',sz:'50–100',why:'Expanding into a second state',src:'Company website',d:'08 Oct 2026',crm:'New',mb:2},
+ {id:'nadia',n:'Nadia Hassan',t:'Operations Director',c:'Sterling Field Maintenance',ind:'Field services',sz:'20–50',why:'Hiring a scheduling coordinator',src:'Careers page',d:'10 Oct 2026',crm:'New',mb:1},
+ {id:'chris',n:'Chris Donovan',t:'COO',c:'Pioneer Facility Solutions',ind:'Facilities maintenance',sz:'50–100',why:'Acquired a local HVAC service firm',src:'Press release',d:'02 Oct 2026',crm:'New',mb:2},
+ {id:'rachel',n:'Rachel Moore',t:'Head of Operations',c:'Evergreen Site Services',ind:'Field services',sz:'20–50',why:'Hired a new service-desk lead',src:'Company announcement',d:'07 Oct 2026',crm:'New',mb:1},
+ {id:'victor',n:'Victor Ramos',t:'Operations Director',c:'Cornerstone Maintenance Co.',ind:'Facilities maintenance',sz:'20–50',why:'Opened a new depot',src:'Company news',d:'09 Oct 2026',crm:'New',mb:2},
+ {id:'amy',n:'Amy Sullivan',t:'COO',c:'Clearview Property Services',ind:'Property services',sz:'20–50',why:'Hiring dispatch staff',src:'Careers page',d:'12 Oct 2026',crm:'New',mb:1},
+ {id:'ben',n:'Ben Okafor',t:'Operations Director',c:'Union Field Services',ind:'Field services',sz:'50–100',why:'Won a new regional contract',src:'Company news',d:'08 Oct 2026',crm:'New',mb:2},
+ {id:'laura',n:'Laura Jensen',t:'VP Operations',c:'Brightwater Facilities',ind:'Facilities maintenance',sz:'50–100',why:'New CEO appointed',src:'Company announcement',d:'06 Oct 2026',crm:'New',mb:1},
+ {id:'sam',n:'Sam Whitfield',t:'Operations Director',c:'Oakridge Service Group',ind:'Field services',sz:'20–50',why:'Expanding the technician team',src:'Careers page',d:'11 Oct 2026',crm:'New',mb:2},
+ {id:'megan',n:'Megan Price',t:'COO',c:'Northgate Maintenance',ind:'Facilities maintenance',sz:'20–50',why:'Opened a second office',src:'Company website',d:'09 Oct 2026',crm:'New',mb:1}
+];
+const PBY=Object.fromEntries(P.map(p=>[p.id,p]));
+/* reason type for "What's converting" (counts are computed from the 25 named people, never typed) */
+const RC={morgan:'New hire',priya:'Expansion',noah:'New in role',leah:'Expansion',ethan:'New hire',grace:'New hire',daniel:'New contract',maya:'New in role',oliver:'New hire',ava:'Expansion',sofia:'Expansion',james:'New hire',hannah:'New contract',marcus:'Funding',elena:'New in role',tom:'Expansion',nadia:'New hire',chris:'Expansion',rachel:'New hire',victor:'Expansion',amy:'New hire',ben:'New contract',laura:'Leadership change',sam:'New hire',megan:'Expansion'};
+P.forEach(p=>p.rc=RC[p.id]);
+
+/* ---- held meetings, in the order they become held under the 48-hour rule ---- */
+const HELD=[
+ {id:'morgan',mt:'Thu 22 Oct · 10:00',heldOn:'Sat 24 Oct',out:'Next step agreed',crm:'Discovery · opp_aster_009',mid:'mtg_0261'},
+ {id:'priya',mt:'Mon 26 Oct · 14:00',heldOn:'Wed 28 Oct',out:'Next step agreed',crm:'Discovery',mid:'mtg_0274'},
+ {id:'leah',mt:'Tue 27 Oct · 09:30',heldOn:'Thu 29 Oct',out:'Next step agreed',crm:'',mid:'mtg_0279'},
+ {id:'noah',mt:'Mon 2 Nov · 11:00',heldOn:'Wed 4 Nov',out:'Next step agreed',crm:'Discovery',mid:'mtg_0288'},
+ {id:'daniel',mt:'Tue 3 Nov · 15:00',heldOn:'Thu 5 Nov',out:'No next step',crm:'',mid:'mtg_0291'},
+ {id:'sofia',mt:'Mon 9 Nov · 10:00',heldOn:'Wed 11 Nov',out:'Next step agreed',crm:'',mid:'mtg_0303'},
+ {id:'marcus',mt:'Mon 9 Nov · 15:00',heldOn:'Wed 11 Nov',out:'Not qualified',crm:'',mid:'mtg_0305'},
+ {id:'james',mt:'Tue 10 Nov · 11:00',heldOn:'Thu 12 Nov',out:'Unknown',crm:'',mid:'mtg_0308'}
+];
+/* day index of each held meeting inside the free month (day 1 = Mon 19 Oct) */
+const HELD_DAY={morgan:4,priya:8,leah:9,noah:15,daniel:16,sofia:22,marcus:22,james:23};
+
+const SIG='Dana Reyes\nCOO, Aster Field Systems';
+const FOOT='Where we got your details: Clay and publicly available company information. Privacy: https://www.get-kind.com/privacy\nPostal address: Aster Field Systems · [postal address · OPEN]\nUnsubscribe: reply “unsubscribe” or use the link below.';
+const EMAILS={
+ morgan:[
+  {s:'Ridgewell’s coordinator hiring',b:`Hi Morgan,\n\nWhen Aster and Ridgewell spoke earlier this year, timing was the blocker. I noticed Ridgewell is now hiring service coordinators, which usually means more moving parts for the operations team.\n\nIf seeing jobs at risk is back on the agenda, I thought it was worth asking how you track exceptions today. Open to a short comparison?\n\n${SIG}`},
+  {s:'Re: Ridgewell’s coordinator hiring',b:`Hi Morgan,\n\nOne more thought. When a coordinator team grows, the first thing that tends to slip is who sees a late job first. If that’s not a problem at Ridgewell, no need to reply. If it is, I’m happy to show you how Aster puts scheduling, live job status and sign-off in one view.\n\nDana`},
+  {s:'Re: Ridgewell’s coordinator hiring',b:`Hi Morgan,\n\nI’ll leave it here. If the timing is still wrong, just say so and I won’t follow up again.\n\nDana`}],
+ priya:[
+  {s:'Pinecrest’s new service hub',b:`Hi Priya,\n\nCongratulations on the new regional service hub. A new hub usually means more jobs moving between sites, and more chances for one to slip without anyone noticing.\n\nAster gives operations teams one view of scheduling, live job status and mobile sign-off. Would a short conversation about how you see jobs at risk across sites be useful?\n\n${SIG}`},
+  {s:'Re: Pinecrest’s new service hub',b:`Hi Priya,\n\nA quick follow-up. If “which jobs are running late right now, and where?” is a question your team asks, I can show you how Aster answers it in one view.\n\nDana`},
+  {s:'Re: Pinecrest’s new service hub',b:`Hi Priya,\n\nLast note from me. If now isn’t the time, just let me know and I won’t follow up again.\n\nDana`}],
+ noah:[{s:'Your new role at Northbank',b:`Hi Noah,\n\nCongratulations on the move into the Operations Director role at Northbank. New operations leaders often start by asking where jobs get stuck.\n\nAster gives operations teams one view of scheduling, live job status and mobile sign-off. Would a short conversation be useful while you’re setting priorities?\n\n${SIG}`}],
+ leah:[{s:'Beacon’s two new depots',b:`Hi Leah,\n\nI saw Beacon acquired two service depots. Bringing new depots onto one way of working is hard when job updates live in spreadsheets, calls and messages.\n\nIs that something you’re working through? If so, a short comparison of how you see jobs at risk today might be useful.\n\n${SIG}`}],
+ ethan:[{s:'Summit’s dispatch hire',b:`Hi Ethan,\n\nI noticed Summit is hiring a dispatch manager. That’s often the moment teams look at how dispatch sees late or at-risk jobs.\n\nWould it be worth a short conversation about how you track that today?\n\n${SIG}`}],
+ grace:[{s:'Halcyon’s growing technician team',b:`Hi Grace,\n\nHalcyon is growing its technician team. More technicians usually means more jobs to keep track of in the field.\n\nAster gives operations teams one view of scheduling, live job status and mobile sign-off. Open to a short conversation?\n\n${SIG}`}],
+ daniel:[{s:'MetroServe’s new contract',b:`Hi Daniel,\n\nCongratulations on MetroServe’s new response-time contract. Tighter response times make it more important to see a slipping job before the client does.\n\nWould a short conversation about how you track that today be useful?\n\n${SIG}`}],
+ maya:[{s:'Your first months at Axis',b:`Hi Maya,\n\nCongratulations on joining Axis as COO. New COOs often look first at where operations lose time.\n\nIf job visibility is on your list, I’d be glad to compare notes on how you see jobs at risk today.\n\n${SIG}`}],
+ oliver:[{s:'Redbridge’s field-operations role',b:`Hi Oliver,\n\nI saw Redbridge has opened a field-operations systems role. That usually means the current set-up is being looked at.\n\nIf seeing jobs at risk is part of that brief, would a short conversation be useful?\n\n${SIG}`}],
+ ava:[{s:'Ironwood’s second branch',b:`Hi Ava,\n\nCongratulations on Ironwood’s second branch. Running two branches usually means two views of the same jobs.\n\nAster gives operations teams one view of scheduling, live job status and mobile sign-off. Worth a short conversation?\n\n${SIG}`}]
+};
+const FOLLOWUP={at:'Mon 26 Oct · 11:00',s:'Re: Ridgewell’s coordinator hiring',b:'Thanks Morgan. Useful to understand where job status still gets chased by hand. If you send me the name of your current job system, I’ll confirm what’s possible before we talk again. It would also help to bring your Service Director, so we can walk through the workflow together.\n\nDana'};
+const REPLY={from:'Morgan Lee',at:'Tue 20 Oct · 09:10',text:'Yes, worth a look. Does Aster connect to the job system we already use?'};
+const ANSWER={at:'Tue 20 Oct · 09:28',text:'Thanks Morgan. It depends on the system you use. If you send me its name, I’ll confirm what’s possible before we meet, so we don’t waste your time. Would Thursday at 10:00 work for a 30-minute call?\n\nDana'};
+
+/* ---- objectives in the switcher ---- */
+const OBJS=[
+ {id:'meetings',name:'Meetings · Q4',kind:'Held meetings a month',target:'10 held meetings a month',price:'$700 per held meeting'},
+ {id:'vegas',name:'Vegas expo · January',kind:'People at an event',target:'40 people at the stand',price:'OPEN'},
+ {id:'usergroup',name:'User group · November',kind:'People at an event',target:'OPEN',price:'OPEN'}
+];
+
+
+/* ---- research per person (Boutique promise: we research each person) ---- */
+const RESEARCH={
+ morgan:{l:['Ridgewell careers page lists new service-coordinator roles · 05 Oct 2026.','Your CRM: lost to timing on 17 Feb 2026; no open deal today.','Clay: Morgan is still Operations Director; work email verified.'],r:'Hiring doesn’t mean they’re buying.'},
+ priya:{l:['Pinecrest announced a new regional service hub · 02 Oct 2026.','Clay: Priya is COO; work email verified.','Your CRM: no customer, open deal or opt-out.'],r:'A new hub doesn’t mean there’s a problem.'},
+ noah:{l:['Role change: Noah became Operations Director at Northbank · 03 Oct 2026.','Identity checked: not the Noah Aster spoke to before; no old opt-out.','Northbank is inside your ICP (20–50 employees).'],r:'A new role doesn’t mean a new system.'},
+ leah:{l:['Beacon press release: two service depots acquired · 30 Sep 2026.','Clay: Leah runs operations for the bigger footprint; work email verified.','Your CRM: no open deal, customer or opt-out.'],r:'An acquisition doesn’t mean integration problems.'},
+ ethan:{l:['Summit careers page: dispatch-manager vacancy · 06 Oct 2026.','Clay: Ethan is still responsible for operations; work email verified.','Your CRM: no prior relationship.'],r:'Hiring doesn’t mean dispatch is failing.'},
+ grace:{l:['Halcyon careers page: several technician roles · 01 Oct 2026.','Clay: Grace is Head of Operations; work email verified.','Your CRM: no prior relationship.'],r:'Growth doesn’t mean pain.'},
+ daniel:{l:['MetroServe news: new response-time contract · 29 Sep 2026.','Clay: Daniel is COO and owns service delivery; work email verified.','Your CRM: no customer, open deal or opt-out.'],r:'A new contract doesn’t mean today’s performance is poor.'},
+ maya:{l:['Axis announcement: Maya appointed COO · 04 Oct 2026.','Clay: role confirmed; work email verified.','Your CRM: no prior relationship.'],r:'A new COO may not be reviewing systems yet.'},
+ oliver:{l:['Redbridge careers page: field-operations systems role · 05 Oct 2026.','Clay: Oliver is Operations Director; work email verified.','Your CRM: no prior relationship.'],r:'A systems role may already have a preferred tool.'},
+ ava:{l:['Ironwood website: second branch opened · 05 Oct 2026.','Clay: Ava is Operations Director; work email verified.','Your CRM: no prior relationship.'],r:'Two branches doesn’t mean two systems.'}
+};
+function research(p){if(RESEARCH[p.id])return RESEARCH[p.id];return {l:[`${p.src}: ${p.why.charAt(0).toLowerCase()+p.why.slice(1)} · ${p.d}.`,`Clay: ${p.n.split(' ')[0]} is ${p.t} at ${p.c}; work email verified.`,'Your CRM: no prior relationship.'],r:'A reason to ask, not proof they’re buying.'}}
+
+/* ================= Vida-only data ================= */
+/* Aster's numbers (founder, 9 Oct). Clay uses the agreed default: 100 people × $0.44 = $44.00. Vida only, never in Milla. */
+const NUM={pays:7000,paysC:8000,clay:44.00,ai:10.00,aiCoach:10.00,card:367.77,cardC:420.27,hrs:10.3,hrsC:12.8,floor:389,floorAfter:265,weekHrs:30};
+NUM.cost=NUM.clay+NUM.ai+NUM.card;            // 421.77
+NUM.costC=NUM.clay+NUM.ai+NUM.aiCoach+NUM.cardC; // 484.27
+NUM.profit=NUM.pays-NUM.cost;                 // 6578.23
+NUM.profitC=NUM.paysC-NUM.costC;              // 7515.73
+NUM.month=NUM.weekHrs*52/12;                  // 130 hours a month
+/* the other clients come from Vida V2; their numbers were never supplied, so they show OPEN */
+const CLIENTS=[
+ {id:'acorn',n:'Acorn Digital',stage:'Paying',risk:'High',why:'Sending stopped 26h: a mailbox at its limit and no checked messages left'},
+ {id:'harbor',n:'Harborline Consulting',stage:'Paying',risk:'Watch',why:'Oldest reply waiting 5 hours; the same-day target is at risk'},
+ {id:'juniper',n:'Juniper Labs',stage:'Paying',risk:'Watch',why:'1 held meeting has no “How did it go?” answer'},
+ {id:'bluehaven',n:'Bluehaven Services',stage:'Free month',risk:'Healthy',why:'Checked messages ready; replies clear'}
+];
+/* the week-1 Clay file: the 25 people Milla shows, plus 2 dropped at the check, plus 2 blocked by the CRM */
+const DROPS=[
+ {id:'kyle',n:'Kyle Benton',t:'Operations Director',c:'Westfield Services',ind:'Facilities maintenance',sz:'20–50',why:'“Growing fast”',src:'LinkedIn post',d:'no date',crm:'New',mb:2,flag:'No date on the reason'},
+ {id:'rosa',n:'Rosa Delgado',t:'COO',c:'Harlow Facility Group',ind:'Facilities maintenance',sz:'50–100',why:'Posted about growth',src:'LinkedIn post',d:'08 Oct 2026',crm:'New',mb:1,flag:'Weak reason'}
+];
+DROPS.forEach(p=>PBY[p.id]=p);
+const BLOCKED=[['Alderline Services','Open deal in Aster’s CRM (Proposal)'],['Cedar Vale Electrical','Existing Aster customer']];
+const QUEUE=[...P.map(p=>p.id).slice(0,1),'priya','kyle','rosa',...P.map(p=>p.id).slice(2)];
+const AIDRAFT={
+ priya:{s:'Pinecrest’s new service hub',b:'Hi Priya,\n\nCongratulations on the new regional service hub. A new hub usually means more jobs moving between sites, and more chances for one to slip without anyone noticing.\n\nAster integrates with the job systems you already use, so switching is easy. Would a short conversation be useful?\n\nDana Reyes\nCOO, Aster Field Systems',flag:'Claims an integration Aster hasn’t approved'},
+ kyle:{s:'Westfield is growing',b:'Hi Kyle,\n\nI saw Westfield is growing fast. Growth usually brings more jobs to keep track of. Would a short conversation be useful?\n\nDana Reyes\nCOO, Aster Field Systems',flag:'No date on the reason'},
+ rosa:{s:'Harlow’s growth',b:'Hi Rosa,\n\nI saw your post about Harlow’s growth. Would a short conversation about how you see jobs at risk be useful?\n\nDana Reyes\nCOO, Aster Field Systems',flag:'Weak reason: a post about growth isn’t a real reason to talk now'}
+};
+const REPLIES=[
+ {id:'harbor',client:'Harborline Consulting',who:'Jamie Cole',what:'Asked for a call next week',wait:'5 hours'},
+ {id:'acornA',client:'Acorn Digital',who:'Reply A',what:'Question about pricing',wait:'3 hours'},
+ {id:'acornB',client:'Acorn Digital',who:'Reply B',what:'“Send me more detail”',wait:'1h 42m'},
+ {id:'oliver',client:'Aster Field Systems',who:'Oliver Grant · Redbridge',what:'“Please take me off your list.”',wait:'34 min'},
+ {id:'acornC',client:'Acorn Digital',who:'Reply C',what:'Out of office',wait:'22 min'},
+ {id:'morgan',client:'Aster Field Systems',who:'Morgan Lee · Ridgewell',what:'“Yes, worth a look. Does Aster connect to the job system we already use?”',wait:'5 min'}
+];
+</script>
+<script>
+/* ================= Vida · Boutique M&V · state ================= */
+const FRESH={screen:'today',date:'Mon 28 Sep 2026',fmDay:0,warmDay:1,
+ handoffOK:false,dnsOK:false,proofFile:false,proofSent:false,proofOK:false,weekFile:false,drafted:false,
+ q:{},dropReason:{},qSel:'morgan',editing:false,dropAsk:false,weekSent:false,weekOK:false,paused:false,
+ replies:{},booked:false,prepOK:false,held:0,m1:'',followOK:false,coachOn:false,coachChecks:{},
+ day30:false,decision:'',cap:{paying:0,free:0},floorAfter:false,learnApplied:false,handled:{},log:[],seen:{}};
+function fresh(){return JSON.parse(JSON.stringify(FRESH))}
+function initialT(){return [['VIDA','Good morning. Here’s your board: every client, free month or paying, and what needs you. One new client came in from Milla overnight.']]}
+let S=load(),T=loadT(),replaying=false,notes=false,busy=false,focusId=null,shown=0,zoom=1;
+function load(){try{return {...fresh(),...JSON.parse(localStorage.getItem(STORE)||'{}')}}catch(e){return fresh()}}
+function loadT(){try{const t=JSON.parse(localStorage.getItem(STORE+'_t')||'null');return Array.isArray(t)?t:initialT()}catch(e){return initialT()}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S));localStorage.setItem(STORE+'_t',JSON.stringify(T))}catch(e){}}
+shown=T.length;
+
+/* ================= helpers ================= */
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function $(id){return document.getElementById(id)}
+function usd(n){return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function usd0(n){return '$'+Math.round(n).toLocaleString('en-US')}
+function tag(t,k='vio'){return `<span class="tag ${k}">${t}</span>`}
+const OPEN='<span class="open">OPEN</span>';
+function tiles(a){return `<div class="tiles">${a.map(x=>`<div class="tile"><span>${x[0]}</span><b>${x[1]}</b><small>${x[2]||''}</small></div>`).join('')}</div>`}
+function btns(a){return `<div class="actions">${a.filter(Boolean).map(x=>`<button class="act ${x[2]||''}" onclick="${x[1]}">${x[0]}</button>`).join('')}</div>`}
+function row(l,v,m=''){return `<div class="row"><label>${l}</label><div class="v">${v}</div><span class="m">${m}</span></div>`}
+function card(title,label,body,pad=true){return `<div class="card"><div class="cardHead"><b>${title}</b><span>${label||''}</span></div>${pad?`<div class="cardBody">${body}</div>`:body}</div>`}
+function table(head,rows){return `<div class="tableWrap"><table class="tbl"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+function anchor(id){return `<div id="${id}" class="anchor"></div>`}
+function toast(t){if(replaying)return;const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2000)}
+function vida(t){T.push(['VIDA',t])}
+function you(t,typed){T.push(['YOU',t,typed?1:0])}
+function log(t,when){S.log.unshift({t:when||S.date.replace(' 2026',''),x:t})}
+function need(c,m){if(!c){toast(m);return false}return true}
+function first(id){return PBY[id].n.split(' ')[0]}
+function qState(id){return S.q[id]||'waiting'}
+function qCount(st){return QUEUE.filter(id=>qState(id)===st||(st==='approved'&&qState(id)==='edited')).length}
+function heldList(){return HELD.slice(0,S.held).map(h=>({...h,p:PBY[h.id],out:h.id==='morgan'?(S.m1||'Waiting for Dana'):h.out}))}
+function moment(){return S.held>=8?75:S.held>=5?50:S.held>=3?25:0}
+function sending(){return S.weekOK&&!S.paused}
+function warmLabel(){return S.weekOK?'Warm-up done · sending':S.warmDay>=21?'Warm-up done':`Warming, day ${S.warmDay} of about 21`}
+/* capacity: Aster is known; other clients' hours were never supplied, so planning assumes Aster-sized */
+function capLoad(){const aster=S.coachOn?NUM.hrsC:NUM.hrs;const others=CLIENTS.length+S.cap.paying+S.cap.free;return {aster,others,assumed:others*NUM.hrs,total:aster+others*NUM.hrs}}
+
+/* ================= real-time chat: your line is typed, Vida shows her dots, then answers ================= */
+function act(name,...args){
+ if(busy&&!replaying)return;
+ const f=ACT[name];if(!f){console.warn('no action',name);return}
+ const t0=T.length;f(...args);
+ if(replaying)return;save();
+ if(T.length>t0)play(t0);else render();
+}
+function go(sc){act('go',sc)}
+const wait=ms=>new Promise(r=>setTimeout(r,ms*(window.__speed??1)));
+async function play(from){busy=true;try{for(let i=from;i<T.length;i++){const m=T[i];if(m[0]==='YOU'&&!m[2])await typeInto(m[1]);else if(m[0]!=='YOU'){showTyping();await wait(Math.min(1100,420+m[1].length*4));hideTyping()}shown=i+1;drawTranscript(i)}}finally{busy=false;shown=T.length;render()}}
+async function typeInto(text){const inp=$('input');inp.value='';const step=Math.max(1,Math.ceil(text.length/55));for(let i=0;i<text.length;i+=step){inp.value=text.slice(0,i+step);await wait(14)}await wait(120);inp.value=''}
+function showTyping(){$('thread').insertAdjacentHTML('beforeend','<div class="msg" id="vTyping"><div class="who">VIDA</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div></div>');$('thread').scrollTop=$('thread').scrollHeight}
+function hideTyping(){$('vTyping')?.remove()}
+function drawTranscript(freshFrom){const el=$('thread');el.innerHTML=T.slice(0,shown).map((m,i)=>`<div class="msg ${m[0]==='YOU'?'user':''} ${freshFrom!==undefined&&i>=freshFrom?'fresh':''}"><div class="who">${m[0]==='YOU'?'YOU · FOUNDER':'VIDA'}</div><div class="bubble">${esc(m[1])}</div></div>`).join('');el.scrollTop=el.scrollHeight}
+
+/* ================= ACTIONS — one per button label ================= */
+const ACT={
+ go(sc){if(!isUnlocked(sc))return toast('Not reached yet in this demo. Use SPACE or the buttons to get there.');S.screen=sc;S.seen[sc]=true},
+ openHandoff(){S.screen='handoff';S.seen.handoff=true;if(S.seen.handoffMsg)return;S.seen.handoffMsg=true;
+  you('What’s new from Milla?');
+  vida('Aster Field Systems signed up this morning. Dana Reyes, COO. Their objective is 10 held meetings a month. It’s a free month, with no setup fee. Here’s the handoff.')},
+ acceptClient(){if(S.handoffOK)return toast('Aster is already your client.');S.handoffOK=true;S.screen='connections';S.seen.connections=true;log('Aster accepted as a client · free month','Mon 28 Sep 09:30');
+  you('Take Aster on.');
+  vida('Done. Aster is on your board as a free month. Their CRM and calendar are connected, and two mailboxes on asterfieldhq.com are warming.')},
+ runDNS(){if(S.dnsOK)return toast('Already checked: all pass.');if(!need(S.handoffOK,'Accept Aster first.'))return;S.dnsOK=true;log('SPF, DKIM and DMARC pass on asterfieldhq.com','Mon 28 Sep 09:34');
+  you('Check their mailboxes.');
+  vida('SPF, DKIM and DMARC all pass on asterfieldhq.com. Both mailboxes are warming, day 1 of about 21. Instantly only warms; nothing sends.')},
+ importProof(){if(S.proofFile){S.screen='clay';return}if(!need(S.dnsOK,'Check the mailboxes first.'))return;S.proofFile=true;S.date='Wed 7 Oct 2026';S.warmDay=10;S.screen='clay';S.seen.clay=true;log('Clay file imported · Proof · 10 people','Wed 7 Oct 09:10');
+  you('Load the Clay file for Aster’s Proof.');
+  vida('10 people from Clay, each with a verified work email and a dated reason to talk now. Two companies were blocked before anything else: Alderline has an open deal in Aster’s CRM, and Cedar Vale Electrical is a customer.')},
+ sendProof(){if(S.proofSent)return toast('Already sent to Milla.');if(!need(S.proofFile,'Import the Proof file first.'))return;S.proofSent=true;log('Proof sent to Milla','Wed 7 Oct 09:30');
+  you('Send the Proof to Milla.');
+  vida('Sent. Dana sees the 10 people, their research and the voice in Milla. Proof is how “if the information is accurate” gets checked.')},
+ proofApproved(){if(S.proofOK)return toast('Already approved.');if(!need(S.proofSent,'Send the Proof to Milla first.'))return;S.proofOK=true;log('Dana approved the 10 people and the voice in Milla','Wed 7 Oct 11:05');
+  vida('Dana approved the 10 people and the voice in Milla at 11:05.');you('Good. Start on week 1.')},
+ importWeek(){if(S.weekFile){S.screen='clay';return}if(!need(S.proofOK,'Proof needs Dana’s approval first.'))return;S.weekFile=true;S.date='Fri 16 Oct 2026';S.warmDay=19;S.screen='clay';log('Clay file imported · week 1 · 29 rows','Fri 16 Oct 08:40');
+  you('Load the week-1 file.');
+  vida('29 rows from Clay. 2 were blocked by Aster’s CRM before any research. 27 people to research and write to.')},
+ runDrafts(){if(S.drafted){S.screen='research';return}if(!need(S.weekFile,'Import the week-1 file first.'))return;S.drafted=true;S.screen='research';S.seen.research=true;S.qSel='morgan';log('AI research and drafts · 27 people','Fri 16 Oct 09:05');
+  you('Research them and draft the emails.');
+  vida('Done. 27 people researched, each with three sources, and a three-email draft for each. I’ve flagged three drafts for you: Priya’s makes a claim Aster hasn’t approved, Kyle’s reason has no date, and Rosa’s reason is weak.')},
+ openQueue(){if(!need(S.drafted,'Run the research and drafts first.'))return;S.screen='quality';S.seen.quality=true;if(S.seen.qMsg)return;S.seen.qMsg=true;
+  you('Open the quality queue.');
+  vida('27 people waiting for your check. A real person checks every message before it goes. For now, that’s you.')},
+ qSelect(id){S.qSel=id;S.editing=false;S.dropAsk=false;focusId='qCard'},
+ approve(id){if(['approved','edited'].includes(qState(id)))return toast('Already approved.');if(qState(id)==='dropped')return toast('Already dropped.');if(!need(id!=='priya','Priya’s draft needs an edit first: it makes a claim Aster hasn’t approved.'))return;
+  S.q[id]='approved';focusId='qCard';log(`Approved: ${PBY[id].n}`,'Fri 16 Oct');
+  you(id==='morgan'?'Morgan’s good. Approve.':`Approve ${first(id)}.`);
+  vida(id==='morgan'?'Approved: Morgan’s first email and its two follow-ups, together.':`Approved: ${first(id)}.`)},
+ editStart(id){if(qState(id)!=='waiting')return toast('Already checked.');S.editing=true;S.dropAsk=false;focusId='qCard'},
+ saveEdit(id){if(!S.editing)return;S.q[id]='edited';S.editing=false;focusId='qCard';log(`Edited and approved v2: ${PBY[id].n}`,'Fri 16 Oct');
+  you(`I’ve taken the integration claim out of ${first(id)}’s email. Approve version 2.`);
+  vida('Saved as version 2 and approved. Any edit means a new check, and you’ve just done it.')},
+ cancelEdit(){S.editing=false},
+ askDrop(id){if(qState(id)!=='waiting')return toast('Already checked.');S.dropAsk=!S.dropAsk;S.editing=false;focusId='qCard'},
+ drop(id,reason){if(qState(id)!=='waiting')return toast('Already checked.');S.q[id]='dropped';S.dropReason[id]=reason;S.dropAsk=false;focusId='qCard';log(`Dropped: ${PBY[id].n} · ${reason}`,'Fri 16 Oct');
+  you(`Drop ${first(id)}: ${reason.toLowerCase()}.`);
+  vida(`Dropped. “${reason}” goes to Learning, so next week’s list gets better.`)},
+ approveRest(){const rest=QUEUE.filter(id=>qState(id)==='waiting'&&!['priya','kyle','rosa'].includes(id));if(!need(rest.length,'Nothing else is waiting.'))return;rest.forEach(id=>S.q[id]='approved');log(`Approved ${rest.length} more`,'Fri 16 Oct');
+  you('I’ve checked the rest. Approve them.');
+  vida(`Approved ${rest.length} more. ${qCount('approved')} ready for Aster this week${qCount('dropped')?`, ${qCount('dropped')} dropped`:''}.`)},
+ sendWeek(){if(S.weekSent)return toast('Already sent to Milla.');if(!need(QUEUE.every(id=>qState(id)!=='waiting'),'Check every email first.'))return;S.weekSent=true;log('Week 1 sent to Milla for Dana’s release','Fri 16 Oct 15:00');
+  you('Send the week to Milla.');
+  vida('Sent. Nothing goes out until Dana releases it in Milla.')},
+ weekReleased(){if(S.weekOK)return toast('Already released.');if(!need(S.weekSent,'Send the week to Milla first.'))return;S.weekOK=true;S.warmDay=21;S.date='Mon 19 Oct 2026';S.fmDay=1;S.screen='sending';S.seen.sending=true;log('Dana released week 1 in Milla','Sun 18 Oct 17:20');log('25 first emails sent · Aster’s free month starts','Mon 19 Oct 09:00');
+  vida('Dana released the week on Sunday at 17:20. Warm-up finished on day 21. This morning 25 first emails went out: 13 from dana@ and 12 from dana.reyes@, well under 50 a day each. Aster’s free month runs to Tue 17 Nov.')},
+ togglePause(){if(!need(S.weekOK,'Nothing is sending yet.'))return;S.paused=!S.paused;log(S.paused?'Aster sending paused':'Aster sending resumed');
+  you(S.paused?'Pause Aster’s sending.':'Resume Aster’s sending.');
+  vida(S.paused?'Paused. No new emails go out from Aster’s mailboxes. Replies still come in and are answered.':'Resumed. Sending picks up from the next checked email.')},
+ repliesArrive(){if(S.seen.repliesIn){S.screen='replies';return}if(!need(S.weekOK,'Nothing has been sent yet.'))return;S.seen.repliesIn=true;S.date='Tue 20 Oct 2026';S.fmDay=2;S.screen='replies';S.seen.replies=true;
+  vida('Six replies are waiting across your clients, oldest first. Harborline has waited 5 hours, so it’s first. Aster has two: Oliver Grant wants to be removed, and Morgan Lee at Ridgewell asked a real question.');
+  you('Oldest first. Harborline.')},
+ answer(id){if(S.replies[id])return toast('Already answered.');S.replies[id]=true;const r=REPLIES.find(x=>x.id===id);log(`Answered: ${r.client} · ${r.who}`,'Tue 20 Oct');
+  you(`Answered ${r.who} at ${r.client}.`);vida('Marked answered, the same day.')},
+ removeOliver(){if(S.replies.oliver)return toast('Already removed.');S.replies.oliver=true;log('Oliver Grant removed · opt-out honoured the same day','Tue 20 Oct 09:16');
+  you('Remove Oliver.');vida('Removed. Aster will never email Oliver again.')},
+ sendMorgan(){if(S.replies.morgan)return toast('Already sent.');S.replies.morgan=true;log('Answer to Morgan sent · 18 minutes after his reply','Tue 20 Oct 09:28');
+  you('Morgan’s answer is right. Send it.');
+  vida('Sent at 09:28 from dana@asterfieldhq.com, 18 minutes after his reply. We asked for his system’s name instead of claiming an integration, and offered Thursday at 10:00.')},
+ bookMorgan(){if(S.booked){S.screen='meetings';return}if(!need(S.replies.morgan,'Answer Morgan first.'))return;S.booked=true;S.screen='meetings';S.seen.meetings=true;log('Booked · Ridgewell · Thu 22 Oct 10:00','Tue 20 Oct 11:15');
+  vida('Morgan said yes to Thursday. Booked: Thu 22 Oct at 10:00, straight into Dana’s calendar. I’ve drafted her free prep.')},
+ releasePrep(){if(S.prepOK)return toast('Already released.');if(!need(S.booked,'No meeting booked yet.'))return;S.prepOK=true;S.date='Wed 21 Oct 2026';S.fmDay=3;focusId='mtgCard';log('Free prep checked and released to Milla','Wed 21 Oct 08:00');
+  you('The prep looks right. Release it.');vida('Released. Dana has the free prep for Thursday in Milla.')},
+ apply48h(){if(S.held>=1)return toast('Already held.');if(!need(S.prepOK,'Release the prep first.'))return;S.held=1;S.date='Sat 24 Oct 2026';S.fmDay=6;focusId='mtgCard';log('Ridgewell held under the 48-hour rule','Sat 24 Oct 10:00');
+  vida('48 hours after the meeting, no “Didn’t happen” from Dana. Ridgewell counts as held: 1 of 10.')},
+ sendFollow(){if(S.followOK)return toast('Already sent.');if(!need(S.held>=1,'The meeting isn’t held yet.'))return;S.m1='Next step agreed';S.followOK=true;S.date='Mon 26 Oct 2026';S.fmDay=8;focusId='mtgCard';log('Dana: Ridgewell · next step agreed','Mon 26 Oct 08:30');log('Follow-up to Morgan · checked and sent','Mon 26 Oct 11:00');
+  vida('Dana answered “How did it go?”: next step agreed, with the Service Director next. I drafted Morgan’s follow-up from that.');
+  you('Checked. Send it.');vida('Sent at 11:00.')},
+ openHealth(){S.screen='health';S.seen.health=true;if(S.seen.healthMsg)return;S.seen.healthMsg=true;
+  you('How healthy is Aster?');
+  vida('Healthy. No bounces from 25 first emails, no complaints, one opt-out removed the same day, and nothing waiting for an answer.')},
+ skipTo50(){if(S.held>=5)return toast('Already past 50%.');if(!need(S.followOK,'Finish the Ridgewell follow-up first.'))return;S.held=5;S.coachOn=true;S.date='Thu 5 Nov 2026';S.fmDay=18;S.screen='moments';S.seen.moments=true;log('Aster at 25% · Milla showed Coaching, nothing to buy','Thu 29 Oct');log('Aster at 50% · Dana accepted Full Coaching in Milla','Thu 5 Nov 10:20');
+  vida('Aster reached 50% today: 5 of 10 held. Milla made the Full Coaching offer and Dana accepted. It’s free until her free month ends, then +$100 per held meeting. Two Coaching items are waiting for your check.')},
+ releaseCoach(id){if(S.coachChecks[id])return toast('Already released.');if(!need(S.coachOn,'Coaching isn’t on yet.'))return;S.coachChecks[id]=true;log(id==='ridge'?'Coaching · Ridgewell pitch-aware prep released':'Coaching · Pinecrest debrief released');
+  you(id==='ridge'?'The Ridgewell prep is right. Release it.':'Pinecrest debrief checked. Release it.');vida('Released to Dana in Milla.')},
+ skipToDay30(){if(S.day30)return toast('Already at day 30.');if(!need(S.held>=5,'Reach 50% first.'))return;S.held=8;S.day30=true;S.decision='Continue';S.date='Tue 17 Nov 2026';S.fmDay=30;S.screen='moments';log('Aster at 75% · Dana said she’d keep going','Thu 12 Nov');log('Day 30 · Dana chose Continue','Tue 17 Nov 09:40');
+  vida('Day 30 for Aster: 8 of 10 held. At 75% Dana said she’d keep going, and today she chose Continue. From tomorrow Aster pays $700 per held meeting, plus $100 Coaching.')},
+ openMoney(){S.screen='money';S.seen.money=true;if(S.seen.moneyMsg)return;S.seen.moneyMsg=true;
+  you('What does Aster leave us?');
+  vida(`At 10 held meetings with Coaching: ${usd0(NUM.paysC)} in, ${usd(NUM.costC)} out, ${usd(NUM.profitC)} profit for ${NUM.hrsC} of your hours. Without Coaching: ${usd(NUM.profit)} for ${NUM.hrs} hours. The company floor sits separately.`)},
+ toggleFloor(){S.floorAfter=!S.floorAfter;focusId='floorCard';
+  you(S.floorAfter?'Show the floor after cancelling Apollo, ChatGPT and Smartlead.':'Show today’s floor.');
+  vida(S.floorAfter?`${usd0(NUM.floorAfter)} a month after cancelling Apollo, ChatGPT and Smartlead, down from ${usd0(NUM.floor)}.`:`${usd0(NUM.floor)} a month today.`)},
+ openCapacity(){S.screen='capacity';S.seen.capacity=true;if(S.seen.capMsg)return;S.seen.capMsg=true;const c=capLoad();
+  you('Can we take another client?');
+  vida(`Yes. If every client were Aster-sized, you’re using about ${c.total.toFixed(1)} of ${NUM.month} hours a month. Another paying client adds about ${NUM.hrs} hours; a free month adds the same hours with no income until day 31.`)},
+ capAdd(k){S.cap[k]++;focusId='capCard';const c=capLoad();
+  you(k==='paying'?'Add a paying client.':'Add a free month.');
+  vida(c.total<=NUM.month?`That fits: about ${c.total.toFixed(1)} of ${NUM.month} hours a month, ${(NUM.month-c.total).toFixed(1)} left.`:`That doesn’t fit: about ${c.total.toFixed(1)} of ${NUM.month} hours a month. You’d need help first.`)},
+ capRemove(k){if(!S.cap[k])return toast('Nothing to remove.');S.cap[k]--;focusId='capCard'},
+ capReset(){if(!S.cap.paying&&!S.cap.free)return toast('Nothing added yet.');S.cap={paying:0,free:0};focusId='capCard'},
+ openLearning(){S.screen='learning';S.seen.learning=true;if(S.seen.learnMsg)return;S.seen.learnMsg=true;
+  you('What did we learn this month?');
+  vida('Expansion reasons turned into held meetings most often, and the Service Director keeps coming up as the next person. Two drafts were dropped: one with no date, one with a weak reason.')},
+ applyLearning(){if(S.learnApplied)return toast('Already in next week’s request.');S.learnApplied=true;focusId='learnCard';log('Learning applied to next week’s Clay request (Aster only)');
+  you('Use that for next week’s Clay request.');
+  vida('Done. Next week’s request asks for dated reasons only, more expansions and new-in-role leaders, and the Service Director as a second person where Clay finds one. This learning stays with Aster.')},
+ handle(id){if(S.handled[id])return toast('Already handled.');S.handled[id]=true;const c=CLIENTS.find(x=>x.id===id);log(`${c.n}: handled`);
+  you(`${c.n}: handled.`);vida('Cleared from your board.')},
+ send(){const v=($('input').value||'').trim();if(!v)return;$('input').value='';you(v,true);vida(canned(v))}
+};
+function canned(v){const s=v.toLowerCase();
+ if(/profit|margin|money|cost|earn/.test(s))return `Aster at 10 held meetings: ${usd(NUM.profit)} profit without Coaching, ${usd(NUM.profitC)} with it. Open Money for the detail.`;
+ if(/hour|capacity|time|another client/.test(s))return `You have ${NUM.weekHrs} hours a week, about ${NUM.month} a month. Aster takes ${NUM.hrs} a month, or ${NUM.hrsC} with Coaching. Open Capacity to plan.`;
+ if(/coach/.test(s))return 'Milla makes every Coaching offer; I never do. I show you each client’s answer and the Coaching work waiting for your check.';
+ if(/reply|replies/.test(s))return 'Replies are answered the same day, oldest first, across every client.';
+ if(/bounce|spam|health|domain/.test(s))return 'I watch bounces (under 2%), complaints and mailbox health for every client. Open Client health.';
+ return 'Noted. I’ll keep it with today’s work.'}
+</script>
+<script>
+/* ================= VIDA SCREENS · V2 Vida layout · simpler, the important thing first ================= */
+const SCREENS={today,handoff,connections,clay,research:researchScreen,quality,sending,replies,meetings,health,moments,money,capacity,learning};
+function isUnlocked(sc){return ({today:true,handoff:true,connections:S.handoffOK,clay:S.dnsOK,research:S.drafted,quality:S.drafted,sending:S.weekSent,replies:!!S.seen.repliesIn,meetings:S.booked,health:S.weekOK,moments:S.held>=1,money:true,capacity:true,learning:S.held>=1})[sc]||false}
+function setHead(t,sub,label,kind=''){$('screenTitle').textContent=t;$('screenSub').textContent=sub;$('workTitle').textContent=t;$('workSub').textContent=sub;const st=$('workState');st.textContent=label;st.className='state '+kind}
+function W(h){$('workspace').innerHTML=h}
+function risk(r){return tag(r,r==='High'?'red':r==='Watch'?'warn':'good')}
+function asterStage(){return S.decision==='Continue'?'Paying from 18 Nov':S.weekOK?`Free month · day ${S.fmDay}`:S.handoffOK?'Free month · warming':'New from Milla'}
+function asterNeed(){const w=QUEUE.filter(id=>qState(id)==='waiting').length;
+ if(!S.handoffOK)return ['New from Milla: accept the handoff','handoff'];
+ if(!S.dnsOK)return ['Check SPF, DKIM and DMARC','connections'];
+ if(!S.proofFile)return ['Load the Clay Proof file','clay'];
+ if(!S.proofSent)return ['Send Proof to Milla','clay'];
+ if(!S.proofOK)return ['Waiting for Dana to approve Proof in Milla','clay'];
+ if(!S.weekFile)return ['Load the week-1 Clay file','clay'];
+ if(!S.drafted)return ['Run research and drafts','research'];
+ if(w)return [`${w} emails waiting for your check`,'quality'];
+ if(!S.weekSent)return ['Send the week to Milla','quality'];
+ if(!S.weekOK)return ['Waiting for Dana to release the week','sending'];
+ if(S.seen.repliesIn&&REPLIES.some(r=>!S.replies[r.id]))return [`${REPLIES.filter(r=>!S.replies[r.id]).length} replies waiting`,'replies'];
+ if(S.booked&&!S.prepOK)return ['Check Morgan’s free prep','meetings'];
+ if(S.held>=1&&!S.followOK)return ['Check the follow-up email','meetings'];
+ if(S.coachOn&&(!S.coachChecks.ridge||!S.coachChecks.pine))return ['Coaching work to check','moments'];
+ return ['Nothing needs you','']}
+function weekHrs(h){return (h*12/52).toFixed(1)}
+function researchBox(p){const r=research(p);return `<ul class="researchList">${r.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="researchRisk"><b>Don’t assume:</b> ${esc(r.r)}</div>`}
+function draftFor(id){if(id==='priya'&&qState(id)!=='edited')return [AIDRAFT.priya,...EMAILS.priya.slice(1)];if(AIDRAFT[id]&&id!=='priya')return [AIDRAFT[id]];return EMAILS[id]||null}
+function emailBlock(id,e,i,label){return `<div class="email"><div class="emailTop"><div class="num">${i+1}</div><div><b>${esc(e.s)}</b><small>To ${esc(PBY[id].n)} · from ${PBY[id].mb===1?MB1:MB2}</small></div>${label||''}</div><p>${esc(e.b)}</p>${i===0?`<div class="foot">${esc(FOOT)}</div>`:''}</div>`}
+
+function today(){const n=asterNeed();const open=CLIENTS.filter(c=>!S.handled[c.id]&&c.risk!=='Healthy');const waitingReplies=S.seen.repliesIn?REPLIES.filter(r=>!S.replies[r.id]).length:0;
+ setHead('Today board','Every client · what needs you',`${(n[1]?1:0)+open.length} NEED YOU`,open.length?'warn':'good');
+ let h=`<div class="needsStrip"><b>Needs you</b>`+(n[1]?`<div class="needsItem"><strong>Aster Field Systems</strong><span>${n[0]}</span><span>You</span><span><button class="act primary" style="padding:5px 8px" onclick="${n[1]==='handoff'?"act('openHandoff')":`go('${n[1]}')`}">Open</button></span></div>`:'')+open.map(c=>`<div class="needsItem"><strong>${c.n}</strong><span>${c.why}</span><span>You</span><span><button class="act" style="padding:5px 8px" onclick="act('handle','${c.id}')">Mark handled</button></span></div>`).join('')+(!n[1]&&!open.length?`<div class="needsItem"><strong>All clear</strong><span>Nothing needs you right now.</span><span></span><span></span></div>`:'')+`</div>`;
+ h+=`<div class="roleBar"><div><b>Signed in: Founder</b><br>All the human work, for now: checking every email, answering replies, releasing prep.</div>${tag('30 hours a week','vio')}</div>`;
+ h+=tiles([['Clients',String(CLIENTS.length+1),'free month or paying'],['Needs you',String((n[1]?1:0)+open.length),'today'],['Replies waiting',String(waitingReplies),'same-day target'],['Your hours this week',`Aster ≈ ${weekHrs(S.coachOn?NUM.hrsC:NUM.hrs)} h`,'others OPEN · of 30']]);
+ h+=card('Every client','FREE MONTH OR PAYING',table(['Client','Stage','Risk','What’s happening','Objective','Your hours / week'],[`<tr class="sel"><td><b>Aster Field Systems</b></td><td>${asterStage()}</td><td>${risk('Healthy')}</td><td>${n[0]}</td><td>${S.held} of 10 held</td><td>≈ ${weekHrs(S.coachOn?NUM.hrsC:NUM.hrs)} h</td></tr>`,...CLIENTS.map(c=>`<tr><td>${c.n}</td><td>${c.stage}</td><td>${S.handled[c.id]?risk('Healthy'):risk(c.risk)}</td><td>${S.handled[c.id]?'Handled':c.why}</td><td>${OPEN}</td><td>${OPEN}</td></tr>`)]),false);
+ h+=card('What counts as risk','THE SAME FOR EVERY CLIENT',row('Sending stopped','And the real reason why','risk')+row('Reply age','Oldest reply against the same-day target','risk')+row('Mailbox health','Bounces over 2%, complaints, limits, SPF / DKIM / DMARC','risk')+row('Outcome missing','A held meeting with no “How did it go?” answer','risk')+row('Selling more work','Never','not a risk'));
+ if(!S.handoffOK)h+=btns([['Open Aster’s handoff',"act('openHandoff')",'primary']]);
+ W(h)}
+
+function handoff(){
+ setHead('New client','The handoff from Milla · Aster Field Systems',S.handoffOK?'ACCEPTED':'NEW',S.handoffOK?'good':'warn');
+ let h=tiles([['Objective','10 held a month','set by Dana'],['Free month','30 days','from the first email'],['Then','$700 per held','no setup fee'],['Mailboxes','2','asterfieldhq.com · warming']]);
+ h+=card('From Milla','EXACTLY WHAT THE CLIENT SET',row('Signed up','Dana Reyes, COO · Mon 28 Sep','free-month terms accepted')+row('Objective','10 held meetings a month','their target, not our promise')+row('Who','US facilities-maintenance and field-service firms · 20–100 employees · Operations Director, COO or VP Operations','ICP')+row('Why now','A new hire, a funding round, an expansion, a problem Aster solves','dated + sourced')+row('The problem','Jobs at risk are hard to see when updates live across spreadsheets, calls and messages','')+row('Aster’s value','One view of scheduling, live job status and mobile sign-off','approved claim')+row('Never','Templates with a name swapped in, unapproved claims, ROI promises','')+row('Written OK to send','Given Mon 28 Sep · 09:20 · both mailboxes','kept in Milla · Billing')+row('Proof','Next: Clay finds 10 people for Dana to check',S.proofOK?'approved':'not yet'));
+ h+=card('What we promised Aster','THE BOUTIQUE PROMISE',row('Few, not many','Success is conversations that happen, not emails sent','')+row('Every email has a reason','If we can’t say why this person, why now, we don’t send it','')+row('A real person checks everything','Nothing goes out unchecked','that’s you')+row('Their name is protected','Their mailboxes, a second domain, written the way they’d want','')+row('They pay for results','$700 per held meeting; nothing for one that didn’t happen',''));
+ h+=btns([S.handoffOK?['Open Connections',"go('connections')",'primary']:['Accept Aster as a client',"act('acceptClient')",'primary']]);
+ W(h)}
+
+function connections(){
+ setHead('Connections','Aster · CRM, calendar and mailboxes',S.dnsOK?'ALL PASS':'CHECK',S.dnsOK?'good':'warn');
+ const ok=t=>tag(t,'good'),pend=tag('NOT CHECKED','warn');
+ let h=tiles([['CRM','Live','customers protected'],['Calendar','Live','meetings land here'],['Mailboxes',`2 · ${S.weekOK?'sending':S.warmDay>=21?'ready':'day '+S.warmDay}`,'asterfieldhq.com'],['SPF · DKIM · DMARC',S.dnsOK?'Pass':'Not checked','second domain']]);
+ h+=card('Aster’s connections','STATUS · WHAT IT DOES',table(['Connection','Status','What it does'],[`<tr><td>Aster CRM</td><td>${ok('LIVE')}</td><td>Customers and open deals are never emailed</td></tr>`,`<tr><td>Google Calendar</td><td>${ok('LIVE')}</td><td>Booking only; it can’t prove a meeting was held</td></tr>`,`<tr><td>Google admin approval</td><td>${ok('APPROVED ONCE')}</td><td>Lets Instantly warm the mailboxes</td></tr>`,`<tr><td>Instantly</td><td>${tag(S.warmDay>=21?'WARM-UP DONE':`WARMING · DAY ${S.warmDay}`,S.warmDay>=21?'good':'warn')}</td><td>Only warms. It never sends.</td></tr>`,`<tr><td>Our sender</td><td>${S.weekOK?ok(S.paused?'PAUSED':'SENDING'):tag('WAITING','warn')}</td><td>Sends from Aster’s mailboxes, up to 50 a day each</td></tr>`,`<tr><td>Clay</td><td>${tag('BY FILE','vio')}</td><td>People, verified work emails and dated reasons</td></tr>`,`<tr><td>Slack · WhatsApp</td><td>${tag('COMING SOON','warn')}</td><td>Milla surfaces, not live</td></tr>`]),false);
+ h+=card('Aster’s mailboxes','SECOND DOMAIN · CLIENT-OWNED',table(['Mailbox','Warm-up','SPF','DKIM','DMARC'],[MB1,MB2].map(m=>`<tr><td>${m}</td><td>${warmLabel()}</td><td>${S.dnsOK?ok('PASS'):pend}</td><td>${S.dnsOK?ok('PASS'):pend}</td><td>${S.dnsOK?ok('PASS'):pend}</td></tr>`)),false);
+ h+=btns([S.dnsOK?['Open People from Clay',"go('clay')",'primary']:['Run SPF, DKIM and DMARC checks',"act('runDNS')",'primary']]);
+ W(h)}
+
+function clay(){
+ setHead('People from Clay','A list arrives by file, for now',S.weekFile?'WEEK 1 · 29 ROWS':S.proofFile?'PROOF · 10 PEOPLE':'NO FILE YET',S.weekFile||S.proofFile?'good':'warn');
+ let h='';
+ if(!S.proofFile){W(`<div class="empty"><b>No Clay file yet.</b><p>For now a list arrives by file: people, verified work emails and a dated reason to talk now.</p></div>`+btns([['Import Clay file: aster_proof_07oct.csv',"act('importProof')",'primary']]));return}
+ if(S.weekFile){
+  h+=tiles([['Rows','29','aster_week1_16oct.csv'],['Blocked by CRM','2','before any research'],['To research','27','each individually'],['Verified emails','27 of 27','by Clay']]);
+  h+=card('Week 1 · from Clay','PEOPLE · VERIFIED EMAIL · WHY NOW',table(['Person','Company','Why now','Date','Email'],QUEUE.map(id=>{const p=PBY[id];return `<tr><td>${p.n}<br><span style="color:var(--muted)">${p.t}</span></td><td>${p.c}</td><td>${p.why}</td><td>${p.d==='no date'?tag('NO DATE','red'):p.d}</td><td>${tag('✓ verified','good')}</td></tr>`})),false);
+ }else{
+  h+=tiles([['People','10','aster_proof_07oct.csv'],['Blocked by CRM','2','before anything else'],['Verified emails','10 of 10','by Clay'],['Proof',S.proofOK?'Approved by Dana':S.proofSent?'In Milla':'Not sent','Dana checks it']]);
+  h+=card('Proof · 10 people','PEOPLE · VERIFIED EMAIL · WHY NOW',table(['Person','Company','Why now','Source · date','Email','Aster CRM'],P.slice(0,10).map(p=>`<tr><td>${p.n}<br><span style="color:var(--muted)">${p.t}</span></td><td>${p.c}</td><td>${p.why}</td><td>${p.src} · ${p.d}</td><td>${tag('✓ verified','good')}</td><td>${p.id==='morgan'?tag('Lost to timing','vio'):tag('New','good')}</td></tr>`)),false);
+ }
+ h+=card('Blocked before research','YOUR CLIENT’S CRM WINS',BLOCKED.map(b=>row(b[0],b[1],'never emailed')).join(''));
+ if(!S.weekFile)h+=btns([!S.proofSent?['Send Proof to Milla',"act('sendProof')",'primary']:!S.proofOK?['Skip ahead: Dana approves in Milla (demo)',"act('proofApproved')",'demo']:['Import Clay file: aster_week1_16oct.csv',"act('importWeek')",'primary']]);
+ else h+=btns([[S.drafted?'Open Research and drafts':'Run AI research and drafts',"act('runDrafts')",'primary']]);
+ W(h)}
+
+function researchScreen(){const p=PBY[S.qSel]||PBY.morgan;const d=draftFor(p.id);
+ setHead('Research and drafts','AI researches each person and drafts their emails','27 DRAFTED','good');
+ let h=tiles([['Researched','27','three sources each'],['Drafts','27 × 3 emails','first + two follow-ups'],['Flagged','3','for your check'],['AI cost','About $10 a month','for Aster']]);
+ h+=card('Research and drafts · week 1','CLICK A PERSON',table(['Person','Company','Research','Draft','Flag'],QUEUE.map(id=>{const x=PBY[id];const f=AIDRAFT[id]?.flag;return `<tr class="click ${S.qSel===id?'sel':''}" onclick="act('qSelect','${id}')"><td>${x.n}</td><td>${x.c}</td><td>${tag('3 sources','good')}</td><td>${EMAILS[id]?.length===3||id==='priya'?'3 emails':'3 emails'}</td><td>${f?tag(f,'red'):'—'}</td></tr>`})),false);
+ h+=anchor('qCard')+`<div class="qualityPerson"><div><b>${p.n}</b> ${tag(p.c,'vio')}</div><div class="meta"><b>Why now:</b> ${esc(p.why)} · ${esc(p.src)} · ${esc(p.d)}</div>${researchBox(p)}${d?d.map((e,i)=>emailBlock(p.id,e,i,tag(i===0?'AI DRAFT':'FOLLOW-UP '+i,'vio'))).join(''):`<div class="miniCallout">Draft ready. In this preview, full draft text is shown for the Proof people and the three flagged drafts.</div>`}${AIDRAFT[p.id]?`<div class="researchRisk"><b>Flag:</b> ${esc(AIDRAFT[p.id].flag)}</div>`:''}</div>`;
+ h+=btns([['Open the quality queue',"act('openQueue')",'primary']]);
+ W(h)}
+
+function quality(){const p=PBY[S.qSel]||PBY.morgan,st=qState(p.id),d=draftFor(p.id);const waiting=QUEUE.filter(id=>qState(id)==='waiting').length;
+ setHead('Quality queue','I check every email: approve, edit or drop',waiting?`${waiting} WAITING`:'ALL CHECKED',waiting?'warn':'good');
+ let h=`<div class="roleBar"><div><b>A real person checks every message before it goes.</b><br>One check covers the first email and its follow-ups. Any edit means a new check.</div>${tag(waiting+' waiting',waiting?'warn':'good')}</div>`;
+ h+=tiles([['Waiting',String(waiting),'for you'],['Approved',String(qCount('approved')),'incl. edited'],['Edited',String(QUEUE.filter(id=>qState(id)==='edited').length),'version 2'],['Dropped',String(qCount('dropped')),'reason goes to Learning']]);
+ const stTag=id=>{const s=qState(id);return s==='approved'?tag('Approved','good'):s==='edited'?tag('Edited · v2 approved','good'):s==='dropped'?tag('Dropped · '+S.dropReason[id],'red'):tag('Waiting','warn')};
+ h+=anchor('qCard')+`<div class="qualityPerson"><div><b>${p.n}</b> ${tag(p.c,'vio')} ${stTag(p.id)}</div><div class="meta"><b>Why now:</b> ${esc(p.why)} · ${esc(p.src)} · ${esc(p.d)}</div>${researchBox(p)}`;
+ if(S.editing&&p.id===S.qSel){h+=`<div class="subjectLine"><b>Editing:</b> ${esc((AIDRAFT[p.id]||EMAILS[p.id]?.[0]||{s:''}).s)}</div><textarea class="ed" id="edBox" aria-label="Edit the first email">${esc((p.id==='priya'?EMAILS.priya[0].b:(AIDRAFT[p.id]||EMAILS[p.id]?.[0]||{b:''}).b))}</textarea><div class="demoNote">For the demo the editor opens with the claim already taken out.</div>`+btns([['Save and approve version 2',`act('saveEdit','${p.id}')`,'primary'],['Cancel',"act('cancelEdit')"]])}
+ else h+=d?d.map((e,i)=>emailBlock(p.id,e,i,tag(i===0?(st==='edited'?'VERSION 2':'DRAFT'):'FOLLOW-UP '+i,'vio'))).join(''):`<div class="miniCallout">Draft text shown for the Proof people and the flagged drafts in this preview.</div>`;
+ if(AIDRAFT[p.id]&&st==='waiting')h+=`<div class="researchRisk"><b>Flag:</b> ${esc(AIDRAFT[p.id].flag)}</div>`;
+ if(st==='waiting'&&!S.editing)h+=`<div class="qualityActions"><button class="approve" onclick="act('approve','${p.id}')">Approve</button><button onclick="act('editStart','${p.id}')">Edit</button><button onclick="act('askDrop','${p.id}')">Drop</button></div>`;
+ if(S.dropAsk&&st==='waiting')h+=`<div class="qualityActions">${['Weak reason','No date','Wrong person','Claim not approved','Tone'].map(r=>`<button onclick="act('drop','${p.id}','${r}')">Drop: ${r}</button>`).join('')}</div>`;
+ h+=`</div>`;
+ h+=card('Week 1 · Aster','CLICK A PERSON',table(['Person','Company','Why now','Status'],QUEUE.map(id=>{const x=PBY[id];return `<tr class="click ${S.qSel===id?'sel':''}" onclick="act('qSelect','${id}')"><td>${x.n}</td><td>${x.c}</td><td>${x.why}</td><td>${stTag(id)}</td></tr>`})),false);
+ const rest=QUEUE.filter(id=>qState(id)==='waiting'&&!['priya','kyle','rosa'].includes(id)).length;
+ h+=btns([rest?[`Approve the other ${rest} (demo)`,"act('approveRest')",'demo']:null,!waiting&&!S.weekSent?['Send the week to Milla',"act('sendWeek')",'primary']:null,S.weekSent&&!S.weekOK?['Skip ahead: Dana releases the week (demo · Sun 18 Oct)',"act('weekReleased')",'demo']:null,S.weekOK?['Open Sending',"go('sending')",'primary']:null]);
+ W(h)}
+
+function sending(){const n1=P.filter(p=>p.mb===1).length,n2=P.filter(p=>p.mb===2).length;
+ setHead('Sending','From Aster’s mailboxes · up to 50 a day each',!S.weekOK?'WAITING FOR DANA':S.paused?'PAUSED':'SENDING',!S.weekOK||S.paused?'warn':'good');
+ let h=tiles([['First emails',S.weekOK?`${n1+n2} on Mon 19 Oct`:'0','week 1'],['Daily limit','50 per mailbox','2 mailboxes'],['Warm-up','Kept separate','never counted as sending'],['Sending',!S.weekOK?'Waiting':S.paused?'Paused':'Live','Aster']]);
+ if(!S.weekOK)h+=`<div class="miniCallout"><b>Waiting for Dana to release week 1 in Milla.</b> Nothing sends without it.</div>`;
+ h+=card('Aster’s mailboxes today','EXACTLY AS CHECKED',table(['Mailbox','Warm-up','First emails today','Daily limit','SPF · DKIM · DMARC'],[[MB1,n1],[MB2,n2]].map(m=>`<tr><td>${m[0]}</td><td>${warmLabel()}</td><td>${S.weekOK?m[1]:0}</td><td>50</td><td>${tag('PASS','good')}</td></tr>`)),false);
+ h+=card('How sending works','THE RULES',row('Warm-up','Instantly only warms. Its traffic is kept separate and never counted as sending.','')+row('Limit','Up to 50 a day per mailbox','')+row('Exactly as checked','Only checked emails send, word for word. Nothing is rebuilt at send time.','')+row('The client’s release','Nothing sends until Dana releases the week in Milla','every Monday')+row('Pause',S.paused?'Paused: no new emails. Replies still come in.':'One switch stops all new emails for Aster.',''));
+ h+=btns([S.weekOK?[S.paused?'Resume Aster’s sending':'Pause Aster’s sending',"act('togglePause')",S.paused?'primary':'']:['Skip ahead: Dana releases the week (demo · Sun 18 Oct)',"act('weekReleased')",'demo'],S.weekOK?[S.seen.repliesIn?'Open Reply queue':'Skip ahead: replies arrive (demo · Tue 20 Oct)',"act('repliesArrive')",S.seen.repliesIn?'primary':'demo']:null]);
+ W(h)}
+
+function replies(){const waiting=REPLIES.filter(r=>!S.replies[r.id]);
+ setHead('Reply queue','Every client · oldest first · same-day answers',waiting.length?`${waiting.length} WAITING`:'ALL ANSWERED',waiting.length?'warn':'good');
+ let h=tiles([['Waiting',String(waiting.length),'across your clients'],['Oldest',waiting[0]?waiting[0].wait:'—',waiting[0]?waiting[0].client:'all answered'],['Target','Same day','every reply'],['Aster',String(waiting.filter(r=>r.client.startsWith('Aster')).length),'Oliver · Morgan']]);
+ h+=card('Oldest reply first','EVERY CLIENT',table(['#','Client','Who','What they said','Waiting','Action'],REPLIES.map((r,i)=>`<tr class="${r.id==='morgan'?'sel':''}"><td>${i+1}</td><td>${r.client}</td><td>${r.who}</td><td>${esc(r.what)}</td><td>${S.replies[r.id]?tag('Answered','good'):r.wait}</td><td>${S.replies[r.id]?'—':r.id==='oliver'?`<button class="act" style="padding:5px 8px" onclick="act('removeOliver')">Remove</button>`:r.id==='morgan'?`<button class="act primary" style="padding:5px 8px" onclick="act('sendMorgan')">Check and send</button>`:`<button class="act" style="padding:5px 8px" onclick="act('answer','${r.id}')">Mark answered</button>`}</td></tr>`)),false);
+ h+=card('Morgan Lee · Ridgewell','THE WHOLE THREAD',`<div class="miniCallout"><b>Morgan · Tue 20 Oct 09:10:</b> “${esc(REPLY.text)}”</div>`+`<div class="email"><div class="emailTop"><div class="num">↩</div><div><b>${S.replies.morgan?'Sent':'Drafted'} answer</b><small>${S.replies.morgan?'Sent 09:28':'AI draft · waiting for your check'} · from ${MB1}</small></div>${tag(S.replies.morgan?'SENT':'DRAFT',S.replies.morgan?'good':'vio')}</div><p>${esc(ANSWER.text)}</p></div>`+row('What we know','Aster gives one view of scheduling, live job status and mobile sign-off','approved')+row('What we don’t','Whether Aster connects to Ridgewell’s system','ask, never claim')+row('Relationship','Lost to timing in February; this is a reopened conversation','Aster CRM'));
+ h+=btns([S.replies.morgan&&!S.booked?['Skip ahead: Morgan accepts Thursday (demo)',"act('bookMorgan')",'demo']:null,S.booked?['Open Meetings',"go('meetings')",'primary']:null]);
+ W(h)}
+
+function meetings(){
+ setHead('Meetings','Booked · held under the 48-hour rule · the evidence',S.held>=1?`${S.held} HELD`:'BOOKED',S.held>=1?'good':'warn');
+ let h=tiles([['Ridgewell','Thu 22 Oct · 10:00','in Dana’s calendar'],['Held',`${S.held} of 10`,'48-hour rule'],['This month','$0','Aster’s free month'],['Prep',S.prepOK?'Released':'To check','free on every meeting']]);
+ h+=anchor('mtgCard')+card('Meeting evidence · Ridgewell','MTG_0261',row('Who','Morgan Lee · Operations Director · Ridgewell Fire & Security','per_morgan_027')+row('Why now','Lost to timing in February; hiring service coordinators','CRM + careers page')+row('First email','Checked and sent Mon 19 Oct','msg_ridgewell_01_v1')+row('Thread','Question answered the same day','Reply queue')+row('Calendar','Booked; the time passing proves nothing by itself','booking only')+row('Held',S.held>=1?'48 hours passed, no “Didn’t happen” from Dana':'Waiting for the meeting and 48 hours',S.held>=1?'held':'')+row('CRM',S.m1?'Discovery · opp_aster_009':'Waiting for Dana’s answer','')+row('Billing','$0 · free month',''));
+ h+=card('Free prep · for your check','RELEASED TO MILLA WHEN YOU SAY',row('Who','Morgan Lee, Operations Director')+row('Why now','Ridgewell is hiring service coordinators after a timing loss in February')+row('Likely objection','“We already have a job system.”')+row('Don’t assume','Hiring doesn’t mean they’re buying')+row('Ask','What changed? Who sees a slipping job first? What would make another view worth a look?')+row('Status',S.prepOK?'Released Wed 21 Oct':'Waiting for your check'));
+ if(S.held>=1)h+=card('Follow-up email · for your check','DRAFTED FROM DANA’S ANSWER',`<div class="email" style="margin-top:0"><div class="emailTop"><div class="num">↩</div><div><b>${esc(FOLLOWUP.s)}</b><small>${S.followOK?'Sent Mon 26 Oct · 11:00':'Waiting for Dana’s answer, then your check'} · from ${MB1}</small></div>${tag(S.followOK?'SENT':'DRAFT',S.followOK?'good':'vio')}</div><p>${esc(FOLLOWUP.b)}</p></div>`);
+ h+=card('The held rule','SAME AS MILLA',row('48 hours','Held unless Dana taps “Didn’t happen” within 48 hours. Silence means held.','')+row('Prospect didn’t show','Not held, never charged','')+row('Client cancelled under 24 hours, or didn’t attend','Counts as held','live terms'));
+ if(S.held>1)h+=card('Held meetings so far','ASTER',table(['Person','Company','Meeting','Held on','How it went'],heldList().map(x=>`<tr><td>${x.p.n}</td><td>${x.p.c}</td><td>${x.mt}</td><td>${x.heldOn}</td><td>${esc(x.out)}</td></tr>`)),false);
+ h+=btns([!S.prepOK?['Check and release the prep',"act('releasePrep')",'primary']:S.held<1?['Skip ahead 48 hours (demo · Sat 24 Oct)',"act('apply48h')",'demo']:!S.followOK?['Dana answers, then check and send the follow-up',"act('sendFollow')",'primary']:['Open Client health',"act('openHealth')",'primary']]);
+ W(h)}
+
+function health(){
+ setHead('Client health','Bounces under 2% · complaints · mailbox health','ASTER HEALTHY','good');
+ let h=tiles([['Bounces','0 of 25','under 2%'],['Complaints','0','spam reports'],['Opt-outs','1','removed the same day'],['Mailboxes','Healthy','SPF · DKIM · DMARC pass']]);
+ h+=card('Aster','ITS OWN EVIDENCE ONLY',table(['Factor','Evidence','State'],[`<tr><td>Bounces</td><td>0 of 25 first emails</td><td>${tag('Under 2%','good')}</td></tr>`,`<tr><td>Complaints</td><td>None</td><td>${tag('Healthy','good')}</td></tr>`,`<tr><td>Opt-outs</td><td>Oliver Grant, removed Tue 20 Oct</td><td>${tag('Honoured','good')}</td></tr>`,`<tr><td>Mailboxes</td><td>Under 50 a day each; authentication passing</td><td>${tag('Healthy','good')}</td></tr>`,`<tr><td>Replies waiting</td><td>${REPLIES.filter(r=>r.client.startsWith('Aster')&&!S.replies[r.id]).length}</td><td>${tag('Same day','good')}</td></tr>`,`<tr><td>Sending</td><td>${S.paused?'Paused by you':'Live'}</td><td>${tag(S.paused?'Paused':'Healthy',S.paused?'warn':'good')}</td></tr>`]),false);
+ h+=card('Other clients','FROM THE TODAY BOARD',table(['Client','Risk','Why'],CLIENTS.map(c=>`<tr><td>${c.n}</td><td>${S.handled[c.id]?risk('Healthy'):risk(c.risk)}</td><td>${S.handled[c.id]?'Handled':c.why}</td></tr>`)),false);
+ h+=card('Never a health factor','',row('Selling more work','Never. Health is evidence, not a sales score.',''));
+ h+=btns([[S.held>=5?'Open Moments and Coaching':'Skip ahead to Aster’s 50% mark (demo · Thu 5 Nov)',S.held>=5?"go('moments')":"act('skipTo50')",S.held>=5?'primary':'demo']]);
+ W(h)}
+
+function moments(){const m=moment();
+ setHead('Moments and Coaching','Where each client stands · Milla makes every offer',S.coachOn?'COACHING ACCEPTED':'NO OFFER YET','good');
+ let h=tiles([['Aster',`${S.held} of 10 held`,'objective'],['Marks reached',m?m+'%':'None','25 / 50 / 75%'],['Coaching',S.coachOn?'Accepted':'Not offered yet',S.coachOn?'Thu 5 Nov, in Milla':''],['Who offers it','Milla only','Vida never does']]);
+ h+=card('Where each client stands','AGAINST THEIR OWN OBJECTIVE',table(['Client','Objective','Held','25%','50%','75%','Coaching'],[`<tr class="sel"><td>Aster Field Systems</td><td>10 held a month</td><td>${S.held}</td><td>${S.held>=3?'Thu 29 Oct':'—'}</td><td>${S.held>=5?'Thu 5 Nov':'—'}</td><td>${S.held>=8?'Thu 12 Nov':'—'}</td><td>${S.coachOn?tag('Accepted','good'):'—'}</td></tr>`,...CLIENTS.map(c=>`<tr><td>${c.n}</td><td>${OPEN}</td><td>${OPEN}</td><td>—</td><td>—</td><td>—</td><td>${OPEN}</td></tr>`)]),false);
+ if(S.coachOn)h+=card('Coaching work waiting for your check','RELEASED TO MILLA',row('Ridgewell · pitch-aware prep','For the second meeting, with the Service Director',S.coachChecks.ridge?tag('Released','good'):`<button class="act primary" style="padding:5px 8px" onclick="act('releaseCoach','ridge')">Check and release</button>`)+row('Pinecrest · meeting debrief','Turned into a clear commercial state',S.coachChecks.pine?tag('Released','good'):`<button class="act" style="padding:5px 8px" onclick="act('releaseCoach','pine')">Check and release</button>`));
+ h+=card('The rules','SAME AS MILLA',row('Who offers','Milla makes every offer. Vida never offers Coaching.','')+row('Each moment','Fires once: 25% shows the value with nothing to buy; 50% is the Full Coaching offer; 75% offers to continue first','')+row('Answers','No thanks is final. Not now keeps the offer open, and it’s offered again at 75% only after a Not now.','')+row('Refunds','After a refund, the client can’t re-buy Coaching on their own','')+row('Price','Free during the free month, then +$100 per held meeting',''));
+ if(S.day30)h+=card('Day 30 · Aster','REMEMBERED',row('Decision','Continue · Tue 17 Nov','not asked again until Thu 17 Dec')+row('From Wed 18 Nov','$700 per held meeting + $100 Coaching',''));
+ h+=btns([!S.day30?['Skip ahead to day 30 (demo · Tue 17 Nov)',"act('skipToDay30')",'demo']:['Open Money',"act('openMoney')",'primary']]);
+ W(h)}
+
+function money(){const pph=NUM.profit/NUM.hrs,pphC=NUM.profitC/NUM.hrsC;
+ setHead('Money','Per client · the Coaching share · the company floor','VIDA ONLY · NEVER IN MILLA','good');
+ let h=tiles([['Aster pays',usd0(NUM.pays),`${usd0(NUM.paysC)} with Coaching`],['Aster costs',usd(NUM.cost),`${usd(NUM.costC)} with Coaching`],['Profit',usd(NUM.profit),`${usd(NUM.profitC)} with Coaching`],['Your hours',`${NUM.hrs} a month`,`${NUM.hrsC} with Coaching`]]);
+ h+=card('Aster · a paying month at 10 held meetings','<span class="prov">PROVISIONAL</span>',table(['','Without Coaching','With Coaching on all 10'],[`<tr><td>Aster pays</td><td>10 × $700 = ${usd0(NUM.pays)}</td><td>${usd0(NUM.pays)} + 10 × $100 = ${usd0(NUM.paysC)}</td></tr>`,`<tr><td>Clay · 100 people × $0.44</td><td>${usd(NUM.clay)}</td><td>${usd(NUM.clay)}</td></tr>`,`<tr><td>AI</td><td>${usd(NUM.ai)}</td><td>${usd(NUM.ai)}</td></tr>`,`<tr><td>Coaching AI · about $1 per meeting</td><td>—</td><td>${usd(NUM.aiCoach)}</td></tr>`,`<tr><td>Card fee · 5.25% + $0.27</td><td>${usd(NUM.card)}</td><td>${usd(NUM.cardC)}</td></tr>`,`<tr><td><b>Cost</b></td><td><b>${usd(NUM.cost)}</b></td><td><b>${usd(NUM.costC)}</b></td></tr>`,`<tr><td><b>Profit</b></td><td><b>${usd(NUM.profit)}</b></td><td><b>${usd(NUM.profitC)}</b></td></tr>`,`<tr><td>Your hours</td><td>${NUM.hrs}</td><td>${NUM.hrsC}</td></tr>`,`<tr><td>Profit per hour · worked out</td><td>${usd(pph)}</td><td>${usd(pphC)}</td></tr>`]),false);
+ h+=card('The Coaching share','SHOWN SEPARATELY',row('Coaching pays','10 × $100 = $1,000','a month')+row('Card fee on it','5.25% = $52.50','')+row('AI','About $10','')+row('Leaves',`$937.50 for 2.5 of your hours`,'about $375 an hour · worked out')+row('One coached meeting','$100 − $5.25 card fee − about $1 AI = $93.75','about 15 minutes'));
+ h+=card('Aster’s free month · actual','19 OCT – 17 NOV',row('In','$0','free month')+row('Clay + AI','$44.00 + $10.00','')+row('Coaching AI','3 coached meetings × about $1 = $3.00','free to Aster')+row('Card fee','$0','nothing charged')+row('Out','$57.00','')+row('Your hours','About 11','10.3 + 3 × 15 minutes · worked out'));
+ h+=card('Other clients','NOT SUPPLIED',table(['Client','Pays','Cost','Profit','Your hours'],CLIENTS.map(c=>`<tr><td>${c.n}</td><td>${OPEN}</td><td>${OPEN}</td><td>${OPEN}</td><td>${OPEN}</td></tr>`)),false);
+ h+=anchor('floorCard')+card('The company floor','NEVER PART OF A CLIENT’S NUMBERS',row('Every month',S.floorAfter?`${usd0(NUM.floorAfter)} after cancelling Apollo, ChatGPT and Smartlead`:`${usd0(NUM.floor)} today`,S.floorAfter?`saves ${usd0(NUM.floor-NUM.floorAfter)} a month`:'')+btns([[S.floorAfter?'Show today’s floor':'Show it after cancelling Apollo, ChatGPT and Smartlead',"act('toggleFloor')",'']]));
+ h+=btns([['Open Capacity',"act('openCapacity')",'primary']]);
+ W(h)}
+
+function capacity(){const c=capLoad(),left=NUM.month-c.total;
+ setHead('Capacity','Your hours: 30 a week · can we take another client?',left>=NUM.hrs?'ROOM FOR MORE':left>=0?'NEARLY FULL':'OVER',left>=NUM.hrs?'good':'warn');
+ let h=tiles([['Your hours',`${NUM.weekHrs} a week`,`about ${NUM.month} a month`],['Used',`≈ ${c.total.toFixed(1)} h a month`,'if other clients are Aster-sized'],['Left',`≈ ${left.toFixed(1)} h`,'a month'],['Room for',`${Math.max(0,Math.floor(left/NUM.hrs))} more`,'Aster-sized clients']]);
+ h+=`<div class="capacityPanel"><div class="capHead"><b>Where your hours go</b><span class="tag warn">PLANNING ASSUMPTION</span></div><div class="capacityGrid"><div class="cap"><span>Aster</span><b>${c.aster} h</b></div><div class="cap"><span>Other clients</span><b>${CLIENTS.length} × ${OPEN}</b></div><div class="cap"><span>Planned as Aster-sized</span><b>${(CLIENTS.length*NUM.hrs).toFixed(1)} h</b></div><div class="cap"><span>Added paying</span><b>${S.cap.paying}</b></div><div class="cap"><span>Added free months</span><b>${S.cap.free}</b></div><div class="cap"><span>Month</span><b>${NUM.month} h</b></div></div><div class="miniCallout">The other clients’ hours were never supplied, so this plans each one as Aster-sized (${NUM.hrs} hours a month). Aster with Coaching is ${NUM.hrsC}.</div></div>`;
+ h+=anchor('capCard')+card('Can we take another client, or another free month?','TRY IT',row('Another paying client',left-NUM.hrs>=0?`Yes: about ${(left-NUM.hrs).toFixed(1)} hours a month left after it`:'Not without help','≈ '+NUM.hrs+' h a month')+row('Another free month',left-NUM.hrs>=0?`Yes: it costs about $54.00 (Clay + AI) and ${NUM.hrs} of your hours, with no income until day 31`:'Not without help','')+btns([['Add a paying client',"act('capAdd','paying')",'primary'],['Add a free month',"act('capAdd','free')"],['Remove a paying client',"act('capRemove','paying')"],['Remove a free month',"act('capRemove','free')"],['Reset',"act('capReset')"]]));
+ h+=btns([[S.held>=1?'Open Learning':'Back to Today board',S.held>=1?"act('openLearning')":"go('today')",'primary']]);
+ W(h)}
+
+function convTable(by,label){const held=new Set(heldList().map(x=>x.id));const g={};P.forEach(p=>{const k=by(p);g[k]=g[k]||{a:0,h:0};g[k].a++;if(held.has(p.id))g[k].h++});return table([label,'Approached','Held'],Object.entries(g).sort((a,b)=>b[1].h-a[1].h||b[1].a-a[1].a).map(([k,v])=>`<tr><td>${k}</td><td>${v.a}</td><td>${v.h}</td></tr>`))}
+function learning(){
+ setHead('Learning','What worked shapes next week’s list · Aster only',S.learnApplied?'IN NEXT WEEK’S REQUEST':'PROPOSED',S.learnApplied?'good':'warn');
+ const held=new Set(heldList().map(x=>x.id));const g={};P.forEach(x=>{if(held.has(x.id))g[x.rc]=(g[x.rc]||0)+1});const best=Object.entries(g).sort((a,b)=>b[1]-a[1])[0];
+ let h=tiles([['Held',`${S.held} of 10`,'Aster'],['Dropped at the check',String(qCount('dropped')),'reasons kept'],['Best reason',best?best[0]:'—',best?`${best[1]} held`:''],['Shared with other clients','Never','stays with Aster']]);
+ h+=`<div class="split">${card('What’s converting · by reason','WEEK 1 · 25 NAMED',convTable(p=>p.rc,'Reason'),false)}${card('By title','WEEK 1',convTable(p=>p.t,'Title'),false)}</div>`;
+ h+=card('Why drafts were dropped','FROM YOUR CHECKS',Object.keys(S.dropReason).length?Object.entries(S.dropReason).map(([id,r])=>row(PBY[id].n,r,'')).join(''):row('None','',''));
+ h+=card('From meetings','DANA’S ANSWERS',row('Ridgewell','The Service Director is the next person','')+row('Ridgewell','The integration question came first','ask for the system’s name early'));
+ h+=anchor('learnCard')+card('Next week’s Clay request · Aster','PROPOSED BY VIDA · YOUR CALL',row('Reasons','Dated reasons only; never undated “growth”','')+row('More of','Expansions and new-in-role leaders','held most often')+row('Second person','The Service Director, where Clay finds one','')+row('Status',S.learnApplied?'In next week’s request':'Not applied yet','')+(S.learnApplied?'':btns([['Use this for next week’s Clay request',"act('applyLearning')",'primary']])));
+ h+=btns([['Back to Today board',"go('today')",'primary']]);
+ W(h)}
+</script>
+<script>
+/* ================= PRESENTER (separate from the buttons) ================= */
+const STEPS=[
+ {screen:'today',cue:'Open Aster’s handoff',note:'A new client from Milla. The important thing first.',run:()=>ACT.openHandoff(),done:()=>!!S.seen.handoffMsg},
+ {screen:'handoff',cue:'Accept Aster as a client',note:'Objective, ICP, Proof to come; the Boutique promise.',run:()=>ACT.acceptClient(),done:()=>S.handoffOK},
+ {screen:'connections',cue:'Run SPF, DKIM and DMARC checks',note:'Their mailboxes, a second domain; warming, day 1 of about 21.',run:()=>ACT.runDNS(),done:()=>S.dnsOK},
+ {screen:'clay',cue:'Import the Clay Proof file',note:'Wed 7 Oct. Verified emails, dated reasons; the CRM blocks two.',run:()=>ACT.importProof(),done:()=>S.proofFile},
+ {screen:'clay',cue:'Send Proof to Milla',note:'Dana checks people and voice.',run:()=>ACT.sendProof(),done:()=>S.proofSent},
+ {screen:'clay',cue:'Skip ahead: Dana approves Proof',note:'Approved in Milla at 11:05.',run:()=>ACT.proofApproved(),done:()=>S.proofOK},
+ {screen:'clay',cue:'Import the week-1 Clay file',note:'Fri 16 Oct. 29 rows; 27 to research.',run:()=>ACT.importWeek(),done:()=>S.weekFile},
+ {screen:'clay',cue:'Run AI research and drafts',note:'Research per person; three-email drafts; three flagged.',run:()=>ACT.runDrafts(),done:()=>S.drafted},
+ {screen:'research',cue:'Open the quality queue',note:'I check every email.',run:()=>ACT.openQueue(),done:()=>!!S.seen.qMsg},
+ {screen:'quality',cue:'Approve Morgan',note:'One check covers the first email and its follow-ups.',run(){ACT.qSelect('morgan');ACT.approve('morgan')},done:()=>qState('morgan')!=='waiting'},
+ {screen:'quality',cue:'Edit Priya’s email',note:'The AI claimed an integration Aster hasn’t approved.',run(){ACT.qSelect('priya');ACT.editStart('priya')},done:()=>S.editing||qState('priya')!=='waiting'},
+ {screen:'quality',cue:'Save and approve version 2',note:'Any edit means a new check.',run(){ACT.qSelect('priya');S.editing=true;ACT.saveEdit('priya')},done:()=>qState('priya')!=='waiting'},
+ {screen:'quality',cue:'Drop Kyle: no date',note:'No date, no send. The reason goes to Learning.',run(){ACT.qSelect('kyle');ACT.drop('kyle','No date')},done:()=>qState('kyle')!=='waiting'},
+ {screen:'quality',cue:'Drop Rosa: weak reason',note:'A post about growth isn’t a reason to talk now.',run(){ACT.qSelect('rosa');ACT.drop('rosa','Weak reason')},done:()=>qState('rosa')!=='waiting'},
+ {screen:'quality',cue:'Approve the other 23 (demo)',note:'25 approved, 2 dropped.',run:()=>ACT.approveRest(),done:()=>QUEUE.every(id=>qState(id)!=='waiting')},
+ {screen:'quality',cue:'Send the week to Milla',note:'Nothing sends until Dana releases it.',run:()=>ACT.sendWeek(),done:()=>S.weekSent},
+ {screen:'quality',cue:'Skip ahead: Dana releases the week',note:'Sun 18 Oct. First emails Mon 19 Oct.',run:()=>ACT.weekReleased(),done:()=>S.weekOK},
+ {screen:'sending',cue:'Skip ahead: replies arrive',note:'Tue 20 Oct. Every client, oldest first.',run:()=>ACT.repliesArrive(),done:()=>!!S.seen.repliesIn},
+ {screen:'replies',cue:'Answer Harborline (oldest)',note:'Oldest first.',run:()=>ACT.answer('harbor'),done:()=>!!S.replies.harbor},
+ {screen:'replies',cue:'Remove Oliver',note:'Opt-outs honoured the same day.',run:()=>ACT.removeOliver(),done:()=>!!S.replies.oliver},
+ {screen:'replies',cue:'Check and send Morgan’s answer',note:'09:28, the same morning. No invented integration.',run:()=>ACT.sendMorgan(),done:()=>!!S.replies.morgan},
+ {screen:'replies',cue:'Skip ahead: Morgan accepts Thursday',note:'Booked straight into Dana’s calendar.',run:()=>ACT.bookMorgan(),done:()=>S.booked},
+ {screen:'meetings',cue:'Check and release the prep',note:'Free on every meeting.',run:()=>ACT.releasePrep(),done:()=>S.prepOK},
+ {screen:'meetings',cue:'Skip ahead 48 hours: held',note:'Silence means held.',run:()=>ACT.apply48h(),done:()=>S.held>=1},
+ {screen:'meetings',cue:'Dana answers; check and send the follow-up',note:'Drafted from the outcome, checked by us, then sent.',run:()=>ACT.sendFollow(),done:()=>S.followOK},
+ {screen:'meetings',cue:'Open Client health',note:'Bounces under 2%, complaints, mailbox health.',run:()=>ACT.openHealth(),done:()=>!!S.seen.healthMsg},
+ {screen:'health',cue:'Skip ahead: Aster at 50%',note:'Milla offered Coaching; Dana accepted. Vida never offers.',run:()=>ACT.skipTo50(),done:()=>S.held>=5},
+ {screen:'moments',cue:'Check and release the Ridgewell pitch-aware prep',note:'Coaching work waits for your check.',run:()=>ACT.releaseCoach('ridge'),done:()=>!!S.coachChecks.ridge},
+ {screen:'moments',cue:'Skip ahead to day 30',note:'8 of 10 held; Dana chose Continue.',run:()=>ACT.skipToDay30(),done:()=>S.day30},
+ {screen:'moments',cue:'Open Money',note:'Per client, the Coaching share, the company floor.',run:()=>ACT.openMoney(),done:()=>!!S.seen.moneyMsg},
+ {screen:'money',cue:'Show the floor after cancelling',note:'$389 today; $265 after cancelling Apollo, ChatGPT and Smartlead.',run:()=>ACT.toggleFloor(),done:()=>S.floorAfter||!!S.seen.capMsg},
+ {screen:'money',cue:'Open Capacity',note:'30 hours a week. Room for another?',run:()=>ACT.openCapacity(),done:()=>!!S.seen.capMsg},
+ {screen:'capacity',cue:'Add a paying client',note:'Recalculates the hours left.',run:()=>ACT.capAdd('paying'),done:()=>S.cap.paying>0||!!S.seen.learnMsg},
+ {screen:'capacity',cue:'Open Learning',note:'What worked shapes next week’s list.',run:()=>ACT.openLearning(),done:()=>!!S.seen.learnMsg},
+ {screen:'learning',cue:'Use this for next week’s Clay request',note:'Aster only. Never shared.',run:()=>ACT.applyLearning(),done:()=>S.learnApplied},
+ {screen:'learning',cue:'Back to Today board',note:'End where every day starts.',run(){S.screen='today';S.seen.end=true},done:()=>!!S.seen.end}
+];
+function curStep(){return STEPS.findIndex(s=>!s.done())}
+function runStep(st){S.screen=st.screen;st.run()}
+function nextStep(){if(busy)return;const i=curStep();if(i<0)return toast('Demo complete. Press R to reset.');const t0=T.length;runStep(STEPS[i]);save();if(T.length>t0)play(t0);else render()}
+function previousStep(){if(busy)return;let i=curStep();if(i<0)i=STEPS.length;if(i<=0)return toast('Already at the start.');rebuild(i-1)}
+function rebuild(n){S=fresh();T=initialT();replaying=true;try{for(let k=0;k<n;k++)runStep(STEPS[k])}finally{replaying=false}shown=T.length;save();render()}
+function resetAll(){if(busy)return;S=fresh();T=initialT();shown=T.length;$('input').value='';save();render();toast('Reset to the start.')}
+
+/* ================= RENDER ================= */
+const NAV=[['Today',[['today','1 · Today board']]],
+ ['A client’s work',[['handoff','2 · New client'],['connections','3 · Connections'],['clay','4 · People from Clay'],['research','5 · Research and drafts'],['quality','6 · Quality queue'],['sending','7 · Sending']]],
+ ['Conversations',[['replies','8 · Reply queue'],['meetings','9 · Meetings']]],
+ ['The business',[['health','10 · Client health'],['moments','11 · Moments and Coaching'],['money','12 · Money'],['capacity','13 · Capacity'],['learning','14 · Learning']]]];
+function renderNav(){const cur=STEPS[curStep()];const needs=cur?cur.screen:'';
+ $('navIn').innerHTML=NAV.map(g=>`<div class="navlab">${g[0]}</div>`+g[1].map(([sc,l])=>{const u=isUnlocked(sc);return `<button class="${S.screen===sc?'active':''} ${u?'':'locked'}" style="${u?'':'opacity:.4'}" onclick="go('${sc}')"><span class="nDot" style="${needs===sc?'background:var(--accent)':''}"></span>${l}${u?'':'<span style="margin-left:auto;font-size:8px">🔒</span>'}</button>`}).join('')).join('')}
+function renderStage(){let a=0;if(S.handoffOK)a=1;if(S.dnsOK)a=2;if(S.proofOK||S.weekFile)a=3;if(S.drafted)a=4;if(S.weekSent)a=5;if(S.weekOK)a=6;if(S.seen.repliesIn)a=7;if(S.held>=1)a=8;if(S.held>=5)a=9;if(S.seen.moneyMsg)a=10;if(S.learnApplied)a=11;
+ const st=['Handoff','Connect','Clay','Research','Check','Release','Send','Reply','Meet','Moments','Money','Learn'];
+ $('stage').innerHTML='<span class="lab">VIDA · BOUTIQUE M&amp;V · PREVIEW</span>'+st.map((x,i)=>`<span class="s ${i<a?'done':''} ${i===a?'on':''}">${i<a?'✓ ':''}${x}</span>${i<st.length-1?'<span class="sep"></span>':''}`).join('')+`<span class="date">Demo date · ${S.date}</span>`}
+function renderPresenter(){const p=$('presenter');p.classList.toggle('off',!notes);if(!notes)return;const i=curStep(),d=STEPS[i];$('pType').textContent=d?`NEXT · ${i+1}/${STEPS.length}`:'DONE';$('pMain').textContent=d?d.cue:'Demo complete.';$('pSub').textContent=d?d.note:'Press R to reset or ← to step back.'}
+let lastScreen='';
+function render(){renderStage();renderNav();drawTranscript();(SCREENS[S.screen]||today)();
+ if(S.screen!==lastScreen){$('work').scrollTop=0;lastScreen=S.screen}
+ if(focusId){const c=$(focusId);focusId=null;if(c)c.scrollIntoView({block:'start'})}
+ renderPresenter()}
+
+/* ================= WIRING ================= */
+$('sendBtn').onclick=()=>act('send');
+$('input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();act('send')}});
+document.addEventListener('keydown',e=>{
+ const typing=['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName);
+ if(typing||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+ if(e.code==='Space'){e.preventDefault();nextStep()}
+ else if(e.key==='ArrowLeft'){e.preventDefault();previousStep()}
+ else if(e.key==='r'||e.key==='R'){e.preventDefault();resetAll()}
+ else if(e.key==='p'||e.key==='P'){e.preventDefault();notes=!notes;renderPresenter()}
+ else if(e.key==='+'||e.key==='='){e.preventDefault();zoom=Math.min(1.6,+(zoom+0.1).toFixed(2));document.body.style.zoom=zoom;toast('Text size '+Math.round(zoom*100)+'%')}
+ else if(e.key==='-'||e.key==='_'){e.preventDefault();zoom=Math.max(0.8,+(zoom-0.1).toFixed(2));document.body.style.zoom=zoom;toast('Text size '+Math.round(zoom*100)+'%')}});
+render();
+</script>
+</body>
+</html>

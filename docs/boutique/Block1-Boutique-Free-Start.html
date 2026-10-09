@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boutique Free Start</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root{
+  --ink:#1c1824;--ink2:#3b3446;--muted:#6c6478;--line:#e6e1eb;--page:#f5f3f7;--panel:#ffffff;--soft:#faf9fb;
+  --accent:#6d35ea;--accent-deep:#4f1fc4;--accent-soft:#f1ecff;
+  --now:#5f5a66;--now-bg:#ecebee;--good:#1f7a50;--goodbg:#e7f5ed;--warn:#8a5d0c;--warnbg:#fcf1d8;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#f1eef5;--ink2:#d8d2e0;--muted:#a9a2b3;--line:#302c37;--page:#131117;--panel:#1b1920;--soft:#211f27;
+  --accent:#ad90ff;--accent-deep:#cbb8ff;--accent-soft:#2a2340;
+  --now:#cfcad6;--now-bg:#2c2932;--good:#6fcf9f;--goodbg:#16291f;--warn:#e3b65e;--warnbg:#2d2413}}
+:root[data-theme="dark"]{
+  --ink:#f1eef5;--ink2:#d8d2e0;--muted:#a9a2b3;--line:#302c37;--page:#131117;--panel:#1b1920;--soft:#211f27;
+  --accent:#ad90ff;--accent-deep:#cbb8ff;--accent-soft:#2a2340;
+  --now:#cfcad6;--now-bg:#2c2932;--good:#6fcf9f;--goodbg:#16291f;--warn:#e3b65e;--warnbg:#2d2413}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:18px;padding-block:30px 72px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(30px,5vw,44px);line-height:1.08;letter-spacing:-.01em}
+h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
+h3{font-size:14.5px;font-weight:700}
+p{margin:0 0 10px;max-width:74ch}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:16.5px;color:var(--ink2);margin-top:12px}
+.pill{display:inline-block;font-size:12.5px;font-weight:700;color:var(--warn);background:var(--warnbg);border-radius:999px;padding:4px 12px;margin-top:4px}
+.example{font-size:13.5px;color:var(--muted);margin-top:12px}
+.toc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:22px 0 0;padding:0;list-style:none;counter-reset:s}
+.toc li{counter-increment:s}
+.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-weight:600}
+.toc a::before{content:counter(s);font-family:Georgia,serif;font-weight:400;font-size:17px;color:var(--accent-deep)}
+.toc a:hover,.toc a:focus-visible{border-color:var(--accent)}
+.toc small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+@media (max-width:820px){.toc{grid-template-columns:minmax(0,1fr)}}
+.screen{padding-top:44px;scroll-margin-top:12px}
+.screen-head{display:flex;gap:14px;align-items:flex-start}
+.num{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-deep);font-family:Georgia,serif;font-size:18px}
+.where{font-size:13px;color:var(--muted);margin:3px 0 0}
+.what{margin:12px 0 14px 48px;color:var(--ink2)}
+@media (max-width:640px){.what{margin-left:0}}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.pair{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0}
+.frame{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.frame>figcaption{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);background:var(--soft)}
+.chip{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 9px}
+.chip.now{color:var(--now);background:var(--now-bg)}
+.chip.new{color:#fff;background:var(--accent)}
+.stage{overflow-x:auto;padding:16px;background:#f6f4f8;flex:1}
+.says{font-size:12.5px;color:var(--muted);padding:9px 14px;border-top:1px solid var(--line);background:var(--panel)}
+.says b{color:var(--ink2)}
+.after{font-size:13px;color:var(--muted);margin:10px 0 0}
+.sub{margin-top:18px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:10px}
+@media (max-width:900px){.trio{grid-template-columns:minmax(0,1fr)}}
+.trio .label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}
+@media (max-width:820px){.lists{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card ul,.card ol{margin:6px 0 0;padding-left:20px}.card li{margin:6px 0;font-size:14px;color:var(--ink2)}
+.card li b{color:var(--ink)}
+.call{border-left:3px solid var(--accent);background:var(--panel);border-radius:0 12px 12px 0;padding:14px 18px;margin-top:12px}
+.call h3{margin-bottom:4px}
+.rec{font-size:14px;color:var(--ink2)}.rec b{color:var(--accent-deep)}
+.warnline{margin-top:12px;font-size:14px;font-weight:600;color:var(--warn);background:var(--warnbg);border-radius:10px;padding:10px 14px}
+footer{margin-top:44px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+footer code{font-size:12px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Mock: Vida (Tailwind values copied from apps/admin/src/app/vida/page.tsx) ── */
+.vida{background:#fff;border-radius:10px;padding:14px;color:#1f1235;font-family:Inter,system-ui,sans-serif;min-width:330px}
+.vd-head{font-size:12px;color:#9b8ec4;font-weight:700;margin-bottom:10px}
+.vd-box{border:1px solid #eee7f7;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.vd-box:last-child{margin-bottom:0}
+.vd-box.declared{background:#faf8ff}
+.vd-box.on{background:#f6f1ff;border-color:#d9ccf5}
+.vd-box.refused{background:#fffbeb;border-color:#fcd34d}
+.vd-box b{font-size:13px;display:block;margin-bottom:4px}
+.vd-box p{font-size:12px;color:#6b5f8c;margin:0 0 8px;line-height:1.45}
+.vd-box p.meta{color:#9b8ec4}
+.vd-box p.red{color:#b91c1c;font-weight:600}
+.vd-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.vd-btn{font:700 12.5px Inter,system-ui,sans-serif;color:#fff;background:#7C3AED;border:0;border-radius:8px;padding:6px 10px}
+.vd-btn[disabled]{opacity:.4}
+.vd-btn.out{color:#7C3AED;background:#fff;border:1px solid #d9ccf5}
+.vd-sel{font:12.5px Inter,system-ui,sans-serif;border:1px solid #e3daf7;border-radius:8px;padding:6px 8px;background:#fff;color:#1f1235}
+.vd-pause{font:700 12.5px Inter,system-ui,sans-serif;color:#92400e;background:#fff;border:1px solid #fcd34d;border-radius:8px;padding:6px 10px;opacity:.5}
+.new-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#7C3AED;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.dialog{background:#fff;border:1px solid #d6d1dc;border-radius:12px;box-shadow:0 10px 30px rgba(20,10,40,.12);padding:16px 18px;max-width:520px;color:#1c1824;font-family:Inter,system-ui,sans-serif}
+.dialog p{font-size:13.5px;margin:0 0 10px;color:#3b3446}
+.dialog p:first-child{font-weight:700;color:#1c1824}
+.dialog .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.dialog .btns span{font-size:13px;font-weight:700;border-radius:8px;padding:6px 14px;border:1px solid #d6d1dc}
+.dialog .btns span.ok{background:#3b5bdb;color:#fff;border-color:#3b5bdb}
+
+/* ── Mock: Milla redesign (rules copied from packages/shared/src/design/mv-design.css), shown 15% larger to read ── */
+.mvz{zoom:1.15;color:#17141c;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-width:300px}
+.mv-hero-card{border:1px solid #e4d9fb;background:linear-gradient(145deg,#fff 0%,#f7f1ff 100%);border-radius:16px;padding:18px;box-shadow:0 8px 28px rgba(89,45,160,.055)}
+.mv-eyebrow{font-size:8px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#4d22b6;margin-bottom:8px}
+.mv-hero-card p{font-size:11px;line-height:1.55;color:#766f7e;margin:0}
+.mv-hero-row{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.mv-hero-number{font-size:36px;font-weight:850;letter-spacing:-.045em;line-height:1.1}
+.mv-hero-caption{font-size:10px;color:#766f7e;padding-bottom:5px}
+.mv-price{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.mv-track{position:relative;height:4px;border-radius:4px;background:#e8e3ec;margin-top:16px}
+.mv-track i{position:absolute;left:0;top:0;bottom:0;width:20%;border-radius:4px;background:#6f3df4}
+.mv-track b{position:absolute;left:20%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#6f3df4;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.mv-ends{display:flex;justify-content:space-between;margin-top:6px;font-size:8px;color:#8e8595}
+.mv-programme{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.mv-programme-card{border:1px solid #e8e3ec;border-radius:13px;padding:14px;background:#fff}
+.mv-programme-card.same{display:grid;place-items:center;text-align:center;color:#a29aa9;font-size:9px;border-style:dashed;background:#fbf9fd}
+.mv-kv-list{display:flex;flex-direction:column}
+.mv-kv-row{display:flex;align-items:flex-start;gap:14px;padding:9px 0;border-bottom:1px solid #eeeaf0}
+.mv-kv-row:last-child{border-bottom:0}
+.mv-kv-row span{font-size:9px;color:#766f7e;flex:1}
+.mv-kv-row strong{font-size:10px;text-align:right;font-variant-numeric:tabular-nums}
+.mv-kv-row.free strong{color:#167a52}
+.mv-be{margin-top:10px;padding:8px 10px;border-radius:9px;background:#fff8e8;font-size:8.5px;line-height:1.5;color:#7b5a1d}
+.mv-cta-row{display:flex;align-items:center;gap:10px;padding-top:14px;flex-wrap:wrap}
+.mv-btn{border:1px solid #ddd5e5;background:#fff;color:#17141c;border-radius:10px;padding:10px 13px;font:750 10px Inter,system-ui,sans-serif}
+.mv-btn.primary{background:linear-gradient(135deg,#6f3df4,#d84ca5);color:#fff;border:0;box-shadow:0 7px 18px rgba(111,61,244,.18)}
+.mv-muted-note{font-size:9px;color:#766f7e;line-height:1.5}
+.mv-section{background:#fff;border:1px solid #e8e3ec;border-radius:14px;overflow:hidden;margin-top:14px}
+.mv-section-head{padding:11px 15px;border-bottom:1px solid #e8e3ec;display:flex;align-items:center;gap:10px}
+.mv-section-head b{font-size:11px}
+.mv-section-head span{font-size:9px;color:#766f7e;margin-left:auto}
+.mv-section-body{padding:4px 15px}
+
+/* ── Mock: Milla pages on the older card style (Billing, ROI, the programme card) ── */
+.tw{background:#fff;border-radius:10px;padding:16px;color:#1f1235;font-family:Inter,system-ui,sans-serif;min-width:320px}
+.tw-h1{font-size:24px;font-weight:700;color:#1f1235;line-height:1.2}
+.tw-sub{font-size:14px;color:#7c6f9b;margin-top:2px}
+.tw-card{background:#fff;border:1px solid #eee7f7;border-radius:16px;padding:16px 20px;margin-top:12px}
+.tw-eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:.025em;color:#9b8ec4;font-weight:700;margin-bottom:6px}
+.tw-big{font-size:22px;font-weight:800;color:#1f1235}
+.tw-mid{font-size:18px;font-weight:800;color:#1f1235}
+.tw-15{font-size:15px;font-weight:800;margin-bottom:4px}
+.tw-line{font-size:12.5px;color:#6b5f8c;margin-top:4px}
+.tw-green{font-size:12.5px;font-weight:600;color:#059669;margin-top:2px}
+.tw-note{font-size:12.5px;color:#9b8ec4;margin-top:8px;line-height:1.55}
+.tw-link{display:inline-block;font-size:12.5px;font-weight:700;color:#7C3AED;margin-top:10px}
+.tw-inv{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid #f2edfb}
+.tw-inv:first-of-type{border-top:0}
+.tw-inv b{font-size:13.5px}
+.tw-inv small{display:block;font-size:12px;color:#9b8ec4}
+.tw-inv .amt{margin-left:auto;font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.tw-inv .v{font-size:12.5px;font-weight:700;color:#7C3AED}
+.ex{font-size:10.5px;font-weight:700;color:#9b8ec4;border:1px solid #e6dcf7;border-radius:999px;padding:0 6px;margin-left:6px}
+.roi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.roi-hero{grid-column:1/-1;border-radius:16px;border:2px solid rgba(124,58,237,.2);background:#F5F0FF;padding:20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.roi-hero .l{font-size:12px;font-weight:600;color:#7C3AED;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.roi-hero .v{font-size:34px;font-weight:700;color:#1E0A5C;font-variant-numeric:tabular-nums;line-height:1.1}
+.roi-hero .v small{font-size:15px;font-weight:600;color:#5b3fb0;margin-left:6px}
+.roi-hero .s{font-size:13.5px;color:rgba(124,58,237,.75);margin-top:4px}
+.roi-hero .ic{width:46px;height:46px;border-radius:14px;background:rgba(124,58,237,.1);flex:none}
+.roi-tile{border-radius:12px;border:1px solid #efe7fb;background:#fff;padding:16px}
+.roi-tile .v{font-size:24px;font-weight:700;color:#4c1d95;font-variant-numeric:tabular-nums}
+.roi-tile .l{font-size:13.5px;color:#7B6FA0}
+.roi-tile .s{font-size:12px;color:#9B8EC4;margin-top:4px}
+.chg{outline:2px dashed #7C3AED;outline-offset:3px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">Block 1 of 3 · Boutique M&amp;V · layouts for your OK</span>
+  <h1 style="margin-top:8px">Boutique clients start free</h1>
+  <p class="lede">You mark a client Boutique in Vida. From then on they start without paying, and Milla shows them your terms instead of a programme price: <b>set-up free, first held meeting free, then $700 per held meeting</b>. Every approval step stays the same.</p>
+  <span class="pill">Layouts only. Nothing is built until you say OK (R205).</span>
+  <p class="example">The example throughout is Aster Field Systems with a target of 10 meetings. “Now” is a paying client today, on the growth price ($199 a meeting, so one payment of $1,990). <span style="outline:2px dashed var(--accent);outline-offset:2px;border-radius:4px;padding:0 3px">Dashed outlines</span> mark what changes.</p>
+
+  <ol class="toc" aria-label="The six screens, in the order the client meets them">
+    <li><a href="#s1"><span>Vida · the Boutique box<small>you turn it on</small></span></a></li>
+    <li><a href="#s2"><span>Milla · choose your target<small>the price becomes your terms</small></span></a></li>
+    <li><a href="#s3"><span>Milla · your programme card<small>while we prepare</small></span></a></li>
+    <li><a href="#s4"><span>Milla · after you approve<small>nothing to pay</small></span></a></li>
+    <li><a href="#s5"><span>Milla · Your ROI<small>the top tile</small></span></a></li>
+    <li><a href="#s6"><span>Milla · Billing<small>terms and invoices</small></span></a></li>
+  </ol>
+
+  <!-- ═════════════════════ 1 · VIDA ═════════════════════ -->
+  <section class="screen" id="s1">
+    <div class="screen-head"><span class="num">1</span><div><h2>Vida · the Boutique box</h2><p class="where">Vida → a client → Programme, under “Commercial model”</p></div></div>
+    <p class="what">A new box. You turn Boutique on for a client, and “Authorise P1 internally” then shows for them, as it does for House today. After the client approves in Milla, “Authorise P2 internally” shows, then “Make programme live”. The buttons and their order are the ones you already use for House.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>an outside client waiting to pay</figcaption>
+        <div class="stage"><div class="vida">
+          <div class="vd-head">Aster Field Systems · Programme</div>
+          <div class="vd-box declared"><b>Commercial model — Programme</b><div class="vd-row"><button class="vd-btn" disabled>Set programme</button></div></div>
+          <div class="vd-box"><b>Programme lifecycle</b><p>P1: not authorised · P2: not authorised</p>
+            <div class="vd-row"><select class="vd-sel" aria-label="Why pause (example)"><option>Pause — why?</option></select><button class="vd-pause">Pause</button></div></div>
+        </div></div>
+        <div class="says">They can only start by paying. The internal buttons show for House only.</div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>the same client, marked Boutique</figcaption>
+        <div class="stage"><div class="vida">
+          <div class="vd-head">Aster Field Systems · Programme</div>
+          <div class="vd-box declared"><b>Commercial model — Programme</b><div class="vd-row"><button class="vd-btn" disabled>Set programme</button></div></div>
+          <div class="vd-box on chg"><b>Boutique terms — on <span class="new-tag">new</span></b><p>Set-up free · first held meeting free · then $700 per held meeting.</p><p class="meta">Turned on by you, 9 Oct. No payment on record.</p>
+            <div class="vd-row"><button class="vd-btn out">Remove Boutique</button></div></div>
+          <div class="vd-box"><b>Programme lifecycle</b><p>P1: not authorised · P2: not authorised</p>
+            <div class="vd-row"><button class="vd-btn chg">Authorise P1 internally</button><select class="vd-sel" aria-label="Why pause (example)"><option>Pause — why?</option></select><button class="vd-pause">Pause</button></div></div>
+        </div></div>
+        <div class="says">After you press it, the line reads <b>“P1: free start (Boutique) 9 Oct · P2: not authorised”</b>.</div>
+      </figure>
+    </div>
+
+    <div class="sub">
+      <h3>The Boutique box, in its three states</h3>
+      <div class="trio">
+        <div><div class="label">Off (every client starts here)</div><div class="stage" style="border-radius:12px"><div class="vida" style="min-width:0">
+          <div class="vd-box"><b>Boutique terms — off</b><p>Turn on to start this client free: set-up free, first held meeting free, then $700 per held meeting. Every approval step stays.</p><div class="vd-row"><button class="vd-btn">Mark as Boutique</button></div></div></div></div></div>
+        <div><div class="label">On</div><div class="stage" style="border-radius:12px"><div class="vida" style="min-width:0">
+          <div class="vd-box on"><b>Boutique terms — on</b><p>Set-up free · first held meeting free · then $700 per held meeting.</p><p class="meta">Turned on by you, 9 Oct. No payment on record.</p><div class="vd-row"><button class="vd-btn out">Remove Boutique</button></div></div></div></div></div>
+        <div><div class="label">Refused (the client has paid)</div><div class="stage" style="border-radius:12px"><div class="vida" style="min-width:0">
+          <div class="vd-box refused"><b>Boutique terms — can’t be turned on</b><p class="red">This client paid for a programme on 3 Oct. Boutique is only for clients who start free.</p><div class="vd-row"><button class="vd-btn" disabled>Mark as Boutique</button></div></div></div></div></div>
+      </div>
+      <h3 style="margin-top:18px">When you press “Mark as Boutique”</h3>
+      <div class="stage" style="border-radius:12px;margin-top:10px"><div class="dialog" role="img" aria-label="The confirm box Vida shows before marking a client Boutique">
+        <p>Mark Aster Field Systems as Boutique?</p>
+        <p>They start free. You can authorise P1 and P2 internally, and no payment, invoice or revenue is created. Milla shows them the Boutique terms instead of a price.</p>
+        <p>They still approve the direction and the wording in Milla. Nothing is sent.</p>
+        <div class="btns"><span>Cancel</span><span class="ok">OK</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ 2 · CALCULATOR ═════════════════════ -->
+  <section class="screen" id="s2">
+    <div class="screen-head"><span class="num">2</span><div><h2>Milla · choose your target</h2><p class="where">Milla → Programme, after the client approves the direction</p></div></div>
+    <p class="what">The price becomes your terms, and the button no longer opens a payment. Milla's opening line changes with it. The slider, the Capacity card and the best-efforts sentence stay as they are.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>a paying client</figcaption>
+        <div class="stage"><div class="mvz">
+          <div class="mv-hero-card"><div class="mv-eyebrow">Your programme</div>
+            <div class="mv-hero-row"><div><div class="mv-hero-number">10</div><div class="mv-hero-caption">qualified meetings — your target</div></div>
+              <div><div class="mv-price">$1,990 total</div><div class="mv-hero-caption">$199 per meeting · one payment</div></div></div>
+            <div class="mv-track"><i></i><b></b></div><div class="mv-ends"><span>1 meeting</span><span>Move to choose</span></div></div>
+          <div class="mv-programme">
+            <div class="mv-programme-card same">Capacity card<br>unchanged</div>
+            <div class="mv-programme-card"><div class="mv-eyebrow">Payment</div><div class="mv-kv-list">
+              <div class="mv-kv-row"><span>One payment · before we start</span><strong>$1,990</strong></div>
+              <div class="mv-kv-row"><span>What you buy</span><strong>10 qualified meetings</strong></div></div>
+              <div class="mv-be">We will do our best to book this many meetings for you. There is a point at which we stop working a programme, so this is what we commit to aiming for rather than a number we can guarantee.</div></div>
+          </div>
+          <div class="mv-cta-row"><button class="mv-btn primary">Accept 10 meetings · Pay $1,990</button><button class="mv-btn">Widen targeting</button><span class="mv-muted-note">Accepting opens the one payment. Nothing is sent until you approve the prepared programme.</span></div>
+          <div class="mv-section"><div class="mv-section-head"><b>If your own figures hold</b><span>an illustration, not a forecast</span></div><div class="mv-section-body"><div class="mv-kv-list">
+            <div class="mv-kv-row"><span>Clients</span><strong>2</strong></div><div class="mv-kv-row"><span>Revenue</span><strong>$50,000</strong></div><div class="mv-kv-row"><span>Against cost</span><strong>25.1×</strong></div></div></div></div>
+        </div></div>
+        <div class="says"><b>Milla says:</b> “You buy qualified meetings, not leads. Move the slider to however many you want and everything else follows.”</div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>the same screen, on your terms</figcaption>
+        <div class="stage"><div class="mvz">
+          <div class="mv-hero-card"><div class="mv-eyebrow">Your programme</div>
+            <div class="mv-hero-row"><div><div class="mv-hero-number">10</div><div class="mv-hero-caption">qualified meetings — your target</div></div>
+              <div class="chg"><div class="mv-price">$700 per held meeting</div><div class="mv-hero-caption">set-up free · your first held meeting free</div></div></div>
+            <div class="mv-track"><i></i><b></b></div><div class="mv-ends"><span>1 meeting</span><span>Move to choose</span></div></div>
+          <div class="mv-programme">
+            <div class="mv-programme-card same">Capacity card<br>unchanged</div>
+            <div class="mv-programme-card chg"><div class="mv-eyebrow">Your terms</div><div class="mv-kv-list">
+              <div class="mv-kv-row free"><span>Set-up</span><strong>Free</strong></div>
+              <div class="mv-kv-row free"><span>Your first held meeting</span><strong>Free</strong></div>
+              <div class="mv-kv-row"><span>Each held meeting after that</span><strong>$700</strong></div>
+              <div class="mv-kv-row"><span>The most you can pay for 10</span><strong>$6,300</strong></div></div>
+              <div class="mv-be">We will do our best to book this many meetings for you. There is a point at which we stop working a programme, so this is what we commit to aiming for rather than a number we can guarantee.</div></div>
+          </div>
+          <div class="mv-cta-row"><button class="mv-btn primary chg">Accept 10 meetings · nothing to pay now</button><button class="mv-btn">Widen targeting</button><span class="mv-muted-note chg">Accepting starts your free set-up. Nothing is sent until you approve the prepared programme.</span></div>
+          <div class="mv-section"><div class="mv-section-head"><b>If your own figures hold</b><span>an illustration, not a forecast</span></div><div class="mv-section-body"><div class="mv-kv-list">
+            <div class="mv-kv-row"><span>Clients</span><strong>2</strong></div><div class="mv-kv-row"><span>Revenue</span><strong>$50,000</strong></div><div class="mv-kv-row chg"><span>Against cost</span><strong>7.9×</strong></div></div></div></div>
+        </div></div>
+        <div class="says"><b>Milla says:</b> “You only pay for meetings that are held, and your first one is free. Move the slider to however many you want and everything else follows.”</div>
+      </figure>
+    </div>
+    <p class="after">“The most you can pay” is the target, less the free meeting: 9 × $700 = $6,300. “Against cost” uses that same figure. Example figures in the illustration: a client is worth $25,000, and 20% of meetings become clients. After accepting, the Boutique client sees: <i>“Accepted. Your set-up is free, so there’s nothing to pay. We’ll start preparing your programme.”</i></p>
+  </section>
+
+  <!-- ═════════════════════ 3 · PROGRAMME CARD ═════════════════════ -->
+  <section class="screen" id="s3">
+    <div class="screen-head"><span class="num">3</span><div><h2>Milla · your programme card</h2><p class="where">Milla → Programme, while we find and prepare their people</p></div></div>
+    <p class="what">The price card becomes a terms card. Nothing says “paid” or “not yet paid”, because nothing is owed yet.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>a paying client, after paying</figcaption>
+        <div class="stage"><div class="tw"><div class="tw-card" style="margin-top:0">
+          <div class="tw-eyebrow">Programme</div><div class="tw-15">$1,990</div><div class="tw-line">Paid in full</div>
+          <p class="tw-note" style="margin-bottom:0">The payment authorises sourcing and preparation. Outreach starts only after you approve.</p></div></div></div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>after you authorise P1 internally</figcaption>
+        <div class="stage"><div class="tw"><div class="tw-card chg" style="margin-top:0">
+          <div class="tw-eyebrow">Your terms</div><div class="tw-15">$700 per held meeting</div><div class="tw-line">Set-up free · first held meeting free</div>
+          <p class="tw-note" style="margin-bottom:0">Your free set-up covers finding and preparing your people. Outreach starts only after you approve.</p></div></div></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ 4 · AFTER APPROVAL ═════════════════════ -->
+  <section class="screen" id="s4">
+    <div class="screen-head"><span class="num">4</span><div><h2>Milla · after you approve</h2><p class="where">Milla → Programme, between the client’s approval and going live</p></div></div>
+    <p class="what">Today only House gets a card here, and it talks about House and Vida. A Boutique client gets their own card, in plain words. A paying client sees nothing here, as now, because they paid at the start.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>House only</figcaption>
+        <div class="stage"><div class="mvz"><div class="mv-hero-card"><div class="mv-eyebrow">Second half</div><p>This is the House account, so there is nothing to pay. P2 is authorised internally in Vida.</p></div></div></div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>a Boutique client</figcaption>
+        <div class="stage"><div class="mvz"><div class="mv-hero-card chg"><div class="mv-eyebrow">Nothing to pay</div><p>Approved. There’s nothing to pay now. We do a final check, then your outreach starts.</p></div></div></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ 5 · ROI ═════════════════════ -->
+  <section class="screen" id="s5">
+    <div class="screen-head"><span class="num">5</span><div><h2>Milla · Your ROI</h2><p class="where">Milla → Your ROI, the top of the page</p></div></div>
+    <p class="what">The big tile shows the terms instead of a programme price. The other tiles stay as they are.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>a paying client</figcaption>
+        <div class="stage"><div class="tw">
+          <div class="tw-h1">Your ROI</div><div class="tw-sub">What your programme cost, and what it has produced.</div>
+          <div class="roi-grid">
+            <div class="roi-hero"><div><div class="l">Programme value</div><div class="v">$1,990</div><div class="s">Paid in full</div></div><div class="ic"></div></div>
+            <div class="roi-tile"><div class="v">10</div><div class="l">Booked meetings targeted</div><div class="s">the outcome you asked for</div></div>
+            <div class="roi-tile"><div class="v">0</div><div class="l">Meetings booked</div><div class="s">delivered so far</div></div>
+          </div></div></div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>a Boutique client</figcaption>
+        <div class="stage"><div class="tw">
+          <div class="tw-h1">Your ROI</div><div class="tw-sub chg">What you pay, and what it has produced.</div>
+          <div class="roi-grid">
+            <div class="roi-hero chg"><div><div class="l">Your terms</div><div class="v">$700<small>per held meeting</small></div><div class="s">Set-up and your first held meeting are free</div></div><div class="ic"></div></div>
+            <div class="roi-tile"><div class="v">10</div><div class="l">Booked meetings targeted</div><div class="s">the outcome you asked for</div></div>
+            <div class="roi-tile"><div class="v">0</div><div class="l">Meetings booked</div><div class="s">delivered so far</div></div>
+          </div></div></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ 6 · BILLING ═════════════════════ -->
+  <section class="screen" id="s6">
+    <div class="screen-head"><span class="num">6</span><div><h2>Milla · Billing</h2><p class="where">Milla → Billing</p></div></div>
+    <p class="what">One terms card replaces the price card and the payment card. Invoices stay where they are: any invoice you send through Stripe shows in the list, as it does today.</p>
+    <div class="pair">
+      <figure class="frame">
+        <figcaption><span class="chip now">Now</span>a paying client</figcaption>
+        <div class="stage"><div class="tw">
+          <div class="tw-h1">Billing</div><div class="tw-sub">Your programme payments, and what each one authorises.</div>
+          <div class="tw-card"><div class="tw-eyebrow">Programme</div><div class="tw-big">$1,990</div><div class="tw-line">10 qualified meetings · Programme</div></div>
+          <div class="tw-card"><div class="tw-eyebrow">One payment <span style="font-size:11px;margin-left:6px">in full</span></div><div class="tw-mid">$1,990</div><div class="tw-green">Paid</div>
+            <p class="tw-note" style="margin-bottom:0">Paid once, before we start. It authorises sourcing and preparation now, and outreach once you approve the prepared programme. Nothing else is due.</p></div>
+          <div class="tw-card"><div class="tw-eyebrow">Invoices</div>
+            <div class="tw-inv"><div><b>Invoice 0001 <span class="ex">example</span></b><small>3 Oct · paid</small></div><span class="amt">$1,990.00</span><span class="v">View</span></div>
+            <span class="tw-link">Documents &amp; Agreements</span></div>
+        </div></div>
+      </figure>
+      <figure class="frame">
+        <figcaption><span class="chip new">Boutique</span>a Boutique client</figcaption>
+        <div class="stage"><div class="tw">
+          <div class="tw-h1">Billing</div><div class="tw-sub chg">Your terms, and your invoices.</div>
+          <div class="tw-card chg"><div class="tw-eyebrow">Your terms</div><div class="tw-big">$700 per held meeting</div><div class="tw-line">Set-up free · your first held meeting free</div><div class="tw-line">10 qualified meetings · Programme</div>
+            <p class="tw-note" style="margin-bottom:0">You only pay for meetings that are held, and never for more than your target. Each invoice appears below.</p></div>
+          <div class="tw-card"><div class="tw-eyebrow">Invoices</div><p class="tw-note" style="margin:0">No invoices yet.</p>
+            <span class="tw-link">Documents &amp; Agreements</span></div>
+        </div></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ WHAT STAYS · BEHIND ═════════════════════ -->
+  <section class="screen" id="rest">
+    <h2>What stays the same, and what happens behind the screens</h2>
+    <div class="lists">
+      <div class="card"><h3>Stays the same</h3><ul>
+        <li><b>Every safety step</b> (R208 ③): the client approves the direction and the wording in Milla, you approve the wording in Vida, the sender is checked, and the programme is frozen before anything sends.</li>
+        <li><b>House</b> keeps its own path and its own words.</li>
+        <li><b>A paying client</b> sees exactly what they see today.</li>
+      </ul></div>
+      <div class="card"><h3>Behind the screens</h3><ul>
+        <li>Turning Boutique on is saved with who and when, and is <b>refused if the client has any payment on record</b> (R208 ②).</li>
+        <li>For a Boutique client, P1 and P2 can be authorised internally, with <b>no Stripe payment, no invoice and no revenue</b> (R208 ①).</li>
+        <li>Every payment page is <b>refused</b> for a Boutique client, so they can’t pay a programme price by mistake.</li>
+        <li>The $700 comes from the one price in the shared code that the website already uses (working rule 7), never typed on a screen.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ HOW IT SHIPS ═════════════════════ -->
+  <section class="screen" id="ship">
+    <h2>How it ships</h2>
+    <p style="margin-top:8px;color:var(--ink2)">This is bigger than I first said. The price shows on five Milla screens, not two. So block 1 goes as three PRs, in this order. Each is tested on its own, and you merge each one.</p>
+    <div class="card" style="margin-top:12px"><ol>
+      <li><b>Turn Boutique on:</b> the Vida box, saved with who and when, refused if the client has paid, with a test that proves the refusal works. Nothing else changes yet.</li>
+      <li><b>The free start:</b> P1 and P2 without payment for Boutique clients, payment pages refused for them, and Vida’s lifecycle line. House’s three lock tests change with it, plus a new test that proves a client who isn’t Boutique still can’t start free.</li>
+      <li><b>Milla shows your terms:</b> the five Milla screens above.</li>
+    </ol></div>
+    <p class="warnline">Please don’t turn Boutique on for a real client until all three are merged and we’ve walked it together.</p>
+  </section>
+
+  <!-- ═════════════════════ YOUR CALL ═════════════════════ -->
+  <section class="screen" id="call">
+    <h2>Two things for you to decide</h2>
+    <div class="call"><h3>1. Turning Boutique off again</h3>
+      <p class="rec"><b>My recommendation:</b> you can turn it off until P1 is authorised. After that it locks, because the free start has been used, and the box says <i>“Locked: the free start has been used.”</i></p></div>
+    <div class="call"><h3>2. “Qualified meetings” next to “per held meeting”</h3>
+      <p class="rec">Today Milla counts booked meetings against the target. The Boutique price is per <i>held</i> meeting. <b>My recommendation:</b> keep “qualified meetings” for the target now, and switch Boutique clients to “held meetings” in block 3, when Vida gets “Mark held” and there is a held count to show.</p></div>
+  </section>
+
+  <footer>
+    <p>Rules: R207 and R208 (9 Oct, PR #2827). The six screens are drawn from the live code: <code>apps/admin/src/app/vida/page.tsx</code> (the Commercial model and Programme lifecycle boxes), <code>ProgrammeCalculator.tsx</code>, <code>ProgrammeWorkspace.tsx</code>, <code>milla/programme/page.tsx</code>, <code>milla/roi/page.tsx</code> and <code>milla/billing/page.tsx</code>. Styles are copied from <code>packages/shared/src/design/mv-design.css</code> and the Tailwind classes on those screens. The Milla calculator and the after-approval card are shown 15% larger so they’re easy to read.</p>
+    <p>This is a layout preview, not a screenshot of a build. Nothing in it is live.</p>
+  </footer>
+</div>
+</body>
+</html>

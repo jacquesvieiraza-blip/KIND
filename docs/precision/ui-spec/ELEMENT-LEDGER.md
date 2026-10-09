@@ -1,5 +1,7 @@
 # The element ledger: every feature of both demos, and the row that builds it
 
+> ⛓️ **9 Oct (R210 ①): history.** Boutique M&V replaced the precision model. The element log for the Boutique demos, the reference now, is [`docs/boutique/ui-spec/`](../../boutique/ui-spec/).
+
 > **1118 entries** (Milla 622, Vida 496): the 1,040 from ten line-by-line readings of the two demos plus two de-duplication passes (8 Oct), and **78 added 8 Oct by the browser check** (every rendered element matched one by one, then independently re-checked; see `COVERAGE-CHECK.md`). Each entry names its build row and card. R205: the founder approves each screen's layout before it is built, and Vida is refined, simpler and better.
 
 ## Milla (622)

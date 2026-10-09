@@ -34,7 +34,7 @@
 18. Out-of-scope discoveries: blocks safe completion → **STOP**; otherwise **REPORT** it and continue the scoped work. **Never fix it silently.**
 19. The weekly audit is **CHANGE-BASED** from the last persisted `audited-through` SHA — never whole-repo archaeology (RULEBOOK §15.15).
 20. **MERGE IS NEVER CLAUDE'S.** After BUILD or DOC RECONCILIATION, Claude produces the PR, diff, tests and evidence — then **STOPS**. ⛓️ **24 Sep (R154): nothing goes to GPT any more — the founder merges on Claude's PR, tests and evidence.** ~~The founder routes the result through **GPT-5.6 independent review**, and MERGE requires the founder's authorisation after that review.~~ **Claude's own self-review is never merge authorisation** (extends R41/P3). **GPT-5.6 is NOT a new source of product truth** — it classifies, scopes and reviews founder intent; PRODUCT-RULES and explicit founder decisions remain authoritative.
-21. **MEETING_BOOKED** remains the hard downstream product-outcome boundary unless the founder explicitly changes it.
+21. **MEETING_BOOKED** remains the hard downstream product-outcome boundary unless the founder explicitly changes it. ⛓️ *9 Oct (R207 ⑤): for Boutique clients the founder widened it to the client's objectives — held meetings, or people who turn up at an event.*
 22. No new summary/current-truth document **unless the founder explicitly changes this rule and approves it** (the BUILD-STATUS lesson — RULEBOOK §15.19).
 
 ## Single source of truth — the one rule that keeps it clean

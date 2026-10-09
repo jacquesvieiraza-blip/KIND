@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Six-Week Staged Plan</title>
+<style>
+:root{--bg:#f6f4f8;--panel:#fff;--ink:#17141c;--ink2:#3a3442;--muted:#6f6878;--line:#e6e0ec;--accent:#6f3df4;--accent-soft:#f1ebff;--good:#177552;--goodbg:#e8f6ee;--warn:#8f5f10;--warnbg:#fff3d9;--bad:#b23a48;--badbg:#ffeef0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141218;--panel:#1d1a23;--ink:#efeaf5;--ink2:#d6cfe0;--muted:#a59db0;--line:#332d3d;--accent:#a98bff;--accent-soft:#2a2340;--good:#6fd3a1;--goodbg:#16301f;--warn:#f0c46c;--warnbg:#382c12;--bad:#ff8f9c;--badbg:#3a1a20}}
+:root[data-theme="dark"]{--bg:#141218;--panel:#1d1a23;--ink:#efeaf5;--ink2:#d6cfe0;--muted:#a59db0;--line:#332d3d;--accent:#a98bff;--accent-soft:#2a2340;--good:#6fd3a1;--goodbg:#16301f;--warn:#f0c46c;--warnbg:#382c12;--bad:#ff8f9c;--badbg:#3a1a20}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 Inter,-apple-system,"Segoe UI",system-ui,sans-serif;margin:0}
+main{max-width:1060px;margin:0 auto;padding-inline:16px;padding-block:22px 56px}
+main>*,section>*{min-width:0}
+h1{font-size:28px;line-height:1.2;margin:0 0 6px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:19px;margin:30px 0 8px;text-wrap:balance}
+h3{font-size:15px;margin:18px 0 6px}
+p,li{max-width:76ch}
+.muted{color:var(--muted)}
+.lede{font-size:16px;color:var(--ink2)}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:12px;padding:14px 16px;margin:16px 0}
+.verdict b.big{font-size:18px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tile .v{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile.good{border-color:color-mix(in srgb,var(--good) 40%,var(--line))}.tile.good .v{color:var(--good)}
+.tile.warn .v{color:var(--warn)}.tile.bad .v{color:var(--bad)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.n,td.d{white-space:nowrap;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+.g{background:var(--goodbg);color:var(--good)}.w{background:var(--warnbg);color:var(--warn)}.b{background:var(--badbg);color:var(--bad)}.p{background:var(--accent-soft);color:var(--accent)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:10px 0}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.step b{display:block;color:var(--accent);font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+ol li,ul li{margin:4px 0}
+.note{font-size:13px;color:var(--muted)}
+code{font-size:13px}
+</style>
+</head>
+<body>
+
+<main>
+<h1>Six-Week Staged Plan</h1>
+<div class="verdict" style="border-left-color:var(--accent)"><b>🔒 LOCKED, NOT STARTED (R206, 8 Oct).</b> This is the plan of record. Nothing is built from it until the founder says "we do 6 week run". If he does not, it changes. The dates assume day 1 is Fri 9 Oct; if the run starts later they move with it, and whether the six weeks still end Thu 19 Nov (R202) is the founder's call.</div>
+
+<p class="lede">The precision build, one stage at a time, with your layout approval before every screen (R205). Day 1 is Fri 9 Oct. The deadline is Thu 19 Nov. Nothing is built until you approve this plan and the first stage's layout.</p>
+
+<div class="verdict">
+<b class="big">Honest verdict: it fits only if I build at my best real pace. Most likely, "everything live and walked" lands about a week late. The money path and the pilot fit.</b>
+<p style="margin:8px 0 0">Taking the <b>$1,500 setup by card</b> lands in mid-October in every case, so <b>a paying client by week 6 is possible</b> if you have a buyer. <b>Two held meetings</b> depend on Apollo working this week. <b>Everything else</b> depends on my real build pace, which we measure in week 1. The checkpoint where you decide is <b>Fri 23 Oct</b>.</p>
+</div>
+
+<div class="grid3">
+<div class="tile good"><div class="k">Best case · 11 PRs a day</div><div class="v">Wed 4 Nov</div><div>Everything live and walked, 15 days spare</div></div>
+<div class="tile warn"><div class="k">Most likely · 8 PRs a day</div><div class="v">Fri 27 Nov</div><div>About 8 days late</div></div>
+<div class="tile bad"><div class="k">Worst case · 5 PRs a day</div><div class="v">Sun 17 Jan</div><div>59 days late</div></div>
+</div>
+<p class="note">How these were worked out:
+<ul class="note">
+<li>The whole build is 159–299 pull requests across 10 stages, sized from each row's work.</li>
+<li>Each is built one at a time, at a pace I've actually reached building in order: 5 a day in the recent small-fix days, 11 a day on 22 Sep.</li>
+<li>Added on top: 15–30% for fixes your walks find (every walk so far found something), half a day to a day and a half per stage for your layout round and walk, and 5–8 days of hand research for the House pilot.</li>
+<li>The Slack, WhatsApp, Always-On and Quarterly Review screens are built as your demos show them: Coming-soon previews.</li>
+</ul>
+A separate planning check estimated March 2028. That forecast assumed I build only 4 hours a day (a figure taken from your merge pattern), and its hour estimates were typical developer hours. It is too pessimistic to plan on, but if my real pace turns out low, it's the warning. Week 1 tells us which is true.</p>
+
+<h2>What you do first</h2>
+<ol>
+<li><b>Fix Apollo's billing today</b> (card #2821, about 20 minutes), then read its price for extra credits. I re-checked tonight, and every request is still refused. If it isn't working by Fri 16 Oct, the week-2 pass mark is lost. If it isn't working by 1 Nov, two held meetings by 19 Nov are very unlikely.</li>
+<li><b>Decide whose privacy page the email footer links to</b> (yours as controller, or ours as processor), then approve the footer for the hand-sent pilot. It's needed before the first send, around 12 Oct.</li>
+<li><b>Sign the legitimate-interest record</b> I draft (about 30 minutes), and <b>send Apollo the email I draft</b> asking whether sending for clients is allowed.</li>
+<li><b>Check the Railway variables with me</b>, then cancel Smartlead and ChatGPT.</li>
+<li><b>Mark stage 1's layout preview:</b> Billing and the $1,500 setup step.</li>
+<li><b>Check the first 50 people's dated reasons</b> (about an hour), then about an hour a day of drafts until 22 Oct.</li>
+<li><b>Walk the live website</b> by 22 Oct (about 2 hours).</li>
+<li><b>Line up buyers for client #1.</b> They can pay in the product once stage 1 is walked.</li>
+</ol>
+
+<h2>How every stage runs</h2>
+<div class="steps">
+<div class="step"><b>1 · Layout</b>I show you the stage's screens as an HTML preview, built from your demo with the precision details.</div>
+<div class="step"><b>2 · You approve</b>You mark changes. Vida gets simpler and better here. Nothing is built before your OK.</div>
+<div class="step"><b>3 · Build</b>One build only, never several at once. Each PR has its tests; the full check runs once at the end.</div>
+<div class="step"><b>4 · You walk it</b>Live, on your screens. Fixes first, then the next stage. I prepare the next preview while you walk.</div>
+</div>
+
+<h2>The ten stages</h2>
+<p class="muted">Done-by means walked by you. Dates are for the best, likely and worst pace. The order puts money first, then the client's path in step order, then Vida, then the intelligence layer.</p>
+<div class="tw"><table>
+<thead><tr><th>Stage</th><th>What it delivers</th><th>You approve the layout of</th><th>PRs</th><th>Done by: best · likely · worst</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td><b>Take the $1,500 setup by card</b>, and Milla stops showing the old model. Also a weekly real production run, so the working mechanics stay checked.</td><td>Billing, the setup step, Milla's reworded screens</td><td class="n">8–14</td><td class="d">14 Oct · 17 Oct · 21 Oct</td></tr>
+<tr><td class="n">2</td><td><b>Lawful sending, US only</b> (footer, opt-out, the privacy link), and House's real state shown the same everywhere.</td><td>The sending status wherever it shows</td><td class="n">8–16</td><td class="d">16 Oct · 19 Oct · 27 Oct</td></tr>
+<tr><td class="n">3</td><td><b>The client's own sender and reply path:</b> 2 mailboxes at 50 a day in the client's Google account, with replies coming back.</td><td>Mailbox setup for a client</td><td class="n">5–10</td><td class="d">17 Oct · 22 Oct · 31 Oct</td></tr>
+<tr><td class="n">4</td><td><b>Milla's 7-step shell and chat</b>, with the top-right drop-down kept, and <b>Step 1 Context</b> on the client's CRM and calendar.</td><td>The Milla frame, step rail, chat, Context</td><td class="n">14–27</td><td class="d">19 Oct · 26 Oct · 8 Nov</td></tr>
+<tr><td class="n">5</td><td><b>Step 2 Brief</b> starting from the outcome, and <b>Step 3 Proof:</b> 10 named people, each with a dated, sourced reason.</td><td>Brief, Proof</td><td class="n">14–27</td><td class="d">21 Oct · 30 Oct · 17 Nov</td></tr>
+<tr><td class="n">6</td><td><b>The weekly list</b> (100 people a client), <b>research</b>, <b>three emails per person</b>, and Vida's <b>Quality queue</b> (approve exactly what's sent).</td><td>Vida Quality queue</td><td class="n">23–42</td><td class="d">24 Oct · 5 Nov · 29 Nov</td></tr>
+<tr><td class="n">7</td><td><b>Step 4 This Week</b>, the final check before every send, the mailbox fleet, and one shared record for Milla and Vida.</td><td>This Week, Mailbox fleet</td><td class="n">10–20</td><td class="d">25 Oct · 8 Nov · 6 Dec</td></tr>
+<tr><td class="n">8</td><td><b>Step 5 Conversations</b> and Vida's <b>Reply queue</b>; <b>Step 6 Meetings</b> with the held rule from your Terms and the $700 charge.</td><td>Conversations, Reply queue, Meetings</td><td class="n">10–19</td><td class="d">27 Oct · 11 Nov · 13 Dec</td></tr>
+<tr><td class="n">9</td><td><b>Vida refined, simpler and better:</b> the frame, your sales team (SDR, BDR, CSM, you as lead), the Today board, client detail, health, and capacity.</td><td>All of Vida</td><td class="n">26–50</td><td class="d">30 Oct · 18 Nov · 27 Dec</td></tr>
+<tr><td class="n">10</td><td><b>Home</b>, <b>Step 7 Outcomes</b>, the <b>intelligence layer</b> (My ICP, Documents, Conversion, Show the Money, Next Market), <b>Coaching</b>, and Slack, WhatsApp, Always-On and Quarterly Review as your demos show them (Coming soon).</td><td>Home, Outcomes, each intelligence screen, Coaching</td><td class="n">41–74</td><td class="d">4 Nov · 27 Nov · 17 Jan</td></tr>
+</tbody></table></div>
+<p class="note">Rows outside the build stages are done alongside them, because they need you or are already done: the decisions, the law paperwork, the House pilot, the website walk (W0–W15, live since 8 Oct) and the logging rows. Every build row in the 1,118-element ledger sits in one of these stages.</p>
+
+<h2>Alongside, from day 1: the House pilot, by hand</h2>
+<p>The pilot doesn't wait for the build, and the build never waits for it. It needs Apollo working by about 10 Oct.</p>
+<div class="tw"><table>
+<thead><tr><th>When</th><th>What</th><th>Pass mark (R202 ⑦)</th></tr></thead>
+<tbody>
+<tr><td class="d">9–11 Oct</td><td>I research companies and dated reasons. You check them.</td><td>—</td></tr>
+<tr><td class="d">12–14 Oct</td><td>The first 50 people are emailed from House's mailboxes, by hand, each email written for one person.</td><td>—</td></tr>
+<tr><td class="d">Thu 22 Oct</td><td>250 people emailed. Replies answered the same day.</td><td><span class="pill p">3 positive replies</span></td></tr>
+<tr><td class="d">Thu 29 Oct</td><td>About 350 emailed.</td><td><span class="pill p">2 meetings booked</span></td></tr>
+<tr><td class="d">Thu 5 Nov</td><td>The first meetings happen.</td><td><span class="pill p">1 held meeting</span></td></tr>
+<tr><td class="d">Thu 19 Nov</td><td>The week-6 test.</td><td><span class="pill p">2 held meetings</span></td></tr>
+</tbody></table></div>
+
+<h2>What you see every Friday</h2>
+<ul>
+<li><b>16 Oct:</b> the first scorecard (sent, replies, positive), stage 1 walked or close, and my real pace so far.</li>
+<li><b>23 Oct (the checkpoint):</b> the week-2 pass mark and the measured pace, with the forecast redone from real numbers. If the most likely finish is still after 19 Nov, you decide here, not at week 6.</li>
+<li><b>30 Oct, 6 Nov, 13 Nov:</b> the scorecard against the pass marks, the stages walked, and the forecast.</li>
+<li><b>19 Nov:</b> the week-6 test.</li>
+</ul>
+
+<h2>The week-6 test, condition by condition</h2>
+<div class="tw"><table>
+<thead><tr><th>Condition (R202 ③)</th><th>Where it stands</th></tr></thead>
+<tbody>
+<tr><td>At least 1 client who has paid the $1,500 setup</td><td><span class="pill g">Fits</span> The product can take the setup from stage 1, mid-October. It depends on you finding the buyer.</td></tr>
+<tr><td>At least 2 held meetings from the House pilot</td><td><span class="pill w">Depends on Apollo</span> Emails need to go out by about 14 Oct, because replies, booking and the meeting take 2–3 weeks. At your worst case of 1 held meeting per 1,300 people, 350 people would give none. The pilot has to beat it, which is what it's for.</td></tr>
+<tr><td>Everything live and walked by you</td><td><span class="pill w">Best case only</span> On 4 Nov at the best pace, 27 Nov most likely, 17 Jan at worst. Decided at the 23 Oct checkpoint.</td></tr>
+</tbody></table></div>
+
+<h2>Decisions only you can make</h2>
+<ol>
+<li><b>If the 23 Oct forecast still lands after 19 Nov:</b> keep the full test and accept the date, or judge week 6 on a core set (money, the client's 7 steps, the Vida queues, the pilot) with the rest following on a dated plan. Or stop.</li>
+<li><b>Take the $1,500 on today's Milla screens</b> (stage 1), before the 7 steps are rebuilt in stages 4–5? I recommend yes. Otherwise the first setup payment waits until about stage 5.</li>
+<li><b>When the 3-business-day challenge window starts</b> for the $700 charge. The code counts from booking; your Terms count from the meeting. This is needed before stage 8.</li>
+<li><b>Slack, WhatsApp, Always-On and Quarterly Review</b> built as your demos show them (Coming-soon screens) inside the six weeks, with the full integrations after? I recommend yes. It's how the demos present them.</li>
+<li><b>Who presses send in the pilot:</b> you by hand (about 17 hours over 4 weeks), or I put each approved email in House's Gmail as a draft for you to send.</li>
+<li><b>If Apollo is still blocked on Fri 16 Oct:</b> is any other source of contact details allowed? Your rule (R200 ⑥) says Apollo only.</li>
+<li><b>The old volume rules</b> (batches of 250, auto top-up, the shared pool, caps per meeting): your new wording for each, before stage 6.</li>
+</ol>
+
+<h2>Risks, plainly</h2>
+<ul>
+<li><b>Apollo.</b> It's blocked today, and it's the pilot's only source of contact details.</li>
+<li><b>My pace on the hard parts.</b> Card charges that run without the client present, reading HubSpot and Pipedrive deals, and the client's own mailboxes are new work. If they go slowly, the most likely date moves toward the worst.</li>
+<li><b>Every walk so far found defects.</b> I've allowed 15–30% for fixes.</li>
+<li><b>Your time:</b> about 8, 15, 16, 8, 7 and 3 hours in weeks 1 to 6, mostly checking pilot reasons and drafts, plus layout rounds. Anything sent after about 7pm waits overnight.</li>
+<li><b>Out of our hands:</b> Google's calendar verification, Meta's WhatsApp approval, a new client's 2–4 week mailbox warm-up, and when people reply.</li>
+</ul>
+
+<p class="note" style="margin-top:28px">Sources: the 114 build rows and the 1,118-element ledger in <code>docs/precision/</code> (merged #2825), your rulings R200–R205, the PR history since 28 Aug (372 merges), a code-level estimate of every row, and Apollo re-checked on 8 Oct. When you approve the plan, I'll record it in GitHub with your decisions, word for word.</p>
+</main>
+
+</body>
+</html>

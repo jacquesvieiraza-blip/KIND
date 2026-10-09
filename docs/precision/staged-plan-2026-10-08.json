@@ -1,0 +1,185 @@
+{
+ "stages": [
+  {
+   "n": "1",
+   "name": "Safety net + take the $1,500 setup by card; Milla stops showing the old model",
+   "rows": [
+    "T8",
+    "M0",
+    "M4"
+   ],
+   "prs_lo": 8,
+   "prs_hi": 14,
+   "best": "2026-10-14",
+   "likely": "2026-10-17",
+   "worst": "2026-10-21"
+  },
+  {
+   "n": "2",
+   "name": "Lawful sending, US only; House's real state everywhere",
+   "rows": [
+    "L2",
+    "L4",
+    "L6",
+    "T1",
+    "T2",
+    "T3",
+    "T4"
+   ],
+   "prs_lo": 8,
+   "prs_hi": 16,
+   "best": "2026-10-16",
+   "likely": "2026-10-19",
+   "worst": "2026-10-27"
+  },
+  {
+   "n": "3",
+   "name": "The client's own sender and reply path",
+   "rows": [
+    "T5",
+    "T6",
+    "C7"
+   ],
+   "prs_lo": 5,
+   "prs_hi": 10,
+   "best": "2026-10-17",
+   "likely": "2026-10-22",
+   "worst": "2026-10-31"
+  },
+  {
+   "n": "4",
+   "name": "Milla's 7-step shell, chat, and Step 1 Context on the CRM",
+   "rows": [
+    "M1",
+    "T7",
+    "C8",
+    "M9",
+    "M15"
+   ],
+   "prs_lo": 14,
+   "prs_hi": 27,
+   "best": "2026-10-19",
+   "likely": "2026-10-26",
+   "worst": "2026-11-08"
+  },
+  {
+   "n": "5",
+   "name": "Step 2 Brief and Step 3 Proof: 10 named people with a dated reason",
+   "rows": [
+    "C13",
+    "M10",
+    "C1",
+    "C9",
+    "M11"
+   ],
+   "prs_lo": 14,
+   "prs_hi": 27,
+   "best": "2026-10-21",
+   "likely": "2026-10-30",
+   "worst": "2026-11-17"
+  },
+  {
+   "n": "6",
+   "name": "The weekly list, research, three emails, and the Quality queue",
+   "rows": [
+    "C14",
+    "C2",
+    "C3",
+    "H7",
+    "C4",
+    "C5"
+   ],
+   "prs_lo": 23,
+   "prs_hi": 42,
+   "best": "2026-10-24",
+   "likely": "2026-11-05",
+   "worst": "2026-11-29"
+  },
+  {
+   "n": "7",
+   "name": "Step 4 This Week, the final check, the mailbox fleet, one shared record",
+   "rows": [
+    "C10",
+    "M2",
+    "O7",
+    "C12"
+   ],
+   "prs_lo": 10,
+   "prs_hi": 20,
+   "best": "2026-10-25",
+   "likely": "2026-11-08",
+   "worst": "2026-12-06"
+  },
+  {
+   "n": "8",
+   "name": "Step 5 Conversations, the Reply queue, Step 6 Meetings, the held rule",
+   "rows": [
+    "O2",
+    "M12",
+    "M3",
+    "C11",
+    "O9"
+   ],
+   "prs_lo": 10,
+   "prs_hi": 19,
+   "best": "2026-10-27",
+   "likely": "2026-11-11",
+   "worst": "2026-12-13"
+  },
+  {
+   "n": "9",
+   "name": "Vida refined: simpler frame, the sales team, Today, Client detail, health, capacity",
+   "rows": [
+    "O1",
+    "O3",
+    "O10",
+    "O4",
+    "O6",
+    "O5",
+    "O8",
+    "O11"
+   ],
+   "prs_lo": 26,
+   "prs_hi": 50,
+   "best": "2026-10-30",
+   "likely": "2026-11-18",
+   "worst": "2026-12-27"
+  },
+  {
+   "n": "10",
+   "name": "Home, Step 7 Outcomes, the intelligence layer, Coaching; Slack/WhatsApp/Always-On/Quarterly as the demos show them (Coming soon)",
+   "rows": [
+    "M8",
+    "C6",
+    "M13",
+    "I1",
+    "I2",
+    "I3",
+    "I4",
+    "I5",
+    "M14",
+    "L5",
+    "CO2",
+    "CO3",
+    "CO4",
+    "CO5",
+    "CO6",
+    "I6",
+    "I7",
+    "I8",
+    "I9",
+    "X1",
+    "X2"
+   ],
+   "prs_lo": 41,
+   "prs_hi": 74,
+   "best": "2026-11-04",
+   "likely": "2026-11-27",
+   "worst": "2027-01-17"
+  }
+ ],
+ "totals": [
+  159,
+  299
+ ]
+}
